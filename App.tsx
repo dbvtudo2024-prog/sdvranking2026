@@ -100,14 +100,13 @@ const App: React.FC = () => {
     await DatabaseService.deleteMember(id);
   };
 
-  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty') => {
+  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => {
     try {
       const currentMembers = await DatabaseService.getMembers();
       
       const promises = currentMembers.map(m => {
         let updatedScores = Array.isArray(m.scores) ? [...m.scores] : [];
         
-        // Aplica o reset em cada objeto de score do array
         const resetScores = updatedScores.map(s => {
           const newScore = { ...s };
           if (type === 'members') {
@@ -125,21 +124,19 @@ const App: React.FC = () => {
             newScore.memoryGame = 0;
           } else if (type === 'specialty') {
             newScore.specialtyGame = 0;
+          } else if (type === '1x1') {
+            newScore.challenge1x1 = 0;
           }
           return newScore;
         });
 
-        // Retorna a promessa de atualização do membro individual
         return DatabaseService.updateMember({ 
           ...m, 
           scores: resetScores 
         });
       });
 
-      // Aguarda TODAS as atualizações no Supabase
       await Promise.all(promises);
-      
-      // Força a atualização do estado local buscando os dados novos do banco
       const refreshed = await DatabaseService.getMembers();
       setMembers(refreshed);
       

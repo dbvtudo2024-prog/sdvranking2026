@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword } from 'lucide-react';
 import { Member } from '../types';
 
 interface AdminManagementProps {
@@ -11,7 +11,7 @@ interface AdminManagementProps {
   onGoToAdminQuiz: () => void;
   onGoToAdminSpecialty: () => void;
   onAddCounselor: (name: string) => void;
-  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty') => Promise<void>;
+  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => Promise<void>;
   quizOverride: boolean;
   onToggleQuizOverride: () => void;
   memoryOverride: boolean;
@@ -45,12 +45,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   const inputClasses = "w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#0061f2] outline-none font-bold text-slate-700 transition-all text-sm";
 
-  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty', label: string) => {
-    // PRIMEIRA CONFIRMAÇÃO
+  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1', label: string) => {
     const confirm1 = confirm(`CONFIRMAÇÃO 1: Deseja zerar todos os pontos de ${label.toUpperCase()}?`);
     if (!confirm1) return;
     
-    // SEGUNDA CONFIRMAÇÃO
     const confirm2 = confirm(`⚠️ CONFIRMAÇÃO FINAL: Esta ação vai apagar permanentemente os pontos de ${label} de TODOS os membros no banco de dados. Podemos prosseguir?`);
     if (!confirm2) return;
 
@@ -137,7 +135,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
 
-        {/* SEÇÃO RESTRITA AO EMAIL DO ADMINISTRADOR MASTER */}
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 shadow-xl shadow-red-900/5 space-y-6">
             <div className="text-center">
@@ -147,7 +144,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </div>
               <p className="text-[10px] text-red-400 font-bold uppercase mb-6">Esta área é visível apenas para você. Ações irreversíveis.</p>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                 <button 
                   disabled={!!isResetting}
                   onClick={() => handleResetClick('members', 'Membros (Semanal)')}
@@ -179,6 +176,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 >
                   {isResetting === 'specialty' ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                   {isResetting === 'specialty' ? 'Limpando...' : 'Zerar Especialidade'}
+                </button>
+                <button 
+                  disabled={!!isResetting}
+                  onClick={() => handleResetClick('1x1', 'Arena 1x1')}
+                  className="bg-white text-red-600 border border-red-200 p-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-2 shadow-sm active:scale-95 disabled:opacity-50 min-h-[90px]"
+                >
+                  {isResetting === '1x1' ? <Loader2 className="animate-spin" size={18} /> : <Sword size={18} />}
+                  {isResetting === '1x1' ? 'Limpando...' : 'Zerar Arena 1x1'}
                 </button>
               </div>
             </div>

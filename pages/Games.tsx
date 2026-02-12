@@ -1,10 +1,11 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal } from 'lucide-react';
+import { Gamepad2, Brain, Lock, Medal, Sword } from 'lucide-react';
 import { AuthUser, Member, UserRole } from '../types';
 import QuizSelection from './QuizSelection';
 import MemoryGame from './MemoryGame';
 import SpecialtyGame from './SpecialtyGame';
+import Challenge1x1Page from './Challenge1x1';
 
 interface GamesProps {
   user: AuthUser;
@@ -23,14 +24,12 @@ const Games: React.FC<GamesProps> = ({
   memoryOverride, 
   specialtyOverride 
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1'>('hub');
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
   }, [members, user.id, user.name]);
 
-  // Lógica de desbloqueio: Agora depende apenas do dia ou do botão ativado (override)
-  // Removido o 'isLeadership' para que o admin possa ver o estado real do bloqueio
   const memoryStatus = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
@@ -59,37 +58,16 @@ const Games: React.FC<GamesProps> = ({
   };
 
   if (activeGame === 'quiz') {
-    return (
-      <QuizSelection 
-        user={user} 
-        members={members} 
-        onUpdateMember={onUpdateMember} 
-        onBack={() => setActiveGame('hub')} 
-        quizOverride={quizOverride}
-      />
-    );
+    return <QuizSelection user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} quizOverride={quizOverride} />;
   }
   if (activeGame === 'memory') {
-    return (
-      <MemoryGame 
-        user={user} 
-        members={members} 
-        onUpdateMember={onUpdateMember} 
-        onBack={() => setActiveGame('hub')}
-        memoryOverride={memoryOverride}
-      />
-    );
+    return <MemoryGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} memoryOverride={memoryOverride} />;
   }
   if (activeGame === 'specialty') {
-    return (
-      <SpecialtyGame 
-        user={user} 
-        members={members} 
-        onUpdateMember={onUpdateMember} 
-        onBack={() => setActiveGame('hub')}
-        specialtyOverride={specialtyOverride}
-      />
-    );
+    return <SpecialtyGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} specialtyOverride={specialtyOverride} />;
+  }
+  if (activeGame === '1x1') {
+    return <Challenge1x1Page user={user} members={members} onBack={() => setActiveGame('hub')} onUpdateMember={onUpdateMember} />;
   }
 
   const buttonBaseClasses = "w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all border-2 border-b-4 active:scale-95 px-6";
@@ -103,7 +81,7 @@ const Games: React.FC<GamesProps> = ({
       <h2 className="text-[#001f3f] text-2xl font-black mb-8 tracking-tight uppercase text-center">Central de Desafios</h2>
 
       <div className="flex flex-col gap-5 w-full">
-        {/* BOTÃO QUIZ */}
+        {/* 1. QUIZ (Sempre primeiro) */}
         <button 
           onClick={() => setActiveGame('quiz')}
           className={`${buttonBaseClasses} bg-white border-[#0061f2] text-[#0061f2] shadow-lg shadow-blue-500/10 hover:bg-blue-50`}
@@ -115,7 +93,7 @@ const Games: React.FC<GamesProps> = ({
           </div>
         </button>
 
-        {/* BOTÃO QUAL A ESPECIALIDADE */}
+        {/* 2. ESPECIALIDADE */}
         <div className="relative w-full">
           <button 
             disabled={!specialtyStatus.unlocked || (specialtyStatus.alreadyPlayed && user.role === UserRole.PATHFINDER)}
@@ -136,7 +114,7 @@ const Games: React.FC<GamesProps> = ({
           {!specialtyStatus.unlocked && <div className="absolute -top-2 -right-2 bg-slate-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">BLOQUEADO</div>}
         </div>
 
-        {/* BOTÃO JOGO DA MEMÓRIA */}
+        {/* 3. MEMÓRIA */}
         <div className="relative w-full">
           <button 
             disabled={!memoryStatus.unlocked || (memoryStatus.alreadyPlayed && user.role === UserRole.PATHFINDER)}
@@ -156,6 +134,18 @@ const Games: React.FC<GamesProps> = ({
           </button>
           {!memoryStatus.unlocked && <div className="absolute -top-2 -right-2 bg-slate-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">BLOQUEADO</div>}
         </div>
+
+        {/* 4. DESAFIO 1x1 (Agora no final da lista) */}
+        <button 
+          onClick={() => setActiveGame('1x1')}
+          className={`${buttonBaseClasses} bg-blue-600 border-blue-800 text-white shadow-xl shadow-blue-500/20 hover:brightness-110`}
+        >
+          <Sword size={28} className="text-yellow-400 shrink-0" />
+          <div className="flex flex-col items-start leading-tight min-w-0">
+            <span className="uppercase tracking-widest text-sm truncate w-full">Desafio 1x1</span>
+            <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">duele contra um amigo ou robô</span>
+          </div>
+        </button>
       </div>
     </div>
   );

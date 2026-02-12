@@ -23,12 +23,13 @@ export interface Score {
   quizCategory?: 'Desbravadores' | 'Bíblia';
   memoryGame?: number;
   specialtyGame?: number;
+  challenge1x1?: number;
 }
 
 export interface Member {
   id: string;
   name: string;
-  role: UserRole; // Adicionado para identificar no ranking
+  role: UserRole;
   age: number;
   className: string;
   joinedAt: string;
@@ -67,7 +68,15 @@ export interface QuizQuestion {
   correctAnswer: number;
 }
 
-export interface QuizState {
-  lastPlayed: Record<string, string>; // userId_category -> ISO Date
-  adminOverride: boolean;
+export interface Challenge1x1 {
+  id: string;
+  challengerId: string;
+  challengedId: string;
+  challengerName: string;
+  status: 'pending' | 'accepted' | 'declined' | 'playing' | 'finished';
+  currentQuestion: number;
+  scores: { [memberId: string]: number };
+  questionIds: string[];
+  lastAnsweredBy?: string;
+  winnerId?: string;
 }

@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1 } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -55,9 +55,35 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
+  // Added missing deleteMember method to fix property does not exist error in App.tsx
   async deleteMember(id: string) {
     const { error } = await supabase.from('members').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  // --- DESAFIOS 1x1 ---
+  async createChallenge(challenge: Challenge1x1) {
+    const { error } = await supabase.from('challenges').insert([challenge]);
+    if (error) throw error;
+  },
+
+  async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
+    const { error } = await supabase.from('challenges').update(updates).eq('id', id);
+    if (error) throw error;
+  },
+
+  subscribeToChallenges(memberId: string, callback: (challenge: Challenge1x1) => void) {
+    return supabase
+      .channel('challenges_realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'challenges',
+        filter: `or(challengerId.eq.${memberId},challengedId.eq.${memberId})`
+      }, (payload) => {
+        callback(payload.new as Challenge1x1);
+      })
+      .subscribe();
   },
 
   // --- USUÁRIOS ---
@@ -107,7 +133,7 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  // --- ESPECIALIDADES (Tabela EspecialidadesDBV) ---
+  // --- ESPECIALIDADES ---
   async getSpecialties(): Promise<SpecialtyDBV[]> {
     try {
       const { data, error } = await supabase
