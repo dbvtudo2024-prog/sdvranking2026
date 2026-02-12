@@ -10,9 +10,6 @@ interface LeadershipProps {
 
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
-  
-  // Imagem 1 fornecida pelo usuário
-  const LOGO_OFFICIAL = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
 
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -36,12 +33,8 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
-      {/* Cabeçalho com o Brasão Oficial */}
-      <div className="pt-10 pb-6 flex flex-col items-center justify-center bg-white border-b border-slate-100 shadow-sm">
-         <div className="w-32 h-32 mb-4 drop-shadow-2xl animate-in zoom-in-50 duration-700">
-           <img src={LOGO_OFFICIAL} alt="Sentinelas da Verdade" className="w-full h-full object-contain" />
-         </div>
-         <h2 className="text-2xl font-black text-[#0061f2] uppercase tracking-tighter">Corpo Diretivo</h2>
+      <div className="pt-8 pb-4 text-center">
+         <h2 className="text-2xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">Sentinelas da Verdade</p>
       </div>
 

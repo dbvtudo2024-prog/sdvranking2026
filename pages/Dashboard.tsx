@@ -11,7 +11,6 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectUnit }) => {
-  // Garante que members seja sempre tratado como array
   const safeMembers = Array.isArray(members) ? members : [];
 
   const getUnitStats = (unit: UnitName) => {
@@ -40,13 +39,14 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500 bg-slate-50">
-      <div className="py-4 sm:py-6 text-center">
-        <p className="text-[#0061f2] text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-          <TrendingUp size={14} /> Gerenciamento e Pontuação
+      <div className="pt-8 pb-4 px-6">
+         <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Painel de Unidades</h2>
+         <p className="text-[#0061f2] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 mt-1">
+          <TrendingUp size={12} /> Resumo de Pontuação Geral
         </p>
       </div>
 
-      <div className="px-2 sm:px-4 space-y-4">
+      <div className="px-2 sm:px-4 space-y-4 pt-2">
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => onSelectUnit(UnitName.AGUIA_DOURADA)}
