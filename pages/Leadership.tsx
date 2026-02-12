@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { User, Shield, X, Award, Mail } from 'lucide-react';
+import { User, Shield, X, Award, ShieldCheck } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -11,18 +11,22 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
-  // Filtra membros que possuem papel de liderança
-  const leaders = (members || []).filter(m => m.role === UserRole.LEADERSHIP);
+  // Filtra membros que são da Liderança. 
+  // Comparamos o papel (role) ou se a unidade é Liderança para garantir que ninguém fique de fora.
+  const leaders = (members || []).filter(m => 
+    m.role === UserRole.LEADERSHIP || 
+    m.unit === UnitName.LIDERANCA
+  );
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center py-6">
-        <h2 className="text-[#0061f2] text-sm sm:text-lg font-black uppercase tracking-[0.3em] drop-shadow-sm">
-          EQUIPE DE LIDERANÇA
+        <h2 className="text-[#0061f2] text-sm sm:text-lg font-black uppercase tracking-[0.3em] drop-shadow-sm flex items-center justify-center gap-3">
+          <ShieldCheck size={24} /> EQUIPE DE LIDERANÇA
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2">
         {leaders.length > 0 ? (
           leaders.map((leader) => (
             <div 
@@ -30,15 +34,10 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
               onClick={() => setSelectedLeader(leader)}
               className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center gap-4 cursor-pointer active:scale-95 hover:border-blue-200 transition-all group overflow-hidden relative"
             >
-              {leader.unit ? (
-                <div className="absolute top-4 right-4 w-6 h-6 opacity-40 group-hover:opacity-100 transition-opacity">
-                   <img src={UNIT_LOGOS[leader.unit]} className="w-full h-full object-contain" alt="Unidade" />
-                </div>
-              ) : (
-                <div className="absolute top-4 right-4 text-[7px] font-black text-[#FFD700] uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-full border border-slate-100 shadow-sm">
-                   LIDERANÇA
-                </div>
-              )}
+              {/* Selo da Unidade se houver */}
+              <div className="absolute top-4 right-4 w-6 h-6 opacity-40 group-hover:opacity-100 transition-opacity">
+                 <img src={UNIT_LOGOS[leader.unit] || UNIT_LOGOS[UnitName.LIDERANCA]} className="w-full h-full object-contain" alt="Unidade" />
+              </div>
 
               <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-50 to-blue-100 flex-shrink-0 flex items-center justify-center border-2 border-white shadow-md overflow-hidden">
                 {leader.photoUrl ? (
@@ -50,10 +49,11 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
               <div className="min-w-0 flex-1">
                 <h3 className="text-base font-black text-slate-800 truncate uppercase tracking-tight">
-                  {leader.name.split(' ')[0]} {leader.name.split(' ').length > 1 ? leader.name.split(' ').slice(-1) : ''}
+                  {leader.name}
                 </h3>
-                {/* O cargo fica guardado no campo counselor para líderes */}
-                <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">{leader.counselor || 'Líder'}</p>
+                <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">
+                  {leader.counselor || 'Membro da Equipe'}
+                </p>
                 <div className="flex items-center gap-1.5 mt-1 text-slate-400">
                   <Shield size={10} />
                   <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Liderança'}</span>

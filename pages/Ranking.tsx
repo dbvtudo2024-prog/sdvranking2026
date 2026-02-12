@@ -36,16 +36,16 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
   };
 
   const getSortedData = () => {
-    const currentMembers = Array.isArray(members) ? members : [];
+    const currentMembers = Array.isArray(members) ? [...members] : [];
     switch (tab) {
       case 'quiz':
-        return [...currentMembers].sort((a, b) => calculateSpecific(b, 'quiz') - calculateSpecific(a, 'quiz'));
+        return currentMembers.sort((a, b) => calculateSpecific(b, 'quiz') - calculateSpecific(a, 'quiz'));
       case 'memory':
-        return [...currentMembers].sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
+        return currentMembers.sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
       case 'specialty':
-        return [...currentMembers].sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
+        return currentMembers.sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
       default:
-        return [...currentMembers].sort((a, b) => calculateTotal(b) - calculateTotal(a));
+        return currentMembers.sort((a, b) => calculateTotal(b) - calculateTotal(a));
     }
   };
 
@@ -72,7 +72,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
     else points = calculateTotal(member);
 
     return (
-      <div key={member.id} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5 transition-all">
+      <div key={member.id} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5 transition-all mx-2">
         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-black text-sm text-slate-400 shrink-0">
           {position}º
         </div>
@@ -80,13 +80,15 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
           {member.photoUrl ? (
             <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
           ) : (
-            <User size={28} className="text-slate-200 mx-auto mt-3" />
+            <div className="w-full h-full flex items-center justify-center text-slate-200">
+               <User size={28} />
+            </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{member.name}</h4>
           <div className="flex items-center gap-2">
-             {UNIT_LOGOS[member.unit] && <img src={UNIT_LOGOS[member.unit]} className="w-4 h-4 object-contain" alt="Unidade" />}
+             <img src={UNIT_LOGOS[member.unit]} className="w-4 h-4 object-contain" alt="Unidade" />
              <p className="text-[10px] text-slate-400 font-bold uppercase">{member.unit}</p>
           </div>
         </div>
@@ -118,7 +120,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      <div className="bg-[#f1f5f9] p-2 rounded-[2rem] shadow-inner space-y-2">
+      <div className="bg-[#f1f5f9] p-2 rounded-[2rem] shadow-inner space-y-2 mx-2">
         <div className="grid grid-cols-3 gap-2">
           <TabButton type="members" label="Membros" icon={LayoutGrid} />
           <TabButton type="units" label="Unidades" icon={Shield} />
@@ -193,15 +195,13 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 px-2">
           {unitStats.map((unit, idx) => (
             <div key={unit.name} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 space-y-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center p-2 ${idx === 0 ? 'bg-yellow-50' : 'bg-blue-50'}`}>
-                    {UNIT_LOGOS[unit.name as UnitName] && (
-                      <img src={UNIT_LOGOS[unit.name as UnitName]} className="w-full h-full object-contain" alt={unit.name} />
-                    )}
+                    <img src={UNIT_LOGOS[unit.name as UnitName]} className="w-full h-full object-contain" alt={unit.name} />
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">{unit.name}</h3>

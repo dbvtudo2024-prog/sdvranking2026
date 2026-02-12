@@ -2,7 +2,7 @@
 import React from 'react';
 import { UnitName, Member, Announcement } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { Users, Shield } from 'lucide-react';
+import { Users, Shield, TrendingUp } from 'lucide-react';
 
 interface DashboardProps {
   members: Member[];
@@ -11,10 +11,13 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectUnit }) => {
+  // Garante que members seja sempre tratado como array
+  const safeMembers = Array.isArray(members) ? members : [];
+
   const getUnitStats = (unit: UnitName) => {
-    const unitMembers = (members || []).filter(m => m.unit === unit);
+    const unitMembers = safeMembers.filter(m => m.unit === unit);
     const totalPoints = unitMembers.reduce((acc, member) => {
-      return acc + (member.scores || []).reduce((mAcc, score) => {
+      return acc + (Array.isArray(member.scores) ? member.scores : []).reduce((mAcc, score) => {
         return mAcc + 
                (score.punctuality || 0) + 
                (score.uniform || 0) + 
@@ -38,8 +41,8 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500 bg-slate-50">
       <div className="py-4 sm:py-6 text-center">
-        <p className="text-[#0061f2] text-[10px] sm:text-xs font-black uppercase tracking-[0.2em]">
-          Gerenciamento e Pontuação
+        <p className="text-[#0061f2] text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+          <TrendingUp size={14} /> Gerenciamento e Pontuação
         </p>
       </div>
 
@@ -56,7 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
                 className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
               />
             </div>
-            <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap">Águia Dourada</h4>
+            <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap uppercase">Águia Dourada</h4>
             <div className="flex items-center gap-1.5 text-slate-400 mb-1">
               <Users size={12} />
               <span className="text-[10px] font-bold">{aguiaStats.count}</span>
@@ -75,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
                 className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
               />
             </div>
-            <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap">Guerreiros</h4>
+            <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap uppercase">Guerreiros</h4>
             <div className="flex items-center gap-1.5 text-slate-400 mb-1">
               <Users size={12} />
               <span className="text-[10px] font-bold">{guerreirosStats.count}</span>
@@ -97,16 +100,16 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
               />
             </div>
             <div className="text-left">
-              <h4 className="font-black text-slate-800 text-sm sm:text-lg uppercase">Unidade de Liderança</h4>
+              <h4 className="font-black text-slate-800 text-sm sm:text-lg uppercase">Equipe de Liderança</h4>
               <div className="flex items-center gap-1.5 text-slate-400">
                 <Shield size={14} className="text-[#0061f2]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">{liderancaStats.count} Líderes Ativos</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest">{liderancaStats.count} Ativos</span>
               </div>
             </div>
           </div>
           <div className="text-right">
              <p className="text-[#0061f2] font-black text-lg sm:text-2xl">{liderancaStats.points}</p>
-             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Pontos Totais</p>
+             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Total</p>
           </div>
         </button>
       </div>
@@ -114,7 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
       <div className="mt-auto p-4 sm:p-8">
         <h3 className="text-[10px] font-black text-[#0061f2] uppercase tracking-[0.2em] mb-3 ml-2">Mural de Avisos</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {announcements.length > 0 ? (
+          {announcements && announcements.length > 0 ? (
             announcements.slice(0, 2).map((aviso) => (
               <div key={aviso.id} className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-300">
                 <div className="flex justify-between items-start mb-2">
