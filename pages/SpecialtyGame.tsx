@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SPECIALTIES } from '../constants';
-import { AuthUser, Member, Score } from '../types';
-import { ArrowLeft, Timer, Trophy, X, Check, Medal } from 'lucide-react';
+import { AuthUser, Member, Score, UserRole } from '../types';
+import { ArrowLeft, Timer, Trophy, X, Check, Medal, Lock, Calendar } from 'lucide-react';
 
 interface SpecialtyGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
+  specialtyOverride: boolean;
 }
 
 interface Difficulty {
@@ -22,7 +23,7 @@ const DIFFICULTIES: Difficulty[] = [
   { name: 'Difícil', time: 2 }
 ];
 
-const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride }) => {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -37,16 +38,33 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     if (saved) {
       return JSON.parse(saved);
     }
-    // Fallback para constantes se o localStorage estiver vazio
     return SPECIALTIES;
   }, []);
+
+  const currentMember = useMemo(() => {
+    return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
+  }, [members, user.id, user.name]);
+
+  const { isAvailable, hasPlayedToday } = useMemo(() => {
+    const now = new Date();
+    const isSunday = now.getDay() === 0;
+    const available = isSunday || specialtyOverride;
+    
+    let alreadyPlayed = false;
+    if (currentMember) {
+      const todayStr = now.toLocaleDateString('pt-BR');
+      alreadyPlayed = currentMember.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined);
+    }
+    
+    return { isAvailable: available, hasPlayedToday: alreadyPlayed };
+  }, [specialtyOverride, currentMember]);
 
   const gameQuestions = useMemo(() => {
     if (availableSpecialties.length === 0) return [];
     
     return [...availableSpecialties]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 15) // Mantém o requisito de 15 questões
+      .slice(0, 15)
       .map(q => {
         const others = availableSpecialties.filter(s => s.name !== q.name)
           .sort(() => Math.random() - 0.5)
@@ -55,10 +73,6 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         return { ...q, options };
       });
   }, [availableSpecialties]);
-
-  const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
-  }, [members, user.id, user.name]);
 
   useEffect(() => {
     if (difficulty && !isGameOver && !showFeedback && gameQuestions.length > 0) {
@@ -74,7 +88,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
       setTimeLeft(prev => {
         if (prev <= 1) {
           stopTimer();
-          handleAnswer(null); // Tempo esgotado
+          handleAnswer(null);
           return 0;
         }
         return prev - 1;
@@ -132,12 +146,33 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     onBack();
   };
 
+  if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
+        <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
+        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Limite Diário</h2>
+        <p className="text-slate-500 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
+        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">VOLTAR</button>
+      </div>
+    );
+  }
+
+  if (!isAvailable && user.role === UserRole.PATHFINDER) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
+        <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
+        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Aguarde o Domingo</h2>
+        <p className="text-slate-500 mb-8 text-sm">O jogo abre automaticamente aos domingos.</p>
+        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">VOLTAR</button>
+      </div>
+    );
+  }
+
   if (gameQuestions.length < 1) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in">
         <Medal size={48} className="text-slate-300 mb-4" />
         <p className="font-black text-slate-400 uppercase tracking-widest text-sm">Nenhuma especialidade disponível.</p>
-        <p className="text-xs text-slate-400 mt-2">O administrador precisa cadastrar especialidades.</p>
         <button onClick={onBack} className="mt-8 bg-[#0061f2] text-white px-8 py-3 rounded-full font-black uppercase text-xs tracking-widest">Voltar</button>
       </div>
     );

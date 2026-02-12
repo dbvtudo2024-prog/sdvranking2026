@@ -22,9 +22,9 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   const isAvailable = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const isLeadership = user.role === UserRole.LEADERSHIP;
-    return isSunday || quizOverride || isLeadership; 
-  }, [quizOverride, user.role]);
+    // Forçamos a dependência apenas do Domingo ou do Botão do ADM
+    return isSunday || quizOverride; 
+  }, [quizOverride]);
 
   const hasPlayedToday = (category: 'Desbravadores' | 'Bíblia') => {
     if (!currentMember) return false;

@@ -215,7 +215,8 @@ const App: React.FC = () => {
     }
   };
 
-  const isInternalPage = currentPage.startsWith('admin_') || currentPage === 'leadership';
+  // Alteração: 'leadership' não deve mais ser considerada uma internal page para manter a Navbar
+  const isInternalPage = currentPage.startsWith('admin_');
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center sm:py-4">

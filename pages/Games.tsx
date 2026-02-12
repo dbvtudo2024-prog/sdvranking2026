@@ -29,25 +29,25 @@ const Games: React.FC<GamesProps> = ({
     return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
   }, [members, user.id, user.name]);
 
+  // Lógica de desbloqueio: Agora depende apenas do dia ou do botão ativado (override)
+  // Removido o 'isLeadership' para que o admin possa ver o estado real do bloqueio
   const memoryStatus = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const isLeadership = user.role === UserRole.LEADERSHIP;
-    const unlocked = isSunday || memoryOverride || isLeadership;
+    const unlocked = isSunday || memoryOverride;
     const todayStr = now.toLocaleDateString('pt-BR');
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
-  }, [memoryOverride, currentMember, user.role]);
+  }, [memoryOverride, currentMember]);
 
   const specialtyStatus = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const isLeadership = user.role === UserRole.LEADERSHIP;
-    const unlocked = isSunday || specialtyOverride || isLeadership;
+    const unlocked = isSunday || specialtyOverride;
     const todayStr = now.toLocaleDateString('pt-BR');
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
-  }, [specialtyOverride, currentMember, user.role]);
+  }, [specialtyOverride, currentMember]);
 
   const getTimeToUnlock = () => {
     const now = new Date();
@@ -87,6 +87,7 @@ const Games: React.FC<GamesProps> = ({
         members={members} 
         onUpdateMember={onUpdateMember} 
         onBack={() => setActiveGame('hub')}
+        specialtyOverride={specialtyOverride}
       />
     );
   }

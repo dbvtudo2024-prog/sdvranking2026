@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { User, Shield, X, Award, ShieldCheck } from 'lucide-react';
+import { User, Shield, X, Award, ShieldCheck } from 'lucide-center';
+import { Shield as ShieldIcon } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -11,9 +12,6 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
-  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-
-  // Função para remover acentos e facilitar a busca
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -22,13 +20,9 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
     const unit = normalize(String(m.unit || ''));
     const counselor = normalize(String(m.counselor || ''));
     
-    // Critério 1: Pertencer à unidade de Liderança (comparação direta de enum e normalizada)
     const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
-    
-    // Critério 2: Ter cargo de Liderança
     const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
 
-    // Critério 3: Palavras-chave de diretoria/liderança nos campos
     const hasKeywords = role.includes('diret') || 
                        counselor.includes('diret') || 
                        counselor.includes('secret') ||
@@ -40,17 +34,14 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
-      <header className="bg-[#0061f2] text-white px-6 h-28 flex flex-col justify-center shadow-lg flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <img src={LOGO_APP} alt="Logo" className="w-12 h-12 object-contain" />
-          <div>
-            <h1 className="text-lg font-black uppercase tracking-tight leading-none">Equipe de Liderança</h1>
-            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Sentinelas da Verdade • Desde 1997</p>
-          </div>
-        </div>
-      </header>
-
+      {/* O Header agora é provido pelo App.tsx de forma global */}
+      
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
+        <div className="col-span-full mb-2">
+           <h2 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Equipe de oficiais e instrutores</p>
+        </div>
+
         {leaders.length > 0 ? (
           leaders.map((leader) => (
             <div 
@@ -78,7 +69,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
                   {leader.counselor || 'Membro Liderança'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 text-slate-400">
-                  <Shield size={10} />
+                  <ShieldIcon size={10} />
                   <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Classe de Líder'}</span>
                 </div>
               </div>
@@ -88,14 +79,13 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
           <div className="col-span-full py-20 text-center opacity-30">
              <ShieldCheck size={80} className="mx-auto mb-4 text-[#0061f2]" />
              <p className="font-black uppercase tracking-widest text-xs text-slate-400">Nenhum líder encontrado</p>
-             <p className="text-[10px] text-slate-400 mt-2">Verifique se o seu perfil está na unidade de "Liderança"</p>
           </div>
         )}
       </div>
 
       {selectedLeader && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[3.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-sm:max-w-xs max-w-sm rounded-[3.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className={`h-32 relative ${selectedLeader.unit === UnitName.AGUIA_DOURADA ? 'bg-yellow-400' : 'bg-[#0061f2]'}`}>
                <button 
                 onClick={() => setSelectedLeader(null)}

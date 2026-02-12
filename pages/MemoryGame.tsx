@@ -46,8 +46,8 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   const { isAvailable, hasPlayedToday } = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const isLeadership = user.role === UserRole.LEADERSHIP;
-    const available = isSunday || memoryOverride || isLeadership;
+    // Respeita override do ADM ou Domingo
+    const available = isSunday || memoryOverride;
     
     let alreadyPlayed = false;
     if (currentMember) {
@@ -56,9 +56,10 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     }
     
     return { isAvailable: available, hasPlayedToday: alreadyPlayed };
-  }, [memoryOverride, currentMember, user.role]);
+  }, [memoryOverride, currentMember]);
 
   useEffect(() => {
+    // Admins podem sempre jogar para testar, Pathfinders obedecem a trava
     if (isAvailable && (!hasPlayedToday || user.role === UserRole.LEADERSHIP)) {
       initializeGame();
     }
@@ -163,6 +164,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     onBack();
   };
 
+  // Se já jogou e não é ADM, trava.
   if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
@@ -174,6 +176,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
+  // Se não está disponível e não é ADM, trava.
   if (!isAvailable && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
