@@ -32,9 +32,7 @@ const App: React.FC = () => {
   const [memoryOverride, setMemoryOverride] = useState(() => localStorage.getItem('sentinelas_memory_override') === 'true');
   const [specialtyOverride, setSpecialtyOverride] = useState(() => localStorage.getItem('sentinelas_specialty_override') === 'true');
 
-  // Logotipo Interno (Original)
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-  // Logotipo de Carregamento/Instalação (Novo)
   const LOGO_LOADING = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
 
   useEffect(() => {
@@ -100,6 +98,55 @@ const App: React.FC = () => {
 
   const handleDeleteMember = async (id: string) => {
     await DatabaseService.deleteMember(id);
+  };
+
+  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty') => {
+    try {
+      const currentMembers = await DatabaseService.getMembers();
+      
+      const promises = currentMembers.map(m => {
+        let updatedScores = Array.isArray(m.scores) ? [...m.scores] : [];
+        
+        // Aplica o reset em cada objeto de score do array
+        const resetScores = updatedScores.map(s => {
+          const newScore = { ...s };
+          if (type === 'members') {
+            newScore.punctuality = 0;
+            newScore.uniform = 0;
+            newScore.material = 0;
+            newScore.bible = 0;
+            newScore.voluntariness = 0;
+            newScore.activities = 0;
+            newScore.treasury = 0;
+          } else if (type === 'quiz') {
+            newScore.quiz = 0;
+            newScore.quizCategory = undefined;
+          } else if (type === 'memory') {
+            newScore.memoryGame = 0;
+          } else if (type === 'specialty') {
+            newScore.specialtyGame = 0;
+          }
+          return newScore;
+        });
+
+        // Retorna a promessa de atualização do membro individual
+        return DatabaseService.updateMember({ 
+          ...m, 
+          scores: resetScores 
+        });
+      });
+
+      // Aguarda TODAS as atualizações no Supabase
+      await Promise.all(promises);
+      
+      // Força a atualização do estado local buscando os dados novos do banco
+      const refreshed = await DatabaseService.getMembers();
+      setMembers(refreshed);
+      
+    } catch (error) {
+      console.error('Falha crítica no reset:', error);
+      throw error;
+    }
   };
 
   const handleAddCounselor = (name: string) => {
@@ -184,11 +231,14 @@ const App: React.FC = () => {
       case 'admin_management':
         return (
           <AdminManagement 
+            members={members}
+            userEmail={user.email}
             onBack={() => setCurrentPage('profile')}
             onGoToAdminAvisos={() => setCurrentPage('admin_announcements')}
             onGoToAdminQuiz={() => setCurrentPage('admin_quiz_editor')}
             onGoToAdminSpecialty={() => setCurrentPage('admin_specialty_editor')}
-            onAddCounselor={handleAddCounselor} 
+            onAddCounselor={handleAddCounselor}
+            onResetRanking={handleResetRanking}
             quizOverride={quizOverride}
             onToggleQuizOverride={() => handleToggleOverride('quiz')}
             memoryOverride={memoryOverride}
@@ -215,7 +265,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Alteração: 'leadership' não deve mais ser considerada uma internal page para manter a Navbar
   const isInternalPage = currentPage.startsWith('admin_');
 
   return (

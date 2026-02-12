@@ -1,13 +1,17 @@
 
 import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Member } from '../types';
 
 interface AdminManagementProps {
+  members: Member[];
+  userEmail?: string;
   onBack: () => void;
   onGoToAdminAvisos: () => void;
   onGoToAdminQuiz: () => void;
   onGoToAdminSpecialty: () => void;
   onAddCounselor: (name: string) => void;
+  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty') => Promise<void>;
   quizOverride: boolean;
   onToggleQuizOverride: () => void;
   memoryOverride: boolean;
@@ -17,11 +21,14 @@ interface AdminManagementProps {
 }
 
 const AdminManagement: React.FC<AdminManagementProps> = ({
+  members,
+  userEmail,
   onBack,
   onGoToAdminAvisos,
   onGoToAdminQuiz,
   onGoToAdminSpecialty,
   onAddCounselor,
+  onResetRanking,
   quizOverride,
   onToggleQuizOverride,
   memoryOverride,
@@ -31,11 +38,33 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 }) => {
   const [showCounselorModal, setShowCounselorModal] = useState(false);
   const [newCounselorName, setNewCounselorName] = useState('');
+  const [isResetting, setIsResetting] = useState<string | null>(null);
   
-  // Brasão Original
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
 
   const inputClasses = "w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#0061f2] outline-none font-bold text-slate-700 transition-all text-sm";
+
+  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty', label: string) => {
+    // PRIMEIRA CONFIRMAÇÃO
+    const confirm1 = confirm(`CONFIRMAÇÃO 1: Deseja zerar todos os pontos de ${label.toUpperCase()}?`);
+    if (!confirm1) return;
+    
+    // SEGUNDA CONFIRMAÇÃO
+    const confirm2 = confirm(`⚠️ CONFIRMAÇÃO FINAL: Esta ação vai apagar permanentemente os pontos de ${label} de TODOS os membros no banco de dados. Podemos prosseguir?`);
+    if (!confirm2) return;
+
+    setIsResetting(type);
+    try {
+      await onResetRanking(type);
+      alert(`✅ SUCESSO: O ranking de ${label} foi totalmente zerado!`);
+    } catch (error) {
+      console.error("Erro no reset:", error);
+      alert('❌ ERRO: Falha ao comunicar com o servidor. Tente novamente.');
+    } finally {
+      setIsResetting(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
@@ -107,6 +136,54 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             </div>
           </div>
         </div>
+
+        {/* SEÇÃO RESTRITA AO EMAIL DO ADMINISTRADOR MASTER */}
+        {userEmail === ADMIN_MASTER_EMAIL && (
+          <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 shadow-xl shadow-red-900/5 space-y-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-red-600 mb-2">
+                <AlertTriangle size={20} />
+                <h4 className="text-[12px] font-black uppercase tracking-[0.2em]">Zerar Rankings (Master)</h4>
+              </div>
+              <p className="text-[10px] text-red-400 font-bold uppercase mb-6">Esta área é visível apenas para você. Ações irreversíveis.</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  disabled={!!isResetting}
+                  onClick={() => handleResetClick('members', 'Membros (Semanal)')}
+                  className="bg-white text-red-600 border border-red-200 p-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-2 shadow-sm active:scale-95 disabled:opacity-50 min-h-[90px]"
+                >
+                  {isResetting === 'members' ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                  {isResetting === 'members' ? 'Limpando...' : 'Zerar Membros'}
+                </button>
+                <button 
+                  disabled={!!isResetting}
+                  onClick={() => handleResetClick('quiz', 'Quiz')}
+                  className="bg-white text-red-600 border border-red-200 p-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-2 shadow-sm active:scale-95 disabled:opacity-50 min-h-[90px]"
+                >
+                  {isResetting === 'quiz' ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                  {isResetting === 'quiz' ? 'Limpando...' : 'Zerar Quiz'}
+                </button>
+                <button 
+                  disabled={!!isResetting}
+                  onClick={() => handleResetClick('memory', 'Jogo da Memória')}
+                  className="bg-white text-red-600 border border-red-200 p-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-2 shadow-sm active:scale-95 disabled:opacity-50 min-h-[90px]"
+                >
+                  {isResetting === 'memory' ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                  {isResetting === 'memory' ? 'Limpando...' : 'Zerar Memória'}
+                </button>
+                <button 
+                  disabled={!!isResetting}
+                  onClick={() => handleResetClick('specialty', 'Especialidade')}
+                  className="bg-white text-red-600 border border-red-200 p-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-2 shadow-sm active:scale-95 disabled:opacity-50 min-h-[90px]"
+                >
+                  {isResetting === 'specialty' ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                  {isResetting === 'specialty' ? 'Limpando...' : 'Zerar Especialidade'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showCounselorModal && (

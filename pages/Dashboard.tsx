@@ -15,8 +15,9 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
 
   const getUnitStats = (unit: UnitName) => {
     const unitMembers = safeMembers.filter(m => m.unit === unit);
-    const totalPoints = unitMembers.reduce((acc, member) => {
+    const totalWeeklyPoints = unitMembers.reduce((acc, member) => {
       return acc + (Array.isArray(member.scores) ? member.scores : []).reduce((mAcc, score) => {
+        // APENAS ITENS SEMANAIS (GERAL/MEMBROS)
         return mAcc + 
                (score.punctuality || 0) + 
                (score.uniform || 0) + 
@@ -24,13 +25,10 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
                (score.bible || 0) + 
                (score.voluntariness || 0) + 
                (score.activities || 0) + 
-               (score.treasury || 0) +
-               (score.quiz || 0) +
-               (score.memoryGame || 0) +
-               (score.specialtyGame || 0);
+               (score.treasury || 0);
       }, 0);
     }, 0);
-    return { count: unitMembers.length, points: totalPoints };
+    return { count: unitMembers.length, points: totalWeeklyPoints };
   };
 
   const aguiaStats = getUnitStats(UnitName.AGUIA_DOURADA);
@@ -42,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
       <div className="pt-8 pb-4 px-6">
          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Painel de Unidades</h2>
          <p className="text-[#0061f2] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 mt-1">
-          <TrendingUp size={12} /> Resumo de Pontuação Geral
+          <TrendingUp size={12} /> Resumo de Pontuação dos Membros
         </p>
       </div>
 

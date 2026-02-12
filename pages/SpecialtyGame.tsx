@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { SPECIALTIES } from '../constants';
-import { DatabaseService, SpecialtyDB } from '../db';
+import { DatabaseService, SpecialtyDBV } from '../db';
 import { AuthUser, Member, Score, UserRole } from '../types';
 import { ArrowLeft, Timer, Trophy, X, Check, Medal, Lock, Calendar, Loader2 } from 'lucide-react';
 
@@ -31,7 +30,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [specialtiesDB, setSpecialtiesDB] = useState<SpecialtyDB[]>([]);
+  const [specialtiesDB, setSpecialtiesDB] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const timerRef = useRef<number | null>(null);
@@ -39,12 +38,15 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   useEffect(() => {
     const fetchSpecs = async () => {
       const data = await DatabaseService.getSpecialties();
-      // Fallback para as constantes se o banco estiver vazio
-      if (data.length === 0) {
-        setSpecialtiesDB(SPECIALTIES.map((s, i) => ({ id: `fixed-${i}`, ...s })));
-      } else {
-        setSpecialtiesDB(data);
-      }
+      
+      // Mapeia os nomes das colunas da tabela EspecialidadesDBV para o formato esperado pelo jogo
+      const normalizedData = (data as SpecialtyDBV[]).map(s => ({
+        ...s,
+        name: s.Nome,
+        image: s.Imagem
+      }));
+
+      setSpecialtiesDB(normalizedData);
       setLoading(false);
     };
     fetchSpecs();
@@ -159,7 +161,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <Loader2 className="animate-spin text-[#0061f2]" size={40} />
-        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Carregando Banco...</p>
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Acessando EspecialidadesDBV...</p>
       </div>
     );
   }
@@ -190,7 +192,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in">
         <Medal size={48} className="text-slate-300 mb-4" />
-        <p className="font-black text-slate-400 uppercase tracking-widest text-sm">Nenhuma especialidade disponível.</p>
+        <p className="font-black text-slate-400 uppercase tracking-widest text-sm">Nenhuma especialidade no banco de dados.</p>
         <button onClick={onBack} className="mt-8 bg-[#0061f2] text-white px-8 py-3 rounded-full font-black uppercase text-xs tracking-widest">Voltar</button>
       </div>
     );
@@ -286,7 +288,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
 
         <div className="grid grid-cols-1 gap-3 w-full max-w-sm">
-          {currentQ.options.map((opt, idx) => (
+          {currentQ.options.map((opt: any, idx: number) => (
             <button 
               key={idx}
               disabled={!!showFeedback}
