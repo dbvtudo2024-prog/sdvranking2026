@@ -12,6 +12,30 @@ A Vercel é mais rápida e fácil para apps React. Siga estes passos:
 4.  Em **Build & Development Settings**, a Vercel detectará automaticamente as configurações. 
 5.  Clique em **"Deploy"**.
 
+<<<<<<< HEAD
+## 📦 Como resolver o erro de "Push" (Rejeitado/Non-fast-forward)
+=======
+<<<<<<< HEAD
+## 📦 Como resolver o erro de "Push" no VS Code
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+
+Se aparecer o erro vermelho `[rejected] main -> main (non-fast-forward)` no VS Code, execute estes comandos:
+
+```bash
+# 1. Garante que todos os arquivos locais estão salvos
+git add .
+git commit -m "Preparando envio"
+
+<<<<<<< HEAD
+# 2. Força o envio para o GitHub (Isso resolve o conflito)
+git push origin main -f
+=======
+# 2. Cria uma mensagem de registro
+git commit -m "Envio completo do aplicativo"
+
+# 3. Força o envio para o GitHub (O -f resolve o erro de conflito)
+git push -u origin main -f
+=======
 ## 📦 Como resolver o erro de "Push" (Rejeitado/Non-fast-forward)
 
 Se aparecer o erro vermelho `[rejected] main -> main (non-fast-forward)` no VS Code, execute estes comandos:
@@ -23,6 +47,8 @@ git commit -m "Preparando envio"
 
 # 2. Força o envio para o GitHub (Isso resolve o conflito)
 git push origin main -f
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
 ```
 
 ## 🛠️ Tecnologias
@@ -30,7 +56,18 @@ git push origin main -f
 - **Banco de Dados**: Supabase (Realtime).
 - **Hospedagem**: Vercel ou GitHub Pages.
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+## ⚠️ Importante
+Nunca esqueça do ponto final no `git add .` - sem ele, o seu site fica em branco!
+=======
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
 ## ⚠️ Checklist de Funcionamento
 1. **Banco de Dados**: Você precisa ter criado as tabelas `members`, `users` e `announcements` no Supabase usando o código SQL fornecido.
 2. **Chave API**: O arquivo `db.ts` **PRECISA** da sua chave que começa com `eyJ...`. Sem ela, o cadastro dará erro.
 3. **PWA**: O app pode ser instalado no celular clicando em "Adicionar à tela inicial" no navegador (Chrome no Android ou Safari no iOS).
+<<<<<<< HEAD
+=======
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
