@@ -13,23 +13,29 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
-  // Filtro extra-robusto para a página de líderes
+  // Função para remover acentos e facilitar a busca
+  const normalize = (str: string) => 
+    str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const leaders = (members || []).filter(m => {
-    const roleStr = String(m.role || '').toLowerCase();
-    const unitStr = String(m.unit || '').toLowerCase();
-    const counselorStr = String(m.counselor || '').toLowerCase();
-    const classNameStr = String(m.className || '').toLowerCase();
+    const role = normalize(String(m.role || ''));
+    const unit = normalize(String(m.unit || ''));
+    const counselor = normalize(String(m.counselor || ''));
     
-    // Verifica se qualquer campo remete à liderança para não deixar ninguém de fora
-    return m.role === UserRole.LEADERSHIP || 
-           m.unit === UnitName.LIDERANCA ||
-           unitStr.includes('lider') || 
-           roleStr.includes('lider') || 
-           counselorStr.includes('diret') || 
-           counselorStr.includes('secret') ||
-           counselorStr.includes('tesour') ||
-           counselorStr.includes('capel') ||
-           classNameStr.includes('lider');
+    // Critério 1: Pertencer à unidade de Liderança (comparação direta de enum e normalizada)
+    const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
+    
+    // Critério 2: Ter cargo de Liderança
+    const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
+
+    // Critério 3: Palavras-chave de diretoria/liderança nos campos
+    const hasKeywords = role.includes('diret') || 
+                       counselor.includes('diret') || 
+                       counselor.includes('secret') ||
+                       counselor.includes('tesour') ||
+                       counselor.includes('capel');
+
+    return isUnitLider || isRoleLider || hasKeywords;
   });
 
   return (
@@ -82,6 +88,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
           <div className="col-span-full py-20 text-center opacity-30">
              <ShieldCheck size={80} className="mx-auto mb-4 text-[#0061f2]" />
              <p className="font-black uppercase tracking-widest text-xs text-slate-400">Nenhum líder encontrado</p>
+             <p className="text-[10px] text-slate-400 mt-2">Verifique se o seu perfil está na unidade de "Liderança"</p>
           </div>
         )}
       </div>
