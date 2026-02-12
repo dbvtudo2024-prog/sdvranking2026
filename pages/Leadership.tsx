@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { User, Shield, X, Award, ShieldCheck } from 'lucide-center';
-import { Shield as ShieldIcon } from 'lucide-react';
+import { X, Award, ShieldCheck, Shield as ShieldIcon } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -34,8 +33,6 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
-      {/* O Header agora é provido pelo App.tsx de forma global */}
-      
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
         <div className="col-span-full mb-2">
            <h2 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
