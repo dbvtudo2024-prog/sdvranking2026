@@ -23,6 +23,12 @@ export interface SpecialtyDBV {
   Cor: string;
 }
 
+export interface CounselorDB {
+  id?: string;
+  name: string;
+  created_at?: string;
+}
+
 export const DatabaseService = {
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
@@ -55,10 +61,36 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  // Added missing deleteMember method to fix property does not exist error in App.tsx
   async deleteMember(id: string) {
     const { error } = await supabase.from('members').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  // --- CONSELHEIROS (Sincronizado no DB) ---
+  async getCounselors(): Promise<CounselorDB[]> {
+    try {
+      const { data, error } = await supabase.from('counselors').select('*').order('name', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar conselheiros:', error);
+      return [];
+    }
+  },
+
+  async addCounselor(name: string) {
+    const { error } = await supabase.from('counselors').insert([{ name }]);
+    if (error) throw error;
+  },
+
+  subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
+    this.getCounselors().then(callback);
+    return supabase
+      .channel('counselors_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'counselors' }, () => {
+        this.getCounselors().then(callback);
+      })
+      .subscribe();
   },
 
   // --- DESAFIOS 1x1 ---

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement } from './types';
-import { DatabaseService } from './db';
+import { DatabaseService, CounselorDB } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [counselors, setCounselors] = useState<CounselorDB[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [activeUnit, setActiveUnit] = useState<UnitName | null>(null);
@@ -48,9 +49,14 @@ const App: React.FC = () => {
       setAnnouncements(data);
     });
 
+    const counselorsChannel = DatabaseService.subscribeCounselors((data) => {
+      setCounselors(data);
+    });
+
     return () => {
       if (membersChannel) membersChannel.unsubscribe();
       if (annChannel) annChannel.unsubscribe();
+      if (counselorsChannel) counselorsChannel.unsubscribe();
     };
   }, []);
 
@@ -142,13 +148,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddCounselor = (name: string) => {
-    const saved = localStorage.getItem('sentinelas_counselors');
-    const list: string[] = saved ? JSON.parse(saved) : [];
-    if (!list.includes(name)) {
-      list.push(name);
-      localStorage.setItem('sentinelas_counselors', JSON.stringify(list));
-      alert(`Conselheiro(a) ${name} adicionado com sucesso!`);
+  const handleAddCounselor = async (name: string) => {
+    try {
+      await DatabaseService.addCounselor(name);
+      alert(`Conselheiro(a) ${name} adicionado ao banco de dados com sucesso!`);
+    } catch (err) {
+      alert('Erro ao salvar conselheiro no servidor.');
     }
   };
 
@@ -161,18 +166,17 @@ const App: React.FC = () => {
     );
   }
 
+  const counselorNames = counselors.map(c => c.name);
+
   if (!user) {
     if (isRegistering) {
-      return <Register onRegister={handleLogin} onBack={() => setIsRegistering(false)} />;
+      return <Register onRegister={handleLogin} onBack={() => setIsRegistering(false)} counselorList={counselorNames} />;
     }
     return <Login onLogin={handleLogin} onGoToRegister={() => setIsRegistering(true)} />;
   }
 
   const renderContent = () => {
     if (activeUnit) {
-      const savedCounselors = localStorage.getItem('sentinelas_counselors');
-      const counselorList = savedCounselors ? JSON.parse(savedCounselors) : [];
-
       return (
         <UnitDetail 
           unitName={activeUnit} 
@@ -184,7 +188,7 @@ const App: React.FC = () => {
           onDeleteMember={handleDeleteMember}
           role={user.role}
           userName={user.name}
-          counselorList={counselorList}
+          counselorList={counselorNames}
         />
       );
     }
@@ -215,8 +219,6 @@ const App: React.FC = () => {
           />
         );
       case 'profile':
-        const savedCounselorsProfile = localStorage.getItem('sentinelas_counselors');
-        const counselorListProfile = savedCounselorsProfile ? JSON.parse(savedCounselorsProfile) : [];
         return (
           <Profile 
             user={user} 
@@ -225,7 +227,7 @@ const App: React.FC = () => {
             onLogout={handleLogout} 
             onGoToAdminManagement={() => setCurrentPage('admin_management')}
             onUpdateMember={handleUpdateMember}
-            counselorList={counselorListProfile}
+            counselorList={counselorNames}
           />
         );
       case 'admin_management':

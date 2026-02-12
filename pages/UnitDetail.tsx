@@ -47,12 +47,16 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     return members.find(m => m.id === selectedMemberIdForHistory) || null;
   }, [members, selectedMemberIdForHistory]);
 
+  // Sincronização automática com a lista de conselheiros vinda do App (Banco de Dados)
   const dynamicCounselors = useMemo(() => {
-    return members
+    // Mescla conselheiros cadastrados como membros com a lista manual sincronizada
+    const fromMembers = members
       .filter(m => m.counselor === 'Conselheiro (a)' || m.counselor === 'Conselheiro (a) Associado (a)')
-      .map(m => m.name)
-      .sort();
-  }, [members]);
+      .map(m => m.name);
+    
+    const combined = Array.from(new Set([...fromMembers, ...counselorList]));
+    return combined.sort();
+  }, [members, counselorList]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -134,10 +138,23 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
   const handleSaveScore = () => {
     if (!selectedMemberForPoints) return;
+    
     let finalDate = newScore.date || new Date().toLocaleDateString('pt-BR');
     if (finalDate.includes('-')) {
       finalDate = finalDate.split('-').reverse().join('/');
     }
+
+    // REGRA DE OURO: Proibir adicionar pontos em dias que já foi adicionado
+    const isNewEntry = editingScoreIndex === null;
+    const dateAlreadyExists = selectedMemberForPoints.scores.some((s, idx) => 
+      s.date === finalDate && (isNewEntry || idx !== editingScoreIndex)
+    );
+
+    if (dateAlreadyExists) {
+      alert(`⚠️ Erro: Já existe uma pontuação lançada para o dia ${finalDate}. Você pode editar o lançamento existente no histórico.`);
+      return;
+    }
+
     const scoreEntry: Score = {
       date: finalDate,
       punctuality: Number(newScore.punctuality) || 0,
@@ -153,6 +170,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       specialtyGame: Number(newScore.specialtyGame) || 0,
       challenge1x1: Number(newScore.challenge1x1) || 0
     };
+
     let updatedScores = Array.isArray(selectedMemberForPoints.scores) ? [...selectedMemberForPoints.scores] : [];
     if (editingScoreIndex !== null) {
       updatedScores[editingScoreIndex] = scoreEntry;
@@ -359,11 +377,12 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                 <label className={labelClasses}>{isLiderancaUnit ? 'Função' : 'Conselheiro'}</label>
                 <div className="relative">
                   <select 
+                    required
                     className={`${inputClasses} appearance-none pr-10`}
                     value={formData.counselor} 
                     onChange={e => setFormData({...formData, counselor: e.target.value})}
                   >
-                    <option value="">{isLiderancaUnit ? 'Selecione a função' : 'Nome do conselheiro'}</option>
+                    <option value="">{isLiderancaUnit ? 'Selecione a função' : 'Selecione o conselheiro'}</option>
                     {isLiderancaUnit ? (
                       LEADERSHIP_ROLES.map(role => <option key={role} value={role}>{role}</option>)
                     ) : (
@@ -441,7 +460,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
         </div>
       )}
 
-      {/* MODAL HISTÓRICO - LIDERANÇA FILTRADA SEM CARGO */}
+      {/* MODAL HISTÓRICO */}
       {currentMemberInHistory && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[3rem] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
@@ -562,9 +581,13 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div><label className={labelClasses}>Idade</label><input type="number" className={inputClasses} value={editingMember.age} onChange={e => { const age = parseInt(e.target.value); setEditingMember({...editingMember, age, className: isLiderancaUnit ? '' : getClassByAge(age)}); }} /></div>
                 <div><label className={labelClasses}>{isLiderancaUnit ? 'Função' : 'Conselheiro'}</label>
-                  <select className={inputClasses} value={editingMember.counselor} onChange={e => setEditingMember({...editingMember, counselor: e.target.value})}>
+                  <select required className={inputClasses} value={editingMember.counselor} onChange={e => setEditingMember({...editingMember, counselor: e.target.value})}>
                     <option value="">Selecionar</option>
-                    {isLiderancaUnit ? LEADERSHIP_ROLES.map(role => <option key={role} value={role}>{role}</option>) : dynamicCounselors.map(c => <option key={c} value={c}>{c}</option>)}
+                    {isLiderancaUnit ? (
+                        LEADERSHIP_ROLES.map(role => <option key={role} value={role}>{role}</option>)
+                    ) : (
+                        dynamicCounselors.map(c => <option key={c} value={c}>{c}</option>)
+                    )}
                   </select>
                 </div>
               </div>

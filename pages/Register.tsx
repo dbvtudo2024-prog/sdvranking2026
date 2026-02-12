@@ -8,9 +8,10 @@ import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 interface RegisterProps {
   onRegister: (user: AuthUser, member?: Member) => void;
   onBack: () => void;
+  counselorList?: string[];
 }
 
-const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
+const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList = [] }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -21,7 +22,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
     age: '',
     className: '',
     email: '',
-    password: ''
+    password: '',
+    counselor: ''
   });
 
   const isLeadership = formData.role === UserRole.LEADERSHIP;
@@ -37,7 +39,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
       funcao: '',
       unit: newRole === UserRole.LEADERSHIP ? UnitName.LIDERANCA : '',
       age: '',
-      className: ''
+      className: '',
+      counselor: ''
     }));
   };
 
@@ -75,7 +78,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
         age: parseInt(formData.age),
         className: formData.className,
         email: formData.email.trim().toLowerCase(),
-        password: formData.password
+        password: formData.password,
+        counselor: isLeadership ? formData.funcao : formData.counselor
       };
 
       const newMember: Member = {
@@ -85,32 +89,18 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
         age: newUser.age || 0,
         className: newUser.className,
         joinedAt: new Date().toISOString().split('T')[0],
-        counselor: isLeadership ? formData.funcao : 'A definir',
+        counselor: isLeadership ? formData.funcao : (formData.counselor || 'A definir'),
         unit: finalUnit || UnitName.LIDERANCA,
         scores: []
       };
 
-      // Tenta salvar no banco
-      console.log('Tentando cadastrar usuário...');
       await DatabaseService.addUser(newUser);
-      console.log('Usuário cadastrado. Tentando cadastrar membro...');
       await DatabaseService.addMember(newMember);
       
       alert('Cadastro realizado com sucesso!');
       onRegister(newUser, newMember);
     } catch (err: any) {
-      console.error('Erro completo capturado:', err);
-      const message = err.message || '';
-      
-      if (message.includes('fetch') || message.includes('Network')) {
-        setErrorMsg('Erro de Conexão: O site não conseguiu falar com o Supabase. Verifique sua internet.');
-      } else if (message.includes('JWT') || message.includes('apikey')) {
-        setErrorMsg('Erro de Chave API: A chave no arquivo db.ts parece incorreta ou expirada.');
-      } else if (message.includes('relation')) {
-        setErrorMsg('Erro de Tabela: O banco de dados não tem as tabelas necessárias. Execute o SQL no Supabase.');
-      } else {
-        setErrorMsg(`Falha Técnica: ${message || 'Erro desconhecido ao salvar dados.'}`);
-      }
+      setErrorMsg(`Falha Técnica: ${err.message || 'Erro ao salvar dados.'}`);
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +123,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
         <h2 className="text-2xl font-black text-white mb-4 tracking-tight uppercase">Novo Registro</h2>
 
         {errorMsg && (
-          <div className="mb-6 p-4 bg-red-500 text-white rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 border-2 border-white/20">
+          <div className="mb-6 p-4 bg-red-500 text-white rounded-2xl flex items-start gap-3 border-2 border-white/20">
             <AlertCircle className="shrink-0 mt-0.5" size={20} />
             <div className="text-xs font-black leading-tight uppercase tracking-wider">{errorMsg}</div>
           </div>
@@ -181,6 +171,22 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
               <ChevronDown className="absolute right-3 bottom-3 text-gray-400 pointer-events-none" size={18} />
             </div>
           </div>
+
+          {!isLeadership && (
+            <div className="relative">
+               <label className={labelClasses}>Conselheiro(a)</label>
+               <select 
+                required
+                className={inputClasses}
+                value={formData.counselor}
+                onChange={e => setFormData({...formData, counselor: e.target.value})}
+              >
+                <option value="" disabled>Selecione seu conselheiro</option>
+                {counselorList.map(name => <option key={name} value={name}>{name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 bottom-3 text-gray-400 pointer-events-none" size={18} />
+            </div>
+          )}
 
           {shouldShowUnit && (
             <div className="relative">
