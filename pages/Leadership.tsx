@@ -1,25 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { AuthUser, UserRole, UnitName } from '../types';
+import React, { useState } from 'react';
+import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
 import { User, Shield, X, Award, Mail } from 'lucide-react';
 
-const Leadership: React.FC = () => {
-  const [leaders, setLeaders] = useState<AuthUser[]>([]);
-  const [selectedLeader, setSelectedLeader] = useState<AuthUser | null>(null);
+interface LeadershipProps {
+  members: Member[];
+}
 
-  useEffect(() => {
-    const fetchLeaders = () => {
-      const usersStr = localStorage.getItem('sentinelas_registered_users');
-      const users: AuthUser[] = usersStr ? JSON.parse(usersStr) : [];
-      const leadershipList = users.filter(u => u.role === UserRole.LEADERSHIP);
-      setLeaders(leadershipList);
-    };
+const Leadership: React.FC<LeadershipProps> = ({ members }) => {
+  const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
-    fetchLeaders();
-    window.addEventListener('storage', fetchLeaders);
-    return () => window.removeEventListener('storage', fetchLeaders);
-  }, []);
+  // Filtra membros que possuem papel de liderança
+  const leaders = (members || []).filter(m => m.role === UserRole.LEADERSHIP);
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -51,7 +44,7 @@ const Leadership: React.FC = () => {
                 {leader.photoUrl ? (
                   <img src={leader.photoUrl} alt={leader.name} className="w-full h-full object-cover" />
                 ) : (
-                  <User size={32} className="text-blue-400" />
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.id}`} alt="Avatar" className="w-full h-full object-cover" />
                 )}
               </div>
 
@@ -59,7 +52,8 @@ const Leadership: React.FC = () => {
                 <h3 className="text-base font-black text-slate-800 truncate uppercase tracking-tight">
                   {leader.name.split(' ')[0]} {leader.name.split(' ').length > 1 ? leader.name.split(' ').slice(-1) : ''}
                 </h3>
-                <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">{leader.funcao}</p>
+                {/* O cargo fica guardado no campo counselor para líderes */}
+                <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">{leader.counselor || 'Líder'}</p>
                 <div className="flex items-center gap-1.5 mt-1 text-slate-400">
                   <Shield size={10} />
                   <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Liderança'}</span>
@@ -92,7 +86,7 @@ const Leadership: React.FC = () => {
                       {selectedLeader.photoUrl ? (
                         <img src={selectedLeader.photoUrl} className="w-full h-full object-cover" />
                       ) : (
-                        <User size={48} className="text-slate-300" />
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedLeader.id}`} alt="Avatar" className="w-full h-full object-cover" />
                       )}
                    </div>
                  </div>
@@ -104,7 +98,7 @@ const Leadership: React.FC = () => {
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">{selectedLeader.name}</h2>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-[#0061f2] rounded-full mt-2 border border-blue-100">
                   <Award size={14} strokeWidth={3} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{selectedLeader.funcao}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{selectedLeader.counselor || 'Liderança'}</span>
                 </div>
               </div>
 
@@ -116,16 +110,6 @@ const Leadership: React.FC = () => {
                 <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center justify-center min-h-[80px]">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Unidade</p>
                   <p className="text-[11px] font-black text-slate-700 uppercase leading-tight text-center">{selectedLeader.unit || 'LIDERANÇA'}</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-3 px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                   <Mail size={18} className="text-[#0061f2]" />
-                   <div className="text-left">
-                     <p className="text-[8px] font-black text-slate-400 uppercase">E-mail de Contato</p>
-                     <p className="text-xs font-bold text-slate-600 truncate max-w-[180px]">{selectedLeader.email}</p>
-                   </div>
                 </div>
               </div>
             </div>

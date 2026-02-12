@@ -23,8 +23,13 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'admin_announcements' | 'admin_quiz_editor' | 'admin_specialty_editor' | 'admin_management' | 'games'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'admin_management' | 'admin_announcements' | 'admin_quiz_editor' | 'admin_specialty_editor' | 'admin_management' | 'games'>('home');
   const [activeUnit, setActiveUnit] = useState<UnitName | null>(null);
+
+  // Estados para liberação de jogos
+  const [quizOverride, setQuizOverride] = useState(() => localStorage.getItem('sentinelas_quiz_override') === 'true');
+  const [memoryOverride, setMemoryOverride] = useState(() => localStorage.getItem('sentinelas_memory_override') === 'true');
+  const [specialtyOverride, setSpecialtyOverride] = useState(() => localStorage.getItem('sentinelas_specialty_override') === 'true');
 
   useEffect(() => {
     const savedUser = localStorage.getItem('sentinelas_session_user');
@@ -44,6 +49,24 @@ const App: React.FC = () => {
       if (annChannel) annChannel.unsubscribe();
     };
   }, []);
+
+  const handleToggleOverride = (key: 'quiz' | 'memory' | 'specialty') => {
+    if (key === 'quiz') {
+      const newVal = !quizOverride;
+      setQuizOverride(newVal);
+      localStorage.setItem('sentinelas_quiz_override', String(newVal));
+    } else if (key === 'memory') {
+      const newVal = !memoryOverride;
+      setMemoryOverride(newVal);
+      localStorage.setItem('sentinelas_memory_override', String(newVal));
+    } else if (key === 'specialty') {
+      const newVal = !specialtyOverride;
+      setSpecialtyOverride(newVal);
+      localStorage.setItem('sentinelas_specialty_override', String(newVal));
+    }
+    // Dispara evento manual para outros componentes ouvirem se necessário
+    window.dispatchEvent(new Event('storage'));
+  };
 
   const handleLogin = async (authUser: AuthUser, updatedMember?: Member) => {
     setUser(authUser);
@@ -75,6 +98,17 @@ const App: React.FC = () => {
     await DatabaseService.deleteMember(id);
   };
 
+  const handleAddCounselor = (name: string) => {
+    // Busca conselheiros existentes no localStorage ou inicia vazio
+    const saved = localStorage.getItem('sentinelas_counselors');
+    const list: string[] = saved ? JSON.parse(saved) : [];
+    if (!list.includes(name)) {
+      list.push(name);
+      localStorage.setItem('sentinelas_counselors', JSON.stringify(list));
+      alert(`Conselheiro(a) ${name} adicionado com sucesso!`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0061f2] flex flex-col items-center justify-center text-white p-6">
@@ -93,6 +127,10 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (activeUnit) {
+      // Lista de conselheiros para o select do modal de membros
+      const savedCounselors = localStorage.getItem('sentinelas_counselors');
+      const counselorList = savedCounselors ? JSON.parse(savedCounselors) : [];
+
       return (
         <UnitDetail 
           unitName={activeUnit} 
@@ -104,6 +142,7 @@ const App: React.FC = () => {
           onDeleteMember={handleDeleteMember}
           role={user!.role}
           userName={user!.name}
+          counselorList={counselorList}
         />
       );
     }
@@ -114,10 +153,12 @@ const App: React.FC = () => {
       case 'ranking':
         return <Ranking members={members} />;
       case 'leadership':
-        return <Leadership />;
+        return <Leadership members={members} />;
       case 'games':
         return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} />;
       case 'profile':
+        const savedCounselorsProfile = localStorage.getItem('sentinelas_counselors');
+        const counselorListProfile = savedCounselorsProfile ? JSON.parse(savedCounselorsProfile) : [];
         return (
           <Profile 
             user={user!} 
@@ -126,6 +167,7 @@ const App: React.FC = () => {
             onLogout={handleLogout} 
             onGoToAdminManagement={() => setCurrentPage('admin_management')}
             onUpdateMember={handleUpdateMember}
+            counselorList={counselorListProfile}
           />
         );
       case 'admin_management':
@@ -135,13 +177,13 @@ const App: React.FC = () => {
             onGoToAdminAvisos={() => setCurrentPage('admin_announcements')}
             onGoToAdminQuiz={() => setCurrentPage('admin_quiz_editor')}
             onGoToAdminSpecialty={() => setCurrentPage('admin_specialty_editor')}
-            onAddCounselor={() => {}} 
-            quizOverride={false}
-            onToggleQuizOverride={() => {}}
-            memoryOverride={false}
-            onToggleMemoryOverride={() => {}}
-            specialtyOverride={false}
-            onToggleSpecialtyOverride={() => {}}
+            onAddCounselor={handleAddCounselor} 
+            quizOverride={quizOverride}
+            onToggleQuizOverride={() => handleToggleOverride('quiz')}
+            memoryOverride={memoryOverride}
+            onToggleMemoryOverride={() => handleToggleOverride('memory')}
+            specialtyOverride={specialtyOverride}
+            onToggleSpecialtyOverride={() => handleToggleOverride('specialty')}
           />
         );
       case 'admin_announcements':
