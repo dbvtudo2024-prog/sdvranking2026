@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { QUIZ_QUESTIONS } from '../constants';
+import { DatabaseService } from '../db';
 import { AuthUser, Member, Score, QuizQuestion } from '../types';
-import { ArrowLeft, Check, X, Trophy } from 'lucide-react';
+import { ArrowLeft, Check, X, Trophy, Loader2 } from 'lucide-react';
 
 interface QuizGameProps {
   category: 'Desbravadores' | 'Bíblia';
@@ -13,31 +13,30 @@ interface QuizGameProps {
 }
 
 const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onBack }) => {
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
 
-  const questions = useMemo(() => {
-    // 1. Carregar perguntas personalizadas
-    const custom: QuizQuestion[] = JSON.parse(localStorage.getItem('sentinelas_custom_questions') || '[]');
-    
-    // 2. Carregar perguntas fixas que foram modificadas
-    const modifiedFixed: QuizQuestion[] = JSON.parse(localStorage.getItem('sentinelas_modified_fixed_questions') || '[]');
-    
-    // 3. Processar lista base fixa com as modificações
-    const fixedProcessed = QUIZ_QUESTIONS.map(q => {
-      const mod = modifiedFixed.find(m => m.id === q.id);
-      return mod || q;
-    });
-
-    const allQuestions = [...fixedProcessed, ...custom];
-    
-    return allQuestions
-      .filter(q => q.category === category)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 10);
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const allQuestions = await DatabaseService.getQuizQuestions();
+        const filtered = allQuestions
+          .filter(q => q.category === category)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 10);
+        setQuestions(filtered);
+      } catch (err) {
+        console.error("Erro ao buscar questões.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestions();
   }, [category]);
 
   const handleAnswer = (optionIndex: number) => {
@@ -77,12 +76,21 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
       
       const updatedMember = {
         ...member,
-        scores: [...member.scores, newScoreEntry]
+        scores: [...(member.scores || []), newScoreEntry]
       };
       onUpdateMember(updatedMember);
     }
     onBack();
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Carregando Desafio do Banco...</p>
+      </div>
+    );
+  }
 
   if (showResult) {
     return (
@@ -120,9 +128,9 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         <div className="font-black text-[#FFD700] text-lg">{score} pts</div>
       </div>
 
-      {questions.length === 0 ? (
+      {!currentQuestion ? (
         <div className="text-center py-20">
-          <p className="text-slate-400 font-black uppercase">Nenhuma pergunta nesta categoria.</p>
+          <p className="text-slate-400 font-black uppercase">Nenhuma pergunta encontrada no banco.</p>
           <button onClick={onBack} className="mt-4 text-blue-500 font-bold">Voltar</button>
         </div>
       ) : (

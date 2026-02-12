@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud } from 'lucide-react';
 import { Member } from '../types';
-import { CounselorDB } from '../db';
+import { CounselorDB, DatabaseService } from '../db';
+import { QUIZ_QUESTIONS, SPECIALTIES } from '../constants';
 
 interface AdminManagementProps {
   members: Member[];
@@ -52,6 +53,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
   
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
@@ -84,6 +86,46 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     } catch (error) { alert("Erro ao salvar conselheiro."); } finally { setIsProcessing(false); }
   };
 
+  const handleSeedQuiz = async () => {
+    if (!confirm('Isso enviará as 20 questões iniciais do app para o banco de dados. Deseja continuar?')) return;
+    setIsMigrating(true);
+    try {
+      const questionsToSeed = QUIZ_QUESTIONS.map(({ id, ...q }) => q);
+      await DatabaseService.seedQuizQuestions(questionsToSeed);
+      alert('✅ Quiz sincronizado com sucesso!');
+    } catch (error) {
+      alert('❌ Erro ao enviar questões. Verifique se a tabela quiz_questions existe.');
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleSeedSpecialties = async () => {
+    if (!confirm('Isso enviará as 12 especialidades padrão para o banco de dados. Deseja continuar?')) return;
+    setIsMigrating(true);
+    try {
+      const specsToSeed = SPECIALTIES.map(s => ({
+        ID: String(Math.floor(Math.random() * 1000)),
+        Nome: s.name,
+        Imagem: s.image,
+        Questoes: '',
+        Sigla: '',
+        Categoria: 'Geral',
+        Nivel: '1',
+        Ano: '2024',
+        Origem: 'Local',
+        Like: false,
+        Cor: ''
+      }));
+      await DatabaseService.seedSpecialties(specsToSeed);
+      alert('✅ Especialidades sincronizadas com sucesso!');
+    } catch (error) {
+      alert('❌ Erro ao enviar especialidades. Verifique se a tabela EspecialidadesDBV existe.');
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const GameLockButton = ({ label, active, onToggle, icon: Icon }: any) => (
     <button 
       onClick={onToggle}
@@ -104,7 +146,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
-      {/* HEADER IGUAL À IMAGEM */}
       <header className="bg-[#0061f2] text-white px-6 h-28 flex items-center gap-4 shadow-lg shrink-0">
         <img src={LOGO_APP} alt="Brasão" className="w-14 h-14 object-contain" />
         <div>
@@ -114,7 +155,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       </header>
 
       <div className="p-6 space-y-8 overflow-y-auto flex-1 pb-32">
-        {/* BOTÃO VOLTAR IGUAL À IMAGEM */}
         <button onClick={onBack} className="flex items-center gap-3 px-8 py-3.5 bg-white border border-slate-100 rounded-full text-[#0061f2] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-900/5 active:scale-95 transition-all w-fit">
           <ChevronLeft size={16} strokeWidth={4} /> Voltar ao Perfil
         </button>
@@ -151,7 +191,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
            </div>
         </div>
 
-        {/* 3. LISTA DE CONSELHEIROS OFICIAL (DESIGN DA IMAGEM) */}
+        {/* 3. MANUTENÇÃO E MIGRAÇÃO (NOVO) */}
+        {userEmail === ADMIN_MASTER_EMAIL && (
+          <div className="bg-amber-50 p-8 rounded-[3rem] border border-amber-200 shadow-xl shadow-amber-900/5 space-y-6">
+            <div className="flex items-center gap-2 px-2">
+              <Database size={16} className="text-amber-600" />
+              <h3 className="text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">Manutenção e Migração</h3>
+            </div>
+            <p className="text-[9px] font-bold text-amber-600 uppercase px-2">Envie os dados padrões do código para o seu banco de dados Supabase.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button 
+                disabled={isMigrating}
+                onClick={handleSeedQuiz}
+                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+              >
+                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
+                Migrar Questões
+              </button>
+              <button 
+                disabled={isMigrating}
+                onClick={handleSeedSpecialties}
+                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+              >
+                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
+                Migrar Especialidades
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 4. LISTA DE CONSELHEIROS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
           <div className="flex justify-between items-center px-2 mb-2">
             <div>
@@ -182,7 +251,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
 
-        {/* 4. LIBERAÇÃO MANUAL DE JOGOS (DESIGN DA IMAGEM) */}
+        {/* 5. LIBERAÇÃO MANUAL DE JOGOS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
           <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>
           
@@ -194,7 +263,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
 
-        {/* 5. PAINEL MASTER (DESIGN DA IMAGEM) */}
+        {/* 6. PAINEL MASTER */}
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className="bg-[#fff1f1] p-10 rounded-[3.5rem] border border-red-100 shadow-xl shadow-red-900/5 space-y-6 mt-6">
             <div className="text-center">

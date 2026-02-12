@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement } from './types';
-import { DatabaseService, CounselorDB } from './db';
+import { DatabaseService, CounselorDB, GameConfig } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -31,7 +31,7 @@ const App: React.FC = () => {
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
-  // Admin overrides for games
+  // Admin overrides for games - Agora sincronizados com o banco
   const [quizOverride, setQuizOverride] = useState(false);
   const [memoryOverride, setMemoryOverride] = useState(false);
   const [specialtyOverride, setSpecialtyOverride] = useState(false);
@@ -42,10 +42,19 @@ const App: React.FC = () => {
     const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
     const counselorsSub = DatabaseService.subscribeCounselors(setCounselorsData);
 
+    // Inscrição nas configurações de jogos para persistência e tempo real
+    const gameConfigsSub = DatabaseService.subscribeGameConfigs((config: GameConfig) => {
+      setQuizOverride(config.quiz_override);
+      setMemoryOverride(config.memory_override);
+      setSpecialtyOverride(config.specialty_override);
+      setThreeCluesOverride(config.three_clues_override);
+    });
+
     return () => {
       membersSub.unsubscribe();
       announcementsSub.unsubscribe();
       counselorsSub.unsubscribe();
+      gameConfigsSub.unsubscribe();
     };
   }, []);
 
@@ -140,6 +149,31 @@ const App: React.FC = () => {
     }
   };
 
+  // Funções de toggle de override sincronizadas com o banco
+  const toggleQuizOverride = async () => {
+    const newValue = !quizOverride;
+    setQuizOverride(newValue);
+    await DatabaseService.updateGameConfig({ quiz_override: newValue });
+  };
+
+  const toggleMemoryOverride = async () => {
+    const newValue = !memoryOverride;
+    setMemoryOverride(newValue);
+    await DatabaseService.updateGameConfig({ memory_override: newValue });
+  };
+
+  const toggleSpecialtyOverride = async () => {
+    const newValue = !specialtyOverride;
+    setSpecialtyOverride(newValue);
+    await DatabaseService.updateGameConfig({ specialty_override: newValue });
+  };
+
+  const toggleThreeCluesOverride = async () => {
+    const newValue = !threeCluesOverride;
+    setThreeCluesOverride(newValue);
+    await DatabaseService.updateGameConfig({ three_clues_override: newValue });
+  };
+
   const counselorNames = counselorsData.map(c => c.name);
 
   if (!user) {
@@ -208,10 +242,10 @@ const App: React.FC = () => {
             onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)}
             onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)}
             onResetRanking={handleResetRanking}
-            quizOverride={quizOverride} onToggleQuizOverride={() => setQuizOverride(!quizOverride)}
-            memoryOverride={memoryOverride} onToggleMemoryOverride={() => setMemoryOverride(!memoryOverride)}
-            specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={() => setSpecialtyOverride(!specialtyOverride)}
-            threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={() => setThreeCluesOverride(!threeCluesOverride)}
+            quizOverride={quizOverride} onToggleQuizOverride={toggleQuizOverride}
+            memoryOverride={memoryOverride} onToggleMemoryOverride={toggleMemoryOverride}
+            specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={toggleSpecialtyOverride}
+            threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={toggleThreeCluesOverride}
           />
         );
       case 'home':

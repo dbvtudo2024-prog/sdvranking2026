@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1 } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -27,6 +27,14 @@ export interface CounselorDB {
   id?: string | number;
   name: string;
   created_at?: string;
+}
+
+export interface GameConfig {
+  id: number;
+  quiz_override: boolean;
+  memory_override: boolean;
+  specialty_override: boolean;
+  three_clues_override: boolean;
 }
 
 export const DatabaseService = {
@@ -159,6 +167,70 @@ export const DatabaseService = {
   async importSpecialtiesCSV(specialties: SpecialtyDBV[]) {
     const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
     if (error) throw error;
+  },
+
+  async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'created_at'>[]) {
+    const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
+    if (error) throw error;
+  },
+
+  // --- CONFIGURAÇÕES DE JOGOS (OVERRIDE) ---
+  async getGameConfigs(): Promise<GameConfig | null> {
+    const { data, error } = await supabase.from('game_configs').select('*').eq('id', 1).single();
+    if (error) return null;
+    return data as GameConfig;
+  },
+
+  async updateGameConfig(updates: Partial<GameConfig>) {
+    const { error } = await supabase.from('game_configs').update(updates).eq('id', 1);
+    if (error) throw error;
+  },
+
+  subscribeGameConfigs(callback: (config: GameConfig) => void) {
+    this.getGameConfigs().then(config => config && callback(config));
+    return supabase
+      .channel('game_configs_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, (payload) => {
+        callback(payload.new as GameConfig);
+      })
+      .subscribe();
+  },
+
+  // --- QUESTÕES DO QUIZ ---
+  async getQuizQuestions(): Promise<QuizQuestion[]> {
+    const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
+    if (error) return [];
+    return data as QuizQuestion[];
+  },
+
+  async addQuizQuestion(q: Omit<QuizQuestion, 'id'>) {
+    const { error } = await supabase.from('quiz_questions').insert([q]);
+    if (error) throw error;
+  },
+
+  async updateQuizQuestion(q: QuizQuestion) {
+    const { error } = await supabase.from('quiz_questions').update(q).eq('id', q.id);
+    if (error) throw error;
+  },
+
+  async deleteQuizQuestion(id: string) {
+    const { error } = await supabase.from('quiz_questions').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
+    const { error } = await supabase.from('quiz_questions').insert(questions);
+    if (error) throw error;
+  },
+
+  subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
+    this.getQuizQuestions().then(callback);
+    return supabase
+      .channel('quiz_questions_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, () => {
+        this.getQuizQuestions().then(callback);
+      })
+      .subscribe();
   },
 
   // --- USUÁRIOS E DESAFIOS ---

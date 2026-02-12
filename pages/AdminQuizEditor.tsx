@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { QuizQuestion } from '../types';
 import { QUIZ_QUESTIONS } from '../constants';
-import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, LogOut, ChevronLeft, Plus } from 'lucide-react';
+import { DatabaseService } from '../db';
+import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, LogOut, ChevronLeft, Plus, DownloadCloud, Loader2 } from 'lucide-react';
 
 interface AdminQuizEditorProps {
   onBack: () => void;
@@ -12,6 +13,8 @@ interface AdminQuizEditorProps {
 const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState<QuizQuestion | null>(null);
   const [newQuestion, setNewQuestion] = useState({
     question: '',
@@ -24,61 +27,60 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
 
   const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
-  const loadQuestions = () => {
-    const custom: QuizQuestion[] = JSON.parse(localStorage.getItem('sentinelas_custom_questions') || '[]');
-    const modifiedFixed: QuizQuestion[] = JSON.parse(localStorage.getItem('sentinelas_modified_fixed_questions') || '[]');
-    
-    const fixedProcessed = QUIZ_QUESTIONS.map(q => {
-      const mod = modifiedFixed.find(m => m.id === q.id);
-      return mod || q;
-    });
-
-    setQuestions([...fixedProcessed, ...custom]);
-  };
-
   useEffect(() => {
-    loadQuestions();
+    const channel = DatabaseService.subscribeQuizQuestions((data) => {
+      setQuestions(data);
+      setLoading(false);
+    });
+    return () => { if(channel) channel.unsubscribe(); };
   }, []);
-
-  const saveToStorage = (updatedQuestions: QuizQuestion[]) => {
-    const custom = updatedQuestions.filter(q => q.id.startsWith('custom_'));
-    const modifiedFixed = updatedQuestions.filter(q => !q.id.startsWith('custom_'));
-    
-    localStorage.setItem('sentinelas_custom_questions', JSON.stringify(custom));
-    localStorage.setItem('sentinelas_modified_fixed_questions', JSON.stringify(modifiedFixed));
-    setQuestions(updatedQuestions);
-  };
 
   const handleEditInit = (q: QuizQuestion) => {
     setEditForm({ ...q, options: [...q.options] });
     setShowModal(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editForm) {
-      const newQuestions = questions.map(q => q.id === editForm.id ? editForm : q);
-      saveToStorage(newQuestions);
-      setEditForm(null);
-    } else {
-      const custom: QuizQuestion[] = JSON.parse(localStorage.getItem('sentinelas_custom_questions') || '[]');
-      const created: QuizQuestion = {
-        id: 'custom_' + Date.now(),
-        ...newQuestion
-      };
-      custom.push(created);
-      localStorage.setItem('sentinelas_custom_questions', JSON.stringify(custom));
-      loadQuestions();
-      setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0 });
+    setIsSaving(true);
+    try {
+      if (editForm) {
+        await DatabaseService.updateQuizQuestion(editForm);
+        setEditForm(null);
+      } else {
+        await DatabaseService.addQuizQuestion(newQuestion);
+        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0 });
+      }
+      setShowModal(false);
+      alert('Operação realizada com sucesso!');
+    } catch (error) {
+      alert('Erro ao salvar questão no banco.');
+    } finally {
+      setIsSaving(false);
     }
-    setShowModal(false);
-    alert('Operação realizada com sucesso!');
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Excluir esta pergunta permanentemente?')) return;
-    const newQuestions = questions.filter(q => q.id !== id);
-    saveToStorage(newQuestions);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Excluir esta pergunta permanentemente do banco de dados?')) return;
+    try {
+      await DatabaseService.deleteQuizQuestion(id);
+    } catch (error) {
+      alert('Erro ao deletar questão.');
+    }
+  };
+
+  const handleSeedQuestions = async () => {
+    if (!confirm('Deseja enviar as 20 questões padrão para o banco de dados? Isso pode gerar duplicatas se já existirem.')) return;
+    setIsSaving(true);
+    try {
+      const questionsToSeed = QUIZ_QUESTIONS.map(({ id, ...q }) => q);
+      await DatabaseService.seedQuizQuestions(questionsToSeed);
+      alert('Questões enviadas com sucesso!');
+    } catch (error) {
+      alert('Erro ao enviar questões.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredQuestions = questions.filter(q => {
@@ -99,7 +101,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
           </div>
           <div className="min-w-0">
             <h1 className="text-sm sm:text-lg font-black leading-tight tracking-tight truncate uppercase">Quiz do Clube</h1>
-            <p className="text-[10px] sm:text-xs font-medium opacity-80 truncate uppercase">Banco de Questões</p>
+            <p className="text-[10px] sm:text-xs font-medium opacity-80 truncate uppercase">Banco Digital Supabase</p>
           </div>
         </div>
         {onLogout && (
@@ -110,16 +112,26 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
       </header>
 
       <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
-        <div className="flex justify-between items-center gap-4">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <button onClick={onBack} className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-full text-[#0061f2] font-black text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all w-fit">
             <ChevronLeft size={18} strokeWidth={3} /> Voltar
           </button>
-          <button 
-            onClick={() => { setEditForm(null); setShowModal(true); }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#0061f2] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-          >
-            <Plus size={18} /> Adicionar
-          </button>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={handleSeedQuestions}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              <DownloadCloud size={18} /> Importar Padrão
+            </button>
+            <button 
+              onClick={() => { setEditForm(null); setShowModal(true); }}
+              className="flex items-center gap-2 px-6 py-3 bg-[#0061f2] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+            >
+              <Plus size={18} /> Adicionar
+            </button>
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-3">
@@ -127,7 +139,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#0061f2] font-bold text-slate-700 text-sm transition-all pl-10" 
-              placeholder="Buscar pergunta..." 
+              placeholder="Buscar pergunta no banco..." 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)} 
             />
@@ -148,34 +160,41 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
           </div>
         </div>
 
-        <div className="space-y-4 pb-24">
-          {filteredQuestions.map(q => (
-            <div key={q.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${q.category === 'Bíblia' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>{q.category}</span>
+        {loading ? (
+          <div className="flex flex-col items-center py-20 gap-4">
+             <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando Banco de Dados...</p>
+          </div>
+        ) : (
+          <div className="space-y-4 pb-24">
+            {filteredQuestions.map(q => (
+              <div key={q.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${q.category === 'Bíblia' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>{q.category}</span>
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 leading-tight mb-3">{q.question}</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    {q.options.map((opt, idx) => (
+                      <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-600 font-black' : 'text-slate-400 font-medium'}`}>
+                        {idx + 1}. {opt} {idx === q.correctAnswer && '✓'}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-                <h4 className="text-sm font-black text-slate-800 leading-tight mb-3">{q.question}</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                  {q.options.map((opt, idx) => (
-                    <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-600 font-black' : 'text-slate-400 font-medium'}`}>
-                      {idx + 1}. {opt} {idx === q.correctAnswer && '✓'}
-                    </p>
-                  ))}
+                <div className="flex flex-col gap-2 shrink-0">
+                  <button onClick={() => handleEditInit(q)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(q.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl"><Trash2 size={16} /></button>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 shrink-0">
-                <button onClick={() => handleEditInit(q)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl"><Edit2 size={16} /></button>
-                <button onClick={() => handleDelete(q.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl"><Trash2 size={16} /></button>
+            ))}
+            {filteredQuestions.length === 0 && (
+              <div className="text-center py-10">
+                <p className="text-slate-400 font-bold italic">Nenhuma pergunta encontrada no banco.</p>
               </div>
-            </div>
-          ))}
-          {filteredQuestions.length === 0 && (
-            <div className="text-center py-10">
-              <p className="text-slate-400 font-bold italic">Nenhuma pergunta encontrada.</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -235,8 +254,9 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
               </div>
 
-              <button type="submit" className="w-full bg-[#0061f2] text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                <Save size={18} /> {editForm ? 'SALVAR ALTERAÇÕES' : 'CRIAR PERGUNTA'}
+              <button type="submit" disabled={isSaving} className="w-full bg-[#0061f2] text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+                {editForm ? 'SALVAR ALTERAÇÕES' : 'CRIAR PERGUNTA'}
               </button>
             </form>
           </div>
