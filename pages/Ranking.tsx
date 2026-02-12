@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Member, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { Trophy, Medal, Star, User, Shield, Brain, Gamepad2, LayoutGrid } from 'lucide-react';
+import { Trophy, Medal, Star, User, Shield, Brain, Gamepad2, LayoutGrid, Sword } from 'lucide-react';
 
 interface RankingProps {
   members: Member[];
@@ -13,24 +13,32 @@ type TabType = 'members' | 'units' | 'quiz' | 'memory' | 'specialty';
 const Ranking: React.FC<RankingProps> = ({ members }) => {
   const [tab, setTab] = useState<TabType>('members');
 
-  // SOMA APENAS PONTUAÇÕES SEMANAIS (GERAL/MEMBROS)
+  // SOMA APENAS PONTUAÇÃO SEMANAL (Membros e Unidades)
   const calculateWeeklyTotal = (member: Member) => {
-    const currentScores = Array.isArray(member.scores) ? member.scores : [];
-    return currentScores.reduce((acc, curr) => {
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      if (!curr) return acc;
       return acc + 
-        (curr.punctuality || 0) + 
-        (curr.uniform || 0) + 
-        (curr.material || 0) + 
-        (curr.bible || 0) + 
-        (curr.voluntariness || 0) + 
-        (curr.activities || 0) + 
-        (curr.treasury || 0);
+        (Number(curr.punctuality) || 0) + 
+        (Number(curr.uniform) || 0) + 
+        (Number(curr.material) || 0) + 
+        (Number(curr.bible) || 0) + 
+        (Number(curr.voluntariness) || 0) + 
+        (Number(curr.activities) || 0) + 
+        (Number(curr.treasury) || 0);
     }, 0);
   };
 
+  // SOMA APENAS PONTUAÇÃO ESPECÍFICA DE JOGOS (Quiz, Memória, Especialidade)
   const calculateSpecific = (member: Member, key: 'quiz' | 'memoryGame' | 'specialtyGame') => {
-    const currentScores = Array.isArray(member.scores) ? member.scores : [];
-    return currentScores.reduce((acc, curr) => acc + (curr[key] || 0), 0);
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      if (!curr) return acc;
+      const val = (curr as any)[key];
+      // Garante que o valor seja tratado como número independente do formato vindo do DB
+      const points = Number(val);
+      return acc + (isNaN(points) ? 0 : points);
+    }, 0);
   };
 
   const getSortedData = () => {
@@ -43,26 +51,27 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
         return currentMembers.sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
       case 'specialty':
         return currentMembers.sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
+      case 'members':
+      case 'units':
       default:
         return currentMembers.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
     }
   };
 
   const sortedData = getSortedData();
+  
+  // Pódio: Apenas os 3 primeiros da lista ordenada
   const podiumSlots = [
     sortedData[0] || null, // 1º
     sortedData[1] || null, // 2º
     sortedData[2] || null  // 3º
   ];
 
+  // Restante: Do 4º lugar em diante (Evita duplicidade com o pódio)
   const remaining = sortedData.slice(3);
 
   const unitStats = [UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA].map(unitName => {
-    const unitMembers = (Array.isArray(members) ? members : []).filter(m => {
-      const mUnit = (m.unit || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const targetUnit = unitName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      return mUnit === targetUnit || m.unit === unitName;
-    });
+    const unitMembers = (Array.isArray(members) ? members : []).filter(m => m.unit === unitName);
     const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
     return { name: unitName, total, count: unitMembers.length };
   }).sort((a, b) => b.total - a.total);
@@ -97,7 +106,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
         </div>
         <div className="text-right shrink-0 px-2">
           <p className="text-2xl font-black text-[#0061f2] leading-none">{points}</p>
-          <p className="text-[8px] uppercase font-black text-slate-300 tracking-widest mt-1">Pontos</p>
+          <p className="text-[8px] uppercase font-black text-slate-300 tracking-widest mt-1">Pts</p>
         </div>
       </div>
     );
@@ -125,19 +134,20 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="bg-[#f1f5f9] p-2 rounded-[2rem] shadow-inner space-y-2 mx-2 mt-4">
         <div className="grid grid-cols-3 gap-2">
-          <TabButton type="members" label="Membros" icon={LayoutGrid} />
+          <TabButton type="members" label="Membros" icon={User} />
           <TabButton type="units" label="Unidades" icon={Shield} />
           <TabButton type="quiz" label="Quiz" icon={Brain} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <TabButton type="memory" label="Memória" icon={Gamepad2} />
-          <TabButton type="specialty" label="Especialidades" icon={Medal} />
+          <TabButton type="specialty" label="Especialid." icon={Medal} />
         </div>
       </div>
 
       {tab !== 'units' ? (
         <div className="space-y-8">
           <div className="flex items-end justify-center gap-3 sm:gap-6 pt-12">
+            {/* 2º LUGAR */}
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-slate-200 overflow-hidden bg-slate-50 mb-3 flex items-center justify-center shadow-lg">
                 {podiumSlots[1]?.photoUrl ? <img src={podiumSlots[1].photoUrl} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200" />}
@@ -154,6 +164,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
               </div>
             </div>
 
+            {/* 1º LUGAR */}
             <div className="flex flex-col items-center z-10">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-[#FFD700] overflow-hidden bg-white mb-3 flex items-center justify-center shadow-2xl relative">
                 {podiumSlots[0]?.photoUrl ? <img src={podiumSlots[0].photoUrl} className="w-full h-full object-cover" /> : <User size={40} className="text-slate-200" />}
@@ -170,6 +181,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
               </div>
             </div>
 
+            {/* 3º LUGAR */}
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-amber-300 overflow-hidden bg-amber-50 mb-3 flex items-center justify-center shadow-lg">
                 {podiumSlots[2]?.photoUrl ? <img src={podiumSlots[2].photoUrl} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200" />}
@@ -188,17 +200,19 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
           </div>
 
           <div className="space-y-3 pb-20">
+            {/* LISTA COMPLEMENTAR: Começa do 4º lugar para não repetir quem já está no pódio */}
             {remaining.length > 0 ? (
-              remaining.map((member) => renderMemberItem(member, sortedData.indexOf(member) + 1))
-            ) : sortedData.length > 0 ? (
+              remaining.map((member, index) => renderMemberItem(member, index + 4))
+            ) : sortedData.length > 3 ? (
+              // Se houver membros mas todos estiverem no pódio (3 ou menos membros no total)
               null
-            ) : (
+            ) : sortedData.length === 0 ? (
               <div className="text-center py-20 bg-white/50 rounded-[3rem] mx-4 border-2 border-dashed border-slate-200">
                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                  Nenhuma pontuação registrada ainda.
+                  Nenhuma pontuação registrada nesta categoria.
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       ) : (
@@ -217,7 +231,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
                 </div>
                 <div className="text-right">
                    <p className="text-3xl font-black text-[#0061f2] leading-none">{unit.total}</p>
-                   <p className="text-[8px] uppercase font-black text-slate-300 tracking-widest mt-1">Total Membros</p>
+                   <p className="text-[8px] uppercase font-black text-slate-300 tracking-widest mt-1">Pontos Semanais</p>
                 </div>
               </div>
             </div>

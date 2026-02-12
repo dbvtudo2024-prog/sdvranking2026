@@ -43,10 +43,7 @@ export const SCORE_CATEGORIES = [
   { id: 'bible', label: 'Bíblia' },
   { id: 'voluntariness', label: 'Voluntariedade' },
   { id: 'activities', label: 'Atividades' },
-  { id: 'treasury', label: 'Tesouraria' },
-  { id: 'quiz', label: 'Quiz' },
-  { id: 'memoryGame', label: 'Jogo da Memória' },
-  { id: 'specialtyGame', label: 'Qual a Especialidade?' }
+  { id: 'treasury', label: 'Tesouraria' }
 ] as const;
 
 export const UNIT_LOGOS = {

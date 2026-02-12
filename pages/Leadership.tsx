@@ -6,9 +6,15 @@ import { X, Award, ShieldCheck, Shield } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
+  onDeleteMember?: (id: string) => void;
+  onUpdateMember?: (member: Member) => void;
+  userRole?: UserRole;
 }
 
-const Leadership: React.FC<LeadershipProps> = ({ members }) => {
+const Leadership: React.FC<LeadershipProps> = ({ 
+  members,
+  userRole 
+}) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
   const normalize = (str: string) => 

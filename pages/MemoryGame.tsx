@@ -40,26 +40,24 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   const timerRef = useRef<number | null>(null);
 
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
+    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
   const { isAvailable, hasPlayedToday } = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    // Respeita override do ADM ou Domingo
     const available = isSunday || memoryOverride;
     
     let alreadyPlayed = false;
     if (currentMember) {
       const todayStr = now.toLocaleDateString('pt-BR');
-      alreadyPlayed = currentMember.scores.some(s => s.date === todayStr && s.memoryGame !== undefined);
+      alreadyPlayed = (currentMember.scores || []).some(s => s.date === todayStr && s.memoryGame !== undefined);
     }
     
     return { isAvailable: available, hasPlayedToday: alreadyPlayed };
   }, [memoryOverride, currentMember]);
 
   useEffect(() => {
-    // Admins podem sempre jogar para testar, Pathfinders obedecem a trava
     if (isAvailable && (!hasPlayedToday || user.role === UserRole.LEADERSHIP)) {
       initializeGame();
     }
@@ -156,15 +154,17 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         treasury: 0,
         memoryGame: 20
       };
+      
+      const updatedScores = Array.isArray(currentMember.scores) ? [...currentMember.scores, newScoreEntry] : [newScoreEntry];
+
       onUpdateMember({
         ...currentMember,
-        scores: [...currentMember.scores, newScoreEntry]
+        scores: updatedScores
       });
     }
     onBack();
   };
 
-  // Se já jogou e não é ADM, trava.
   if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
@@ -176,7 +176,6 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
-  // Se não está disponível e não é ADM, trava.
   if (!isAvailable && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">

@@ -15,9 +15,9 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
 
   const getUnitStats = (unit: UnitName) => {
     const unitMembers = safeMembers.filter(m => m.unit === unit);
-    const totalWeeklyPoints = unitMembers.reduce((acc, member) => {
+    // TOTALIZADOR BASEADO APENAS NAS PONTUAÇÕES SEMANAIS (CONFORME SOLICITADO)
+    const totalPoints = unitMembers.reduce((acc, member) => {
       return acc + (Array.isArray(member.scores) ? member.scores : []).reduce((mAcc, score) => {
-        // APENAS ITENS SEMANAIS (GERAL/MEMBROS)
         return mAcc + 
                (score.punctuality || 0) + 
                (score.uniform || 0) + 
@@ -28,7 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
                (score.treasury || 0);
       }, 0);
     }, 0);
-    return { count: unitMembers.length, points: totalWeeklyPoints };
+    return { count: unitMembers.length, points: totalPoints };
   };
 
   const aguiaStats = getUnitStats(UnitName.AGUIA_DOURADA);
@@ -40,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
       <div className="pt-8 pb-4 px-6">
          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Painel de Unidades</h2>
          <p className="text-[#0061f2] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 mt-1">
-          <TrendingUp size={12} /> Resumo de Pontuação dos Membros
+          <TrendingUp size={12} /> Pontuação Semanal (Secretaria)
         </p>
       </div>
 
@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => onSelectUnit(UnitName.AGUIA_DOURADA)}
-            className="bg-white rounded-[2.5rem] py-6 sm:py-10 px-4 shadow-xl shadow-blue-900/5 border-2 border-[#FFD700] flex flex-col items-center text-center transition-all active:scale-95 hover:shadow-2xl hover:bg-yellow-50 group"
+            className="bg-white rounded-[2.5rem] py-6 sm:py-10 px-4 shadow-xl shadow-blue-900/5 border-2 border-[#FFD700] flex flex-col items-center justify-center text-center transition-all active:scale-95 hover:shadow-2xl hover:bg-yellow-50 group"
           >
             <div className="w-16 h-16 sm:w-24 sm:h-24 mb-4 flex items-center justify-center">
               <img 
@@ -58,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
               />
             </div>
             <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap uppercase">Águia Dourada</h4>
-            <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+            <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1">
               <Users size={12} />
               <span className="text-[10px] font-bold">{aguiaStats.count}</span>
             </div>
@@ -67,7 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
 
           <button 
             onClick={() => onSelectUnit(UnitName.GUERREIROS)}
-            className="bg-white rounded-[2.5rem] py-6 sm:py-10 px-4 shadow-xl shadow-blue-900/5 border-2 border-[#0061f2] flex flex-col items-center text-center transition-all active:scale-95 hover:shadow-2xl hover:bg-blue-50 group"
+            className="bg-white rounded-[2.5rem] py-6 sm:py-10 px-4 shadow-xl shadow-blue-900/5 border-2 border-[#0061f2] flex flex-col items-center justify-center text-center transition-all active:scale-95 hover:shadow-2xl hover:bg-blue-50 group"
           >
             <div className="w-16 h-16 sm:w-24 sm:h-24 mb-4 flex items-center justify-center">
               <img 
@@ -77,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
               />
             </div>
             <h4 className="font-black text-slate-800 text-xs sm:text-sm mb-1 whitespace-nowrap uppercase">Guerreiros</h4>
-            <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+            <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1">
               <Users size={12} />
               <span className="text-[10px] font-bold">{guerreirosStats.count}</span>
             </div>

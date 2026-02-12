@@ -77,7 +77,7 @@ const App: React.FC = () => {
     
     await DatabaseService.addUser(authUser);
     if (updatedMember) {
-      await DatabaseService.updateMember(updatedMember);
+      handleUpdateMember(updatedMember);
     }
   };
 
@@ -89,24 +89,25 @@ const App: React.FC = () => {
   };
 
   const handleAddMember = async (m: Member) => {
+    setMembers(prev => [...prev, m]);
     await DatabaseService.addMember(m);
   };
 
   const handleUpdateMember = async (m: Member) => {
+    setMembers(prev => prev.map(member => member.id === m.id ? m : member));
     await DatabaseService.updateMember(m);
   };
 
   const handleDeleteMember = async (id: string) => {
+    setMembers(prev => prev.filter(member => member.id !== id));
     await DatabaseService.deleteMember(id);
   };
 
   const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => {
     try {
-      const currentMembers = await DatabaseService.getMembers();
-      
-      const promises = currentMembers.map(m => {
+      const currentMembers = [...members];
+      const updatedList = currentMembers.map(m => {
         let updatedScores = Array.isArray(m.scores) ? [...m.scores] : [];
-        
         const resetScores = updatedScores.map(s => {
           const newScore = { ...s };
           if (type === 'members') {
@@ -129,20 +130,15 @@ const App: React.FC = () => {
           }
           return newScore;
         });
-
-        return DatabaseService.updateMember({ 
-          ...m, 
-          scores: resetScores 
-        });
+        return { ...m, scores: resetScores };
       });
 
+      setMembers(updatedList);
+      const promises = updatedList.map(m => DatabaseService.updateMember(m));
       await Promise.all(promises);
-      const refreshed = await DatabaseService.getMembers();
-      setMembers(refreshed);
-      
     } catch (error) {
       console.error('Falha crítica no reset:', error);
-      throw error;
+      alert('Erro ao resetar ranking. Tente novamente.');
     }
   };
 
@@ -180,7 +176,7 @@ const App: React.FC = () => {
       return (
         <UnitDetail 
           unitName={activeUnit} 
-          members={members.filter(m => m.unit === activeUnit)}
+          members={members} 
           onBack={() => setActiveUnit(null)}
           onLogout={handleLogout}
           onAddMember={handleAddMember}
@@ -199,7 +195,14 @@ const App: React.FC = () => {
       case 'ranking':
         return <Ranking members={members} />;
       case 'leadership':
-        return <Leadership members={members} />;
+        return (
+          <Leadership 
+            members={members} 
+            onDeleteMember={handleDeleteMember} 
+            onUpdateMember={handleUpdateMember} 
+            userRole={user.role} 
+          />
+        );
       case 'games':
         return (
           <Games 
