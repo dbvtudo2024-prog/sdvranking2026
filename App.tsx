@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement } from './types';
-import { DatabaseService, CounselorDB } from './db';
+import { DatabaseService } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -15,196 +15,119 @@ import AdminManagement from './pages/AdminManagement';
 import Games from './pages/Games';
 import Leadership from './pages/Leadership';
 import Navbar from './components/Navbar';
-import { LogOut, Loader2 } from 'lucide-react';
-
-type Page = 'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'admin_management' | 'admin_announcements' | 'admin_quiz_editor' | 'admin_specialty_editor';
+import { LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const saved = localStorage.getItem('sentinelas_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [counselors, setCounselors] = useState<CounselorDB[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [activeUnit, setActiveUnit] = useState<UnitName | null>(null);
-
-  const [quizOverride, setQuizOverride] = useState(() => localStorage.getItem('sentinelas_quiz_override') === 'true');
-  const [memoryOverride, setMemoryOverride] = useState(() => localStorage.getItem('sentinelas_memory_override') === 'true');
-  const [specialtyOverride, setSpecialtyOverride] = useState(() => localStorage.getItem('sentinelas_specialty_override') === 'true');
+  const [counselors, setCounselors] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management'>('home');
+  const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-  const LOGO_LOADING = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
+
+  // Admin overrides for games
+  const [quizOverride, setQuizOverride] = useState(false);
+  const [memoryOverride, setMemoryOverride] = useState(false);
+  const [specialtyOverride, setSpecialtyOverride] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('sentinelas_session_user');
-    if (savedUser) setUser(JSON.parse(savedUser));
-
-    const membersChannel = DatabaseService.subscribeMembers((data) => {
-      setMembers(data);
-      setLoading(false);
-    });
-
-    const annChannel = DatabaseService.subscribeAnnouncements((data) => {
-      setAnnouncements(data);
-    });
-
-    const counselorsChannel = DatabaseService.subscribeCounselors((data) => {
-      setCounselors(data);
+    const membersSub = DatabaseService.subscribeMembers(setMembers);
+    const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
+    const counselorsSub = DatabaseService.subscribeCounselors((data) => {
+      setCounselors(data.map(c => c.name));
     });
 
     return () => {
-      if (membersChannel) membersChannel.unsubscribe();
-      if (annChannel) annChannel.unsubscribe();
-      if (counselorsChannel) counselorsChannel.unsubscribe();
+      membersSub.unsubscribe();
+      announcementsSub.unsubscribe();
+      counselorsSub.unsubscribe();
     };
   }, []);
 
-  const handleToggleOverride = (key: 'quiz' | 'memory' | 'specialty') => {
-    if (key === 'quiz') {
-      const newVal = !quizOverride;
-      setQuizOverride(newVal);
-      localStorage.setItem('sentinelas_quiz_override', String(newVal));
-    } else if (key === 'memory') {
-      const newVal = !memoryOverride;
-      setMemoryOverride(newVal);
-      localStorage.setItem('sentinelas_memory_override', String(newVal));
-    } else if (key === 'specialty') {
-      const newVal = !specialtyOverride;
-      setSpecialtyOverride(newVal);
-      localStorage.setItem('sentinelas_specialty_override', String(newVal));
-    }
-  };
-
-  const handleLogin = async (authUser: AuthUser, updatedMember?: Member) => {
+  const handleLogin = (authUser: AuthUser) => {
     setUser(authUser);
-    setIsRegistering(false);
-    localStorage.setItem('sentinelas_session_user', JSON.stringify(authUser));
-    
-    await DatabaseService.addUser(authUser);
-    if (updatedMember) {
-      handleUpdateMember(updatedMember);
-    }
+    localStorage.setItem('sentinelas_user', JSON.stringify(authUser));
+    setCurrentPage('home');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('sentinelas_session_user');
     setUser(null);
+    localStorage.removeItem('sentinelas_user');
     setCurrentPage('home');
-    setActiveUnit(null);
+    setSelectedUnit(null);
   };
 
-  const handleAddMember = async (m: Member) => {
-    setMembers(prev => [...prev, m]);
-    await DatabaseService.addMember(m);
-  };
-
-  const handleUpdateMember = async (m: Member) => {
-    setMembers(prev => prev.map(member => member.id === m.id ? m : member));
-    await DatabaseService.updateMember(m);
-  };
-
-  const handleDeleteMember = async (id: string) => {
-    setMembers(prev => prev.filter(member => member.id !== id));
-    await DatabaseService.deleteMember(id);
+  const handleUpdateUser = async (updatedUser: AuthUser, updatedMember?: Member) => {
+    setUser(updatedUser);
+    localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
+    await DatabaseService.addUser(updatedUser);
+    if (updatedMember) {
+      await DatabaseService.updateMember(updatedMember);
+    }
   };
 
   const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => {
-    try {
-      const currentMembers = [...members];
-      const updatedList = currentMembers.map(m => {
-        let updatedScores = Array.isArray(m.scores) ? [...m.scores] : [];
-        const resetScores = updatedScores.map(s => {
-          const newScore = { ...s };
-          if (type === 'members') {
-            newScore.punctuality = 0;
-            newScore.uniform = 0;
-            newScore.material = 0;
-            newScore.bible = 0;
-            newScore.voluntariness = 0;
-            newScore.activities = 0;
-            newScore.treasury = 0;
-          } else if (type === 'quiz') {
-            newScore.quiz = 0;
-            newScore.quizCategory = undefined;
-          } else if (type === 'memory') {
-            newScore.memoryGame = 0;
-          } else if (type === 'specialty') {
-            newScore.specialtyGame = 0;
-          } else if (type === '1x1') {
-            newScore.challenge1x1 = 0;
-          }
-          return newScore;
-        });
-        return { ...m, scores: resetScores };
+    const updatedMembers = members.map(m => {
+      const newScores = (m.scores || []).map(s => {
+        const news = { ...s };
+        if (type === 'members') {
+          news.punctuality = 0; news.uniform = 0; news.material = 0; news.bible = 0;
+          news.voluntariness = 0; news.activities = 0; news.treasury = 0;
+        } else if (type === 'quiz') {
+          news.quiz = 0;
+        } else if (type === 'memory') {
+          news.memoryGame = 0;
+        } else if (type === 'specialty') {
+          news.specialtyGame = 0;
+        } else if (type === '1x1') {
+          news.challenge1x1 = 0;
+        }
+        return news;
       });
+      return { ...m, scores: newScores };
+    });
 
-      setMembers(updatedList);
-      const promises = updatedList.map(m => DatabaseService.updateMember(m));
-      await Promise.all(promises);
-    } catch (error) {
-      console.error('Falha crítica no reset:', error);
-      alert('Erro ao resetar ranking. Tente novamente.');
+    for (const m of updatedMembers) {
+      await DatabaseService.updateMember(m);
     }
   };
-
-  const handleAddCounselor = async (name: string) => {
-    try {
-      await DatabaseService.addCounselor(name);
-      alert(`Conselheiro(a) ${name} adicionado ao banco de dados com sucesso!`);
-    } catch (err) {
-      alert('Erro ao salvar conselheiro no servidor.');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0061f2] flex flex-col items-center justify-center text-white gap-6">
-        <img src={LOGO_LOADING} alt="Logo" className="w-32 h-32 object-contain animate-pulse" />
-        <Loader2 size={48} className="animate-spin text-white/40" />
-      </div>
-    );
-  }
-
-  const counselorNames = counselors.map(c => c.name);
 
   if (!user) {
-    if (isRegistering) {
-      return <Register onRegister={handleLogin} onBack={() => setIsRegistering(false)} counselorList={counselorNames} />;
-    }
-    return <Login onLogin={handleLogin} onGoToRegister={() => setIsRegistering(true)} />;
-  }
-
-  const renderContent = () => {
-    if (activeUnit) {
+    if (currentPage === 'register') {
       return (
-        <UnitDetail 
-          unitName={activeUnit} 
-          members={members} 
-          onBack={() => setActiveUnit(null)}
-          onLogout={handleLogout}
-          onAddMember={handleAddMember}
-          onUpdateMember={handleUpdateMember}
-          onDeleteMember={handleDeleteMember}
-          role={user.role}
-          userName={user.name}
-          counselorList={counselorNames}
+        <Register 
+          onRegister={(u, m) => {
+            if (m) handleLogin(u);
+            else setCurrentPage('home');
+          }} 
+          onBack={() => setCurrentPage('home')}
+          counselorList={counselors}
         />
       );
     }
+    return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
+  }
 
+  const renderPage = () => {
     switch (currentPage) {
-      case 'home':
-        return <Dashboard members={members} announcements={announcements} onSelectUnit={(unit) => setActiveUnit(unit)} />;
       case 'ranking':
         return <Ranking members={members} />;
       case 'leadership':
+        return <Leadership members={members} userRole={user.role} />;
+      case 'profile':
         return (
-          <Leadership 
+          <Profile 
+            user={user} 
             members={members} 
-            onDeleteMember={handleDeleteMember} 
-            onUpdateMember={handleUpdateMember} 
-            userRole={user.role} 
+            onUpdateUser={handleUpdateUser} 
+            onLogout={handleLogout}
+            onGoToAdminManagement={() => setCurrentPage('admin_management')}
+            counselorList={counselors}
           />
         );
       case 'games':
@@ -212,24 +135,40 @@ const App: React.FC = () => {
           <Games 
             user={user} 
             members={members} 
-            onUpdateMember={handleUpdateMember} 
+            onUpdateMember={DatabaseService.updateMember.bind(DatabaseService)}
             quizOverride={quizOverride}
             memoryOverride={memoryOverride}
             specialtyOverride={specialtyOverride}
           />
         );
-      case 'profile':
+      case 'unit_detail':
+        return selectedUnit ? (
+          <UnitDetail 
+            unitName={selectedUnit} 
+            members={members} 
+            onBack={() => setCurrentPage('home')} 
+            onLogout={handleLogout}
+            onAddMember={DatabaseService.addMember.bind(DatabaseService)}
+            onUpdateMember={DatabaseService.updateMember.bind(DatabaseService)}
+            onDeleteMember={DatabaseService.deleteMember.bind(DatabaseService)}
+            role={user.role}
+            userName={user.name}
+            counselorList={counselors}
+          />
+        ) : null;
+      case 'admin_announcements':
         return (
-          <Profile 
-            user={user} 
-            members={members}
-            onUpdateUser={handleLogin} 
-            onLogout={handleLogout} 
-            onGoToAdminManagement={() => setCurrentPage('admin_management')}
-            onUpdateMember={handleUpdateMember}
-            counselorList={counselorNames}
+          <AdminAnnouncements 
+            announcements={announcements}
+            onAdd={DatabaseService.addAnnouncement.bind(DatabaseService)}
+            onDelete={DatabaseService.deleteAnnouncement.bind(DatabaseService)}
+            onBack={() => setCurrentPage('profile')}
           />
         );
+      case 'admin_quiz':
+        return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      case 'admin_specialty':
+        return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_management':
         return (
           <AdminManagement 
@@ -237,59 +176,62 @@ const App: React.FC = () => {
             userEmail={user.email}
             onBack={() => setCurrentPage('profile')}
             onGoToAdminAvisos={() => setCurrentPage('admin_announcements')}
-            onGoToAdminQuiz={() => setCurrentPage('admin_quiz_editor')}
-            onGoToAdminSpecialty={() => setCurrentPage('admin_specialty_editor')}
-            onAddCounselor={handleAddCounselor}
+            onGoToAdminQuiz={() => setCurrentPage('admin_quiz')}
+            onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')}
+            onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)}
             onResetRanking={handleResetRanking}
             quizOverride={quizOverride}
-            onToggleQuizOverride={() => handleToggleOverride('quiz')}
+            onToggleQuizOverride={() => setQuizOverride(!quizOverride)}
             memoryOverride={memoryOverride}
-            onToggleMemoryOverride={() => handleToggleOverride('memory')}
+            onToggleMemoryOverride={() => setMemoryOverride(!memoryOverride)}
             specialtyOverride={specialtyOverride}
-            onToggleSpecialtyOverride={() => handleToggleOverride('specialty')}
+            onToggleSpecialtyOverride={() => setSpecialtyOverride(!specialtyOverride)}
           />
         );
-      case 'admin_announcements':
-        return (
-          <AdminAnnouncements 
-            announcements={announcements} 
-            onAdd={(a) => DatabaseService.addAnnouncement(a)} 
-            onDelete={(id) => DatabaseService.deleteAnnouncement(id)} 
-            onBack={() => setCurrentPage('admin_management')} 
-          />
-        );
-      case 'admin_quiz_editor':
-        return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
-      case 'admin_specialty_editor':
-        return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      case 'home':
       default:
-        return <Dashboard members={members} announcements={announcements} onSelectUnit={(unit) => setActiveUnit(unit)} />;
+        return (
+          <Dashboard 
+            members={members} 
+            announcements={announcements} 
+            onSelectUnit={(unit) => {
+              setSelectedUnit(unit);
+              setCurrentPage('unit_detail');
+            }} 
+          />
+        );
     }
   };
 
-  const isInternalPage = currentPage.startsWith('admin_');
+  const showGlobalLayout = ['home', 'ranking', 'leadership', 'profile', 'games'].includes(currentPage);
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center sm:py-4">
-      <div className="w-full sm:max-w-2xl lg:max-w-4xl h-screen sm:h-[92vh] sm:rounded-[3rem] bg-white shadow-2xl flex flex-col relative overflow-hidden border border-slate-200">
-        {!activeUnit && !isInternalPage && (
-          <header className="bg-[#0061f2] text-white px-6 h-20 flex items-center justify-between shadow-lg flex-shrink-0 z-50">
-             <div className="flex items-center gap-3">
-               <img src={LOGO_APP} alt="Logo" className="w-10 h-10 object-contain" />
-               <h1 className="font-black uppercase tracking-tight text-sm">Sentinelas</h1>
-             </div>
-             <button onClick={handleLogout} className="p-2 bg-white/10 rounded-xl"><LogOut size={18} /></button>
-          </header>
-        )}
-        <main className={`flex-1 overflow-y-auto bg-slate-50 ${(activeUnit || isInternalPage) ? 'p-0' : 'p-4'}`}>
-          {renderContent()}
-        </main>
-        {!activeUnit && !isInternalPage && (
-          <div className="flex-shrink-0 bg-white border-t border-slate-100">
-            <Navbar currentPage={currentPage as any} setCurrentPage={(p) => { setActiveUnit(null); setCurrentPage(p as any); }} />
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      {/* CABEÇALHO PRINCIPAL DO APP */}
+      {showGlobalLayout && (
+        <header className="bg-[#0061f2] text-white px-6 h-16 flex items-center justify-between shadow-lg z-50 shrink-0">
+          <div className="flex items-center gap-3">
+            <img src={LOGO_APP} alt="Logo" className="w-8 h-8 object-contain" />
+            <h1 className="font-black uppercase tracking-tight text-sm">Sentinelas</h1>
           </div>
-        )}
-      </div>
+          <button 
+            onClick={handleLogout}
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90"
+          >
+            <LogOut size={18} />
+          </button>
+        </header>
+      )}
+
+      <main className="flex-1 overflow-y-auto">
+        {renderPage()}
+      </main>
+
+      {showGlobalLayout && (
+        <footer className="shrink-0 bg-white border-t border-slate-100">
+          <Navbar currentPage={currentPage as any} setCurrentPage={setCurrentPage as any} />
+        </footer>
+      )}
     </div>
   );
 };

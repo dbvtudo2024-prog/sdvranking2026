@@ -80,7 +80,10 @@ export const DatabaseService = {
 
   async addCounselor(name: string) {
     const { error } = await supabase.from('conselheiros').insert([{ name }]);
-    if (error) throw error;
+    if (error) {
+      console.error('Erro detalhado Supabase:', error);
+      throw error; // Repassa o erro original com a mensagem técnica
+    }
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
