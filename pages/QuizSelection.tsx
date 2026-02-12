@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight } from 'lucide-react';
+import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight, Calendar } from 'lucide-react';
 import { AuthUser, Member, UserRole } from '../types';
 import QuizGame from './QuizGame';
 
@@ -22,7 +22,6 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   const isAvailable = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    // Forçamos a dependência apenas do Domingo ou do Botão do ADM
     return isSunday || quizOverride; 
   }, [quizOverride]);
 
@@ -45,17 +44,6 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
     return quizScores.length > 0 ? Math.max(...quizScores) : 0;
   };
 
-  const getTimeToUnlock = () => {
-    const now = new Date();
-    if (now.getDay() === 0) return "Hoje";
-    const nextSunday = new Date(now);
-    nextSunday.setDate(now.getDate() + (7 - now.getDay()));
-    nextSunday.setHours(0, 0, 0, 0);
-    const diff = nextSunday.getTime() - now.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return `${days}d`;
-  };
-
   if (playingCategory) {
     return (
       <QuizGame 
@@ -70,9 +58,13 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const CategoryButton = ({ category, played }: { category: 'Desbravadores' | 'Bíblia', played: boolean }) => {
     const isDesbravadores = category === 'Desbravadores';
+    
+    // Bloqueia se já jogou OU se não for domingo (Global para todos)
+    const isDisabled = played || !isAvailable;
+
     const activeClasses = isDesbravadores 
-      ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
-      : 'bg-amber-50 border-amber-200 hover:bg-amber-100';
+      ? 'bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-900' 
+      : 'bg-amber-50 border-amber-200 hover:bg-amber-100 text-amber-900';
     
     const iconContainerClasses = isDesbravadores
       ? 'bg-blue-600 text-white'
@@ -80,44 +72,44 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
     return (
       <button 
-        disabled={!isAvailable || (played && user.role === UserRole.PATHFINDER)}
+        disabled={isDisabled}
         onClick={() => setPlayingCategory(category)}
         className={`w-full rounded-[1.5rem] p-4 shadow-md border-2 flex items-center text-left transition-all relative group
-          ${(!isAvailable || (played && user.role === UserRole.PATHFINDER)) 
-            ? 'bg-slate-50 border-slate-100 opacity-75 grayscale-[0.5] cursor-not-allowed' 
+          ${isDisabled
+            ? 'bg-slate-50 border-slate-100 opacity-70 grayscale cursor-not-allowed' 
             : `${activeClasses} active:scale-95 shadow-blue-900/5`}`}
       >
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 shrink-0 transition-all ${played ? 'bg-slate-200 text-slate-400' : iconContainerClasses}`}>
-          {played ? (
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 shrink-0 transition-all ${played ? 'bg-green-100 text-green-600' : iconContainerClasses}`}>
+          {played || !isAvailable ? (
             <Lock size={20} />
           ) : isDesbravadores ? (
-            <Brain size={24} className="group-hover:scale-110 transition-transform" />
+            <Brain size={24} />
           ) : (
-            <BookOpen size={24} className="group-hover:scale-110 transition-transform" />
+            <BookOpen size={24} />
           )}
         </div>
         
         <div className="flex-1 min-w-0 pr-2">
-          <h4 className={`font-black text-sm uppercase tracking-tight leading-tight mb-0.5 ${played ? 'text-slate-400' : isDesbravadores ? 'text-blue-900' : 'text-amber-900'}`}>
+          <h4 className={`font-black text-sm uppercase tracking-tight leading-tight mb-0.5 ${isDisabled ? 'text-slate-400' : ''}`}>
             {category}
           </h4>
           <div className="flex items-center gap-2">
              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase ${isDesbravadores ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-               Rec: {getBestScore(category)}
+               Recorde: {getBestScore(category)} pts
              </span>
-             <div className="flex items-center gap-1 text-slate-400">
-              {played && user.role === UserRole.PATHFINDER ? (
-                <span className="text-[8px] font-black text-red-400 uppercase">Já Realizado</span>
-              ) : (
-                <span className={`text-[8px] font-black uppercase tracking-tighter ${isAvailable ? (isDesbravadores ? 'text-blue-500' : 'text-amber-600') : 'text-slate-400'}`}>
-                  {isAvailable ? 'Liberado' : `Abre em ${getTimeToUnlock()}`}
-                </span>
-              )}
-            </div>
+             {played ? (
+               <span className="text-[8px] font-black text-green-600 uppercase">Concluído</span>
+             ) : !isAvailable ? (
+               <span className="text-[8px] font-black text-slate-400 uppercase flex items-center gap-1">
+                 <Calendar size={10} /> Abre Domingo
+               </span>
+             ) : (
+               <span className="text-[8px] font-black text-blue-500 uppercase">Liberado</span>
+             )}
           </div>
         </div>
 
-        <ChevronRight size={16} className={`shrink-0 ${played ? 'text-slate-300' : isDesbravadores ? 'text-blue-300' : 'text-amber-300'}`} />
+        <ChevronRight size={16} className="text-slate-300 shrink-0" />
       </button>
     );
   };
@@ -132,11 +124,15 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
       <div className="w-full bg-[#fffbeb] border border-[#fef3c7] rounded-2xl p-4 mb-6 shadow-sm flex gap-3">
         <div className="shrink-0 flex items-start pt-0.5">
-           <AlertTriangle size={16} className="text-amber-500 fill-amber-100" />
+           <AlertTriangle size={16} className="text-amber-500" />
         </div>
         <div>
-          <h3 className="text-amber-800 text-[10px] font-black uppercase tracking-tight">Uma tentativa por semana</h3>
-          <p className="text-amber-600 text-[9px] font-bold leading-tight opacity-80">Você pode responder cada categoria uma vez por semana.</p>
+          <h3 className="text-amber-800 text-[10px] font-black uppercase tracking-tight">Regras de Acesso</h3>
+          <p className="text-amber-600 text-[9px] font-bold leading-tight opacity-80">
+            {isAvailable 
+              ? "Você tem uma tentativa em cada categoria hoje. O botão ficará bloqueado após o término." 
+              : "Os desafios abrem automaticamente aos domingos (00:00). Hoje o acesso está bloqueado."}
+          </p>
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthUser, Member, Challenge1x1, QuizQuestion } from '../types';
 import { QUIZ_QUESTIONS, UNIT_LOGOS } from '../constants';
 import { DatabaseService, supabase } from '../db';
-import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User } from 'lucide-react';
+import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target } from 'lucide-react';
 
 interface Challenge1x1PageProps {
   user: AuthUser;
@@ -19,11 +19,11 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   const [showArena, setShowArena] = useState(false);
   const [answeredLocal, setAnsweredLocal] = useState(false);
   const [isMachineMode, setIsMachineMode] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(true);
   
   const machineTimerRef = useRef<number | null>(null);
   const myMember = useMemo(() => members.find(m => m.id === user.id), [members, user.id]);
 
-  // Cálculo do Ranking 1x1 (baseado no histórico de scores de cada membro)
   const duelRanking = useMemo(() => {
     return members
       .map(m => {
@@ -35,7 +35,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       .slice(0, 10);
   }, [members]);
 
-  // Escuta de convites (apenas para modo humano)
   useEffect(() => {
     if (!user.id || isMachineMode) return;
 
@@ -68,11 +67,9 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
     return () => { channel.unsubscribe(); };
   }, [user.id, activeChallenge, isMachineMode]);
 
-  // Lógica da Máquina (IA)
   useEffect(() => {
     if (isMachineMode && showArena && activeChallenge && activeChallenge.status !== 'finished' && !answeredLocal) {
       const thinkingTime = Math.random() * 2000 + 2000;
-      
       machineTimerRef.current = window.setTimeout(() => {
         handleMachineTurn();
       }, thinkingTime);
@@ -83,25 +80,26 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   const handleMachineTurn = () => {
     if (!activeChallenge || answeredLocal || activeChallenge.status === 'finished') return;
 
-    const isCorrect = Math.random() > 0.3;
+    const isCorrect = Math.random() > 0.4;
     
     if (isCorrect) {
       const newScores = { ...activeChallenge.scores };
-      newScores['machine'] = (newScores['machine'] || 0) + 5;
+      newScores['machine'] = (newScores['machine'] || 0) + 1;
       
       const questionIdx = activeChallenge.currentQuestion;
       const isLastQuestion = questionIdx === 9;
+      const machineHasWon = newScores['machine'] >= 5;
       
       const updated: Challenge1x1 = {
         ...activeChallenge,
         scores: newScores,
-        currentQuestion: isLastQuestion ? questionIdx : questionIdx + 1,
-        status: isLastQuestion ? 'finished' : 'playing',
+        currentQuestion: (isLastQuestion || machineHasWon) ? questionIdx : questionIdx + 1,
+        status: (isLastQuestion || machineHasWon) ? 'finished' : 'playing',
         lastAnsweredBy: 'machine',
-        winnerId: isLastQuestion ? (newScores[user.id] > newScores['machine'] ? user.id : (newScores['machine'] > newScores[user.id] ? 'machine' : 'draw')) : undefined
+        winnerId: (isLastQuestion || machineHasWon) ? (newScores['machine'] >= 5 ? 'machine' : (newScores[user.id] > newScores['machine'] ? user.id : (newScores['machine'] > newScores[user.id] ? 'machine' : 'draw'))) : undefined
       };
       
-      if (!isLastQuestion) {
+      if (!(isLastQuestion || machineHasWon)) {
         updated.lastAnsweredBy = undefined;
       }
 
@@ -166,21 +164,33 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
 
     if (isCorrect) {
       const newScores = { ...activeChallenge.scores };
-      newScores[user.id] = (newScores[user.id] || 0) + 5;
+      newScores[user.id] = (newScores[user.id] || 0) + 1; 
       
       const isLastQuestion = questionIdx === 9;
-      const nextStatus = isLastQuestion ? 'finished' : 'playing';
-      const winnerId = isLastQuestion ? (newScores[user.id] > (newScores['machine'] || newScores[activeChallenge.challengedId]) ? user.id : ( (newScores['machine'] || newScores[activeChallenge.challengedId]) > newScores[user.id] ? (isMachineMode ? 'machine' : activeChallenge.challengedId) : 'draw')) : undefined;
+      const iHaveWon = newScores[user.id] >= 5;
+      const oppId = isMachineMode ? 'machine' : (activeChallenge.challengerId === user.id ? activeChallenge.challengedId : activeChallenge.challengerId);
+      
+      const nextStatus = (isLastQuestion || iHaveWon) ? 'finished' : 'playing';
+      
+      let winnerId = undefined;
+      if (isLastQuestion || iHaveWon) {
+        if (iHaveWon) {
+          winnerId = user.id;
+        } else {
+          const oppScore = newScores[oppId] || 0;
+          winnerId = newScores[user.id] > oppScore ? user.id : (oppScore > newScores[user.id] ? oppId : 'draw');
+        }
+      }
 
       const updates: Partial<Challenge1x1> = {
         scores: newScores,
-        currentQuestion: isLastQuestion ? questionIdx : questionIdx + 1,
+        currentQuestion: (isLastQuestion || iHaveWon) ? questionIdx : questionIdx + 1,
         status: nextStatus as any,
         lastAnsweredBy: user.id,
         winnerId: winnerId
       };
 
-      if (isMachineMode && !isLastQuestion) {
+      if (isMachineMode && !(isLastQuestion || iHaveWon)) {
         updates.lastAnsweredBy = undefined;
       }
 
@@ -202,67 +212,126 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
     return QUIZ_QUESTIONS.find(q => q.id === qId);
   }, [activeChallenge]);
 
+  const renderHearts = (hitsTaken: number) => {
+    const hearts = [];
+    const maxLives = 5;
+    for (let i = 0; i < maxLives; i++) {
+      const isFull = i < (maxLives - hitsTaken);
+      hearts.push(
+        <Heart 
+          key={i} 
+          size={16} 
+          className={`transition-all duration-300 ${isFull ? 'text-red-500 fill-red-500' : 'text-slate-300'}`} 
+        />
+      );
+    }
+    return <div className="flex gap-1 mt-1">{hearts}</div>;
+  };
+
   if (showArena && activeChallenge && currentQuestionData) {
-    const myScore = activeChallenge.scores[user.id] || 0;
     const oppId = isMachineMode ? 'machine' : (activeChallenge.challengerId === user.id ? activeChallenge.challengedId : activeChallenge.challengerId);
-    const opponentScore = activeChallenge.scores[oppId] || 0;
+    
+    const myHitsDone = activeChallenge.scores[user.id] || 0;
+    const oppHitsDone = activeChallenge.scores[oppId] || 0;
 
     if (activeChallenge.status === 'finished') {
+      const handleRematch = () => {
+        if (isMachineMode) {
+          handleChallengeMachine();
+        } else {
+          const opponentMember = members.find(m => m.id === oppId);
+          if (opponentMember) {
+            handleChallenge(opponentMember);
+            setShowArena(false);
+          }
+        }
+      };
+
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95 duration-500">
           <Trophy size={80} className="text-yellow-400 mb-6" />
           <h2 className="text-3xl font-black text-slate-800 uppercase mb-2">Fim do Duelo!</h2>
           <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 w-full max-w-sm space-y-4">
             <div className="flex justify-between items-center px-4">
-              <div>
+              <div className="flex flex-col items-center">
                 <p className="text-[10px] font-black text-slate-400 uppercase">Você</p>
-                <p className="text-4xl font-black text-blue-600">{myScore}</p>
+                <div className="flex gap-0.5 mt-1 mb-2">
+                   {Array.from({length: 5}).map((_, i) => (
+                     <Heart key={i} size={10} className={i < (5 - oppHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                   ))}
+                </div>
+                <p className="text-3xl font-black text-blue-600">{5 - oppHitsDone}</p>
               </div>
-              <div className="text-slate-200 font-black text-2xl">VS</div>
-              <div>
+              <div className="text-slate-200 font-black text-xl">X</div>
+              <div className="flex flex-col items-center">
                 <p className="text-[10px] font-black text-slate-400 uppercase">{isMachineMode ? 'Robô' : 'Oponente'}</p>
-                <p className="text-4xl font-black text-red-600">{opponentScore}</p>
+                <div className="flex gap-0.5 mt-1 mb-2">
+                   {Array.from({length: 5}).map((_, i) => (
+                     <Heart key={i} size={10} className={i < (5 - myHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                   ))}
+                </div>
+                <p className="text-3xl font-black text-red-600">{5 - myHitsDone}</p>
               </div>
             </div>
             <div className="pt-4 border-t border-slate-50">
-              <p className="font-black text-slate-800 uppercase tracking-widest">
-                {activeChallenge.winnerId === user.id ? 'VOCÊ VENCEU! 🎉' : activeChallenge.winnerId === 'draw' ? 'EMPATE! 🤝' : 'VOCÊ PERDEU! 💀'}
+              <p className="font-black text-slate-800 uppercase tracking-widest text-lg">
+                {activeChallenge.winnerId === user.id ? 'VOCÊ VENCEU! 🏆' : activeChallenge.winnerId === 'draw' ? 'EMPATE! 🤝' : 'VOCÊ PERDEU! 💀'}
               </p>
+              {activeChallenge.winnerId === user.id && (
+                <p className="text-blue-600 font-black text-[10px] uppercase mt-1 tracking-widest">+10 PONTOS DE BÔNUS!</p>
+              )}
             </div>
           </div>
-          <button onClick={() => { 
-            if (myMember && activeChallenge.winnerId === user.id) {
-               const updated = {...myMember, scores: [...myMember.scores, { date: new Date().toLocaleDateString('pt-BR'), challenge1x1: myScore } as any]};
-               onUpdateMember(updated);
-            }
-            onBack();
-          }} className="mt-8 w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl">VOLTAR AO MENU</button>
+          
+          <div className="flex flex-col gap-3 w-full max-w-xs mt-8">
+            <button 
+              onClick={handleRematch}
+              className="w-full bg-yellow-400 text-slate-900 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <RotateCcw size={20} /> REVANCHE
+            </button>
+            <button 
+              onClick={() => { 
+                if (myMember && activeChallenge.winnerId === user.id) {
+                   const points = 10;
+                   const updated = {...myMember, scores: [...myMember.scores, { date: new Date().toLocaleDateString('pt-BR'), challenge1x1: points } as any]};
+                   onUpdateMember(updated);
+                }
+                onBack();
+              }} 
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              VOLTAR AO MENU
+            </button>
+          </div>
         </div>
       );
     }
 
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-        <header className="bg-blue-600 p-6 text-white flex justify-between items-center shadow-lg">
-          <div className="flex flex-col">
-             <span className="text-[10px] font-black uppercase opacity-60">Pergunta</span>
-             <span className="text-xl font-black">{activeChallenge.currentQuestion + 1} / 10</span>
+        <header className="bg-blue-600 p-6 text-white flex justify-between items-center shadow-lg pt-10">
+          <div className="flex flex-col items-center flex-1">
+             <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: VOCÊ</span>
+             {renderHearts(oppHitsDone)}
           </div>
-          <div className="flex items-center gap-4 bg-white/10 px-6 py-2 rounded-2xl border border-white/20">
-             <div className="text-center">
-               <p className="text-[8px] font-black uppercase">VOCÊ</p>
-               <p className="text-xl font-black">{myScore}</p>
-             </div>
-             <div className="text-yellow-400 font-black">X</div>
-             <div className="text-center">
-               <p className="text-[8px] font-black uppercase">{isMachineMode ? 'ROBÔ' : 'OPONENTE'}</p>
-               <p className="text-xl font-black">{opponentScore}</p>
-             </div>
+          
+          <div className="flex flex-col items-center px-4">
+             <Sword size={24} className="text-yellow-400 mb-1" />
+             <span className="text-[10px] font-black">{activeChallenge.currentQuestion + 1}/10</span>
+          </div>
+
+          <div className="flex flex-col items-center flex-1">
+             <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: {isMachineMode ? 'ROBÔ' : 'OPONENTE'}</span>
+             {renderHearts(myHitsDone)}
           </div>
         </header>
 
         <div className="p-6 space-y-6 flex-1 flex flex-col justify-center">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl text-center">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 h-1 bg-blue-100 w-full">
+              <div className="h-full bg-blue-600 transition-all duration-500" style={{width: `${(activeChallenge.currentQuestion + 1) * 10}%`}}></div>
+            </div>
             <h3 className="text-xl font-black text-slate-800 leading-tight">
               {currentQuestionData.question}
             </h3>
@@ -277,7 +346,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
                 className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all active:scale-[0.98] flex justify-between items-center
                   ${answeredLocal ? 'bg-slate-50 text-slate-300 border-slate-100' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-400'}`}
               >
-                <span>{opt}</span>
+                <span className="text-sm">{opt}</span>
               </button>
             ))}
           </div>
@@ -285,7 +354,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
 
         <div className="p-6 bg-white border-t border-slate-100 text-center">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-             <Zap size={14} className="text-yellow-500" /> {isMachineMode ? 'O ROBÔ ESTÁ PENSANDO...' : 'SEJA RÁPIDO PARA PONTUAR'}
+             <Zap size={14} className="text-yellow-500" /> {isMachineMode ? 'O ROBÔ ESTÁ ANALISANDO...' : 'ACERTE PARA TIRAR VIDA DO ADVERSÁRIO'}
            </p>
         </div>
       </div>
@@ -293,7 +362,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in">
+    <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in relative">
       <header className="bg-blue-600 p-6 h-24 flex items-center justify-between shadow-lg text-white">
         <div className="flex items-center gap-3">
           <Sword size={24} className="text-yellow-400" />
@@ -303,7 +372,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       </header>
 
       <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-24">
-        {/* OPÇÃO DE DESAFIAR A MÁQUINA */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
            <Cpu size={120} className="absolute -right-10 -bottom-10 text-white/5 group-hover:scale-110 transition-transform duration-700" />
            <div className="relative z-10">
@@ -366,7 +434,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           </div>
         </div>
 
-        {/* RANKING DA ARENA 1X1 */}
         <div className="mt-8 pt-8 border-t border-slate-100">
            <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest ml-2 flex items-center gap-2 mb-4">
              <Trophy size={14} /> Top Duelistas da Arena
@@ -402,6 +469,62 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
            </div>
         </div>
       </div>
+
+      {/* MODAL DE TUTORIAL / REGRAS */}
+      {showTutorial && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[300] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl space-y-6 relative overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
+            
+            <div className="text-center space-y-2 pt-2">
+              <div className="bg-blue-50 w-16 h-16 rounded-[1.5rem] mx-auto flex items-center justify-center text-blue-600">
+                <Info size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Como Funciona?</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Regras de Combate 1x1</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="shrink-0 text-red-500 pt-1">
+                  <Heart size={20} fill="currentColor" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-700 uppercase">Sistema de Vidas</p>
+                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Cada duelista começa com 5 corações cheios na arena.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="shrink-0 text-blue-600 pt-1">
+                  <Target size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-700 uppercase">Ataque e Dano</p>
+                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Sempre que você acertar uma pergunta, retira 1 vida do oponente.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="shrink-0 text-yellow-500 pt-1">
+                  <Trophy size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-700 uppercase">Vitória e Bônus</p>
+                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Ganha quem zerar a vida do outro. O vencedor recebe +10 pontos extras.</p>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowTutorial(false)}
+              className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+            >
+              Entendi, vamos duelar!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

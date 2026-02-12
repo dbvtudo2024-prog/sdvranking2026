@@ -67,6 +67,19 @@ export const SPECIALTIES = [
   { name: 'Natação I', image: 'https://desbravadores.org.br/assets/especialidades/atividades-recreativas/natacao-i.png' }
 ];
 
+export const THREE_CLUES_DATA = [
+  { answer: 'Moisés', clues: ['Foi deixado em um cesto no rio Nilo', 'Viu uma sarça ardente que não se consumia', 'Liderou o povo através do Mar Vermelho'] },
+  { answer: 'Davi', clues: ['Era um jovem pastor de ovelhas', 'Derrotou um gigante com uma funda e uma pedra', 'Tornou-se o rei mais famoso de Israel'] },
+  { answer: 'Noé', clues: ['Viveu em uma época de muita maldade na Terra', 'Construiu uma embarcação gigantesca de madeira', 'Sobreviveu a um dilúvio que durou 40 dias'] },
+  { answer: 'Sansão', clues: ['Tinha uma força física extraordinária', 'Lutou contra um leão com as próprias mãos', 'Seu segredo estava em seus cabelos compridos'] },
+  { answer: 'Ester', clues: ['Era uma jovem judia órfã', 'Tornou-se rainha da Pérsia', 'Salvou seu povo de um decreto de morte'] },
+  { answer: 'Paulo', clues: ['Chamava-se Saulo antes de sua conversão', 'Escreveu a maior parte das cartas do Novo Testamento', 'Foi um grande missionário entre os gentios'] },
+  { answer: 'Daniel', clues: ['Foi levado cativo para a Babilônia', 'Tinha o dom de interpretar sonhos', 'Foi jogado em uma cova com leões famintos'] },
+  { answer: 'Brasão', clues: ['É um símbolo de identificação do clube', 'Cada parte dele tem um significado espiritual', 'É usado no uniforme oficial (D1)'] },
+  { answer: 'Triângulo', clues: ['Representa o equilíbrio físico, mental e espiritual', 'É a forma geométrica do emblema D1', 'Simboliza a união entre os membros'] },
+  { answer: 'Acampamento', clues: ['É uma das atividades favoritas dos desbravadores', 'Envolve montar barracas e cozinhar ao ar livre', 'É o local onde fazemos o fogo do conselho'] }
+];
+
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // Categoria Desbravadores
   { id: 'd1', category: 'Desbravadores', question: 'Qual o significado do triângulo invertido no emblema D1?', options: ['Santíssima Trindade', 'Ordem, Hierarquia e Disciplina', 'Físico, Mental e Espiritual', 'Pai, Filho e Espírito Santo'], correctAnswer: 2 },

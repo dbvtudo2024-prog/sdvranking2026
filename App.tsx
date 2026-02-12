@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [quizOverride, setQuizOverride] = useState(false);
   const [memoryOverride, setMemoryOverride] = useState(false);
   const [specialtyOverride, setSpecialtyOverride] = useState(false);
+  const [threeCluesOverride, setThreeCluesOverride] = useState(false);
 
   useEffect(() => {
     const membersSub = DatabaseService.subscribeMembers(setMembers);
@@ -58,7 +59,8 @@ const App: React.FC = () => {
   };
 
   const handleUpdateMember = async (updatedMember: Member) => {
-    setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+    // Uso de String() para garantir comparação robusta entre string/number
+    setMembers(prev => prev.map(m => String(m.id) === String(updatedMember.id) ? updatedMember : m));
     try {
       await DatabaseService.updateMember(updatedMember);
     } catch (e) {
@@ -66,10 +68,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteMember = async (id: string) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMember = async (id: string | number) => {
+    const idStr = String(id);
+    setMembers(prev => prev.filter(m => String(m.id) !== idStr));
     try {
-      await DatabaseService.deleteMember(id);
+      await DatabaseService.deleteMember(idStr);
     } catch (e) {
       console.error("Erro ao excluir membro.");
     }
@@ -115,7 +118,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => {
+  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues') => {
     const updatedMembers = members.map(m => {
       const newScores = (m.scores || []).map(s => {
         const news = { ...s };
@@ -126,6 +129,7 @@ const App: React.FC = () => {
         else if (type === 'memory') { news.memoryGame = 0; }
         else if (type === 'specialty') { news.specialtyGame = 0; }
         else if (type === '1x1') { news.challenge1x1 = 0; }
+        else if (type === 'threeclues') { news.threeCluesGame = 0; }
         return news;
       });
       return { ...m, scores: newScores };
@@ -169,6 +173,7 @@ const App: React.FC = () => {
           <Games 
             user={user} members={members} onUpdateMember={handleUpdateMember}
             quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride}
+            threeCluesOverride={threeCluesOverride}
           />
         );
       case 'unit_detail':
@@ -206,6 +211,7 @@ const App: React.FC = () => {
             quizOverride={quizOverride} onToggleQuizOverride={() => setQuizOverride(!quizOverride)}
             memoryOverride={memoryOverride} onToggleMemoryOverride={() => setMemoryOverride(!memoryOverride)}
             specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={() => setSpecialtyOverride(!specialtyOverride)}
+            threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={() => setThreeCluesOverride(!threeCluesOverride)}
           />
         );
       case 'home':

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { UnitName, Member, UserRole, Score } from '../types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_ROLES } from '../constants';
-import { ArrowLeft, Trash2, Edit2, X, History, Shield, LogOut, Plus, Minus, Camera, ChevronDown, Award, Brain, Gamepad2, Sword } from 'lucide-react';
+import { ArrowLeft, Trash2, Edit2, X, History, Shield, LogOut, Plus, Minus, Camera, ChevronDown, Award, Brain, Gamepad2, Sword, Check, Calendar } from 'lucide-react';
 
 interface UnitDetailProps {
   unitName: UnitName;
@@ -11,7 +11,7 @@ interface UnitDetailProps {
   onLogout: () => void;
   onAddMember: (member: Member) => void;
   onUpdateMember: (member: Member) => void;
-  onDeleteMember: (id: string) => void;
+  onDeleteMember: (id: string | number) => void;
   role: UserRole;
   userName?: string;
   counselorList?: string[];
@@ -44,10 +44,9 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const isUserLeadership = role === UserRole.LEADERSHIP;
 
   const currentMemberInHistory = useMemo(() => {
-    return members.find(m => m.id === selectedMemberIdForHistory) || null;
+    return (members || []).find(m => String(m.id) === String(selectedMemberIdForHistory)) || null;
   }, [members, selectedMemberIdForHistory]);
 
-  // FONTE DE VERDADE: Apenas a lista gerenciada pelo administrador no DB
   const dynamicCounselors = useMemo(() => {
     return Array.isArray(counselorList) 
       ? [...counselorList].filter(name => name && name.trim() !== '').sort()
@@ -217,23 +216,12 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     let list = currentMemberInHistory.scores.map((s, idx) => ({ ...s, originalIndex: idx }));
 
     if (isLiderancaUnit) {
-      list = list.filter(s => calculateScoreTotal(s) > 0);
-      
-      const grouped: Record<string, typeof list[0]> = {};
-      list.forEach(item => {
-        if (!grouped[item.date]) {
-          grouped[item.date] = { ...item };
-        } else {
-          grouped[item.date].punctuality = (Number(grouped[item.date].punctuality) || 0) + (Number(item.punctuality) || 0);
-          grouped[item.date].uniform = (Number(grouped[item.date].uniform) || 0) + (Number(item.uniform) || 0);
-          grouped[item.date].material = (Number(grouped[item.date].material) || 0) + (Number(item.material) || 0);
-          grouped[item.date].bible = (Number(grouped[item.date].bible) || 0) + (Number(item.bible) || 0);
-          grouped[item.date].voluntariness = (Number(grouped[item.date].voluntariness) || 0) + (Number(item.voluntariness) || 0);
-          grouped[item.date].activities = (Number(grouped[item.date].activities) || 0) + (Number(item.activities) || 0);
-          grouped[item.date].treasury = (Number(grouped[item.date].treasury) || 0) + (Number(item.treasury) || 0);
-        }
+      // Para liderança, filtramos itens que tenham alguma pontuação administrativa
+      const filtered = list.filter(s => {
+          const sum = (Number(s.punctuality) || 0) + (Number(s.uniform) || 0) + (Number(s.material) || 0) + (Number(s.bible) || 0) + (Number(s.voluntariness) || 0) + (Number(s.activities) || 0) + (Number(s.treasury) || 0);
+          return sum > 0;
       });
-      list = Object.values(grouped);
+      list = filtered;
     }
     
     return list.sort((a,b) => {
@@ -280,7 +268,11 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 pb-24">
           {filteredMembers.map(member => (
-            <div key={member.id} onClick={() => isUserLeadership && setSelectedMemberForPoints(member)} className="bg-white p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group">
+            <div 
+              key={member.id} 
+              onClick={() => isUserLeadership && setSelectedMemberForPoints(member)} 
+              className="bg-white p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group"
+            >
               <div className="flex gap-4">
                 <div className="w-20 h-20 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center border-2 border-white shadow-md overflow-hidden">
                   {member.photoUrl ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" /> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`} alt="Avatar" className="w-full h-full object-cover" />}
@@ -291,12 +283,44 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   <div className="flex flex-col gap-2"><div className="flex items-center gap-2 text-slate-400"><Shield size={14} className="opacity-50 flex-shrink-0" /><span className="text-[10px] font-bold truncate">{isLiderancaUnit ? 'Função' : 'Cons'}: {member.counselor}</span></div></div>
                 </div>
                 <div className="absolute top-6 right-6"><div className="bg-[#FFD700] text-[#003366] px-5 py-2 rounded-full font-black text-xs shadow-lg border-2 border-white">{calculateWeeklyTotal(member)} pts</div></div>
-                <div className="absolute bottom-5 right-6 flex gap-1">
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedMemberIdForHistory(member.id); }} className="p-2 text-slate-300 hover:text-blue-600 transition-all"><History size={20} /></button>
+                
+                {/* BOTÕES DE AÇÃO - COM PROPAGAÇÃO PARADA */}
+                <div className="absolute bottom-5 right-6 flex gap-1 z-20">
+                  <button 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        e.preventDefault();
+                        setSelectedMemberIdForHistory(String(member.id)); 
+                    }} 
+                    className="p-2 text-slate-300 hover:text-blue-600 transition-all active:scale-90"
+                  >
+                    <History size={20} />
+                  </button>
                   {isUserLeadership && (
                     <>
-                      <button onClick={(e) => { e.stopPropagation(); setEditingMember(member); setIsEditing(true); }} className="p-2 text-slate-300 hover:text-blue-600 transition-all"><Edit2 size={20} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); if(confirm('Excluir membro?')) onDeleteMember(member.id); }} className="p-2 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                      <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            e.preventDefault();
+                            setEditingMember(member); 
+                            setIsEditing(true); 
+                        }} 
+                        className="p-2 text-slate-300 hover:text-blue-600 transition-all active:scale-90"
+                      >
+                        <Edit2 size={20} />
+                      </button>
+                      <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            e.preventDefault();
+                            if(confirm(`Deseja excluir permanentemente o membro ${member.name}?`)) {
+                                onDeleteMember(member.id); 
+                            }
+                        }} 
+                        className="p-2.5 text-slate-300 hover:text-red-500 transition-all active:scale-90"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </>
                   )}
                 </div>
@@ -306,6 +330,102 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
         </div>
       </div>
 
+      {/* MODAL LANÇAMENTO DE PONTOS */}
+      {selectedMemberForPoints && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Lançar Pontos</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedMemberForPoints.name}</p>
+              </div>
+              <button onClick={() => { setSelectedMemberForPoints(null); setEditingScoreIndex(null); }} className="text-slate-300 p-2"><X size={28} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Calendar size={18} className="text-blue-600" />
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Data do Lançamento</span>
+                </div>
+                <input 
+                  type="date" 
+                  className="bg-transparent border-none outline-none font-black text-[#0061f2] text-sm text-right" 
+                  value={newScore.date} 
+                  onChange={e => setNewScore({...newScore, date: e.target.value})} 
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                {SCORE_CATEGORIES.map(cat => (
+                  <div key={cat.id} className="bg-white border border-slate-100 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{cat.label}</span>
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => adjustPoints(cat.id, -1)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 active:scale-90 transition-all"><Minus size={18} strokeWidth={3} /></button>
+                      <span className="w-8 text-center font-black text-lg text-[#0061f2]">{newScore[cat.id as keyof Score] || 0}</span>
+                      <button onClick={() => adjustPoints(cat.id, 1)} className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#0061f2] active:scale-90 transition-all"><Plus size={18} strokeWidth={3} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={handleSaveScore}
+                className="w-full bg-[#0061f2] text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
+              >
+                <Check size={20} strokeWidth={3} /> SALVAR PONTUAÇÃO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HISTÓRICO - CORREÇÃO NA EXCLUSÃO DE REGISTRO */}
+      {selectedMemberIdForHistory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Histórico</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{currentMemberInHistory?.name}</p>
+              </div>
+              <button onClick={() => setSelectedMemberIdForHistory(null)} className="text-slate-300 p-2"><X size={28} /></button>
+            </div>
+
+            <div className="space-y-4">
+              {processedHistoryScores.length > 0 ? processedHistoryScores.map((s, i) => (
+                <div key={i} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex justify-between items-center group relative">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.date}</p>
+                    <p className="text-2xl font-black text-[#0061f2] tabular-nums">{calculateScoreTotal(s)} <span className="text-[10px] text-slate-300 uppercase">Pts</span></p>
+                  </div>
+                  {isUserLeadership && s.originalIndex !== undefined && (
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEditScoreInit(currentMemberInHistory!, s.originalIndex!)} className="p-3 bg-white text-blue-600 rounded-xl shadow-sm active:scale-90"><Edit2 size={16} /></button>
+                      <button 
+                        onClick={() => { 
+                            if(confirm(`Deseja remover o registro de pontos do dia ${s.date}?`)) { 
+                                const sc = [...currentMemberInHistory!.scores]; 
+                                sc.splice(s.originalIndex!, 1); 
+                                onUpdateMember({...currentMemberInHistory!, scores: sc}); 
+                            } 
+                        }} 
+                        className="p-3 bg-white text-red-500 rounded-xl shadow-sm active:scale-90"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )) : (
+                <div className="py-20 text-center opacity-30"><History size={60} className="mx-auto mb-4" /><p className="font-black uppercase text-xs">Nenhum registro encontrado</p></div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR MEMBRO */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl space-y-6 max-h-[95vh] overflow-y-auto animate-in zoom-in-95 duration-200">

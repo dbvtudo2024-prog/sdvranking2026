@@ -24,6 +24,7 @@ export interface Score {
   memoryGame?: number;
   specialtyGame?: number;
   challenge1x1?: number;
+  threeCluesGame?: number;
 }
 
 export interface Member {
