@@ -17,13 +17,15 @@ import Leadership from './pages/Leadership';
 import Navbar from './components/Navbar';
 import { LogOut, Loader2 } from 'lucide-react';
 
+type Page = 'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'admin_management' | 'admin_announcements' | 'admin_quiz_editor' | 'admin_specialty_editor';
+
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games'>('home');
+  const [currentPage, setCurrentPage] = useState<Page>('home');
   const [activeUnit, setActiveUnit] = useState<UnitName | null>(null);
 
   // Estados para liberação de jogos
@@ -35,13 +37,11 @@ const App: React.FC = () => {
     const savedUser = localStorage.getItem('sentinelas_session_user');
     if (savedUser) setUser(JSON.parse(savedUser));
 
-    // Inscrição em tempo real para membros
     const membersChannel = DatabaseService.subscribeMembers((data) => {
       setMembers(data);
       setLoading(false);
     });
 
-    // Inscrição em tempo real para avisos
     const annChannel = DatabaseService.subscribeAnnouncements((data) => {
       setAnnouncements(data);
     });
@@ -66,8 +66,6 @@ const App: React.FC = () => {
       setSpecialtyOverride(newVal);
       localStorage.setItem('sentinelas_specialty_override', String(newVal));
     }
-    // Dispara evento manual para forçar atualização em outros componentes
-    window.dispatchEvent(new Event('storage'));
   };
 
   const handleLogin = async (authUser: AuthUser, updatedMember?: Member) => {
@@ -155,7 +153,16 @@ const App: React.FC = () => {
       case 'leadership':
         return <Leadership members={members} />;
       case 'games':
-        return <Games user={user} members={members} onUpdateMember={handleUpdateMember} />;
+        return (
+          <Games 
+            user={user} 
+            members={members} 
+            onUpdateMember={handleUpdateMember} 
+            quizOverride={quizOverride}
+            memoryOverride={memoryOverride}
+            specialtyOverride={specialtyOverride}
+          />
+        );
       case 'profile':
         const savedCounselorsProfile = localStorage.getItem('sentinelas_counselors');
         const counselorListProfile = savedCounselorsProfile ? JSON.parse(savedCounselorsProfile) : [];
@@ -165,18 +172,18 @@ const App: React.FC = () => {
             members={members}
             onUpdateUser={handleLogin} 
             onLogout={handleLogout} 
-            onGoToAdminManagement={() => setCurrentPage('admin_management' as any)}
+            onGoToAdminManagement={() => setCurrentPage('admin_management')}
             onUpdateMember={handleUpdateMember}
             counselorList={counselorListProfile}
           />
         );
-      case 'admin_management' as any:
+      case 'admin_management':
         return (
           <AdminManagement 
             onBack={() => setCurrentPage('profile')}
-            onGoToAdminAvisos={() => setCurrentPage('admin_announcements' as any)}
-            onGoToAdminQuiz={() => setCurrentPage('admin_quiz_editor' as any)}
-            onGoToAdminSpecialty={() => setCurrentPage('admin_specialty_editor' as any)}
+            onGoToAdminAvisos={() => setCurrentPage('admin_announcements')}
+            onGoToAdminQuiz={() => setCurrentPage('admin_quiz_editor')}
+            onGoToAdminSpecialty={() => setCurrentPage('admin_specialty_editor')}
             onAddCounselor={handleAddCounselor} 
             quizOverride={quizOverride}
             onToggleQuizOverride={() => handleToggleOverride('quiz')}
@@ -186,25 +193,25 @@ const App: React.FC = () => {
             onToggleSpecialtyOverride={() => handleToggleOverride('specialty')}
           />
         );
-      case 'admin_announcements' as any:
+      case 'admin_announcements':
         return (
           <AdminAnnouncements 
             announcements={announcements} 
             onAdd={(a) => DatabaseService.addAnnouncement(a)} 
             onDelete={(id) => DatabaseService.deleteAnnouncement(id)} 
-            onBack={() => setCurrentPage('admin_management' as any)} 
+            onBack={() => setCurrentPage('admin_management')} 
           />
         );
-      case 'admin_quiz_editor' as any:
-        return <AdminQuizEditor onBack={() => setCurrentPage('admin_management' as any)} onLogout={handleLogout} />;
-      case 'admin_specialty_editor' as any:
-        return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management' as any)} onLogout={handleLogout} />;
+      case 'admin_quiz_editor':
+        return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      case 'admin_specialty_editor':
+        return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       default:
         return <Dashboard members={members} announcements={announcements} onSelectUnit={(unit) => setActiveUnit(unit)} />;
     }
   };
 
-  const isInternalPage = (currentPage as string).includes('admin_');
+  const isInternalPage = currentPage.startsWith('admin_');
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center sm:py-4">
@@ -223,7 +230,7 @@ const App: React.FC = () => {
         </main>
         {!activeUnit && !isInternalPage && (
           <div className="flex-shrink-0 bg-white border-t border-slate-100">
-            <Navbar currentPage={currentPage as any} setCurrentPage={(p) => { setActiveUnit(null); setCurrentPage(p); }} />
+            <Navbar currentPage={currentPage as any} setCurrentPage={(p) => { setActiveUnit(null); setCurrentPage(p as any); }} />
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Calendar } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Gamepad2, Brain, Lock, Medal } from 'lucide-react';
 import { AuthUser, Member, UserRole } from '../types';
 import QuizSelection from './QuizSelection';
 import MemoryGame from './MemoryGame';
@@ -10,22 +10,20 @@ interface GamesProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  quizOverride: boolean;
+  memoryOverride: boolean;
+  specialtyOverride: boolean;
 }
 
-const Games: React.FC<GamesProps> = ({ user, members, onUpdateMember }) => {
+const Games: React.FC<GamesProps> = ({ 
+  user, 
+  members, 
+  onUpdateMember, 
+  quizOverride, 
+  memoryOverride, 
+  specialtyOverride 
+}) => {
   const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty'>('hub');
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
-  const [isSpecialtyUnlocked, setIsSpecialtyUnlocked] = useState(false);
-
-  useEffect(() => {
-    const checkOverrides = () => {
-      setIsAdminUnlocked(localStorage.getItem('sentinelas_memory_override') === 'true');
-      setIsSpecialtyUnlocked(localStorage.getItem('sentinelas_specialty_override') === 'true');
-    };
-    checkOverrides();
-    window.addEventListener('storage', checkOverrides);
-    return () => window.removeEventListener('storage', checkOverrides);
-  }, []);
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
@@ -34,20 +32,22 @@ const Games: React.FC<GamesProps> = ({ user, members, onUpdateMember }) => {
   const memoryStatus = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const unlocked = isSunday || isAdminUnlocked;
+    const isLeadership = user.role === UserRole.LEADERSHIP;
+    const unlocked = isSunday || memoryOverride || isLeadership;
     const todayStr = now.toLocaleDateString('pt-BR');
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
-  }, [isAdminUnlocked, currentMember]);
+  }, [memoryOverride, currentMember, user.role]);
 
   const specialtyStatus = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    const unlocked = isSunday || isSpecialtyUnlocked;
+    const isLeadership = user.role === UserRole.LEADERSHIP;
+    const unlocked = isSunday || specialtyOverride || isLeadership;
     const todayStr = now.toLocaleDateString('pt-BR');
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
-  }, [isSpecialtyUnlocked, currentMember]);
+  }, [specialtyOverride, currentMember, user.role]);
 
   const getTimeToUnlock = () => {
     const now = new Date();
@@ -59,13 +59,36 @@ const Games: React.FC<GamesProps> = ({ user, members, onUpdateMember }) => {
   };
 
   if (activeGame === 'quiz') {
-    return <QuizSelection user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} />;
+    return (
+      <QuizSelection 
+        user={user} 
+        members={members} 
+        onUpdateMember={onUpdateMember} 
+        onBack={() => setActiveGame('hub')} 
+        quizOverride={quizOverride}
+      />
+    );
   }
   if (activeGame === 'memory') {
-    return <MemoryGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} />;
+    return (
+      <MemoryGame 
+        user={user} 
+        members={members} 
+        onUpdateMember={onUpdateMember} 
+        onBack={() => setActiveGame('hub')}
+        memoryOverride={memoryOverride}
+      />
+    );
   }
   if (activeGame === 'specialty') {
-    return <SpecialtyGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} />;
+    return (
+      <SpecialtyGame 
+        user={user} 
+        members={members} 
+        onUpdateMember={onUpdateMember} 
+        onBack={() => setActiveGame('hub')}
+      />
+    );
   }
 
   const buttonBaseClasses = "w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all border-2 border-b-4 active:scale-95 px-6";

@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Brain, AlertTriangle, Lock, Calendar, ArrowLeft, BookOpen, ChevronRight } from 'lucide-react';
-import { AuthUser, Member } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight } from 'lucide-react';
+import { AuthUser, Member, UserRole } from '../types';
 import QuizGame from './QuizGame';
 
 interface QuizSelectionProps {
@@ -9,21 +9,11 @@ interface QuizSelectionProps {
   members: Member[];
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
+  quizOverride: boolean;
 }
 
-const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onBack }) => {
+const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onBack, quizOverride }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
-
-  useEffect(() => {
-    const checkOverride = () => {
-      const override = localStorage.getItem('sentinelas_quiz_override') === 'true';
-      setIsAdminUnlocked(override);
-    };
-    checkOverride();
-    window.addEventListener('storage', checkOverride);
-    return () => window.removeEventListener('storage', checkOverride);
-  }, []);
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
@@ -31,8 +21,10 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const isAvailable = useMemo(() => {
     const now = new Date();
-    return now.getDay() === 0 || isAdminUnlocked; 
-  }, [isAdminUnlocked]);
+    const isSunday = now.getDay() === 0;
+    const isLeadership = user.role === UserRole.LEADERSHIP;
+    return isSunday || quizOverride || isLeadership; 
+  }, [quizOverride, user.role]);
 
   const hasPlayedToday = (category: 'Desbravadores' | 'Bíblia') => {
     if (!currentMember) return false;
@@ -78,8 +70,6 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const CategoryButton = ({ category, played }: { category: 'Desbravadores' | 'Bíblia', played: boolean }) => {
     const isDesbravadores = category === 'Desbravadores';
-    
-    // Configurações de cores baseadas na categoria
     const activeClasses = isDesbravadores 
       ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
       : 'bg-amber-50 border-amber-200 hover:bg-amber-100';
@@ -90,10 +80,10 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
     return (
       <button 
-        disabled={!isAvailable || played}
+        disabled={!isAvailable || (played && user.role === UserRole.PATHFINDER)}
         onClick={() => setPlayingCategory(category)}
         className={`w-full rounded-[1.5rem] p-4 shadow-md border-2 flex items-center text-left transition-all relative group
-          ${(!isAvailable || played) 
+          ${(!isAvailable || (played && user.role === UserRole.PATHFINDER)) 
             ? 'bg-slate-50 border-slate-100 opacity-75 grayscale-[0.5] cursor-not-allowed' 
             : `${activeClasses} active:scale-95 shadow-blue-900/5`}`}
       >
@@ -116,7 +106,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
                Rec: {getBestScore(category)}
              </span>
              <div className="flex items-center gap-1 text-slate-400">
-              {played ? (
+              {played && user.role === UserRole.PATHFINDER ? (
                 <span className="text-[8px] font-black text-red-400 uppercase">Já Realizado</span>
               ) : (
                 <span className={`text-[8px] font-black uppercase tracking-tighter ${isAvailable ? (isDesbravadores ? 'text-blue-500' : 'text-amber-600') : 'text-slate-400'}`}>
@@ -156,10 +146,6 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
         <CategoryButton category="Desbravadores" played={hasPlayedToday('Desbravadores')} />
         <CategoryButton category="Bíblia" played={hasPlayedToday('Bíblia')} />
       </div>
-
-      <p className="mt-8 text-[8px] font-bold text-slate-300 uppercase tracking-widest text-center">
-        Sentinelas da Verdade • Oficial
-      </p>
     </div>
   );
 };

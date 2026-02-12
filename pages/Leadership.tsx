@@ -11,12 +11,18 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
-  // Filtra membros que são da Liderança. 
-  // Comparamos o papel (role) ou se a unidade é Liderança para garantir que ninguém fique de fora.
-  const leaders = (members || []).filter(m => 
-    m.role === UserRole.LEADERSHIP || 
-    m.unit === UnitName.LIDERANCA
-  );
+  // Filtro robusto: busca por "Lider" no role ou na unit, ignorando maiúsculas/minúsculas
+  const leaders = (members || []).filter(m => {
+    const roleStr = String(m.role || '').toLowerCase();
+    const unitStr = String(m.unit || '').toLowerCase();
+    const counselorStr = String(m.counselor || '').toLowerCase();
+    
+    return roleStr.includes('lider') || 
+           unitStr.includes('lider') || 
+           counselorStr.includes('diret') || 
+           counselorStr.includes('secret') ||
+           m.role === UserRole.LEADERSHIP;
+  });
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -34,7 +40,6 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
               onClick={() => setSelectedLeader(leader)}
               className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center gap-4 cursor-pointer active:scale-95 hover:border-blue-200 transition-all group overflow-hidden relative"
             >
-              {/* Selo da Unidade se houver */}
               <div className="absolute top-4 right-4 w-6 h-6 opacity-40 group-hover:opacity-100 transition-opacity">
                  <img src={UNIT_LOGOS[leader.unit] || UNIT_LOGOS[UnitName.LIDERANCA]} className="w-full h-full object-contain" alt="Unidade" />
               </div>
