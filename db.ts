@@ -34,7 +34,11 @@ if (SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   console.error("ERRO: Você esqueceu de configurar a SUPABASE_ANON_KEY no arquivo db.ts!");
 }
 =======
+<<<<<<< HEAD
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
+=======
+const SUPABASE_ANON_KEY = 'COLE_AQUI_A_CHAVE_QUE_COMECA_COM_EYJ'; 
+>>>>>>> a1aa7a633e7e549cc6b66d5978e0ad7c4874cc0e
 <<<<<<< HEAD
 
 // Alerta de depuração para o desenvolvedor
