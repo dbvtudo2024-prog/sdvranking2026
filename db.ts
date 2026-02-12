@@ -66,10 +66,10 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  // --- CONSELHEIROS (Sincronizado no DB) ---
+  // --- CONSELHEIROS (Sincronizado na tabela 'conselheiros') ---
   async getCounselors(): Promise<CounselorDB[]> {
     try {
-      const { data, error } = await supabase.from('counselors').select('*').order('name', { ascending: true });
+      const { data, error } = await supabase.from('conselheiros').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data || [];
     } catch (error) {
@@ -79,15 +79,15 @@ export const DatabaseService = {
   },
 
   async addCounselor(name: string) {
-    const { error } = await supabase.from('counselors').insert([{ name }]);
+    const { error } = await supabase.from('conselheiros').insert([{ name }]);
     if (error) throw error;
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
     this.getCounselors().then(callback);
     return supabase
-      .channel('counselors_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'counselors' }, () => {
+      .channel('conselheiros_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, () => {
         this.getCounselors().then(callback);
       })
       .subscribe();
