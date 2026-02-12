@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { X, Award, ShieldCheck, Shield as ShieldIcon } from 'lucide-react';
+import { X, Award, ShieldCheck, Shield } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -11,6 +11,7 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
   
+  // Imagem 1 fornecida pelo usuário
   const LOGO_OFFICIAL = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
 
   const normalize = (str: string) => 
@@ -35,12 +36,13 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
-      <div className="pt-8 pb-4 flex flex-col items-center justify-center">
-         <div className="w-28 h-28 mb-4 drop-shadow-2xl animate-in zoom-in-50 duration-700">
-           <img src={LOGO_OFFICIAL} alt="Brasão Oficial" className="w-full h-full object-contain" />
+      {/* Cabeçalho com o Brasão Oficial */}
+      <div className="pt-10 pb-6 flex flex-col items-center justify-center bg-white border-b border-slate-100 shadow-sm">
+         <div className="w-32 h-32 mb-4 drop-shadow-2xl animate-in zoom-in-50 duration-700">
+           <img src={LOGO_OFFICIAL} alt="Sentinelas da Verdade" className="w-full h-full object-contain" />
          </div>
-         <h2 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
-         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sentinelas da Verdade</p>
+         <h2 className="text-2xl font-black text-[#0061f2] uppercase tracking-tighter">Corpo Diretivo</h2>
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">Sentinelas da Verdade</p>
       </div>
 
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
@@ -71,7 +73,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
                   {leader.counselor || 'Membro Liderança'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 text-slate-400">
-                  <ShieldIcon size={10} />
+                  <Shield size={10} />
                   <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Classe de Líder'}</span>
                 </div>
               </div>
@@ -100,7 +102,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
                  <div className="w-28 h-28 rounded-[2.5rem] bg-white p-1.5 shadow-xl">
                    <div className="w-full h-full rounded-[2rem] bg-slate-100 overflow-hidden flex items-center justify-center border-2 border-slate-50">
                       {selectedLeader.photoUrl ? (
-                        <img src={selectedLeader.photoUrl} className="w-full h-full object-cover" />
+                        <img src={selectedLeader.photoUrl} className="w-full h-full object-cover" alt={selectedLeader.name} />
                       ) : (
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedLeader.id}`} alt="Avatar" className="w-full h-full object-cover" />
                       )}

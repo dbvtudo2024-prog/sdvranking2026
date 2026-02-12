@@ -54,18 +54,18 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       setEditItem(null);
       setFormData({ name: '', image: '' });
     } catch (err) {
-      alert("Erro ao salvar especialidade no banco.");
+      alert("Erro ao salvar no banco de dados.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deseja excluir esta especialidade permanentemente?")) return;
+    if (!confirm("Excluir especialidade permanentemente do banco de dados?")) return;
     try {
       await DatabaseService.deleteSpecialty(id);
     } catch (err) {
-      alert("Erro ao excluir do banco.");
+      alert("Erro ao excluir.");
     }
   };
 
@@ -162,7 +162,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 text-slate-400 italic font-medium">Nenhuma especialidade encontrada no banco.</div>
+              <div className="text-center py-10 text-slate-400 italic font-medium">Nenhuma especialidade no banco.</div>
             )}
           </div>
         )}

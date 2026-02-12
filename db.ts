@@ -44,10 +44,7 @@ export const DatabaseService = {
     const { error } = await supabase
       .from('members')
       .insert([member]);
-    if (error) {
-      console.error('Erro Supabase addMember:', error);
-      throw error;
-    }
+    if (error) throw error;
   },
 
   async updateMember(member: Member) {
@@ -55,10 +52,7 @@ export const DatabaseService = {
       .from('members')
       .update(member)
       .eq('id', member.id);
-    if (error) {
-      console.error('Erro Supabase updateMember:', error);
-      throw error;
-    }
+    if (error) throw error;
   },
 
   async deleteMember(id: string) {
@@ -78,7 +72,6 @@ export const DatabaseService = {
       if (error) throw error;
       return data as AuthUser[] || [];
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
       return [];
     }
   },
@@ -87,10 +80,7 @@ export const DatabaseService = {
     const { error } = await supabase
       .from('users')
       .upsert([user]);
-    if (error) {
-      console.error('Erro Supabase addUser:', error);
-      throw error;
-    }
+    if (error) throw error;
   },
 
   // --- AVISOS ---
@@ -103,14 +93,12 @@ export const DatabaseService = {
       if (error) throw error;
       return data as Announcement[] || [];
     } catch (error) {
-      console.error('Erro ao buscar avisos:', error);
       return [];
     }
   },
 
   subscribeAnnouncements(callback: (announcements: Announcement[]) => void) {
     this.getAnnouncements().then(callback);
-
     return supabase
       .channel('announcements_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
@@ -174,7 +162,6 @@ export const DatabaseService = {
 
   subscribeSpecialties(callback: (specialties: SpecialtyDB[]) => void) {
     this.getSpecialties().then(callback);
-
     return supabase
       .channel('specialties_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'specialties' }, () => {
