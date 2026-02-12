@@ -24,7 +24,7 @@ export interface SpecialtyDBV {
 }
 
 export interface CounselorDB {
-  id?: string;
+  id?: string | number;
   name: string;
   created_at?: string;
 }
@@ -32,19 +32,15 @@ export interface CounselorDB {
 export const DatabaseService = {
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
-    try {
-      const { data, error } = await supabase.from('members').select('*');
-      if (error) throw error;
-      return data as Member[] || [];
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase.from('members').select('*');
+    if (error) return [];
+    return data as Member[];
   },
 
   subscribeMembers(callback: (members: Member[]) => void) {
     this.getMembers().then(callback);
     return supabase
-      .channel('members_changes')
+      .channel('members_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
         this.getMembers().then(callback);
       })
@@ -66,92 +62,42 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  // --- CONSELHEIROS (Sincronizado na tabela 'conselheiros') ---
+  // --- CONSELHEIROS ---
   async getCounselors(): Promise<CounselorDB[]> {
-    try {
-      const { data, error } = await supabase.from('conselheiros').select('*').order('name', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Erro ao buscar conselheiros:', error);
-      return [];
-    }
+    const { data, error } = await supabase
+      .from('conselheiros')
+      .select('id, created_at, name:nome') 
+      .order('nome', { ascending: true });
+    if (error) return [];
+    return data as any[];
   },
 
   async addCounselor(name: string) {
-    const { error } = await supabase.from('conselheiros').insert([{ name }]);
-    if (error) {
-      console.error('Erro detalhado Supabase:', error);
-      throw error; // Repassa o erro original com a mensagem técnica
-    }
+    const { error } = await supabase.from('conselheiros').insert([{ nome: name }]);
+    if (error) throw error;
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
     this.getCounselors().then(callback);
     return supabase
-      .channel('conselheiros_changes')
+      .channel('conselheiros_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, () => {
         this.getCounselors().then(callback);
       })
       .subscribe();
   },
 
-  // --- DESAFIOS 1x1 ---
-  async createChallenge(challenge: Challenge1x1) {
-    const { error } = await supabase.from('challenges').insert([challenge]);
-    if (error) throw error;
-  },
-
-  async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
-    const { error } = await supabase.from('challenges').update(updates).eq('id', id);
-    if (error) throw error;
-  },
-
-  subscribeToChallenges(memberId: string, callback: (challenge: Challenge1x1) => void) {
-    return supabase
-      .channel('challenges_realtime')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'challenges',
-        filter: `or(challengerId.eq.${memberId},challengedId.eq.${memberId})`
-      }, (payload) => {
-        callback(payload.new as Challenge1x1);
-      })
-      .subscribe();
-  },
-
-  // --- USUÁRIOS ---
-  async getUsers(): Promise<AuthUser[]> {
-    try {
-      const { data, error } = await supabase.from('users').select('*');
-      if (error) throw error;
-      return data as AuthUser[] || [];
-    } catch (error) {
-      return [];
-    }
-  },
-
-  async addUser(user: AuthUser) {
-    const { error } = await supabase.from('users').upsert([user]);
-    if (error) throw error;
-  },
-
   // --- AVISOS ---
   async getAnnouncements(): Promise<Announcement[]> {
-    try {
-      const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
-      if (error) throw error;
-      return data as Announcement[] || [];
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
+    if (error) return [];
+    return data as Announcement[];
   },
 
   subscribeAnnouncements(callback: (announcements: Announcement[]) => void) {
     this.getAnnouncements().then(callback);
     return supabase
-      .channel('announcements_changes')
+      .channel('announcements_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
         this.getAnnouncements().then(callback);
       })
@@ -170,17 +116,20 @@ export const DatabaseService = {
 
   // --- ESPECIALIDADES ---
   async getSpecialties(): Promise<SpecialtyDBV[]> {
-    try {
-      const { data, error } = await supabase
-        .from('EspecialidadesDBV')
-        .select('*')
-        .order('Nome', { ascending: true });
-      if (error) throw error;
-      return data as SpecialtyDBV[] || [];
-    } catch (error) {
-      console.error('Erro ao buscar especialidades:', error);
-      return [];
-    }
+    const { data, error } = await supabase.from('EspecialidadesDBV').select('*').order('Nome', { ascending: true });
+    if (error) return [];
+    return data as SpecialtyDBV[];
+  },
+
+  // Fix: Added missing subscribeSpecialties method
+  subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
+    this.getSpecialties().then(callback);
+    return supabase
+      .channel('specialties_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'EspecialidadesDBV' }, () => {
+        this.getSpecialties().then(callback);
+      })
+      .subscribe();
   },
 
   async addSpecialty(spec: SpecialtyDBV) {
@@ -198,18 +147,31 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  async importSpecialtiesCSV(data: SpecialtyDBV[]) {
-    const { error } = await supabase.from('EspecialidadesDBV').insert(data);
+  // Fix: Added missing importSpecialtiesCSV method
+  async importSpecialtiesCSV(specialties: SpecialtyDBV[]) {
+    const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
     if (error) throw error;
   },
 
-  subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
-    this.getSpecialties().then(callback);
-    return supabase
-      .channel('specialties_dbv_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'EspecialidadesDBV' }, () => {
-        this.getSpecialties().then(callback);
-      })
-      .subscribe();
+  // --- USUÁRIOS E DESAFIOS ---
+  async getUsers(): Promise<AuthUser[]> {
+    const { data, error } = await supabase.from('users').select('*');
+    return (error ? [] : data) as AuthUser[];
+  },
+
+  async addUser(user: AuthUser) {
+    await supabase.from('users').upsert([user]);
+  },
+
+  // Fix: Added missing createChallenge method for 1x1 game
+  async createChallenge(challenge: Challenge1x1) {
+    const { error } = await supabase.from('challenges').insert([challenge]);
+    if (error) throw error;
+  },
+
+  // Fix: Added missing updateChallenge method for 1x1 game
+  async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
+    const { error } = await supabase.from('challenges').update(updates).eq('id', id);
+    if (error) throw error;
   }
 };

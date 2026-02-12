@@ -37,7 +37,11 @@ const Profile: React.FC<ProfileProps> = ({
 
   const quizStats = useMemo(() => {
     if (!currentMember) return { total: 0, completed: 0, bestDesbravadores: 0, bestBiblia: 0, history: [] };
-    const quizScores = currentMember.scores.filter(s => s.quiz !== undefined);
+    
+    // FILTRO CRÍTICO: Somente scores que vieram de um Quiz real (possuem quizCategory)
+    // Isso evita que pontos semanais (0 pts) poluam o histórico do mural
+    const quizScores = (currentMember.scores || []).filter(s => s.quizCategory !== undefined);
+    
     return { 
       total: quizScores.reduce((acc, s) => acc + (s.quiz || 0), 0), 
       completed: quizScores.length,
@@ -272,28 +276,29 @@ const Profile: React.FC<ProfileProps> = ({
         <div className="space-y-4">
           <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] ml-2">Histórico de Quizzes</p>
           {quizStats.history.length > 0 ? (
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
               {quizStats.history.map((s, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${s.quizCategory === 'Bíblia' ? 'bg-blue-400' : 'bg-amber-400'}`}></span>
-                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{s.quizCategory} • {s.date}</p>
+                <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]"></span>
+                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-tight">
+                      {s.quizCategory} • <span className="font-bold text-slate-400">{s.date}</span>
+                    </p>
                   </div>
-                  <p className="text-xs font-black text-[#0061f2]">+{s.quiz} pts</p>
+                  <p className="text-sm font-black text-[#0061f2] tabular-nums">+{s.quiz} pts</p>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="py-10 text-center">
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sem Registros</p>
+            <div className="py-10 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhum Registro de Quiz</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Versão do App para controle de atualização */}
       <div className="text-center py-4 opacity-20">
-        <p className="text-[8px] font-black uppercase tracking-[0.5em]">v2.1.0 • Cache Atualizado</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.5em]">v2.2.0 • Histórico Filtrado</p>
       </div>
     </div>
   );
