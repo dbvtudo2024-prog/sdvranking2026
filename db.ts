@@ -12,6 +12,11 @@ import { Member, AuthUser, Announcement } from './types';
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'COLE_AQUI_A_CHAVE_QUE_COMECA_COM_EYJ'; 
 
+// Alerta de depuração para o desenvolvedor
+if (SUPABASE_ANON_KEY === 'COLE_AQUI_A_CHAVE_QUE_COMECA_COM_EYJ') {
+  console.error("ERRO: Você esqueceu de configurar a SUPABASE_ANON_KEY no arquivo db.ts!");
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const DatabaseService = {

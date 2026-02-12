@@ -74,7 +74,6 @@ const Profile: React.FC<ProfileProps> = ({
         age: updatedFormData.age || 0,
         className: updatedFormData.className || '',
         unit: updatedFormData.unit || currentMember.unit,
-        // Sincroniza Cargo (função) no campo counselor para líderes
         counselor: isLeadership ? updatedFormData.funcao || currentMember.counselor : (updatedFormData.counselor || currentMember.counselor),
         photoUrl: updatedFormData.photoUrl,
         role: updatedFormData.role
@@ -147,7 +146,7 @@ const Profile: React.FC<ProfileProps> = ({
                   role: newRole,
                   funcao: '',
                   unit: newRole === UserRole.LEADERSHIP ? UnitName.LIDERANCA : formData.unit,
-                  className: '' // Sempre reseta a classe ao mudar para liderança
+                  className: ''
                 });
               }}>
                 <option value={UserRole.PATHFINDER}>Desbravador</option>
@@ -290,6 +289,11 @@ const Profile: React.FC<ProfileProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Versão do App para controle de atualização */}
+      <div className="text-center py-4 opacity-20">
+        <p className="text-[8px] font-black uppercase tracking-[0.5em]">v2.1.0 • Cache Atualizado</p>
       </div>
     </div>
   );
