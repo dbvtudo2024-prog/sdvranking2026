@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement } from './types';
-import { DatabaseService } from './db';
+import { DatabaseService, CounselorDB } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -25,7 +25,7 @@ const App: React.FC = () => {
   
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [counselors, setCounselors] = useState<string[]>([]);
+  const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
   const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
 
@@ -39,9 +39,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const membersSub = DatabaseService.subscribeMembers(setMembers);
     const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
-    const counselorsSub = DatabaseService.subscribeCounselors((data) => {
-      setCounselors(data.map(c => c.name));
-    });
+    const counselorsSub = DatabaseService.subscribeCounselors(setCounselorsData);
 
     return () => {
       membersSub.unsubscribe();
@@ -50,23 +48,17 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // --- HANDLERS OTIMISTAS (ATUALIZAÇÃO INSTANTÂNEA) ---
-
   const handleAddMember = async (newMember: Member) => {
-    // Atualiza interface na hora
     setMembers(prev => [...prev, newMember]);
-    // Salva no banco em background
     try {
       await DatabaseService.addMember(newMember);
     } catch (e) {
-      console.error("Erro ao salvar membro, a subscrição corrigirá o estado.");
+      console.error("Erro ao salvar membro.");
     }
   };
 
   const handleUpdateMember = async (updatedMember: Member) => {
-    // Atualiza interface na hora
     setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
-    // Salva no banco em background
     try {
       await DatabaseService.updateMember(updatedMember);
     } catch (e) {
@@ -75,9 +67,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMember = async (id: string) => {
-    // Remove da interface na hora
     setMembers(prev => prev.filter(m => m.id !== id));
-    // Remove do banco em background
     try {
       await DatabaseService.deleteMember(id);
     } catch (e) {
@@ -140,13 +130,13 @@ const App: React.FC = () => {
       });
       return { ...m, scores: newScores };
     });
-
-    setMembers(updatedMembers); // Otimista
-
+    setMembers(updatedMembers);
     for (const m of updatedMembers) {
       await DatabaseService.updateMember(m);
     }
   };
+
+  const counselorNames = counselorsData.map(c => c.name);
 
   if (!user) {
     if (currentPage === 'register') {
@@ -154,7 +144,7 @@ const App: React.FC = () => {
         <Register 
           onRegister={(u, m) => { if (m) handleLogin(u); else setCurrentPage('home'); }} 
           onBack={() => setCurrentPage('home')}
-          counselorList={counselors}
+          counselorList={counselorNames}
         />
       );
     }
@@ -171,7 +161,7 @@ const App: React.FC = () => {
             user={user} members={members} 
             onUpdateUser={handleUpdateUser} onLogout={handleLogout}
             onGoToAdminManagement={() => setCurrentPage('admin_management')}
-            counselorList={counselors}
+            counselorList={counselorNames}
           />
         );
       case 'games':
@@ -187,7 +177,7 @@ const App: React.FC = () => {
             unitName={selectedUnit} members={members} 
             onBack={() => setCurrentPage('home')} onLogout={handleLogout}
             onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember}
-            role={user.role} userName={user.name} counselorList={counselors}
+            role={user.role} userName={user.name} counselorList={counselorNames}
           />
         ) : null;
       case 'admin_announcements':
@@ -208,7 +198,10 @@ const App: React.FC = () => {
             onGoToAdminAvisos={() => setCurrentPage('admin_announcements')}
             onGoToAdminQuiz={() => setCurrentPage('admin_quiz')}
             onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')}
+            counselors={counselorsData}
             onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)}
+            onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)}
+            onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)}
             onResetRanking={handleResetRanking}
             quizOverride={quizOverride} onToggleQuizOverride={() => setQuizOverride(!quizOverride)}
             memoryOverride={memoryOverride} onToggleMemoryOverride={() => setMemoryOverride(!memoryOverride)}

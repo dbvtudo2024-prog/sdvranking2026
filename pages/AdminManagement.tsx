@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check } from 'lucide-react';
 import { Member } from '../types';
+import { CounselorDB } from '../db';
 
 interface AdminManagementProps {
   members: Member[];
@@ -10,7 +11,10 @@ interface AdminManagementProps {
   onGoToAdminAvisos: () => void;
   onGoToAdminQuiz: () => void;
   onGoToAdminSpecialty: () => void;
-  onAddCounselor: (name: string) => void;
+  counselors: CounselorDB[];
+  onAddCounselor: (name: string) => Promise<void>;
+  onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
+  onDeleteCounselor: (id: string | number) => Promise<void>;
   onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1') => Promise<void>;
   quizOverride: boolean;
   onToggleQuizOverride: () => void;
@@ -27,7 +31,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminAvisos,
   onGoToAdminQuiz,
   onGoToAdminSpecialty,
+  counselors = [],
   onAddCounselor,
+  onUpdateCounselor,
+  onDeleteCounselor,
   onResetRanking,
   quizOverride,
   onToggleQuizOverride,
@@ -37,8 +44,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onToggleSpecialtyOverride
 }) => {
   const [showCounselorModal, setShowCounselorModal] = useState(false);
+  const [editCounselor, setEditCounselor] = useState<CounselorDB | null>(null);
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
@@ -61,6 +70,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       alert('❌ ERRO: Falha ao comunicar com o servidor. Tente novamente.');
     } finally {
       setIsResetting(null);
+    }
+  };
+
+  const handleAddOrUpdateCounselor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCounselorName.trim()) return;
+
+    setIsProcessing(true);
+    try {
+      if (editCounselor) {
+        await onUpdateCounselor(editCounselor.id!, newCounselorName);
+      } else {
+        await onAddCounselor(newCounselorName);
+      }
+      setNewCounselorName('');
+      setEditCounselor(null);
+      setShowCounselorModal(false);
+    } catch (error) {
+      alert("Erro ao salvar conselheiro.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteCounselorClick = async (id: string | number) => {
+    if (!confirm("Excluir este conselheiro da lista oficial?")) return;
+    try {
+      await onDeleteCounselor(id);
+    } catch (error) {
+      alert("Erro ao excluir.");
     }
   };
 
@@ -94,8 +133,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               <button onClick={onGoToAdminAvisos} className="w-full bg-[#FFD700] text-[#003366] py-5 rounded-2xl font-black flex items-center justify-center gap-3 shadow-md hover:brightness-105 transition-all text-xs uppercase tracking-widest">
                 <BellRing size={20} /> GERENCIAR AVISOS
               </button>
-              <button onClick={() => setShowCounselorModal(true)} className="w-full bg-blue-50 text-[#0061f2] py-5 rounded-2xl font-black flex items-center justify-center gap-3 shadow-sm border border-blue-100 hover:bg-blue-100 transition-all text-xs uppercase tracking-widest">
-                <UserPlus size={20} /> NOVOS CONSELHEIROS
+              <button onClick={() => { setEditCounselor(null); setNewCounselorName(''); setShowCounselorModal(true); }} className="w-full bg-blue-50 text-[#0061f2] py-5 rounded-2xl font-black flex items-center justify-center gap-3 shadow-sm border border-blue-100 hover:bg-blue-100 transition-all text-xs uppercase tracking-widest">
+                <UserPlus size={20} /> ADICIONAR CONSELHEIRO
               </button>
             </div>
           </div>
@@ -112,6 +151,39 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 <Medal size={18} /> EDITAR ESPECIALIDADES
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* LISTA DE CONSELHEIROS */}
+        <div className="bg-white p-8 rounded-[3rem] border border-slate-50 shadow-xl shadow-blue-900/5 space-y-6">
+          <div className="flex items-center justify-between px-2">
+             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Lista de Conselheiros Oficial</h3>
+             <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase">{counselors.length} Cadastrados</span>
+          </div>
+          <div className="space-y-2">
+            {counselors.length > 0 ? counselors.map(c => (
+              <div key={c.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
+                <span className="font-bold text-slate-700 text-sm uppercase">{c.name}</span>
+                <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                   <button 
+                    onClick={() => { setEditCounselor(c); setNewCounselorName(c.name); setShowCounselorModal(true); }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                   >
+                     <Edit2 size={16} />
+                   </button>
+                   <button 
+                    onClick={() => handleDeleteCounselorClick(c.id!)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                   >
+                     <Trash2 size={16} />
+                   </button>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-3xl">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Nenhum conselheiro registrado</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -194,10 +266,20 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       {showCounselorModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[150] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center"><h3 className="text-xl font-black text-[#0061f2] uppercase">Novo Conselheiro</h3><button onClick={() => setShowCounselorModal(false)} className="text-slate-400 p-2"><X size={24} /></button></div>
-            <form onSubmit={(e) => { e.preventDefault(); onAddCounselor(newCounselorName); setNewCounselorName(''); setShowCounselorModal(false); }} className="space-y-4">
+            <div className="flex justify-between items-center">
+               <h3 className="text-xl font-black text-[#0061f2] uppercase">{editCounselor ? 'Editar Conselheiro' : 'Novo Conselheiro'}</h3>
+               <button onClick={() => setShowCounselorModal(false)} className="text-slate-400 p-2"><X size={24} /></button>
+            </div>
+            <form onSubmit={handleAddOrUpdateCounselor} className="space-y-4">
               <input required autoFocus className={inputClasses} placeholder="Nome do Conselheiro" value={newCounselorName} onChange={e => setNewCounselorName(e.target.value)} />
-              <button type="submit" className="w-full bg-[#0061f2] text-white py-4 px-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 text-sm">SALVAR</button>
+              <button 
+                type="submit" 
+                disabled={isProcessing}
+                className="w-full bg-[#0061f2] text-white py-4 px-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 text-sm flex items-center justify-center gap-2"
+              >
+                {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                {editCounselor ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR OFICIALMENTE'}
+              </button>
             </form>
           </div>
         </div>

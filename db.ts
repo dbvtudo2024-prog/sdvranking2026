@@ -77,6 +77,16 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
+  async updateCounselor(id: string | number, name: string) {
+    const { error } = await supabase.from('conselheiros').update({ nome: name }).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteCounselor(id: string | number) {
+    const { error } = await supabase.from('conselheiros').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
     this.getCounselors().then(callback);
     return supabase
@@ -121,7 +131,6 @@ export const DatabaseService = {
     return data as SpecialtyDBV[];
   },
 
-  // Fix: Added missing subscribeSpecialties method
   subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
     this.getSpecialties().then(callback);
     return supabase
@@ -147,7 +156,6 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  // Fix: Added missing importSpecialtiesCSV method
   async importSpecialtiesCSV(specialties: SpecialtyDBV[]) {
     const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
     if (error) throw error;
@@ -163,13 +171,11 @@ export const DatabaseService = {
     await supabase.from('users').upsert([user]);
   },
 
-  // Fix: Added missing createChallenge method for 1x1 game
   async createChallenge(challenge: Challenge1x1) {
     const { error } = await supabase.from('challenges').insert([challenge]);
     if (error) throw error;
   },
 
-  // Fix: Added missing updateChallenge method for 1x1 game
   async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
     const { error } = await supabase.from('challenges').update(updates).eq('id', id);
     if (error) throw error;
