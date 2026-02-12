@@ -32,7 +32,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [showCounselorModal, setShowCounselorModal] = useState(false);
   const [newCounselorName, setNewCounselorName] = useState('');
   
-  const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  // Brasão Original
+  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
   const inputClasses = "w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#0061f2] outline-none font-bold text-slate-700 transition-all text-sm";
 
@@ -40,10 +41,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     <div className="flex flex-col h-full bg-[#f8fafc]">
       <header className="bg-[#0061f2] text-white px-6 h-28 flex flex-col justify-center shadow-lg flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src={brasaoUrl} alt="Brasão" className="w-12 h-12 object-contain" />
+          <img src={LOGO_APP} alt="Brasão" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="text-lg font-black uppercase tracking-tight leading-none">Gestão Administrativa</h1>
-            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Painel de Controle • Líder</p>
+            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Painel de Controle • Desde 1997</p>
           </div>
         </div>
       </header>

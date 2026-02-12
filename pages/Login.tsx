@@ -14,6 +14,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // Logo Interna Original
+  const LOGO_URL = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -44,10 +47,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
     }
   };
 
-  const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-
   return (
-    <div className="min-h-screen bg-[#0061f2] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0061f2] flex items-center justify-center p-4 relative overflow-hidden text-center">
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
       
@@ -55,15 +56,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
         <div className="text-center mb-8">
           <div className="relative inline-block mb-4">
             <div className="w-32 h-32 mx-auto drop-shadow-xl flex items-center justify-center">
-              <img src={brasaoUrl} alt="Brasão" className="w-full h-full object-contain" />
+              <img src={LOGO_URL} alt="Brasão" className="w-full h-full object-contain" />
             </div>
           </div>
           <h1 className="text-xl font-black text-[#0061f2] tracking-tight uppercase">Sentinelas da Verdade</h1>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Sincronizado via Supabase</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Desde 1997</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
+          <div className="space-y-1 text-left">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">E-mail</label>
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0061f2] transition-colors" size={18} />
@@ -77,7 +78,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 text-left">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Senha</label>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0061f2] transition-colors" size={18} />

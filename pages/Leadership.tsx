@@ -11,6 +11,8 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
+  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+
   // Filtro extra-robusto para a página de líderes
   const leaders = (members || []).filter(m => {
     const roleStr = String(m.role || '').toLowerCase();
@@ -18,29 +20,31 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
     const counselorStr = String(m.counselor || '').toLowerCase();
     const classNameStr = String(m.className || '').toLowerCase();
     
-    // Mostra se:
-    // 1. O papel (role) for Liderança (UserRole.LEADERSHIP)
-    // 2. A unidade for Liderança
-    // 3. Qualquer campo contiver termos de diretoria/liderança
+    // Verifica se qualquer campo remete à liderança para não deixar ninguém de fora
     return m.role === UserRole.LEADERSHIP || 
            m.unit === UnitName.LIDERANCA ||
-           roleStr.includes('lider') || 
            unitStr.includes('lider') || 
+           roleStr.includes('lider') || 
            counselorStr.includes('diret') || 
            counselorStr.includes('secret') ||
            counselorStr.includes('tesour') ||
+           counselorStr.includes('capel') ||
            classNameStr.includes('lider');
   });
 
   return (
-    <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="text-center py-6">
-        <h2 className="text-[#0061f2] text-sm sm:text-lg font-black uppercase tracking-[0.3em] drop-shadow-sm flex items-center justify-center gap-3">
-          <ShieldCheck size={24} /> EQUIPE DE LIDERANÇA
-        </h2>
-      </div>
+    <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
+      <header className="bg-[#0061f2] text-white px-6 h-28 flex flex-col justify-center shadow-lg flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <img src={LOGO_APP} alt="Logo" className="w-12 h-12 object-contain" />
+          <div>
+            <h1 className="text-lg font-black uppercase tracking-tight leading-none">Equipe de Liderança</h1>
+            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Sentinelas da Verdade • Desde 1997</p>
+          </div>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-4">
+      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
         {leaders.length > 0 ? (
           leaders.map((leader) => (
             <div 
@@ -65,19 +69,19 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
                   {leader.name}
                 </h3>
                 <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">
-                  {leader.counselor || 'Membro da Equipe'}
+                  {leader.counselor || 'Membro Liderança'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 text-slate-400">
                   <Shield size={10} />
-                  <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Liderança'}</span>
+                  <span className="text-[9px] font-bold uppercase truncate">{leader.className || 'Classe de Líder'}</span>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="col-span-full py-20 text-center opacity-20">
-             <Shield size={80} className="mx-auto mb-4" />
-             <p className="font-black uppercase tracking-widest text-xs">Nenhum líder encontrado</p>
+          <div className="col-span-full py-20 text-center opacity-30">
+             <ShieldCheck size={80} className="mx-auto mb-4 text-[#0061f2]" />
+             <p className="font-black uppercase tracking-widest text-xs text-slate-400">Nenhum líder encontrado</p>
           </div>
         )}
       </div>

@@ -28,10 +28,14 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [activeUnit, setActiveUnit] = useState<UnitName | null>(null);
 
-  // Estados para liberação de jogos
   const [quizOverride, setQuizOverride] = useState(() => localStorage.getItem('sentinelas_quiz_override') === 'true');
   const [memoryOverride, setMemoryOverride] = useState(() => localStorage.getItem('sentinelas_memory_override') === 'true');
   const [specialtyOverride, setSpecialtyOverride] = useState(() => localStorage.getItem('sentinelas_specialty_override') === 'true');
+
+  // Logotipo Interno (Original)
+  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  // Logotipo de Carregamento/Instalação (Novo)
+  const LOGO_LOADING = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
 
   useEffect(() => {
     const savedUser = localStorage.getItem('sentinelas_session_user');
@@ -110,9 +114,9 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0061f2] flex flex-col items-center justify-center text-white p-6">
-        <Loader2 size={48} className="animate-spin mb-4" />
-        <h2 className="font-black uppercase tracking-widest text-xs text-center">Conectando ao Clube...</h2>
+      <div className="min-h-screen bg-[#0061f2] flex flex-col items-center justify-center text-white gap-6">
+        <img src={LOGO_LOADING} alt="Logo" className="w-32 h-32 object-contain animate-pulse" />
+        <Loader2 size={48} className="animate-spin text-white/40" />
       </div>
     );
   }
@@ -211,7 +215,7 @@ const App: React.FC = () => {
     }
   };
 
-  const isInternalPage = currentPage.startsWith('admin_');
+  const isInternalPage = currentPage.startsWith('admin_') || currentPage === 'leadership';
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center sm:py-4">
@@ -219,7 +223,7 @@ const App: React.FC = () => {
         {!activeUnit && !isInternalPage && (
           <header className="bg-[#0061f2] text-white px-6 h-20 flex items-center justify-between shadow-lg flex-shrink-0 z-50">
              <div className="flex items-center gap-3">
-               <img src="https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx" alt="Logo" className="w-8 h-8 object-contain" />
+               <img src={LOGO_APP} alt="Logo" className="w-10 h-10 object-contain" />
                <h1 className="font-black uppercase tracking-tight text-sm">Sentinelas</h1>
              </div>
              <button onClick={handleLogout} className="p-2 bg-white/10 rounded-xl"><LogOut size={18} /></button>
