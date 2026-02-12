@@ -10,6 +10,8 @@ interface LeadershipProps {
 
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
+  
+  const LOGO_OFFICIAL = "https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok";
 
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -33,12 +35,15 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500">
-      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
-        <div className="col-span-full mb-2">
-           <h2 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Equipe de oficiais e instrutores</p>
-        </div>
+      <div className="pt-8 pb-4 flex flex-col items-center justify-center">
+         <div className="w-28 h-28 mb-4 drop-shadow-2xl animate-in zoom-in-50 duration-700">
+           <img src={LOGO_OFFICIAL} alt="Brasão Oficial" className="w-full h-full object-contain" />
+         </div>
+         <h2 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">Corpo Diretivo</h2>
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sentinelas da Verdade</p>
+      </div>
 
+      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 overflow-y-auto">
         {leaders.length > 0 ? (
           leaders.map((leader) => (
             <div 

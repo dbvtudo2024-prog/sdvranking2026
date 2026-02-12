@@ -1,13 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SPECIALTIES } from '../constants';
-import { Medal, Trash2, Edit2, Plus, X, Search, ChevronLeft, Save, LogOut, Upload, Link as LinkIcon, Camera } from 'lucide-react';
-
-interface Specialty {
-  id: string;
-  name: string;
-  image: string;
-}
+import { DatabaseService, SpecialtyDB } from '../db';
+import { Medal, Trash2, Edit2, Plus, X, Search, ChevronLeft, Save, LogOut, Upload, Link as LinkIcon, Camera, Loader2 } from 'lucide-react';
 
 interface AdminSpecialtyEditorProps {
   onBack: () => void;
@@ -15,9 +9,11 @@ interface AdminSpecialtyEditorProps {
 }
 
 const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onLogout }) => {
-  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [specialties, setSpecialties] = useState<SpecialtyDB[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [editItem, setEditItem] = useState<Specialty | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editItem, setEditItem] = useState<SpecialtyDB | null>(null);
   const [formData, setFormData] = useState({ name: '', image: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,54 +21,55 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
   useEffect(() => {
-    const saved = localStorage.getItem('sentinelas_all_specialties');
-    if (saved) {
-      setSpecialties(JSON.parse(saved));
-    } else {
-      const initial = SPECIALTIES.map((s, i) => ({ ...s, id: `default-${i}` }));
-      setSpecialties(initial);
-      localStorage.setItem('sentinelas_all_specialties', JSON.stringify(initial));
-    }
+    const channel = DatabaseService.subscribeSpecialties((data) => {
+      setSpecialties(data);
+      setLoading(false);
+    });
+    return () => { if(channel) channel.unsubscribe(); };
   }, []);
 
-  const saveToLocalStorage = (list: Specialty[]) => {
-    setSpecialties(list);
-    localStorage.setItem('sentinelas_all_specialties', JSON.stringify(list));
-  };
-
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.image) {
       alert("Por favor, adicione uma imagem ou URL.");
       return;
     }
 
-    if (editItem) {
-      const updated = specialties.map(s => 
-        s.id === editItem.id ? { ...s, name: formData.name, image: formData.image } : s
-      );
-      saveToLocalStorage(updated);
-    } else {
-      const newItem: Specialty = {
-        id: `custom-${Date.now()}`,
-        name: formData.name,
-        image: formData.image
-      };
-      saveToLocalStorage([...specialties, newItem]);
+    setIsSaving(true);
+    try {
+      if (editItem) {
+        await DatabaseService.updateSpecialty({ 
+          id: editItem.id, 
+          name: formData.name, 
+          image: formData.image 
+        });
+      } else {
+        await DatabaseService.addSpecialty({
+          id: `spec-${Date.now()}`,
+          name: formData.name,
+          image: formData.image
+        });
+      }
+      setShowModal(false);
+      setEditItem(null);
+      setFormData({ name: '', image: '' });
+    } catch (err) {
+      alert("Erro ao salvar especialidade no banco.");
+    } finally {
+      setIsSaving(false);
     }
-    
-    setShowModal(false);
-    setEditItem(null);
-    setFormData({ name: '', image: '' });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Deseja excluir esta especialidade permanentemente?")) return;
-    const updated = specialties.filter(s => s.id !== id);
-    saveToLocalStorage(updated);
+    try {
+      await DatabaseService.deleteSpecialty(id);
+    } catch (err) {
+      alert("Erro ao excluir do banco.");
+    }
   };
 
-  const handleEditInit = (item: Specialty) => {
+  const handleEditInit = (item: SpecialtyDB) => {
     setEditItem(item);
     setFormData({ name: item.name, image: item.image });
     setShowModal(true);
@@ -103,7 +100,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
           <img src={brasaoUrl} alt="Brasão" className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 mr-3 object-contain" />
           <div className="min-w-0">
             <h1 className="text-sm sm:text-lg font-black leading-tight tracking-tight truncate uppercase">Especialidades</h1>
-            <p className="text-[10px] sm:text-xs font-medium opacity-80 truncate uppercase">Gerenciamento de Questões</p>
+            <p className="text-[10px] sm:text-xs font-medium opacity-80 truncate uppercase">Banco de Dados Ativo</p>
           </div>
         </div>
         {onLogout && (
@@ -133,35 +130,42 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:border-[#0061f2] font-medium text-sm transition-all pl-10 shadow-sm" 
-            placeholder="Buscar especialidade..." 
+            placeholder="Buscar no banco de dados..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {filtered.length > 0 ? (
-            filtered.map((s) => (
-              <div key={s.id} className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-xl bg-slate-50 p-2 flex items-center justify-center overflow-hidden border border-slate-100">
-                    <img src={s.image} className="w-full h-full object-contain" alt={s.name} />
+        {loading ? (
+          <div className="flex flex-col items-center py-20 gap-4">
+            <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+            <p className="text-xs font-black text-slate-400 uppercase">Sincronizando Banco...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {filtered.length > 0 ? (
+              filtered.map((s) => (
+                <div key={s.id} className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-slate-50 p-2 flex items-center justify-center overflow-hidden border border-slate-100">
+                      <img src={s.image} className="w-full h-full object-contain" alt={s.name} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-black text-slate-800 truncate uppercase">{s.name}</h4>
+                      <p className="text-[9px] font-bold text-slate-300 uppercase">Salvo no Supabase</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-black text-slate-800 truncate uppercase">{s.name}</h4>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase">Ref: {s.id.split('-')[0]}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditInit(s)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl hover:bg-blue-100 transition-all"><Edit2 size={16} /></button>
+                    <button onClick={() => handleDelete(s.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"><Trash2 size={16} /></button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleEditInit(s)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl hover:bg-blue-100 transition-all"><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(s.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"><Trash2 size={16} /></button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-10 text-slate-400 italic font-medium">Nenhuma especialidade encontrada.</div>
-          )}
-        </div>
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-400 italic font-medium">Nenhuma especialidade encontrada no banco.</div>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -185,8 +189,6 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
 
               <div className="space-y-3">
                 <label className={labelClasses}>Imagem (Brasão)</label>
-                
-                {/* Visualização Prévia */}
                 <div className="flex justify-center">
                   <div className="w-32 h-32 rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden relative group">
                     {formData.image ? (
@@ -236,8 +238,13 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               </div>
 
               <div className="pt-2">
-                 <button type="submit" className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
-                   <Save size={18} /> {editItem ? 'Salvar Alterações' : 'Criar Especialidade'}
+                 <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                 >
+                   {isSaving ? <Loader2 className="animate-spin" /> : <Save size={18} />}
+                   {editItem ? 'Salvar Alterações' : 'Salvar no Banco'}
                  </button>
               </div>
             </form>

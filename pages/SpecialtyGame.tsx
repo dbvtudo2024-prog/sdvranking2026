@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SPECIALTIES } from '../constants';
+import { DatabaseService, SpecialtyDB } from '../db';
 import { AuthUser, Member, Score, UserRole } from '../types';
-import { ArrowLeft, Timer, Trophy, X, Check, Medal, Lock, Calendar } from 'lucide-react';
+import { ArrowLeft, Timer, Trophy, X, Check, Medal, Lock, Calendar, Loader2 } from 'lucide-react';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -30,15 +31,23 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [specialtiesDB, setSpecialtiesDB] = useState<SpecialtyDB[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const timerRef = useRef<number | null>(null);
 
-  const availableSpecialties = useMemo(() => {
-    const saved = localStorage.getItem('sentinelas_all_specialties');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return SPECIALTIES;
+  useEffect(() => {
+    const fetchSpecs = async () => {
+      const data = await DatabaseService.getSpecialties();
+      // Fallback para as constantes se o banco estiver vazio
+      if (data.length === 0) {
+        setSpecialtiesDB(SPECIALTIES.map((s, i) => ({ id: `fixed-${i}`, ...s })));
+      } else {
+        setSpecialtiesDB(data);
+      }
+      setLoading(false);
+    };
+    fetchSpecs();
   }, []);
 
   const currentMember = useMemo(() => {
@@ -60,19 +69,19 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   }, [specialtyOverride, currentMember]);
 
   const gameQuestions = useMemo(() => {
-    if (availableSpecialties.length === 0) return [];
+    if (specialtiesDB.length === 0) return [];
     
-    return [...availableSpecialties]
+    return [...specialtiesDB]
       .sort(() => Math.random() - 0.5)
       .slice(0, 15)
       .map(q => {
-        const others = availableSpecialties.filter(s => s.name !== q.name)
+        const others = specialtiesDB.filter(s => s.name !== q.name)
           .sort(() => Math.random() - 0.5)
           .slice(0, 3);
         const options = [...others, q].sort(() => Math.random() - 0.5);
         return { ...q, options };
       });
-  }, [availableSpecialties]);
+  }, [specialtiesDB]);
 
   useEffect(() => {
     if (difficulty && !isGameOver && !showFeedback && gameQuestions.length > 0) {
@@ -145,6 +154,15 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     }
     onBack();
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Carregando Banco...</p>
+      </div>
+    );
+  }
 
   if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
     return (
