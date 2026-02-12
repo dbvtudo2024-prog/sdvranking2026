@@ -3,7 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, AuthUser, UnitName, Member } from '../types';
 import { DatabaseService } from '../db';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '../constants';
+<<<<<<< HEAD
 import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+=======
+<<<<<<< HEAD
+import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+=======
+<<<<<<< HEAD
+import { ChevronDown, ArrowLeft, Loader2 } from 'lucide-react';
+=======
+import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
 
 interface RegisterProps {
   onRegister: (user: AuthUser, member?: Member) => void;
@@ -12,7 +24,18 @@ interface RegisterProps {
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
+<<<<<<< HEAD
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+=======
+<<<<<<< HEAD
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+=======
+<<<<<<< HEAD
+=======
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
   const [formData, setFormData] = useState({
     name: '',
     role: UserRole.PATHFINDER,
@@ -54,10 +77,28 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
     setErrorMsg(null);
 
     if (!formData.name.trim() || !formData.role || !formData.funcao || !formData.age || !formData.email.trim() || !formData.password) {
       setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
+=======
+<<<<<<< HEAD
+    if (!formData.name.trim() || !formData.role || !formData.funcao || !formData.age || !formData.email.trim() || !formData.password) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+=======
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
+    setErrorMsg(null);
+
+    if (!formData.name.trim() || !formData.role || !formData.funcao || !formData.age || !formData.email.trim() || !formData.password) {
+      setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
+<<<<<<< HEAD
+=======
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
       return;
     }
 
@@ -90,14 +131,43 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
         scores: []
       };
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
       // Tenta salvar no banco
       console.log('Tentando cadastrar usuário...');
       await DatabaseService.addUser(newUser);
       console.log('Usuário cadastrado. Tentando cadastrar membro...');
+=======
+<<<<<<< HEAD
+      // Salva no Supabase via DatabaseService
+      await DatabaseService.addUser(newUser);
+=======
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
+      // Tenta salvar no banco
+      console.log('Tentando cadastrar usuário...');
+      await DatabaseService.addUser(newUser);
+      console.log('Usuário cadastrado. Tentando cadastrar membro...');
+<<<<<<< HEAD
+=======
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
       await DatabaseService.addMember(newMember);
       
       alert('Cadastro realizado com sucesso!');
       onRegister(newUser, newMember);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    } catch (err) {
+      alert('Erro ao realizar cadastro no banco de dados. Verifique sua conexão.');
+      console.error(err);
+=======
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
     } catch (err: any) {
       console.error('Erro completo capturado:', err);
       const message = err.message || '';
@@ -111,6 +181,13 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
       } else {
         setErrorMsg(`Falha Técnica: ${message || 'Erro desconhecido ao salvar dados.'}`);
       }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +207,15 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
           <span>Voltar</span>
         </button>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+        <h2 className="text-2xl font-black text-white mb-8 tracking-tight uppercase">Novo Registro</h2>
+=======
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
         <h2 className="text-2xl font-black text-white mb-4 tracking-tight uppercase">Novo Registro</h2>
 
         {errorMsg && (
@@ -138,6 +224,13 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
             <div className="text-xs font-black leading-tight uppercase tracking-wider">{errorMsg}</div>
           </div>
         )}
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
+>>>>>>> 3ad30faef705ff4d6a5e185e4490185073d4becc
+>>>>>>> cd0eb5e063378642ea76e75d5c586f142b67daaf
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
