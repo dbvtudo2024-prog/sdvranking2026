@@ -3,7 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, AuthUser, UnitName, Member } from '../types';
 import { DatabaseService } from '../db';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '../constants';
+<<<<<<< HEAD
 import { ChevronDown, ArrowLeft, Loader2 } from 'lucide-react';
+=======
+import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
 
 interface RegisterProps {
   onRegister: (user: AuthUser, member?: Member) => void;
@@ -12,6 +16,10 @@ interface RegisterProps {
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
+<<<<<<< HEAD
+=======
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
   const [formData, setFormData] = useState({
     name: '',
     role: UserRole.PATHFINDER,
@@ -53,8 +61,15 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     if (!formData.name.trim() || !formData.role || !formData.funcao || !formData.age || !formData.email.trim() || !formData.password) {
       alert('Por favor, preencha todos os campos obrigatórios.');
+=======
+    setErrorMsg(null);
+
+    if (!formData.name.trim() || !formData.role || !formData.funcao || !formData.age || !formData.email.trim() || !formData.password) {
+      setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
       return;
     }
 
@@ -87,15 +102,38 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
         scores: []
       };
 
+<<<<<<< HEAD
       // Salva no Supabase via DatabaseService
       await DatabaseService.addUser(newUser);
+=======
+      // Tenta salvar no banco
+      console.log('Tentando cadastrar usuário...');
+      await DatabaseService.addUser(newUser);
+      console.log('Usuário cadastrado. Tentando cadastrar membro...');
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
       await DatabaseService.addMember(newMember);
       
       alert('Cadastro realizado com sucesso!');
       onRegister(newUser, newMember);
+<<<<<<< HEAD
     } catch (err) {
       alert('Erro ao realizar cadastro no banco de dados. Verifique sua conexão.');
       console.error(err);
+=======
+    } catch (err: any) {
+      console.error('Erro completo capturado:', err);
+      const message = err.message || '';
+      
+      if (message.includes('fetch') || message.includes('Network')) {
+        setErrorMsg('Erro de Conexão: O site não conseguiu falar com o Supabase. Verifique sua internet.');
+      } else if (message.includes('JWT') || message.includes('apikey')) {
+        setErrorMsg('Erro de Chave API: A chave no arquivo db.ts parece incorreta ou expirada.');
+      } else if (message.includes('relation')) {
+        setErrorMsg('Erro de Tabela: O banco de dados não tem as tabelas necessárias. Execute o SQL no Supabase.');
+      } else {
+        setErrorMsg(`Falha Técnica: ${message || 'Erro desconhecido ao salvar dados.'}`);
+      }
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +153,18 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack }) => {
           <span>Voltar</span>
         </button>
 
+<<<<<<< HEAD
         <h2 className="text-2xl font-black text-white mb-8 tracking-tight uppercase">Novo Registro</h2>
+=======
+        <h2 className="text-2xl font-black text-white mb-4 tracking-tight uppercase">Novo Registro</h2>
+
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-red-500 text-white rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 border-2 border-white/20">
+            <AlertCircle className="shrink-0 mt-0.5" size={20} />
+            <div className="text-xs font-black leading-tight uppercase tracking-wider">{errorMsg}</div>
+          </div>
+        )}
+>>>>>>> be70c82 (Primeira versão do App Sentinelas)
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
