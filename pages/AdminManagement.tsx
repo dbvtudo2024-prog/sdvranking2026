@@ -38,20 +38,20 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
-      <header className="bg-[#0061f2] text-white px-6 h-24 sticky top-0 z-50 flex items-center justify-between shadow-lg flex-shrink-0">
+      <header className="bg-[#0061f2] text-white px-6 h-28 flex flex-col justify-center shadow-lg flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src={brasaoUrl} alt="Brasão" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+          <img src={brasaoUrl} alt="Brasão" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-sm sm:text-lg font-black uppercase tracking-tight">Gestão Administrativa</h1>
-            <p className="text-[9px] font-bold opacity-70 uppercase tracking-widest">Painel de Controle • Líder</p>
+            <h1 className="text-lg font-black uppercase tracking-tight leading-none">Gestão Administrativa</h1>
+            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Painel de Controle • Líder</p>
           </div>
         </div>
       </header>
 
-      <div className="p-4 sm:p-8 space-y-6 overflow-y-auto pb-24">
+      <div className="p-6 space-y-6 overflow-y-auto flex-1">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-full text-[#0061f2] font-black text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all w-fit mb-2"
+          className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-full text-[#0061f2] font-black text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all w-fit"
         >
           <ChevronLeft size={18} strokeWidth={3} />
           Voltar ao Perfil

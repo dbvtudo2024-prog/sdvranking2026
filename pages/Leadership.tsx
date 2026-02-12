@@ -11,17 +11,25 @@ interface LeadershipProps {
 const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const [selectedLeader, setSelectedLeader] = useState<Member | null>(null);
 
-  // Filtro robusto: busca por "Lider" no role ou na unit, ignorando maiúsculas/minúsculas
+  // Filtro extra-robusto para a página de líderes
   const leaders = (members || []).filter(m => {
     const roleStr = String(m.role || '').toLowerCase();
     const unitStr = String(m.unit || '').toLowerCase();
     const counselorStr = String(m.counselor || '').toLowerCase();
+    const classNameStr = String(m.className || '').toLowerCase();
     
-    return roleStr.includes('lider') || 
+    // Mostra se:
+    // 1. O papel (role) for Liderança (UserRole.LEADERSHIP)
+    // 2. A unidade for Liderança
+    // 3. Qualquer campo contiver termos de diretoria/liderança
+    return m.role === UserRole.LEADERSHIP || 
+           m.unit === UnitName.LIDERANCA ||
+           roleStr.includes('lider') || 
            unitStr.includes('lider') || 
            counselorStr.includes('diret') || 
            counselorStr.includes('secret') ||
-           m.role === UserRole.LEADERSHIP;
+           counselorStr.includes('tesour') ||
+           classNameStr.includes('lider');
   });
 
   return (
@@ -32,7 +40,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-4">
         {leaders.length > 0 ? (
           leaders.map((leader) => (
             <div 

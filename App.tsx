@@ -225,7 +225,7 @@ const App: React.FC = () => {
              <button onClick={handleLogout} className="p-2 bg-white/10 rounded-xl"><LogOut size={18} /></button>
           </header>
         )}
-        <main className={`flex-1 overflow-y-auto bg-slate-50 ${activeUnit ? 'p-0' : 'p-4'}`}>
+        <main className={`flex-1 overflow-y-auto bg-slate-50 ${(activeUnit || isInternalPage) ? 'p-0' : 'p-4'}`}>
           {renderContent()}
         </main>
         {!activeUnit && !isInternalPage && (
