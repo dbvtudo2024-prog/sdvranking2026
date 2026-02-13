@@ -17,7 +17,7 @@ export interface ChatMessage {
   senderPhoto?: string;
   text: string;
   unit: 'Geral' | UnitName;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface Score {

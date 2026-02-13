@@ -59,7 +59,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       senderPhoto: user.photoUrl,
       text: inputText.trim(),
       unit: activeTab,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     const tempId = 'temp-' + Date.now();
@@ -144,7 +144,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
                   <div className={`px-4 py-2.5 rounded-[1.5rem] shadow-md relative ${isMe ? 'bg-[#0061f2] text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
                     <p className="text-sm font-semibold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className={`text-[8px] font-black mt-1 uppercase ${isMe ? 'text-white/60 text-right' : 'text-slate-300 text-right'}`}>
-                      {formatTime(msg.createdAt)}
+                      {formatTime(msg.created_at)}
                     </div>
                   </div>
                 </div>

@@ -65,7 +65,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       senderPhoto: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
       text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
       unit: 'Geral',
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     try {

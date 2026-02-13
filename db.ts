@@ -9,7 +9,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export interface SpecialtyDBV {
   id?: number;
-  createdAt?: string;
+  created_at?: string;
   ID: string;
   Nome: string;
   Questoes: string;
@@ -34,7 +34,7 @@ export interface SpecialtyQuestion {
 export interface CounselorDB {
   id?: string | number;
   name: string;
-  createdAt?: string;
+  created_at?: string;
 }
 
 export interface GameConfig {
@@ -52,7 +52,7 @@ export const DatabaseService = {
       .from('messages')
       .select('*')
       .eq('unit', unit)
-      .order('createdAt', { ascending: true }) 
+      .order('created_at', { ascending: true }) 
       .limit(50);
     
     if (error) {
@@ -62,7 +62,7 @@ export const DatabaseService = {
     
     return (data || []).map(m => ({
       ...m,
-      createdAt: m.createdAt || new Date().toISOString()
+      created_at: m.created_at || new Date().toISOString()
     })) as ChatMessage[];
   },
 
@@ -82,7 +82,7 @@ export const DatabaseService = {
         const newMsg = payload.new as any;
         callback({
           ...newMsg,
-          createdAt: newMsg.createdAt || new Date().toISOString()
+          created_at: newMsg.created_at || new Date().toISOString()
         });
       })
       .subscribe();
@@ -124,11 +124,10 @@ export const DatabaseService = {
   async getCounselors(): Promise<CounselorDB[]> {
     const { data, error } = await supabase
       .from('conselheiros')
-      .select('id, createdAt:createdAt, name:nome') 
+      .select('id, created_at, name:nome') 
       .order('nome', { ascending: true });
     
     if (error) {
-      // Caso a tabela conselheiros use outro nome de coluna, tenta ID como fallback
       const fallback = await supabase.from('conselheiros').select('id, nome').order('nome', { ascending: true });
       if (fallback.error) return [];
       return fallback.data.map((d: any) => ({ id: d.id, name: d.nome })) as any[];
@@ -220,7 +219,7 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
-  async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'createdAt'>[]) {
+  async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'created_at'>[]) {
     const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
     if (error) {
       console.error("Erro ao migrar especialidades:", error);
@@ -252,9 +251,18 @@ export const DatabaseService = {
 
   // --- QUESTÕES DO QUIZ ---
   async getQuizQuestions(): Promise<QuizQuestion[]> {
-    // Tenta ordenar por createdAt, senão ID
-    const { data, error } = await supabase.from('quiz_questions').select('*').order('id', { ascending: false });
-    if (error) return [];
+    const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
+    if (error) {
+      const fallback = await supabase.from('quiz_questions').select('*').order('id', { ascending: false });
+      if (fallback.error) return [];
+      return fallback.data.map(q => ({
+        id: q.id,
+        category: q.category,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correct_answer ?? q.correctAnswer 
+      })) as QuizQuestion[];
+    }
     
     return data.map(q => ({
       id: q.id,

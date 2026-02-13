@@ -30,7 +30,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   
-  // Estados para Chat e Notificações
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
 
@@ -60,21 +59,17 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Monitoramento Global de Mensagens (Notificações)
   useEffect(() => {
     if (!user) return;
 
-    // Subscrever ao canal Geral
     const subGeral = DatabaseService.subscribeMessages('Geral', (msg) => {
       if (msg.senderId !== user.id && currentPage !== 'chat') {
         setUnreadCount(prev => prev + 1);
         setLastNotification(msg);
-        // Autohide notification after 5s
         setTimeout(() => setLastNotification(null), 5000);
       }
     });
 
-    // Subscrever ao canal da Unidade (se houver)
     let subUnidade: any = null;
     if (user.unit) {
       subUnidade = DatabaseService.subscribeMessages(user.unit, (msg) => {
@@ -92,7 +87,6 @@ const App: React.FC = () => {
     };
   }, [user, currentPage]);
 
-  // Limpar notificações ao entrar no chat
   useEffect(() => {
     if (currentPage === 'chat') {
       setUnreadCount(0);
@@ -220,7 +214,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
-      {/* GLOBAL TOAST NOTIFICATION */}
       {lastNotification && (
         <div 
           onClick={() => setCurrentPage('chat')}
