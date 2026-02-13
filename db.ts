@@ -70,8 +70,9 @@ export const DatabaseService = {
 
   // Escuta TODAS as mensagens e deixa o App filtrar
   subscribeAllMessages(callback: (msg: ChatMessage) => void, onStatus?: (status: string) => void) {
+    const channelId = `chat_${Math.random().toString(36).substring(7)}`;
     const channel = supabase
-      .channel('global_chat_channel')
+      .channel(channelId)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
@@ -81,7 +82,7 @@ export const DatabaseService = {
         callback(payload.new as ChatMessage);
       })
       .subscribe((status) => {
-        console.log("Status da Conexão Realtime:", status);
+        console.log(`Status da Conexão Realtime (${channelId}):`, status);
         if (onStatus) onStatus(status);
       });
       
@@ -297,5 +298,19 @@ export const DatabaseService = {
 
   async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
     await supabase.from('challenges').update(updates).eq('id', id);
+  },
+
+  subscribeChallenges(callback: (challenge: Challenge1x1) => void) {
+    const channelId = `challenges_${Math.random().toString(36).substring(7)}`;
+    return supabase
+      .channel(channelId)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'challenges' 
+      }, payload => {
+        callback(payload.new as Challenge1x1);
+      })
+      .subscribe();
   }
 };

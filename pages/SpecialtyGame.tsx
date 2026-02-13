@@ -15,10 +15,12 @@ interface SpecialtyGameProps {
 const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride }) => {
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'result'>('lobby');
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(12);
+  const [timeLimit, setTimeLimit] = useState(5);
+  const [timeLeft, setTimeLeft] = useState(5);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   const [gameQuestions, setGameQuestions] = useState<{question: string, options: string[], correct: number, image: string}[]>([]);
 
@@ -77,9 +79,10 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     return { isAvailable: available, hasPlayedToday: played };
   }, [specialtyOverride, currentMember]);
 
-  const startTimer = () => {
+  const startTimer = (limit?: number) => {
     stopTimer();
-    setTimeLeft(12);
+    const actualLimit = limit || timeLimit;
+    setTimeLeft(actualLimit);
     timerRef.current = window.setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -101,7 +104,9 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     
     const correct = idx === gameQuestions[currentIdx].correct;
     if (correct) {
-      setScore(prev => prev + 2);
+      // Pontuação baseada no tempo escolhido (mais difícil = mais pontos)
+      const multiplier = timeLimit === 2 ? 4 : timeLimit === 3 ? 3 : 2;
+      setScore(prev => prev + multiplier);
       setFeedback('correct');
     } else {
       setFeedback('wrong');
@@ -109,6 +114,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
     setTimeout(() => {
       setFeedback(null);
+      setImageLoaded(false);
       if (currentIdx < gameQuestions.length - 1) {
         setCurrentIdx(prev => prev + 1);
         startTimer();
@@ -145,17 +151,34 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   if (gameState === 'lobby') {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-8 animate-in fade-in">
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6 animate-in fade-in">
         <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center text-[#0061f2] shadow-inner"><BookOpen size={48} /></div>
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Qual a Especialidade?</h2>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest px-4">Identifique o brasão correto da especialidade mostrada na tela.</p>
         </div>
-        <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 w-full">
-           <p className="text-amber-700 text-[10px] font-black uppercase tracking-widest mb-1">Premiação</p>
-           <p className="text-sm font-bold text-amber-800">Ganhe até 20 pontos para o Ranking!</p>
+
+        <div className="w-full space-y-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Escolha o tempo por pergunta:</p>
+          <div className="flex gap-2">
+            {[5, 3, 2].map(t => (
+              <button 
+                key={t} 
+                onClick={() => setTimeLimit(t)}
+                className={`flex-1 py-4 rounded-2xl font-black border-2 transition-all active:scale-95 ${timeLimit === t ? 'bg-[#0061f2] border-blue-700 text-white shadow-lg shadow-blue-500/20' : 'bg-white border-slate-100 text-slate-400'}`}
+              >
+                {t}s
+              </button>
+            ))}
+          </div>
         </div>
-        <button onClick={() => { setGameState('playing'); startTimer(); }} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">INICIAR DESAFIO</button>
+
+        <div className="bg-amber-50 p-5 rounded-[2rem] border border-amber-100 w-full">
+           <p className="text-amber-700 text-[10px] font-black uppercase tracking-widest mb-1">Premiação</p>
+           <p className="text-sm font-bold text-amber-800">Ganhe até {timeLimit === 2 ? 40 : timeLimit === 3 ? 30 : 20} pontos!</p>
+        </div>
+
+        <button onClick={() => { setGameState('playing'); startTimer(timeLimit); }} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">INICIAR DESAFIO</button>
         <button onClick={onBack} className="text-slate-300 font-black uppercase text-[10px] tracking-widest">Sair</button>
       </div>
     );
@@ -169,6 +192,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full">
            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pontuação conquistada</p>
            <p className="text-6xl font-black text-[#0061f2]">{score} <span className="text-xl">pts</span></p>
+           <p className="text-[9px] font-black text-slate-300 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
         </div>
         <button onClick={handleFinish} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase shadow-xl">SALVAR E VOLTAR</button>
       </div>
@@ -183,15 +207,25 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         <button onClick={onBack} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
         <div className="bg-blue-50 px-6 py-2 rounded-full border border-blue-100 flex items-center gap-2">
            <Timer size={18} className="text-blue-600" />
-           <span className="font-black text-blue-600 text-xl font-mono">{timeLeft}s</span>
+           <span className={`font-black text-xl font-mono ${timeLeft <= 1 ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>{timeLeft}s</span>
         </div>
         <div className="text-right"><p className="text-xl font-black text-[#FFD700]">{score} pts</p></div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-        <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl text-center space-y-6">
-          <div className="w-36 h-36 mx-auto bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center justify-center">
-            <img src={currentQ.image} className="w-full h-full object-contain" alt="Espec" />
+        <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl text-center space-y-6 relative overflow-hidden">
+          <div className="w-36 h-36 mx-auto bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center justify-center relative overflow-hidden">
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+                <Loader2 className="animate-spin text-slate-200" size={24} />
+              </div>
+            )}
+            <img 
+              src={currentQ.image} 
+              onLoad={() => setImageLoaded(true)}
+              className={`w-full h-full object-contain transition-all duration-500 ${imageLoaded ? 'scale-100 opacity-100 blur-0' : 'scale-90 opacity-0 blur-md'}`} 
+              alt="Espec" 
+            />
           </div>
           <h3 className="text-lg font-black text-slate-800 leading-tight px-2 uppercase tracking-tight">{currentQ.question}</h3>
         </div>
@@ -200,7 +234,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           {currentQ.options.map((opt, idx) => {
             let style = "bg-white border-slate-100 text-slate-600";
             if (feedback) {
-              if (idx === currentQ.correct) style = "bg-green-500 border-green-600 text-white";
+              if (idx === currentQ.correct) style = "bg-green-500 border-green-600 text-white scale-105 shadow-lg";
               else style = "bg-slate-50 border-slate-50 text-slate-300 opacity-50";
             }
             return (

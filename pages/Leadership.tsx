@@ -14,15 +14,29 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  const leaders = (members || []).filter(m => {
-    const role = normalize(String(m.role || ''));
-    const unit = normalize(String(m.unit || ''));
-    const counselor = normalize(String(m.counselor || ''));
-    const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
-    const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
-    const hasKeywords = role.includes('diret') || counselor.includes('diret') || counselor.includes('secret') || counselor.includes('tesour') || counselor.includes('capel');
-    return isUnitLider || isRoleLider || hasKeywords;
-  });
+  const getPriority = (counselor: string) => {
+    const c = normalize(counselor || '');
+    if (c.includes('diretor') && !c.includes('associado')) return 10;
+    if (c.includes('diretor') && c.includes('associado')) return 9;
+    if (c.includes('secretar')) return 8;
+    if (c.includes('tesour')) return 7;
+    if (c.includes('capela')) return 6;
+    if (c.includes('instrutor')) return 5;
+    if (c.includes('conselheiro')) return 4;
+    return 0;
+  };
+
+  const leaders = (members || [])
+    .filter(m => {
+      const role = normalize(String(m.role || ''));
+      const unit = normalize(String(m.unit || ''));
+      const counselor = normalize(String(m.counselor || ''));
+      const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
+      const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
+      const hasKeywords = role.includes('diret') || counselor.includes('diret') || counselor.includes('secret') || counselor.includes('tesour') || counselor.includes('capel');
+      return isUnitLider || isRoleLider || hasKeywords;
+    })
+    .sort((a, b) => getPriority(b.counselor) - getPriority(a.counselor));
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in duration-500 overflow-y-auto">

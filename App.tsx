@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage } from './types';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1 } from './types';
 import { DatabaseService, CounselorDB, GameConfig } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -16,7 +16,7 @@ import Games from './pages/Games';
 import Leadership from './pages/Leadership';
 import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
-import { LogOut, ArrowLeft, Bell, X } from 'lucide-react';
+import { LogOut, ArrowLeft, Bell, X, Sword } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
+  const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
@@ -58,6 +59,22 @@ const App: React.FC = () => {
       gameConfigsSub.unsubscribe();
     };
   }, []);
+
+  // LÓGICA DE NOTIFICAÇÃO DE DESAFIOS
+  useEffect(() => {
+    if (!user) return;
+
+    const subChallenges = DatabaseService.subscribeChallenges((challenge) => {
+      if (challenge.challengedId === user.id && challenge.status === 'pending') {
+        setChallengeNotification(challenge);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      }
+    });
+
+    return () => {
+      subChallenges.unsubscribe();
+    };
+  }, [user?.id]);
 
   // LÓGICA DE NOTIFICAÇÃO SUPER RESILIENTE
   useEffect(() => {
@@ -242,6 +259,36 @@ const App: React.FC = () => {
              <p className="text-sm font-black truncate pr-4 text-white leading-tight">{lastNotification.text}</p>
           </div>
           <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+             <X size={20} />
+          </button>
+        </div>
+      )}
+
+      {/* NOTIFICAÇÃO DE DESAFIO 1X1 */}
+      {challengeNotification && (
+        <div 
+          onClick={() => {
+            setCurrentPage('games');
+            setChallengeNotification(null);
+          }}
+          className="fixed top-24 inset-x-4 z-[9999] bg-amber-500 text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
+        >
+          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 flex items-center justify-center shadow-inner">
+             <Sword size={24} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+             <div className="flex justify-between items-center mb-0.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">Arena 1x1</p>
+                <div className="flex items-center gap-1">
+                   <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+                   <span className="text-[8px] font-bold opacity-70 uppercase">Novo Desafio</span>
+                </div>
+             </div>
+             <p className="text-sm font-black truncate pr-4 text-white leading-tight">
+               {challengeNotification.challengerName} desafiou você!
+             </p>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); setChallengeNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
              <X size={20} />
           </button>
         </div>

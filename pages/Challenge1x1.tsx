@@ -38,8 +38,9 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   useEffect(() => {
     if (!user.id || isMachineMode) return;
 
+    const channelId = `challenges_lobby_${Math.random().toString(36).substring(7)}`;
     const channel = supabase
-      .channel('challenges_lobby')
+      .channel(channelId)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 

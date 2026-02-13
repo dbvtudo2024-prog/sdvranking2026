@@ -32,9 +32,25 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
 
     // Fix: Using subscribeAllMessages instead of subscribeMessages and filtering by activeTab
     const sub = DatabaseService.subscribeAllMessages((newMsg) => {
+      console.log("Chat received new message:", newMsg);
       if (newMsg.unit === activeTab) {
         setMessages(prev => {
-          if (prev.some(m => m.id === newMsg.id)) return prev;
+          // Check if message already exists by ID
+          if (newMsg.id && prev.some(m => m.id === newMsg.id)) return prev;
+          
+          // Try to find a matching optimistic message to replace
+          const optimisticIdx = prev.findIndex(m => 
+            String(m.id).startsWith('temp-') && 
+            m.text === newMsg.text && 
+            String(m.sender_id) === String(newMsg.sender_id)
+          );
+
+          if (optimisticIdx !== -1) {
+            const newArr = [...prev];
+            newArr[optimisticIdx] = newMsg;
+            return newArr;
+          }
+
           return [...prev, newMsg];
         });
       }

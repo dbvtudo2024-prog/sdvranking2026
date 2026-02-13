@@ -84,7 +84,7 @@ const Games: React.FC<GamesProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-start h-full animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-10 px-4">
+    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-24 px-4 custom-scrollbar">
       <div className="flex flex-col gap-4 w-full">
         {/* DUELO ARENA 1x1 NO TOPO */}
         <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 border-blue-800 border-b-4 text-white shadow-xl shadow-blue-500/20 active:scale-95 px-6 shrink-0">
