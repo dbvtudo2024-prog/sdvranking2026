@@ -59,39 +59,41 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // LÓGICA DE NOTIFICAÇÃO MELHORADA
+  // LÓGICA DE NOTIFICAÇÃO SUPER RESILIENTE
   useEffect(() => {
     if (!user) return;
 
     const subMessages = DatabaseService.subscribeAllMessages((msg) => {
-      // Regras para mostrar a notificação:
-      // 1. A mensagem deve ser da Unidade do usuário OU ser do canal 'Geral'
-      // 2. O usuário NÃO pode estar na tela de chat
-      // 3. O usuário NÃO pode ser o autor da mensagem
+      console.log("Chegou mensagem no Realtime:", msg);
       
-      const isRelevant = msg.unit === 'Geral' || msg.unit === user.unit;
-      const isNotMe = String(msg.sender_id) !== String(user.id);
-      const notInChat = currentPage !== 'chat';
+      // Se eu sou o autor, ignora
+      if (String(msg.sender_id) === String(user.id)) return;
 
-      if (isRelevant && isNotMe && notInChat) {
-        console.log("Notificação recebida!", msg);
+      // Se estou na tela de chat, não mostra banner, apenas zera
+      if (currentPage === 'chat') {
+        setUnreadCount(0);
+        return;
+      }
+
+      // Verifica se a mensagem é relevante para mim
+      const isRelevant = msg.unit === 'Geral' || msg.unit === user.unit || !user.unit;
+
+      if (isRelevant) {
         setUnreadCount(prev => prev + 1);
         setLastNotification(msg);
         
-        // Mantém o banner por 10 segundos
-        setTimeout(() => {
-          setLastNotification(current => {
-            if (current?.id === msg.id) return null;
-            return current;
-          });
-        }, 10000);
+        // vibração se suportado
+        if (navigator.vibrate) navigator.vibrate(200);
+
+        // Remove o banner após 10 segundos
+        setTimeout(() => setLastNotification(null), 10000);
       }
     });
 
     return () => {
       subMessages.unsubscribe();
     };
-  }, [user, currentPage]);
+  }, [user?.id, user?.unit, currentPage]);
 
   useEffect(() => {
     if (currentPage === 'chat') {
@@ -220,21 +222,21 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
-      {/* BANNER DE NOTIFICAÇÃO FIXO NO TOPO */}
+      {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
       {lastNotification && (
         <div 
           onClick={() => setCurrentPage('chat')}
-          className="fixed top-24 inset-x-4 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/20 active:scale-95 transition-all"
+          className="fixed top-24 inset-x-4 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
         >
-          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/30 overflow-hidden shadow-inner">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 overflow-hidden shadow-inner">
              <img src={lastNotification.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.sender_id}`} className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
              <div className="flex justify-between items-center mb-0.5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">{lastNotification.sender_name}</p>
                 <div className="flex items-center gap-1">
-                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                   <span className="text-[8px] font-bold opacity-60 uppercase">agora</span>
+                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                   <span className="text-[8px] font-bold opacity-70 uppercase">Mensagem Direta</span>
                 </div>
              </div>
              <p className="text-sm font-black truncate pr-4 text-white leading-tight">{lastNotification.text}</p>

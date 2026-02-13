@@ -41,9 +41,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage, unreadCoun
         <MessageCircle size={18} strokeWidth={iconStroke('chat')} />
         <span className="text-[9px] font-black uppercase tracking-tighter mt-1">Chat</span>
         
-        {/* BADGE DE NOTIFICAÇÃO */}
+        {/* BADGE DE NOTIFICAÇÃO COM BRILHO */}
         {unreadCount > 0 && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+          <div className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_10px_rgba(220,38,38,0.5)] animate-bounce z-10">
             {unreadCount > 9 ? '9+' : unreadCount}
           </div>
         )}

@@ -69,19 +69,23 @@ export const DatabaseService = {
   },
 
   // Escuta TODAS as mensagens e deixa o App filtrar
-  subscribeAllMessages(callback: (msg: ChatMessage) => void) {
-    return supabase
+  subscribeAllMessages(callback: (msg: ChatMessage) => void, onStatus?: (status: string) => void) {
+    const channel = supabase
       .channel('global_chat_channel')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
         table: 'messages' 
       }, payload => {
+        console.log("Evento Postgres recebido!", payload);
         callback(payload.new as ChatMessage);
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') console.log("Conectado ao Realtime do Chat!");
+        console.log("Status da Conexão Realtime:", status);
+        if (onStatus) onStatus(status);
       });
+      
+    return channel;
   },
 
   // --- MEMBROS ---

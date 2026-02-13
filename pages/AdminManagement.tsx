@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud, MessageSquare, Wifi, WifiOff } from 'lucide-react';
 import { Member, ChatMessage } from '../types';
 import { CounselorDB, DatabaseService } from '../db';
 import { QUIZ_QUESTIONS, SPECIALTIES } from '../constants';
@@ -54,8 +54,16 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState('conectando...');
   
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
+
+  useEffect(() => {
+    const sub = DatabaseService.subscribeAllMessages(() => {}, (status) => {
+      setRealtimeStatus(status);
+    });
+    return () => { sub.unsubscribe(); };
+  }, []);
 
   const handleTestNotification = async () => {
     setIsProcessing(true);
@@ -64,14 +72,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       sender_id: 'bot_' + Math.floor(Math.random() * 100000),
       sender_name: 'Robô do Clube 🤖',
       sender_photo: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
-      text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
+      text: 'Olá! Se você está lendo isso, o Realtime está FUNCIONANDO! 🚀',
       unit: 'Geral',
       created_at: new Date().toISOString()
     };
 
     try {
       await DatabaseService.sendMessage(testMsg);
-      alert("Comando enviado! Se o Realtime estiver ativo no seu Supabase, o banner aparecerá no topo em 1-2 segundos.");
+      // Não damos alert aqui para não atrapalhar a visão do banner
     } catch (error: any) {
       console.error("Erro detalhado:", error);
       alert("ERRO SUPABASE: " + (error.message || "Verifique se a tabela 'messages' existe e se o Realtime está ativado."));
@@ -170,20 +178,34 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     <div className="flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
       <div className="p-6 space-y-8 pb-32">
         
-        {/* LABORATÓRIO DE TESTES */}
-        <div className="bg-[#e0f2fe] rounded-[3rem] p-8 border-2 border-[#bae6fd] shadow-xl shadow-blue-500/10 space-y-4">
-          <div className="flex items-center gap-2 px-2">
-            <Zap size={16} className="text-[#0369a1]" />
-            <h3 className="text-[#0369a1] text-[10px] font-black uppercase tracking-[0.2em]">Laboratório de Testes</h3>
+        {/* LABORATÓRIO DE TESTES - DIAGNÓSTICO */}
+        <div className="bg-[#e0f2fe] rounded-[3rem] p-8 border-2 border-[#bae6fd] shadow-xl shadow-blue-500/10 space-y-5">
+          <div className="flex justify-between items-center px-2">
+            <div className="flex items-center gap-2">
+              <Zap size={16} className="text-[#0369a1]" />
+              <h3 className="text-[#0369a1] text-[10px] font-black uppercase tracking-[0.2em]">Diagnóstico Realtime</h3>
+            </div>
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${realtimeStatus === 'SUBSCRIBED' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+              {realtimeStatus === 'SUBSCRIBED' ? <Wifi size={10} /> : <WifiOff size={10} />}
+              {realtimeStatus === 'SUBSCRIBED' ? 'Conectado' : realtimeStatus}
+            </div>
           </div>
-          <p className="text-[10px] font-bold text-[#0ea5e9] uppercase px-2 leading-tight">Use este botão para simular a chegada de uma nova mensagem e testar as notificações do app.</p>
+          
+          <div className="bg-white/50 rounded-2xl p-4 border border-blue-100">
+             <p className="text-[10px] font-bold text-[#0369a1] uppercase leading-tight mb-2">
+               {realtimeStatus === 'SUBSCRIBED' 
+                 ? "O app está ouvindo o servidor. Clique no botão abaixo e o banner deve aparecer IMEDIATAMENTE." 
+                 : "O app não está conseguindo ouvir o servidor. Verifique se o Realtime está 'ON' no painel do Supabase."}
+             </p>
+          </div>
+
           <button 
             onClick={handleTestNotification}
             disabled={isProcessing}
             className="w-full bg-[#0ea5e9] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all uppercase text-[10px] tracking-widest"
           >
             {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <MessageSquare size={18} />}
-            SIMULAR MENSAGEM (TESTAR NOTIFICAÇÃO)
+            TESTAR BANNER AGORA
           </button>
         </div>
 
