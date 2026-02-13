@@ -20,10 +20,15 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     setMessages([]);
     
     // Carregar mensagens iniciais
-    DatabaseService.getMessages(activeTab).then(data => {
-      setMessages(data);
-      setLoading(false);
-    });
+    DatabaseService.getMessages(activeTab)
+      .then(data => {
+        setMessages(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Erro ao carregar chat:", err);
+        setLoading(false);
+      });
 
     // Inscrever para novas mensagens
     const sub = DatabaseService.subscribeMessages(activeTab, (newMsg) => {
@@ -57,16 +62,19 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       createdAt: new Date().toISOString()
     };
 
+    const tempId = 'temp-' + Date.now();
     setInputText('');
     
     // Otimista: Adicionar à lista local imediatamente
-    setMessages(prev => [...prev, { ...newMsg, id: 'temp-' + Date.now() }]);
+    setMessages(prev => [...prev, { ...newMsg, id: tempId }]);
 
     try {
       await DatabaseService.sendMessage(newMsg);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao enviar mensagem:", err);
-      alert("Erro ao enviar mensagem no banco de dados.");
+      // Remove a mensagem otimista se falhar
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      alert("ERRO SUPABASE: " + (err.message || "Falha ao enviar para a tabela 'messages'."));
     }
   };
 

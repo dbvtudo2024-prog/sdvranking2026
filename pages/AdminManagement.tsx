@@ -72,7 +72,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       await DatabaseService.sendMessage(testMsg);
     } catch (error: any) {
       console.error("Erro detalhado:", error);
-      alert("ERRO: Ocorreu um erro ao enviar a mensagem. Verifique a tabela 'messages' no seu Supabase.");
+      alert("ERRO SUPABASE: " + (error.message || "Verifique a estrutura da tabela no console."));
     } finally {
       setIsProcessing(false);
     }

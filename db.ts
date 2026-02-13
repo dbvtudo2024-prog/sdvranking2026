@@ -48,17 +48,16 @@ export interface GameConfig {
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
-    // Ordenar por ID é mais seguro se o created_at estiver falhando no cache do Supabase
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('unit', unit)
-      .order('id', { ascending: true })
+      .order('createdAt', { ascending: true }) // Ordenação cronológica correta
       .limit(50);
     
     if (error) {
-      console.error("Erro ao buscar mensagens:", error);
-      return [];
+      console.error("Erro Supabase:", error);
+      throw error; // Lança o erro para ser capturado pelo componente
     }
     
     return (data || []).map(m => ({
@@ -68,10 +67,13 @@ export const DatabaseService = {
   },
 
   async sendMessage(msg: ChatMessage) {
-    // Removemos o ID para que o Supabase gere automaticamente
+    // Removemos o ID para que o Postgres gere o UUID automaticamente conforme seu SQL
     const { id, ...payload } = msg;
     const { error } = await supabase.from('messages').insert([payload]);
-    if (error) throw error;
+    if (error) {
+      console.error("Erro ao inserir mensagem:", error);
+      throw error;
+    }
   },
 
   subscribeMessages(unit: string, callback: (msg: ChatMessage) => void) {
