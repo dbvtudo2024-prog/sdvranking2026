@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
+// Chave corrigida (substituído ':' por 'K' no cabeçalho JWT)
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -171,7 +172,10 @@ export const DatabaseService = {
 
   async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'created_at'>[]) {
     const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
-    if (error) throw error;
+    if (error) {
+      console.error("Erro ao migrar especialidades:", error);
+      throw error;
+    }
   },
 
   // --- CONFIGURAÇÕES DE JOGOS (OVERRIDE) ---
@@ -200,16 +204,33 @@ export const DatabaseService = {
   async getQuizQuestions(): Promise<QuizQuestion[]> {
     const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
     if (error) return [];
-    return data as QuizQuestion[];
+    
+    // Mapeia correct_answer (DB) para correctAnswer (App)
+    return data.map(q => ({
+      ...q,
+      correctAnswer: q.correct_answer
+    })) as QuizQuestion[];
   },
 
   async addQuizQuestion(q: Omit<QuizQuestion, 'id'>) {
-    const { error } = await supabase.from('quiz_questions').insert([q]);
+    const payload = {
+      category: q.category,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correctAnswer
+    };
+    const { error } = await supabase.from('quiz_questions').insert([payload]);
     if (error) throw error;
   },
 
   async updateQuizQuestion(q: QuizQuestion) {
-    const { error } = await supabase.from('quiz_questions').update(q).eq('id', q.id);
+    const payload = {
+      category: q.category,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correctAnswer
+    };
+    const { error } = await supabase.from('quiz_questions').update(payload).eq('id', q.id);
     if (error) throw error;
   },
 
@@ -219,8 +240,17 @@ export const DatabaseService = {
   },
 
   async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
-    const { error } = await supabase.from('quiz_questions').insert(questions);
-    if (error) throw error;
+    const payload = questions.map(q => ({
+      category: q.category,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correctAnswer
+    }));
+    const { error } = await supabase.from('quiz_questions').insert(payload);
+    if (error) {
+      console.error("Erro ao migrar questões do quiz:", error);
+      throw error;
+    }
   },
 
   subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
