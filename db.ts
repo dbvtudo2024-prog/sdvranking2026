@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -46,6 +46,32 @@ export interface GameConfig {
 }
 
 export const DatabaseService = {
+  // --- CHAT ---
+  async getMessages(unit: string): Promise<ChatMessage[]> {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('unit', unit)
+      .order('createdAt', { ascending: true })
+      .limit(50);
+    if (error) return [];
+    return data as ChatMessage[];
+  },
+
+  async sendMessage(msg: ChatMessage) {
+    const { error } = await supabase.from('messages').insert([msg]);
+    if (error) throw error;
+  },
+
+  subscribeMessages(unit: string, callback: (msg: ChatMessage) => void) {
+    return supabase
+      .channel(`chat_${unit}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `unit=eq.${unit}` }, payload => {
+        callback(payload.new as ChatMessage);
+      })
+      .subscribe();
+  },
+
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
     const { data, error } = await supabase.from('members').select('*');

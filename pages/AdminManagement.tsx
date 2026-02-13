@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud } from 'lucide-react';
-import { Member } from '../types';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud, MessageSquare } from 'lucide-react';
+import { Member, ChatMessage } from '../types';
 import { CounselorDB, DatabaseService } from '../db';
 import { QUIZ_QUESTIONS, SPECIALTIES } from '../constants';
 
@@ -56,6 +56,27 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isMigrating, setIsMigrating] = useState(false);
   
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
+
+  const handleTestNotification = async () => {
+    setIsProcessing(true);
+    const testMsg: ChatMessage = {
+      senderId: 'system_bot',
+      senderName: 'Robô do Clube 🤖',
+      senderPhoto: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
+      text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
+      unit: 'Geral',
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await DatabaseService.sendMessage(testMsg);
+      // Não damos feedback visual aqui para que o usuário possa ver a notificação global subindo
+    } catch (error) {
+      alert("Erro ao enviar mensagem de teste.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues', label: string) => {
     if (!confirm(`CONFIRMAÇÃO 1: Deseja zerar todos os pontos de ${label.toUpperCase()}?`)) return;
@@ -147,6 +168,23 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     <div className="flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
       <div className="p-6 space-y-8 pb-32">
         
+        {/* LABORATÓRIO DE TESTES (NOVO) */}
+        <div className="bg-[#e0f2fe] rounded-[3rem] p-8 border-2 border-[#bae6fd] shadow-xl shadow-blue-500/10 space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <Zap size={16} className="text-[#0369a1]" />
+            <h3 className="text-[#0369a1] text-[10px] font-black uppercase tracking-[0.2em]">Laboratório de Testes</h3>
+          </div>
+          <p className="text-[10px] font-bold text-[#0ea5e9] uppercase px-2 leading-tight">Use este botão para simular a chegada de uma nova mensagem e testar as notificações do app.</p>
+          <button 
+            onClick={handleTestNotification}
+            disabled={isProcessing}
+            className="w-full bg-[#0ea5e9] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all uppercase text-[10px] tracking-widest"
+          >
+            {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <MessageSquare size={18} />}
+            SIMULAR MENSAGEM (TESTAR NOTIFICAÇÃO)
+          </button>
+        </div>
+
         {/* 1. LIBERAÇÃO MANUAL DE JOGOS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
           <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>

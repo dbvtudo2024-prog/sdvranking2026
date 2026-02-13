@@ -37,7 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
   const UnitButton = ({ unit, stats, color }: { unit: UnitName, stats: any, color: string }) => (
     <button 
       onClick={() => onSelectUnit(unit)}
-      className={`bg-white rounded-[2.5rem] py-10 px-4 shadow-xl shadow-blue-900/5 border-2 flex flex-col items-center justify-center text-center transition-all active:scale-95 hover:shadow-2xl group relative overflow-hidden h-full w-full`}
+      className={`bg-white rounded-[2.5rem] py-6 px-4 shadow-xl shadow-blue-900/5 border-2 flex flex-col items-center justify-center text-center transition-all active:scale-95 hover:shadow-2xl group relative overflow-hidden h-full w-full`}
       style={{ borderColor: color }}
     >
       <div className="w-24 h-24 sm:w-36 sm:h-36 mb-4 flex items-center justify-center">

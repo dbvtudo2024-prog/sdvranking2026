@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement } from './types';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage } from './types';
 import { DatabaseService, CounselorDB, GameConfig } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,8 +14,9 @@ import AdminSpecialtyEditor from './pages/AdminSpecialtyEditor';
 import AdminManagement from './pages/AdminManagement';
 import Games from './pages/Games';
 import Leadership from './pages/Leadership';
+import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft, Bell, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -26,8 +27,12 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
+  
+  // Estados para Chat e Notificações
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
@@ -54,6 +59,46 @@ const App: React.FC = () => {
       gameConfigsSub.unsubscribe();
     };
   }, []);
+
+  // Monitoramento Global de Mensagens (Notificações)
+  useEffect(() => {
+    if (!user) return;
+
+    // Subscrever ao canal Geral
+    const subGeral = DatabaseService.subscribeMessages('Geral', (msg) => {
+      if (msg.senderId !== user.id && currentPage !== 'chat') {
+        setUnreadCount(prev => prev + 1);
+        setLastNotification(msg);
+        // Autohide notification after 5s
+        setTimeout(() => setLastNotification(null), 5000);
+      }
+    });
+
+    // Subscrever ao canal da Unidade (se houver)
+    let subUnidade: any = null;
+    if (user.unit) {
+      subUnidade = DatabaseService.subscribeMessages(user.unit, (msg) => {
+        if (msg.senderId !== user.id && currentPage !== 'chat') {
+          setUnreadCount(prev => prev + 1);
+          setLastNotification(msg);
+          setTimeout(() => setLastNotification(null), 5000);
+        }
+      });
+    }
+
+    return () => {
+      subGeral.unsubscribe();
+      if (subUnidade) subUnidade.unsubscribe();
+    };
+  }, [user, currentPage]);
+
+  // Limpar notificações ao entrar no chat
+  useEffect(() => {
+    if (currentPage === 'chat') {
+      setUnreadCount(0);
+      setLastNotification(null);
+    }
+  }, [currentPage]);
 
   const handleAddMember = async (newMember: Member) => {
     setMembers(prev => [...prev, newMember]);
@@ -127,6 +172,7 @@ const App: React.FC = () => {
       case 'leadership': return 'Corpo Diretivo';
       case 'profile': return 'Meu Perfil';
       case 'games': return 'Central de Jogos';
+      case 'chat': return 'Chat do Clube';
       case 'unit_detail': return selectedUnit ? `Unidade ${selectedUnit}` : 'Detalhes';
       case 'admin_announcements': return 'Mural de Avisos';
       case 'admin_quiz': return 'Editor de Quiz';
@@ -148,6 +194,7 @@ const App: React.FC = () => {
       case 'leadership': return <Leadership members={members} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} />;
+      case 'chat': return <Chat user={user!} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('home')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
@@ -160,7 +207,7 @@ const App: React.FC = () => {
   if (!user) {
     if (currentPage === 'register') return <Register onRegister={(u, m) => { 
       if (m) {
-        setMembers(prev => [...prev, m]); // Atualização imediata local
+        setMembers(prev => [...prev, m]); 
         handleLogin(u);
       } else {
         setCurrentPage('home');
@@ -172,7 +219,29 @@ const App: React.FC = () => {
   const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_management'].includes(currentPage);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
+      {/* GLOBAL TOAST NOTIFICATION */}
+      {lastNotification && (
+        <div 
+          onClick={() => setCurrentPage('chat')}
+          className="fixed top-24 inset-x-4 z-[999] bg-[#0061f2] text-white p-4 rounded-[1.5rem] shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 duration-500 cursor-pointer border border-white/20 active:scale-95 transition-transform"
+        >
+          <div className="w-10 h-10 rounded-full bg-white/20 flex-shrink-0 border border-white/30 overflow-hidden">
+             <img src={lastNotification.senderPhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.senderId}`} className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+             <div className="flex justify-between items-center mb-0.5">
+                <p className="text-[10px] font-black uppercase tracking-widest">{lastNotification.senderName}</p>
+                <span className="text-[8px] font-bold opacity-60">agora</span>
+             </div>
+             <p className="text-xs font-bold truncate pr-4 opacity-90">{lastNotification.text}</p>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-1 hover:bg-white/10 rounded-lg">
+             <X size={16} />
+          </button>
+        </div>
+      )}
+
       <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
         <div className="flex items-center gap-3">
           {isDetailPage ? (
@@ -194,11 +263,15 @@ const App: React.FC = () => {
         </button>
       </header>
       
-      <main className="flex-1 overflow-y-auto">{renderPage()}</main>
+      <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['home', 'ranking', 'leadership', 'profile', 'games'].includes(currentPage) && (
+      {['home', 'ranking', 'leadership', 'profile', 'games', 'chat'].includes(currentPage) && (
         <footer className="shrink-0 bg-white border-t border-slate-100">
-          <Navbar currentPage={currentPage as any} setCurrentPage={setCurrentPage as any} />
+          <Navbar 
+            currentPage={currentPage as any} 
+            setCurrentPage={setCurrentPage as any} 
+            unreadCount={unreadCount}
+          />
         </footer>
       )}
     </div>

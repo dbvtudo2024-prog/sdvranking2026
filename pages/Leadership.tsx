@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Member, UserRole, UnitName } from '../types';
 import { UNIT_LOGOS } from '../constants';
-import { X, Award, ShieldCheck, Shield } from 'lucide-react';
+import { X, Award, ShieldCheck, Shield, Calendar, Users } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -71,9 +71,40 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
                </div>
             </div>
             <div className="pt-16 p-8 pb-10 text-center space-y-6">
-              <h2 className="text-2xl font-black text-slate-800 uppercase">{selectedLeader.name}</h2>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-[#0061f2] rounded-full">
-                <Award size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{selectedLeader.counselor || 'Liderança'}</span>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black text-slate-800 uppercase leading-tight">{selectedLeader.name}</h2>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-[#0061f2] rounded-full">
+                  <Award size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {selectedLeader.counselor || 'Liderança'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                    <Calendar size={12} />
+                    <p className="text-[9px] font-black uppercase tracking-widest">Idade</p>
+                  </div>
+                  <p className="text-sm font-black text-slate-700">{selectedLeader.age} anos</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                    <Users size={12} />
+                    <p className="text-[9px] font-black uppercase tracking-widest">Classe</p>
+                  </div>
+                  <p className="text-sm font-black text-slate-700 truncate w-full text-center">
+                    {selectedLeader.className || 'Não Informada'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <div className="flex items-center justify-center gap-2 text-slate-300">
+                   <Shield size={12} />
+                   <p className="text-[8px] font-black uppercase tracking-[0.2em]">{selectedLeader.unit}</p>
+                </div>
               </div>
             </div>
           </div>

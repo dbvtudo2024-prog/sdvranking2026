@@ -10,6 +10,16 @@ export enum UnitName {
   LIDERANCA = 'Liderança'
 }
 
+export interface ChatMessage {
+  id?: string;
+  senderId: string;
+  senderName: string;
+  senderPhoto?: string;
+  text: string;
+  unit: 'Geral' | UnitName;
+  createdAt: string;
+}
+
 export interface Score {
   date: string;
   punctuality: number;
