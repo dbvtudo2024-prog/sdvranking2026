@@ -36,11 +36,9 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       
       if (editItem?.id) {
         await DatabaseService.updateSpecialty({ ...payload, id: editItem.id });
-        // Atualização imediata local (Otimista)
         setSpecialties(prev => prev.map(s => s.id === editItem.id ? { ...s, ...payload } : s));
       } else {
         await DatabaseService.addSpecialty(payload);
-        // Adição imediata local com ID temporário para feedback instantâneo
         setSpecialties(prev => [...prev, { ...payload, id: Date.now() }]);
       }
       
@@ -55,11 +53,10 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const handleDelete = async (id: number) => {
     if (!confirm('Deseja excluir permanentemente esta especialidade?')) return;
     try {
-      setSpecialties(prev => prev.filter(s => s.id !== id)); // Atualização imediata
+      setSpecialties(prev => prev.filter(s => s.id !== id));
       await DatabaseService.deleteSpecialty(id);
     } catch (err) {
       alert("Erro ao excluir especialidade.");
-      // Se der erro, o subscribeMembers ou subscribeSpecialties recarregará a lista correta
     }
   };
 
@@ -69,10 +66,10 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const inputClasses = "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0061f2] outline-none font-bold text-slate-700 text-sm";
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50">
-      <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+      <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto pb-32">
         <div className="flex items-center justify-end gap-3">
-          <button onClick={() => { setEditItem(null); setFormData({ ID: '', Nome: '', Imagem: '', Categoria: '', Like: false }); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#0061f2] text-white rounded-2xl font-black text-[10px] uppercase shadow-md">
+          <button onClick={() => { setEditItem(null); setFormData({ ID: '', Nome: '', Imagem: '', Categoria: '', Like: false }); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#0061f2] text-white rounded-2xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all">
             <Plus size={16} /> Nova Especialidade
           </button>
         </div>
@@ -88,7 +85,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carregando Banco...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 pb-20">
+          <div className="grid grid-cols-1 gap-4">
             {filtered.map((s) => (
               <div key={s.id} className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
@@ -101,20 +98,25 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setEditItem(s); setFormData(s); setShowModal(true); }} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-blue-600 transition-all">
+                  <button onClick={() => { setEditItem(s); setFormData(s); setShowModal(true); }} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-blue-600 transition-all active:scale-90">
                     <Edit2 size={18} />
                   </button>
-                  <button onClick={() => handleDelete(s.id!)} className="p-3 bg-red-50 text-red-400 rounded-2xl hover:text-red-600 transition-all">
+                  <button onClick={() => handleDelete(s.id!)} className="p-3 bg-red-50 text-red-400 rounded-2xl hover:text-red-600 transition-all active:scale-90">
                     <Trash2 size={18} />
                   </button>
                 </div>
               </div>
             ))}
+            {filtered.length === 0 && !loading && (
+              <div className="text-center py-20 opacity-30">
+                <Search size={48} className="mx-auto mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma especialidade</p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* MODAL CADASTRO/EDIÇÃO */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-5 animate-in zoom-in-95">

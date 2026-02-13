@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, ChevronLeft, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, Lock, Unlock, Plus, Database, DownloadCloud, MessageSquare, Wifi, WifiOff } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, Wifi, WifiOff } from 'lucide-react';
 import { Member, ChatMessage } from '../types';
 import { CounselorDB, DatabaseService } from '../db';
-import { QUIZ_QUESTIONS, SPECIALTIES } from '../constants';
 
 interface AdminManagementProps {
   members: Member[];
@@ -53,7 +52,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState('conectando...');
   
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
@@ -67,7 +65,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   const handleTestNotification = async () => {
     setIsProcessing(true);
-    // ID do robô de teste deve ser diferente do ID do usuário logado para disparar o banner
     const testMsg: ChatMessage = {
       sender_id: 'bot_' + Math.floor(Math.random() * 100000),
       sender_name: 'Robô do Clube 🤖',
@@ -79,7 +76,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
     try {
       await DatabaseService.sendMessage(testMsg);
-      // Não damos alert aqui para não atrapalhar a visão do banner
     } catch (error: any) {
       console.error("Erro detalhado:", error);
       alert("ERRO SUPABASE: " + (error.message || "Verifique se a tabela 'messages' existe e se o Realtime está ativado."));
@@ -114,46 +110,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       setEditCounselor(null);
       setShowCounselorModal(false);
     } catch (error) { alert("Erro ao salvar conselheiro."); } finally { setIsProcessing(false); }
-  };
-
-  const handleSeedQuiz = async () => {
-    if (!confirm('Isso enviará as 20 questões iniciais do app para o banco de dados. Deseja continuar?')) return;
-    setIsMigrating(true);
-    try {
-      const questionsToSeed = QUIZ_QUESTIONS.map(({ id, ...q }) => q);
-      await DatabaseService.seedQuizQuestions(questionsToSeed);
-      alert('✅ Quiz sincronizado com sucesso!');
-    } catch (error) {
-      alert('❌ Erro ao enviar questões. Verifique se a tabela quiz_questions existe.');
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
-  const handleSeedSpecialties = async () => {
-    if (!confirm('Isso enviará as 12 especialidades padrão para o banco de dados. Deseja continuar?')) return;
-    setIsMigrating(true);
-    try {
-      const specsToSeed = SPECIALTIES.map(s => ({
-        ID: String(Math.floor(Math.random() * 1000)),
-        Nome: s.name,
-        Imagem: s.image,
-        Questoes: '',
-        Sigla: '',
-        Categoria: 'Geral',
-        Nivel: '1',
-        Ano: '2024',
-        Origem: 'Local',
-        Like: false,
-        Cor: ''
-      }));
-      await DatabaseService.seedSpecialties(specsToSeed);
-      alert('✅ Especialidades sincronizadas com sucesso!');
-    } catch (error) {
-      alert('❌ Erro ao enviar especialidades. Verifique se a tabela EspecialidadesDBV existe.');
-    } finally {
-      setIsMigrating(false);
-    }
   };
 
   const GameLockButton = ({ label, active, onToggle, icon: Icon }: any) => (
@@ -284,36 +240,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
 
-        {/* 5. MANUTENÇÃO E MIGRAÇÃO */}
-        {userEmail === ADMIN_MASTER_EMAIL && (
-          <div className="bg-amber-50 p-8 rounded-[3rem] border border-amber-200 shadow-xl shadow-amber-900/5 space-y-6">
-            <div className="flex items-center gap-2 px-2">
-              <Database size={16} className="text-amber-600" />
-              <h3 className="text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">Manutenção e Migração</h3>
-            </div>
-            <p className="text-[9px] font-bold text-amber-600 uppercase px-2">Envie os dados padrões do código para o seu banco de dados Supabase.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button 
-                disabled={isMigrating}
-                onClick={handleSeedQuiz}
-                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
-              >
-                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-                Migrar Questões
-              </button>
-              <button 
-                disabled={isMigrating}
-                onClick={handleSeedSpecialties}
-                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
-              >
-                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-                Migrar Especialidades
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 6. ZERAR RANKING (PAINEL MASTER) */}
+        {/* 5. ZERAR RANKING (PAINEL MASTER) */}
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className="bg-[#fff1f1] p-10 rounded-[3.5rem] border border-red-100 shadow-xl shadow-red-900/5 space-y-6 mt-6">
             <div className="text-center">

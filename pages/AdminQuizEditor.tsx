@@ -50,7 +50,6 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
         setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0 });
       }
       setShowModal(false);
-      alert('Operação realizada com sucesso!');
     } catch (error) {
       alert('Erro ao salvar questão no banco.');
     } finally {
@@ -68,7 +67,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
   };
 
   const handleSeedQuestions = async () => {
-    if (!confirm('Deseja enviar as 20 questões padrão para o banco de dados? Isso pode gerar duplicatas se já existirem.')) return;
+    if (!confirm('Deseja enviar as 20 questões padrão para o banco de dados?')) return;
     setIsSaving(true);
     try {
       const questionsToSeed = QUIZ_QUESTIONS.map(({ id, ...q }) => q);
@@ -91,8 +90,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
   const labelClasses = "text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-2";
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc]">
-      <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+    <div className="flex flex-col h-full bg-[#f8fafc] overflow-hidden">
+      <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto pb-32">
         <div className="flex flex-wrap justify-end items-center gap-4">
           <div className="flex gap-2">
             <button 
@@ -111,7 +110,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-3">
+        <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-3 sticky top-0 z-10">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
@@ -124,14 +123,13 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
           <div className="relative min-w-[150px]">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
             <select 
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#0061f2] font-bold text-slate-700 text-sm transition-all pl-10 appearance-none bg-no-repeat" 
-              style={{ backgroundImage: 'none' }}
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#0061f2] font-bold text-slate-700 text-sm transition-all pl-10 appearance-none" 
               value={categoryFilter} 
               onChange={e => setCategoryFilter(e.target.value as any)}
             >
-              <option value="Todas" className="text-slate-700">Todas</option>
-              <option value="Desbravadores" className="text-slate-700">Desbravadores</option>
-              <option value="Bíblia" className="text-slate-700">Bíblia</option>
+              <option value="Todas">Todas</option>
+              <option value="Desbravadores">Desbravadores</option>
+              <option value="Bíblia">Bíblia</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
           </div>
@@ -143,7 +141,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando Banco de Dados...</p>
           </div>
         ) : (
-          <div className="space-y-4 pb-24">
+          <div className="space-y-4">
             {filteredQuestions.map(q => (
               <div key={q.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
@@ -160,14 +158,15 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
-                  <button onClick={() => handleEditInit(q)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl"><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(q.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl"><Trash2 size={16} /></button>
+                  <button onClick={() => handleEditInit(q)} className="p-2.5 bg-blue-50 text-[#0061f2] rounded-xl active:scale-90"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(q.id)} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90"><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}
             {filteredQuestions.length === 0 && (
-              <div className="text-center py-10">
-                <p className="text-slate-400 font-bold italic">Nenhuma pergunta encontrada no banco.</p>
+              <div className="text-center py-20 opacity-30">
+                <Search size={48} className="mx-auto mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma pergunta encontrada</p>
               </div>
             )}
           </div>
@@ -191,8 +190,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
               <div className="relative">
                 <label className={labelClasses}>Categoria</label>
                 <select className={`${inputClasses} appearance-none`} value={editForm ? editForm.category : newQuestion.category} onChange={e => editForm ? setEditForm({...editForm, category: e.target.value as any}) : setNewQuestion({...newQuestion, category: e.target.value as any})}>
-                  <option value="Desbravadores" className="text-slate-700">Desbravadores</option>
-                  <option value="Bíblia" className="text-slate-700">Bíblia</option>
+                  <option value="Desbravadores">Desbravadores</option>
+                  <option value="Bíblia">Bíblia</option>
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
               </div>
@@ -226,7 +225,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
               <div className="relative">
                 <label className={labelClasses}>Resposta Correta</label>
                 <select className={`${inputClasses} appearance-none`} value={editForm ? editForm.correctAnswer : newQuestion.correctAnswer} onChange={e => editForm ? setEditForm({...editForm, correctAnswer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correctAnswer: parseInt(e.target.value)})}>
-                  {[0,1,2,3].map((i) => <option key={i} value={i} className="text-slate-700">Opção {i + 1}</option>)}
+                  {[0,1,2,3].map((i) => <option key={i} value={i}>Opção {i + 1}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
               </div>
