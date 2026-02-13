@@ -25,8 +25,6 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia'>('Todas');
 
-  const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-
   useEffect(() => {
     const channel = DatabaseService.subscribeQuizQuestions((data) => {
       setQuestions(data);
@@ -94,29 +92,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
-      <header className="bg-[#0061f2] text-white px-6 h-24 sticky top-0 z-50 flex items-center justify-between shadow-lg flex-shrink-0">
-        <div className="flex items-center min-w-0 flex-1">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 mr-3">
-            <img src={brasaoUrl} alt="Brasão" className="w-full h-full object-contain" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-lg font-black leading-tight tracking-tight truncate uppercase">Quiz do Clube</h1>
-            <p className="text-[10px] sm:text-xs font-medium opacity-80 truncate uppercase">Banco Digital Supabase</p>
-          </div>
-        </div>
-        {onLogout && (
-          <button onClick={onLogout} className="flex items-center gap-1.5 p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all active:scale-90 flex-shrink-0 ml-2">
-            <LogOut size={20} className="rotate-180" />
-          </button>
-        )}
-      </header>
-
       <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <button onClick={onBack} className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-full text-[#0061f2] font-black text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all w-fit">
-            <ChevronLeft size={18} strokeWidth={3} /> Voltar
-          </button>
-          
+        <div className="flex flex-wrap justify-end items-center gap-4">
           <div className="flex gap-2">
             <button 
               onClick={handleSeedQuestions}

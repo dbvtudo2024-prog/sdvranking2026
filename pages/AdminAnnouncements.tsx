@@ -17,8 +17,6 @@ const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, 
     content: ''
   });
 
-  const brasaoUrl = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
-
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAviso.title.trim() || !newAviso.content.trim()) {
@@ -47,24 +45,7 @@ const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, 
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
-      {/* CABEÇALHO LIMPO - SEM BOTÃO VOLTAR NO AZUL */}
-      <div className="bg-[#0061f2] px-6 h-24 flex items-center justify-between shadow-lg z-10 sticky top-0">
-        <div className="flex items-center gap-3">
-          <img src={brasaoUrl} className="w-10 h-10 object-contain" alt="Brasão" />
-          <h2 className="text-xl font-black text-white tracking-tight uppercase">Mural de Avisos</h2>
-        </div>
-      </div>
-
       <div className="p-6 space-y-6 overflow-y-auto flex-1">
-        {/* BOTÃO VOLTAR - EXTERNO AO CABEÇALHO AZUL */}
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-full text-[#0061f2] font-black text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all w-fit"
-        >
-          <ChevronLeft size={18} strokeWidth={3} />
-          Voltar ao Perfil
-        </button>
-
         <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-blue-900/5">
           <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
             <Plus size={18} className="text-[#0061f2]" /> Novo Aviso

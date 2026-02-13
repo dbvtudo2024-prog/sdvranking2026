@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
-// Chave corrigida (substituído ':' por 'K' no cabeçalho JWT)
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -22,6 +21,14 @@ export interface SpecialtyDBV {
   Origem: string;
   Like: boolean;
   Cor: string;
+}
+
+export interface SpecialtyQuestion {
+  id: string;
+  specialty_id: number;
+  question: string;
+  options: string[];
+  correct_answer: number;
 }
 
 export interface CounselorDB {
@@ -178,6 +185,25 @@ export const DatabaseService = {
     }
   },
 
+  // --- QUESTÕES DE ESPECIALIDADES ---
+  async getSpecialtyQuestions(specialtyId?: number): Promise<SpecialtyQuestion[]> {
+    let query = supabase.from('specialty_questions').select('*');
+    if (specialtyId) query = query.eq('specialty_id', specialtyId);
+    const { data, error } = await query;
+    if (error) return [];
+    return data as SpecialtyQuestion[];
+  },
+
+  async addSpecialtyQuestion(q: Omit<SpecialtyQuestion, 'id'>) {
+    const { error } = await supabase.from('specialty_questions').insert([q]);
+    if (error) throw error;
+  },
+
+  async deleteSpecialtyQuestion(id: string) {
+    const { error } = await supabase.from('specialty_questions').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   // --- CONFIGURAÇÕES DE JOGOS (OVERRIDE) ---
   async getGameConfigs(): Promise<GameConfig | null> {
     const { data, error } = await supabase.from('game_configs').select('*').eq('id', 1).single();
@@ -205,10 +231,12 @@ export const DatabaseService = {
     const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
     if (error) return [];
     
-    // Mapeia correct_answer (DB) para correctAnswer (App)
     return data.map(q => ({
-      ...q,
-      correctAnswer: q.correct_answer
+      id: q.id,
+      category: q.category,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correct_answer ?? q.correctAnswer // Suporta ambos os nomes de coluna (snake_case e camelCase)
     })) as QuizQuestion[];
   },
 

@@ -55,7 +55,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   
-  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
 
   const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues', label: string) => {
@@ -145,21 +144,22 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   );
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc]">
-      <header className="bg-[#0061f2] text-white px-6 h-28 flex items-center gap-4 shadow-lg shrink-0">
-        <img src={LOGO_APP} alt="Brasão" className="w-14 h-14 object-contain" />
-        <div>
-          <h1 className="text-lg font-black uppercase tracking-tight leading-none">Gestão Administrativa</h1>
-          <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Painel de Controle • Desde 1997</p>
+    <div className="flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
+      <div className="p-6 space-y-8 pb-32">
+        
+        {/* 1. LIBERAÇÃO MANUAL DE JOGOS */}
+        <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
+          <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>
+          
+          <div className="grid grid-cols-4 gap-2">
+            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} icon={Zap} />
+            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} icon={Gamepad2} />
+            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} icon={Medal} />
+            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
+          </div>
         </div>
-      </header>
 
-      <div className="p-6 space-y-8 overflow-y-auto flex-1 pb-32">
-        <button onClick={onBack} className="flex items-center gap-3 px-8 py-3.5 bg-white border border-slate-100 rounded-full text-[#0061f2] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-900/5 active:scale-95 transition-all w-fit">
-          <ChevronLeft size={16} strokeWidth={4} /> Voltar ao Perfil
-        </button>
-
-        {/* 1. MURAL E EQUIPE */}
+        {/* 2. MURAL E EQUIPE */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
            <div className="flex items-center gap-2 px-2">
              <ShieldAlert size={16} className="text-[#0061f2]" />
@@ -175,7 +175,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
            </div>
         </div>
 
-        {/* 2. GESTÃO DE JOGOS */}
+        {/* 3. GESTÃO DE JOGOS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
            <div className="flex items-center gap-2 px-2">
              <Medal size={16} className="text-[#0061f2]" />
@@ -190,35 +190,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </button>
            </div>
         </div>
-
-        {/* 3. MANUTENÇÃO E MIGRAÇÃO (NOVO) */}
-        {userEmail === ADMIN_MASTER_EMAIL && (
-          <div className="bg-amber-50 p-8 rounded-[3rem] border border-amber-200 shadow-xl shadow-amber-900/5 space-y-6">
-            <div className="flex items-center gap-2 px-2">
-              <Database size={16} className="text-amber-600" />
-              <h3 className="text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">Manutenção e Migração</h3>
-            </div>
-            <p className="text-[9px] font-bold text-amber-600 uppercase px-2">Envie os dados padrões do código para o seu banco de dados Supabase.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button 
-                disabled={isMigrating}
-                onClick={handleSeedQuiz}
-                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
-              >
-                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-                Migrar Questões
-              </button>
-              <button 
-                disabled={isMigrating}
-                onClick={handleSeedSpecialties}
-                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
-              >
-                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-                Migrar Especialidades
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* 4. LISTA DE CONSELHEIROS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
@@ -251,19 +222,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
 
-        {/* 5. LIBERAÇÃO MANUAL DE JOGOS */}
-        <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
-          <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>
-          
-          <div className="grid grid-cols-4 gap-2">
-            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} icon={Zap} />
-            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} icon={Gamepad2} />
-            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} icon={Medal} />
-            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
+        {/* 5. MANUTENÇÃO E MIGRAÇÃO */}
+        {userEmail === ADMIN_MASTER_EMAIL && (
+          <div className="bg-amber-50 p-8 rounded-[3rem] border border-amber-200 shadow-xl shadow-amber-900/5 space-y-6">
+            <div className="flex items-center gap-2 px-2">
+              <Database size={16} className="text-amber-600" />
+              <h3 className="text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">Manutenção e Migração</h3>
+            </div>
+            <p className="text-[9px] font-bold text-amber-600 uppercase px-2">Envie os dados padrões do código para o seu banco de dados Supabase.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button 
+                disabled={isMigrating}
+                onClick={handleSeedQuiz}
+                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+              >
+                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
+                Migrar Questões
+              </button>
+              <button 
+                disabled={isMigrating}
+                onClick={handleSeedSpecialties}
+                className="bg-white text-amber-600 border border-amber-200 py-4 rounded-2xl font-black flex items-center justify-center gap-3 uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+              >
+                {isMigrating ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
+                Migrar Especialidades
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 6. PAINEL MASTER */}
+        {/* 6. ZERAR RANKING (PAINEL MASTER) */}
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className="bg-[#fff1f1] p-10 rounded-[3.5rem] border border-red-100 shadow-xl shadow-red-900/5 space-y-6 mt-6">
             <div className="text-center">

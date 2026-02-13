@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, Zap, Infinity, HelpCircle } from 'lucide-react';
-import { AuthUser, Member, UserRole } from '../types';
+import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle } from 'lucide-react';
+import { AuthUser, Member, UserRole, Score } from '../types';
 import QuizSelection from './QuizSelection';
 import MemoryGame from './MemoryGame';
 import SpecialtyGame from './SpecialtyGame';
@@ -36,7 +36,6 @@ const Games: React.FC<GamesProps> = ({
   const todayStr = useMemo(() => new Date().toLocaleDateString('pt-BR'), []);
   const isSunday = useMemo(() => new Date().getDay() === 0, []);
 
-  // 1. Lógica do QUIZ
   const quizStatus = useMemo(() => {
     const unlocked = isSunday || quizOverride;
     if (!currentMember) return { unlocked, alreadyPlayed: false };
@@ -45,21 +44,18 @@ const Games: React.FC<GamesProps> = ({
     return { unlocked, alreadyPlayed: playedDesb && playedBiblia };
   }, [currentMember, todayStr, isSunday, quizOverride]);
 
-  // 2. Lógica da MEMÓRIA
   const memoryStatus = useMemo(() => {
     const unlocked = isSunday || memoryOverride;
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, isSunday, memoryOverride]);
 
-  // 3. Lógica da ESPECIALIDADE
   const specialtyStatus = useMemo(() => {
     const unlocked = isSunday || specialtyOverride;
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, isSunday, specialtyOverride]);
 
-  // 4. Lógica TRÊS DICAS
   const threeCluesStatus = useMemo(() => {
     const unlocked = isSunday || threeCluesOverride;
     const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.threeCluesGame !== undefined) || false;
@@ -88,54 +84,54 @@ const Games: React.FC<GamesProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-start h-full animate-in fade-in duration-500 max-w-sm mx-auto pt-4 pb-10 px-4">
-      <div className="mb-6 text-[#0061f2] bg-blue-50 p-6 rounded-[2.5rem] shadow-inner"><Gamepad2 size={64} strokeWidth={1.5} /></div>
-      <div className="text-center mb-8">
-        <h2 className="text-[#001f3f] text-2xl font-black tracking-tight uppercase">Central de Jogos</h2>
-        <div className="flex items-center justify-center gap-1.5 mt-1 text-slate-400"><Calendar size={12} /><span className="text-[10px] font-black uppercase tracking-widest">{getTimeToUnlock()}</span></div>
-      </div>
+    <div className="flex flex-col items-center justify-start h-full animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-10 px-4">
       <div className="flex flex-col gap-4 w-full">
-        {/* QUIZ */}
-        <div className="relative w-full">
-          <button disabled={!quizStatus.unlocked || quizStatus.alreadyPlayed} onClick={() => setActiveGame('quiz')} className={getButtonStyles(quizStatus.unlocked, quizStatus.alreadyPlayed)}>
-            {quizStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Brain size={24} />}
-            <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio do Quiz</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{quizStatus.alreadyPlayed ? 'Concluído hoje' : !quizStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Teste seus conhecimentos'}</span></div>
-          </button>
+        {/* DUELO ARENA 1x1 NO TOPO */}
+        <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 border-blue-800 border-b-4 text-white shadow-xl shadow-blue-500/20 active:scale-95 px-6 shrink-0">
+          <Sword size={28} className="text-yellow-400 shrink-0" />
+          <div className="flex flex-col items-start leading-tight min-w-0">
+            <span className="uppercase tracking-widest text-sm truncate w-full">Duelo 1x1 Arena</span>
+            <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Sempre disponível para duelar</span>
+          </div>
+        </button>
+
+        {/* SEPARADOR COM CONTAGEM ABAIXO */}
+        <div className="relative pt-6 pb-2 text-center">
+          <div className="absolute inset-x-0 top-1/2 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-slate-200"></div>
+          </div>
+          <div className="relative flex flex-col items-center justify-center">
+            <span className="bg-slate-50 px-4 text-slate-900 font-black text-[11px] uppercase tracking-[0.2em]">Desafios de Domingo</span>
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-slate-400 bg-slate-50 px-3">
+              <Calendar size={11} />
+              <span className="text-[9px] font-black uppercase tracking-widest">{getTimeToUnlock()}</span>
+            </div>
+          </div>
         </div>
+
+        {/* QUIZ */}
+        <button disabled={!quizStatus.unlocked || quizStatus.alreadyPlayed} onClick={() => setActiveGame('quiz')} className={getButtonStyles(quizStatus.unlocked, quizStatus.alreadyPlayed)}>
+          {quizStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Brain size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio do Quiz</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{quizStatus.alreadyPlayed ? 'Concluído hoje' : !quizStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Teste seus conhecimentos'}</span></div>
+        </button>
 
         {/* TRÊS DICAS */}
-        <div className="relative w-full">
-          <button disabled={!threeCluesStatus.unlocked || threeCluesStatus.alreadyPlayed} onClick={() => setActiveGame('threeclues')} className={getButtonStyles(threeCluesStatus.unlocked, threeCluesStatus.alreadyPlayed)}>
-            {threeCluesStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <HelpCircle size={24} />}
-            <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Três Dicas</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{threeCluesStatus.alreadyPlayed ? 'Concluído hoje' : !threeCluesStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Adivinhe o segredo'}</span></div>
-          </button>
-        </div>
+        <button disabled={!threeCluesStatus.unlocked || threeCluesStatus.alreadyPlayed} onClick={() => setActiveGame('threeclues')} className={getButtonStyles(threeCluesStatus.unlocked, threeCluesStatus.alreadyPlayed)}>
+          {threeCluesStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <HelpCircle size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Três Dicas</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{threeCluesStatus.alreadyPlayed ? 'Concluído hoje' : !threeCluesStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Adivinhe o segredo'}</span></div>
+        </button>
 
         {/* ESPECIALIDADE */}
-        <div className="relative w-full">
-          <button disabled={!specialtyStatus.unlocked || specialtyStatus.alreadyPlayed} onClick={() => setActiveGame('specialty')} className={getButtonStyles(specialtyStatus.unlocked, specialtyStatus.alreadyPlayed)}>
-            {specialtyStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Medal size={24} />}
-            <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Qual a Especialidade?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyStatus.alreadyPlayed ? 'Concluído hoje' : !specialtyStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Acerte o brasão'}</span></div>
-          </button>
-        </div>
+        <button disabled={!specialtyStatus.unlocked || specialtyStatus.alreadyPlayed} onClick={() => setActiveGame('specialty')} className={getButtonStyles(specialtyStatus.unlocked, specialtyStatus.alreadyPlayed)}>
+          {specialtyStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Medal size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Qual a Especialidade?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyStatus.alreadyPlayed ? 'Concluído hoje' : !specialtyStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Acerte o brasão'}</span></div>
+        </button>
 
         {/* MEMÓRIA */}
-        <div className="relative w-full">
-          <button disabled={!memoryStatus.unlocked || memoryStatus.alreadyPlayed} onClick={() => setActiveGame('memory')} className={getButtonStyles(memoryStatus.unlocked, memoryStatus.alreadyPlayed)}>
-            {memoryStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Gamepad2 size={24} />}
-            <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Jogo da Memória</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{memoryStatus.alreadyPlayed ? 'Concluído hoje' : !memoryStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Mostre sua agilidade'}</span></div>
-          </button>
-        </div>
-
-        <div className="relative py-4"><div className="absolute inset-0 flex items-center" aria-hidden="true"><div className="w-full border-t border-slate-200"></div></div><div className="relative flex justify-center text-[10px] font-black uppercase"><span className="bg-slate-50 px-4 text-slate-400 tracking-[0.3em]">Treinamento Livre</span></div></div>
-
-        {/* ARENA 1x1 */}
-        <div className="relative w-full">
-          <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 border-blue-800 border-b-4 text-white shadow-xl shadow-blue-500/20 active:scale-95 px-6">
-            <Sword size={28} className="text-yellow-400 shrink-0" />
-            <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Duelo 1x1 Arena</span><span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Sempre disponível para duelar</span></div>
-          </button>
-        </div>
+        <button disabled={!memoryStatus.unlocked || memoryStatus.alreadyPlayed} onClick={() => setActiveGame('memory')} className={getButtonStyles(memoryStatus.unlocked, memoryStatus.alreadyPlayed)}>
+          {memoryStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Gamepad2 size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Jogo da Memória</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{memoryStatus.alreadyPlayed ? 'Concluído hoje' : !memoryStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Mostre sua agilidade'}</span></div>
+        </button>
       </div>
     </div>
   );
