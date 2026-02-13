@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UnitName, Member, Announcement } from '../types';
 import { UNIT_LOGOS } from '../constants';
 import { Users, Shield, TrendingUp, Megaphone, ChevronRight } from 'lucide-react';
@@ -11,7 +11,18 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectUnit }) => {
+  const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const safeMembers = Array.isArray(members) ? members : [];
+
+  // Lógica de rolagem automática dos avisos
+  useEffect(() => {
+    if (announcements && announcements.length > 1) {
+      const timer = setInterval(() => {
+        setCurrentAvisoIndex((prev) => (prev + 1) % announcements.length);
+      }, 5000); // Troca a cada 5 segundos
+      return () => clearInterval(timer);
+    }
+  }, [announcements]);
 
   const getUnitStats = (unit: UnitName) => {
     const unitMembers = safeMembers.filter(m => m.unit === unit);
@@ -58,7 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500 bg-white overflow-y-auto pb-10">
-      {/* HERO BANNER - ESTILO IMAGEM 3 */}
+      {/* HERO BANNER */}
       <div className="px-6 pt-8 mb-4">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp size={24} className="text-[#0061f2]" strokeWidth={3} />
@@ -67,41 +78,62 @@ const Dashboard: React.FC<DashboardProps> = ({ members, announcements, onSelectU
         <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-[0.2em] ml-8">Secretaria Virtual • Painel de Controle</p>
       </div>
 
-      {/* ANNOUNCEMENTS SECTION */}
-      <div className="px-4 mb-8 pt-4">
-        <div className="bg-[#0061f2] rounded-[2.5rem] p-6 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 text-white/10 rotate-12">
-            <Megaphone size={120} />
+      {/* ANNOUNCEMENTS SECTION - AJUSTADO PARA NÃO SOBREPOR */}
+      <div className="px-4 mb-6 pt-2">
+        <div className="bg-[#0061f2] rounded-[2.5rem] p-5 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
+          {/* Background Decorative Icon */}
+          <div className="absolute -right-4 -top-4 text-white/10 rotate-12 pointer-events-none">
+            <Megaphone size={80} />
           </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="bg-white/20 p-2 rounded-xl">
-                <Megaphone size={18} className="text-white" />
+          <div className="relative z-10 flex flex-col">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <div className="bg-white/20 p-1.5 rounded-lg">
+                  <Megaphone size={14} className="text-white" />
+                </div>
+                <h3 className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Mural de Avisos</h3>
               </div>
-              <h3 className="text-white text-xs font-black uppercase tracking-[0.2em]">Mural de Avisos</h3>
+              
+              {/* Indicadores de página */}
+              {announcements && announcements.length > 1 && (
+                <div className="flex gap-1">
+                  {announcements.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`h-1 rounded-full transition-all duration-300 ${idx === currentAvisoIndex ? 'w-3 bg-white' : 'w-1 bg-white/30'}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-3">
+            {/* Carousel Container - Altura definida para evitar saltos no layout */}
+            <div className="relative h-24">
               {announcements && announcements.length > 0 ? (
-                announcements.slice(0, 1).map((aviso) => (
-                  <div key={aviso.id} className="bg-white rounded-[1.5rem] p-5 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-[12px] font-black text-slate-800 uppercase tracking-wide leading-tight">
-                        {aviso.title}
+                announcements.map((aviso, idx) => (
+                  <div 
+                    key={aviso.id} 
+                    className={`absolute inset-0 transition-all duration-700 ease-in-out ${idx === currentAvisoIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
+                  >
+                    <div className="bg-white rounded-[1.2rem] p-4 shadow-sm h-full flex flex-col justify-center">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight truncate pr-2">
+                          {aviso.title}
+                        </p>
+                        <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md shrink-0">
+                          {aviso.date}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight font-medium line-clamp-2">
+                        {aviso.content}
                       </p>
-                      <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg shrink-0">
-                        {aviso.date}
-                      </span>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2">
-                      {aviso.content}
-                    </p>
                   </div>
                 ))
               ) : (
-                <div className="bg-white/10 rounded-3xl p-6 text-center border border-white/20">
-                  <p className="text-xs text-white/60 italic font-bold">Nenhum aviso importante hoje.</p>
+                <div className="bg-white/10 rounded-2xl p-4 text-center border border-white/20 h-full flex items-center justify-center">
+                  <p className="text-[10px] text-white/60 italic font-bold">Nenhum aviso importante hoje.</p>
                 </div>
               )}
             </div>
