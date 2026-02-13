@@ -59,7 +59,9 @@ export const DatabaseService = {
   },
 
   async sendMessage(msg: ChatMessage) {
-    const { error } = await supabase.from('messages').insert([msg]);
+    // Remove o ID antes de enviar para o Supabase gerar automaticamente
+    const { id, ...payload } = msg;
+    const { error } = await supabase.from('messages').insert([payload]);
     if (error) throw error;
   },
 

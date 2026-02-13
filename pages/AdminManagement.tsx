@@ -70,9 +70,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
     try {
       await DatabaseService.sendMessage(testMsg);
-      // Não damos feedback visual aqui para que o usuário possa ver a notificação global subindo
-    } catch (error) {
-      alert("Erro ao enviar mensagem de teste.");
+      // Sem feedback de sucesso imediato para ver o banner global
+    } catch (error: any) {
+      console.error("Erro detalhado:", error);
+      alert("ERRO SUPABASE: " + (error.message || "Verifique o console para detalhes"));
     } finally {
       setIsProcessing(false);
     }
