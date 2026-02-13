@@ -52,35 +52,36 @@ export const DatabaseService = {
   },
 
   async sendMessage(msg: ChatMessage) {
-    // Blindagem: Montando o payload explicitamente para evitar campos camelCase fantasmas
     const payload = {
       sender_id: String(msg.sender_id),
       sender_name: msg.sender_name,
       sender_photo: msg.sender_photo || '',
       text: msg.text,
       unit: msg.unit,
-      created_at: msg.created_at || new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     const { error } = await supabase.from('messages').insert([payload]);
     if (error) {
-      console.error("Erro ao inserir:", error);
+      console.error("Erro ao enviar:", error);
       throw error;
     }
   },
 
-  subscribeMessages(unit: string, callback: (msg: ChatMessage) => void) {
-    // Removido o filtro 'filter' do Supabase para evitar erros de sintaxe no servidor
-    // A filtragem por unidade agora é feita no callback para maior segurança
+  // Escuta TODAS as mensagens e deixa o App filtrar
+  subscribeAllMessages(callback: (msg: ChatMessage) => void) {
     return supabase
-      .channel(`chat_realtime_${unit}_${Math.random()}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-        const newMsg = payload.new as ChatMessage;
-        if (newMsg.unit === unit) {
-          callback(newMsg);
-        }
+      .channel('global_chat_channel')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages' 
+      }, payload => {
+        callback(payload.new as ChatMessage);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') console.log("Conectado ao Realtime do Chat!");
+      });
   },
 
   // --- MEMBROS ---
@@ -100,18 +101,15 @@ export const DatabaseService = {
   },
 
   async addMember(member: Member) {
-    const { error } = await supabase.from('members').insert([member]);
-    if (error) throw error;
+    await supabase.from('members').insert([member]);
   },
 
   async updateMember(member: Member) {
-    const { error } = await supabase.from('members').update(member).eq('id', member.id);
-    if (error) throw error;
+    await supabase.from('members').update(member).eq('id', member.id);
   },
 
   async deleteMember(id: string) {
-    const { error } = await supabase.from('members').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('members').delete().eq('id', id);
   },
 
   // --- CONSELHEIROS ---

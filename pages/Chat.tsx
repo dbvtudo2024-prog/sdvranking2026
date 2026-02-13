@@ -30,12 +30,14 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
         setLoading(false);
       });
 
-    // Inscrever para novas mensagens
-    const sub = DatabaseService.subscribeMessages(activeTab, (newMsg) => {
-      setMessages(prev => {
-        if (prev.some(m => m.id === newMsg.id)) return prev;
-        return [...prev, newMsg];
-      });
+    // Fix: Using subscribeAllMessages instead of subscribeMessages and filtering by activeTab
+    const sub = DatabaseService.subscribeAllMessages((newMsg) => {
+      if (newMsg.unit === activeTab) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      }
     });
 
     return () => {

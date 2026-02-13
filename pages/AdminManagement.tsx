@@ -59,8 +59,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   const handleTestNotification = async () => {
     setIsProcessing(true);
+    // ID do robô de teste deve ser diferente do ID do usuário logado para disparar o banner
     const testMsg: ChatMessage = {
-      sender_id: 'system_bot',
+      sender_id: 'bot_' + Math.floor(Math.random() * 100000),
       sender_name: 'Robô do Clube 🤖',
       sender_photo: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
       text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
@@ -70,9 +71,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
     try {
       await DatabaseService.sendMessage(testMsg);
+      alert("Comando enviado! Se o Realtime estiver ativo no seu Supabase, o banner aparecerá no topo em 1-2 segundos.");
     } catch (error: any) {
       console.error("Erro detalhado:", error);
-      alert("ERRO SUPABASE: " + (error.message || "Verifique as colunas na sua tabela 'messages'."));
+      alert("ERRO SUPABASE: " + (error.message || "Verifique se a tabela 'messages' existe e se o Realtime está ativado."));
     } finally {
       setIsProcessing(false);
     }

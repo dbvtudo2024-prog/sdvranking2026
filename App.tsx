@@ -59,31 +59,37 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // LÓGICA DE NOTIFICAÇÃO MELHORADA
   useEffect(() => {
     if (!user) return;
 
-    // Função única para processar mensagens recebidas
-    const handleIncomingMessage = (msg: ChatMessage) => {
-      // Se não for eu que enviei e eu não estiver na tela de chat
-      if (String(msg.sender_id) !== String(user.id) && currentPage !== 'chat') {
+    const subMessages = DatabaseService.subscribeAllMessages((msg) => {
+      // Regras para mostrar a notificação:
+      // 1. A mensagem deve ser da Unidade do usuário OU ser do canal 'Geral'
+      // 2. O usuário NÃO pode estar na tela de chat
+      // 3. O usuário NÃO pode ser o autor da mensagem
+      
+      const isRelevant = msg.unit === 'Geral' || msg.unit === user.unit;
+      const isNotMe = String(msg.sender_id) !== String(user.id);
+      const notInChat = currentPage !== 'chat';
+
+      if (isRelevant && isNotMe && notInChat) {
+        console.log("Notificação recebida!", msg);
         setUnreadCount(prev => prev + 1);
         setLastNotification(msg);
         
-        // Remove a notificação visual após 8 segundos
-        setTimeout(() => setLastNotification(null), 8000);
+        // Mantém o banner por 10 segundos
+        setTimeout(() => {
+          setLastNotification(current => {
+            if (current?.id === msg.id) return null;
+            return current;
+          });
+        }, 10000);
       }
-    };
-
-    const subGeral = DatabaseService.subscribeMessages('Geral', handleIncomingMessage);
-
-    let subUnidade: any = null;
-    if (user.unit) {
-      subUnidade = DatabaseService.subscribeMessages(user.unit, handleIncomingMessage);
-    }
+    });
 
     return () => {
-      subGeral.unsubscribe();
-      if (subUnidade) subUnidade.unsubscribe();
+      subMessages.unsubscribe();
     };
   }, [user, currentPage]);
 
@@ -193,7 +199,6 @@ const App: React.FC = () => {
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
-      // Fix: Corrected setSecondaryOverride to setSpecialtyOverride on line 196
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} />;
       default: return <Dashboard members={members} announcements={announcements} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
     }
@@ -215,23 +220,27 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
+      {/* BANNER DE NOTIFICAÇÃO FIXO NO TOPO */}
       {lastNotification && (
         <div 
           onClick={() => setCurrentPage('chat')}
-          className="fixed top-24 inset-x-4 z-[999] bg-[#0061f2] text-white p-4 rounded-[1.5rem] shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 duration-500 cursor-pointer border border-white/20 active:scale-95 transition-transform"
+          className="fixed top-24 inset-x-4 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/20 active:scale-95 transition-all"
         >
-          <div className="w-10 h-10 rounded-full bg-white/20 flex-shrink-0 border border-white/30 overflow-hidden">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/30 overflow-hidden shadow-inner">
              <img src={lastNotification.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.sender_id}`} className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
              <div className="flex justify-between items-center mb-0.5">
-                <p className="text-[10px] font-black uppercase tracking-widest">{lastNotification.sender_name}</p>
-                <span className="text-[8px] font-bold opacity-60">agora</span>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">{lastNotification.sender_name}</p>
+                <div className="flex items-center gap-1">
+                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                   <span className="text-[8px] font-bold opacity-60 uppercase">agora</span>
+                </div>
              </div>
-             <p className="text-xs font-bold truncate pr-4 opacity-90">{lastNotification.text}</p>
+             <p className="text-sm font-black truncate pr-4 text-white leading-tight">{lastNotification.text}</p>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-1 hover:bg-white/10 rounded-lg">
-             <X size={16} />
+          <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+             <X size={20} />
           </button>
         </div>
       )}
