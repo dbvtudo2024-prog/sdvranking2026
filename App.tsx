@@ -158,7 +158,14 @@ const App: React.FC = () => {
   };
 
   if (!user) {
-    if (currentPage === 'register') return <Register onRegister={(u, m) => { if (m) handleLogin(u); else setCurrentPage('home'); }} onBack={() => setCurrentPage('home')} counselorList={counselorsData.map(c => c.name)} />;
+    if (currentPage === 'register') return <Register onRegister={(u, m) => { 
+      if (m) {
+        setMembers(prev => [...prev, m]); // Atualização imediata local
+        handleLogin(u);
+      } else {
+        setCurrentPage('home');
+      }
+    }} onBack={() => setCurrentPage('home')} counselorList={counselorsData.map(c => c.name)} />;
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 

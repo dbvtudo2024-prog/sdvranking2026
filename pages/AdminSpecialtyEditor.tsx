@@ -33,8 +33,17 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     setIsSaving(true);
     try {
       const payload = { ...formData, Like: !!formData.Like } as SpecialtyDBV;
-      if (editItem?.id) await DatabaseService.updateSpecialty({ ...payload, id: editItem.id });
-      else await DatabaseService.addSpecialty(payload);
+      
+      if (editItem?.id) {
+        await DatabaseService.updateSpecialty({ ...payload, id: editItem.id });
+        // Atualização imediata local (Otimista)
+        setSpecialties(prev => prev.map(s => s.id === editItem.id ? { ...s, ...payload } : s));
+      } else {
+        await DatabaseService.addSpecialty(payload);
+        // Adição imediata local com ID temporário para feedback instantâneo
+        setSpecialties(prev => [...prev, { ...payload, id: Date.now() }]);
+      }
+      
       setShowModal(false);
     } catch (err) { 
       alert("Erro ao salvar dados."); 
@@ -46,9 +55,11 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const handleDelete = async (id: number) => {
     if (!confirm('Deseja excluir permanentemente esta especialidade?')) return;
     try {
+      setSpecialties(prev => prev.filter(s => s.id !== id)); // Atualização imediata
       await DatabaseService.deleteSpecialty(id);
     } catch (err) {
       alert("Erro ao excluir especialidade.");
+      // Se der erro, o subscribeMembers ou subscribeSpecialties recarregará a lista correta
     }
   };
 
@@ -112,9 +123,9 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               <button onClick={() => setShowModal(false)} className="text-slate-300 p-2"><X size={28} /></button>
             </div>
             <form onSubmit={handleSave} className="space-y-4">
-               <div><label className={labelClasses}>Nome da Especialidade</label><input required className={inputClasses} value={formData.Nome} onChange={setFormData({...formData, Nome: e.target.value})} /></div>
-               <div><label className={labelClasses}>Imagem URL (PNG)</label><input required className={inputClasses} value={formData.Imagem} onChange={setFormData({...formData, Imagem: e.target.value})} /></div>
-               <div><label className={labelClasses}>Categoria</label><input className={inputClasses} value={formData.Categoria} onChange={setFormData({...formData, Categoria: e.target.value})} /></div>
+               <div><label className={labelClasses}>Nome da Especialidade</label><input required className={inputClasses} value={formData.Nome} onChange={e => setFormData({...formData, Nome: e.target.value})} /></div>
+               <div><label className={labelClasses}>Imagem URL (PNG)</label><input required className={inputClasses} value={formData.Imagem} onChange={e => setFormData({...formData, Imagem: e.target.value})} /></div>
+               <div><label className={labelClasses}>Categoria</label><input className={inputClasses} value={formData.Categoria} onChange={e => setFormData({...formData, Categoria: e.target.value})} /></div>
                <button type="submit" disabled={isSaving} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all mt-4 border-b-4 border-blue-800">
                  {isSaving ? <Loader2 className="animate-spin mx-auto" /> : 'SALVAR NO BANCO'}
                </button>
