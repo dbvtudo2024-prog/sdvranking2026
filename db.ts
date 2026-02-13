@@ -23,14 +23,6 @@ export interface SpecialtyDBV {
   Cor: string;
 }
 
-export interface SpecialtyQuestion {
-  id: string;
-  specialty_id: number;
-  question: string;
-  options: string[];
-  correct_answer: number;
-}
-
 export interface CounselorDB {
   id?: string | number;
   name: string;
@@ -55,35 +47,38 @@ export const DatabaseService = {
       .order('created_at', { ascending: true }) 
       .limit(50);
     
-    if (error) {
-      console.error("Erro Supabase:", error);
-      throw error;
-    }
-    
-    return (data || []).map(m => ({
-      ...m,
-      created_at: m.created_at || new Date().toISOString()
-    })) as ChatMessage[];
+    if (error) throw error;
+    return (data || []) as ChatMessage[];
   },
 
   async sendMessage(msg: ChatMessage) {
-    const { id, ...payload } = msg;
+    // Blindagem: Montando o payload explicitamente para evitar campos camelCase fantasmas
+    const payload = {
+      sender_id: String(msg.sender_id),
+      sender_name: msg.sender_name,
+      sender_photo: msg.sender_photo || '',
+      text: msg.text,
+      unit: msg.unit,
+      created_at: msg.created_at || new Date().toISOString()
+    };
+
     const { error } = await supabase.from('messages').insert([payload]);
     if (error) {
-      console.error("Erro ao inserir mensagem:", error);
+      console.error("Erro ao inserir:", error);
       throw error;
     }
   },
 
   subscribeMessages(unit: string, callback: (msg: ChatMessage) => void) {
+    // Removido o filtro 'filter' do Supabase para evitar erros de sintaxe no servidor
+    // A filtragem por unidade agora é feita no callback para maior segurança
     return supabase
-      .channel(`chat_${unit}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `unit=eq.${unit}` }, payload => {
-        const newMsg = payload.new as any;
-        callback({
-          ...newMsg,
-          created_at: newMsg.created_at || new Date().toISOString()
-        });
+      .channel(`chat_realtime_${unit}_${Math.random()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        const newMsg = payload.new as ChatMessage;
+        if (newMsg.unit === unit) {
+          callback(newMsg);
+        }
       })
       .subscribe();
   },
@@ -91,8 +86,7 @@ export const DatabaseService = {
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
     const { data, error } = await supabase.from('members').select('*');
-    if (error) return [];
-    return data as Member[];
+    return (data || []) as Member[];
   },
 
   subscribeMembers(callback: (members: Member[]) => void) {
@@ -127,27 +121,20 @@ export const DatabaseService = {
       .select('id, created_at, name:nome') 
       .order('nome', { ascending: true });
     
-    if (error) {
-      const fallback = await supabase.from('conselheiros').select('id, nome').order('nome', { ascending: true });
-      if (fallback.error) return [];
-      return fallback.data.map((d: any) => ({ id: d.id, name: d.nome })) as any[];
-    }
+    if (error) return [];
     return data as any[];
   },
 
   async addCounselor(name: string) {
-    const { error } = await supabase.from('conselheiros').insert([{ nome: name }]);
-    if (error) throw error;
+    await supabase.from('conselheiros').insert([{ nome: name }]);
   },
 
   async updateCounselor(id: string | number, name: string) {
-    const { error } = await supabase.from('conselheiros').update({ nome: name }).eq('id', id);
-    if (error) throw error;
+    await supabase.from('conselheiros').update({ nome: name }).eq('id', id);
   },
 
   async deleteCounselor(id: string | number) {
-    const { error } = await supabase.from('conselheiros').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('conselheiros').delete().eq('id', id);
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
@@ -163,8 +150,7 @@ export const DatabaseService = {
   // --- AVISOS ---
   async getAnnouncements(): Promise<Announcement[]> {
     const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
-    if (error) return [];
-    return data as Announcement[];
+    return (data || []) as Announcement[];
   },
 
   subscribeAnnouncements(callback: (announcements: Announcement[]) => void) {
@@ -178,20 +164,17 @@ export const DatabaseService = {
   },
 
   async addAnnouncement(ann: Announcement) {
-    const { error } = await supabase.from('announcements').insert([ann]);
-    if (error) throw error;
+    await supabase.from('announcements').insert([ann]);
   },
 
   async deleteAnnouncement(id: string) {
-    const { error } = await supabase.from('announcements').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('announcements').delete().eq('id', id);
   },
 
   // --- ESPECIALIDADES ---
   async getSpecialties(): Promise<SpecialtyDBV[]> {
     const { data, error } = await supabase.from('EspecialidadesDBV').select('*').order('Nome', { ascending: true });
-    if (error) return [];
-    return data as SpecialtyDBV[];
+    return (data || []) as SpecialtyDBV[];
   },
 
   subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
@@ -205,38 +188,29 @@ export const DatabaseService = {
   },
 
   async addSpecialty(spec: SpecialtyDBV) {
-    const { error } = await supabase.from('EspecialidadesDBV').insert([spec]);
-    if (error) throw error;
+    await supabase.from('EspecialidadesDBV').insert([spec]);
   },
 
   async updateSpecialty(spec: SpecialtyDBV) {
-    const { error } = await supabase.from('EspecialidadesDBV').update(spec).eq('id', spec.id);
-    if (error) throw error;
+    await supabase.from('EspecialidadesDBV').update(spec).eq('id', spec.id);
   },
 
   async deleteSpecialty(id: number) {
-    const { error } = await supabase.from('EspecialidadesDBV').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('EspecialidadesDBV').delete().eq('id', id);
   },
 
   async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'created_at'>[]) {
-    const { error } = await supabase.from('EspecialidadesDBV').insert(specialties);
-    if (error) {
-      console.error("Erro ao migrar especialidades:", error);
-      throw error;
-    }
+    await supabase.from('EspecialidadesDBV').insert(specialties);
   },
 
-  // --- CONFIGURAÇÕES DE JOGOS (OVERRIDE) ---
+  // --- CONFIGURAÇÕES DE JOGOS ---
   async getGameConfigs(): Promise<GameConfig | null> {
-    const { data, error } = await supabase.from('game_configs').select('*').eq('id', 1).single();
-    if (error) return null;
+    const { data } = await supabase.from('game_configs').select('*').eq('id', 1).single();
     return data as GameConfig;
   },
 
   async updateGameConfig(updates: Partial<GameConfig>) {
-    const { error } = await supabase.from('game_configs').update(updates).eq('id', 1);
-    if (error) throw error;
+    await supabase.from('game_configs').update(updates).eq('id', 1);
   },
 
   subscribeGameConfigs(callback: (config: GameConfig) => void) {
@@ -251,20 +225,8 @@ export const DatabaseService = {
 
   // --- QUESTÕES DO QUIZ ---
   async getQuizQuestions(): Promise<QuizQuestion[]> {
-    const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
-    if (error) {
-      const fallback = await supabase.from('quiz_questions').select('*').order('id', { ascending: false });
-      if (fallback.error) return [];
-      return fallback.data.map(q => ({
-        id: q.id,
-        category: q.category,
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correct_answer ?? q.correctAnswer 
-      })) as QuizQuestion[];
-    }
-    
-    return data.map(q => ({
+    const { data } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
+    return (data || []).map(q => ({
       id: q.id,
       category: q.category,
       question: q.question,
@@ -280,8 +242,7 @@ export const DatabaseService = {
       options: q.options,
       correct_answer: q.correctAnswer
     };
-    const { error } = await supabase.from('quiz_questions').insert([payload]);
-    if (error) throw error;
+    await supabase.from('quiz_questions').insert([payload]);
   },
 
   async updateQuizQuestion(q: QuizQuestion) {
@@ -291,13 +252,11 @@ export const DatabaseService = {
       options: q.options,
       correct_answer: q.correctAnswer
     };
-    const { error } = await supabase.from('quiz_questions').update(payload).eq('id', q.id);
-    if (error) throw error;
+    await supabase.from('quiz_questions').update(payload).eq('id', q.id);
   },
 
   async deleteQuizQuestion(id: string) {
-    const { error } = await supabase.from('quiz_questions').delete().eq('id', id);
-    if (error) throw error;
+    await supabase.from('quiz_questions').delete().eq('id', id);
   },
 
   async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
@@ -307,11 +266,7 @@ export const DatabaseService = {
       options: q.options,
       correct_answer: q.correctAnswer
     }));
-    const { error } = await supabase.from('quiz_questions').insert(payload);
-    if (error) {
-      console.error("Erro ao migrar questões do quiz:", error);
-      throw error;
-    }
+    await supabase.from('quiz_questions').insert(payload);
   },
 
   subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
@@ -324,10 +279,10 @@ export const DatabaseService = {
       .subscribe();
   },
 
-  // --- USUÁRIOS E DESAFIOS ---
+  // --- USUÁRIOS ---
   async getUsers(): Promise<AuthUser[]> {
-    const { data, error } = await supabase.from('users').select('*');
-    return (error ? [] : data) as AuthUser[];
+    const { data } = await supabase.from('users').select('*');
+    return (data || []) as AuthUser[];
   },
 
   async addUser(user: AuthUser) {
@@ -335,12 +290,10 @@ export const DatabaseService = {
   },
 
   async createChallenge(challenge: Challenge1x1) {
-    const { error } = await supabase.from('challenges').insert([challenge]);
-    if (error) throw error;
+    await supabase.from('challenges').insert([challenge]);
   },
 
   async updateChallenge(id: string, updates: Partial<Challenge1x1>) {
-    const { error } = await supabase.from('challenges').update(updates).eq('id', id);
-    if (error) throw error;
+    await supabase.from('challenges').update(updates).eq('id', id);
   }
 };

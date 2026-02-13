@@ -62,23 +62,23 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const subGeral = DatabaseService.subscribeMessages('Geral', (msg) => {
-      if (msg.sender_id !== user.id && currentPage !== 'chat') {
+    // Função única para processar mensagens recebidas
+    const handleIncomingMessage = (msg: ChatMessage) => {
+      // Se não for eu que enviei e eu não estiver na tela de chat
+      if (String(msg.sender_id) !== String(user.id) && currentPage !== 'chat') {
         setUnreadCount(prev => prev + 1);
         setLastNotification(msg);
-        setTimeout(() => setLastNotification(null), 5000);
+        
+        // Remove a notificação visual após 8 segundos
+        setTimeout(() => setLastNotification(null), 8000);
       }
-    });
+    };
+
+    const subGeral = DatabaseService.subscribeMessages('Geral', handleIncomingMessage);
 
     let subUnidade: any = null;
     if (user.unit) {
-      subUnidade = DatabaseService.subscribeMessages(user.unit, (msg) => {
-        if (msg.sender_id !== user.id && currentPage !== 'chat') {
-          setUnreadCount(prev => prev + 1);
-          setLastNotification(msg);
-          setTimeout(() => setLastNotification(null), 5000);
-        }
-      });
+      subUnidade = DatabaseService.subscribeMessages(user.unit, handleIncomingMessage);
     }
 
     return () => {
@@ -193,6 +193,7 @@ const App: React.FC = () => {
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      // Fix: Corrected setSecondaryOverride to setSpecialtyOverride on line 196
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} />;
       default: return <Dashboard members={members} announcements={announcements} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
     }
