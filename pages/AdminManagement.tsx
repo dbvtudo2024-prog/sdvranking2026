@@ -65,14 +65,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       senderPhoto: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
       text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
       unit: 'Geral',
-      created_at: new Date().toISOString()
+      createdAt: new Date().toISOString()
     };
 
     try {
       await DatabaseService.sendMessage(testMsg);
     } catch (error: any) {
       console.error("Erro detalhado:", error);
-      alert("ERRO SUPABASE: " + (error.message || "Verifique o console para detalhes"));
+      alert("ERRO: Ocorreu um erro ao enviar a mensagem. Verifique a tabela 'messages' no seu Supabase.");
     } finally {
       setIsProcessing(false);
     }
@@ -333,7 +333,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       {/* MODAL PARA ADICIONAR/EDITAR CONSELHEIROS */}
       {showCounselorModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[300] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl space-y-6 animate-in zoom-in-95">
+          <div className="bg-white w-full max-sm rounded-[3rem] p-10 shadow-2xl space-y-6 animate-in zoom-in-95">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">{editCounselor ? 'Editar' : 'Novo'} Conselheiro</h3>
               <button onClick={() => setShowCounselorModal(false)} className="text-slate-300 hover:text-slate-500 transition-colors"><X size={24} /></button>

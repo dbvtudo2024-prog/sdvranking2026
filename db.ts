@@ -48,18 +48,27 @@ export interface GameConfig {
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
+    // Ordenar por ID é mais seguro se o created_at estiver falhando no cache do Supabase
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('unit', unit)
-      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(50);
-    if (error) return [];
-    return data as ChatMessage[];
+    
+    if (error) {
+      console.error("Erro ao buscar mensagens:", error);
+      return [];
+    }
+    
+    return (data || []).map(m => ({
+      ...m,
+      createdAt: m.createdAt || m.created_at || new Date().toISOString()
+    })) as ChatMessage[];
   },
 
   async sendMessage(msg: ChatMessage) {
-    // Omitir ID para que o DB gere automaticamente. created_at vai como snake_case.
+    // Removemos o ID para que o Supabase gere automaticamente
     const { id, ...payload } = msg;
     const { error } = await supabase.from('messages').insert([payload]);
     if (error) throw error;
@@ -69,7 +78,11 @@ export const DatabaseService = {
     return supabase
       .channel(`chat_${unit}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `unit=eq.${unit}` }, payload => {
-        callback(payload.new as ChatMessage);
+        const newMsg = payload.new as any;
+        callback({
+          ...newMsg,
+          createdAt: newMsg.createdAt || newMsg.created_at || new Date().toISOString()
+        });
       })
       .subscribe();
   },

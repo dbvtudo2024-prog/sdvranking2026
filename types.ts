@@ -11,13 +11,13 @@ export enum UnitName {
 }
 
 export interface ChatMessage {
-  id?: string;
+  id?: string | number;
   senderId: string;
   senderName: string;
   senderPhoto?: string;
   text: string;
   unit: 'Geral' | UnitName;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface Score {
