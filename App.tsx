@@ -63,7 +63,7 @@ const App: React.FC = () => {
     if (!user) return;
 
     const subGeral = DatabaseService.subscribeMessages('Geral', (msg) => {
-      if (msg.senderId !== user.id && currentPage !== 'chat') {
+      if (msg.sender_id !== user.id && currentPage !== 'chat') {
         setUnreadCount(prev => prev + 1);
         setLastNotification(msg);
         setTimeout(() => setLastNotification(null), 5000);
@@ -73,7 +73,7 @@ const App: React.FC = () => {
     let subUnidade: any = null;
     if (user.unit) {
       subUnidade = DatabaseService.subscribeMessages(user.unit, (msg) => {
-        if (msg.senderId !== user.id && currentPage !== 'chat') {
+        if (msg.sender_id !== user.id && currentPage !== 'chat') {
           setUnreadCount(prev => prev + 1);
           setLastNotification(msg);
           setTimeout(() => setLastNotification(null), 5000);
@@ -220,11 +220,11 @@ const App: React.FC = () => {
           className="fixed top-24 inset-x-4 z-[999] bg-[#0061f2] text-white p-4 rounded-[1.5rem] shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 duration-500 cursor-pointer border border-white/20 active:scale-95 transition-transform"
         >
           <div className="w-10 h-10 rounded-full bg-white/20 flex-shrink-0 border border-white/30 overflow-hidden">
-             <img src={lastNotification.senderPhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.senderId}`} className="w-full h-full object-cover" />
+             <img src={lastNotification.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.sender_id}`} className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
              <div className="flex justify-between items-center mb-0.5">
-                <p className="text-[10px] font-black uppercase tracking-widest">{lastNotification.senderName}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">{lastNotification.sender_name}</p>
                 <span className="text-[8px] font-bold opacity-60">agora</span>
              </div>
              <p className="text-xs font-bold truncate pr-4 opacity-90">{lastNotification.text}</p>

@@ -12,9 +12,9 @@ export enum UnitName {
 
 export interface ChatMessage {
   id?: string | number;
-  senderId: string;
-  senderName: string;
-  senderPhoto?: string;
+  sender_id: string;
+  sender_name: string;
+  sender_photo?: string;
   text: string;
   unit: 'Geral' | UnitName;
   created_at: string;

@@ -54,9 +54,9 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     if (!inputText.trim()) return;
 
     const newMsg: ChatMessage = {
-      senderId: user.id,
-      senderName: user.name,
-      senderPhoto: user.photoUrl,
+      sender_id: user.id,
+      sender_name: user.name,
+      sender_photo: user.photoUrl,
       text: inputText.trim(),
       unit: activeTab,
       created_at: new Date().toISOString()
@@ -123,7 +123,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           </div>
         ) : (
           messages.map((msg, idx) => {
-            const isMe = msg.senderId === user.id;
+            const isMe = msg.sender_id === user.id;
             return (
               <div 
                 key={msg.id || idx} 
@@ -131,14 +131,14 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
               >
                 {!isMe && (
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 mr-2 border-2 border-white shadow-sm shrink-0 mt-1">
-                    <img src={msg.senderPhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId}`} className="w-full h-full object-cover" />
+                    <img src={msg.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender_id}`} className="w-full h-full object-cover" />
                   </div>
                 )}
                 
                 <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   {!isMe && (
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1">
-                      {msg.senderName.split(' ')[0]}
+                      {msg.sender_name.split(' ')[0]}
                     </span>
                   )}
                   <div className={`px-4 py-2.5 rounded-[1.5rem] shadow-md relative ${isMe ? 'bg-[#0061f2] text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>

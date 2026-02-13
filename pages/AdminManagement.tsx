@@ -60,9 +60,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const handleTestNotification = async () => {
     setIsProcessing(true);
     const testMsg: ChatMessage = {
-      senderId: 'system_bot',
-      senderName: 'Robô do Clube 🤖',
-      senderPhoto: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
+      sender_id: 'system_bot',
+      sender_name: 'Robô do Clube 🤖',
+      sender_photo: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
       text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
       unit: 'Geral',
       created_at: new Date().toISOString()
@@ -72,7 +72,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       await DatabaseService.sendMessage(testMsg);
     } catch (error: any) {
       console.error("Erro detalhado:", error);
-      alert("ERRO SUPABASE: " + (error.message || "Verifique a estrutura da tabela no console."));
+      alert("ERRO SUPABASE: " + (error.message || "Verifique as colunas na sua tabela 'messages'."));
     } finally {
       setIsProcessing(false);
     }
