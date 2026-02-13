@@ -52,37 +52,102 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-10 overflow-y-auto h-full">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 overflow-y-auto h-full">
       <div className="bg-[#f1f5f9] p-2 rounded-[2rem] shadow-inner space-y-2 mx-4 mt-6">
-        <div className="grid grid-cols-3 gap-2"><TabButton type="members" label="Membros" icon={User} /><TabButton type="units" label="Unidades" icon={Shield} /><TabButton type="quiz" label="Quiz" icon={Brain} /></div>
-        <div className="grid grid-cols-3 gap-2"><TabButton type="memory" label="Memória" icon={Gamepad2} /><TabButton type="specialty" label="Especialid." icon={Medal} /><TabButton type="threeclues" label="3 Dicas" icon={HelpCircle} /></div>
+        <div className="grid grid-cols-3 gap-2">
+          <TabButton type="members" label="Membros" icon={User} />
+          <TabButton type="units" label="Unidades" icon={Shield} />
+          <TabButton type="quiz" label="Quiz" icon={Brain} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <TabButton type="memory" label="Memória" icon={Gamepad2} />
+          <TabButton type="specialty" label="Especialid." icon={Medal} />
+          <TabButton type="threeclues" label="3 Dicas" icon={HelpCircle} />
+        </div>
       </div>
       
       {tab !== 'units' ? (
         <div className="space-y-8 px-4">
-          <div className="flex items-end justify-center gap-3 pt-12">
-            <div className="flex flex-col items-center"><div className="w-16 h-16 rounded-full border-4 border-slate-200 overflow-hidden bg-slate-50 mb-3 shadow-lg flex items-center justify-center">{podiumSlots[1]?.photoUrl ? <img src={podiumSlots[1].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200" />}</div><div className="w-20 h-28 bg-white rounded-t-[2rem] shadow-2xl border-t border-slate-100 flex flex-col items-center justify-center p-2"><span className="text-xl font-black text-slate-400">{getPoints(podiumSlots[1])}</span></div></div>
-            <div className="flex flex-col items-center z-10"><div className="w-20 h-20 rounded-full border-4 border-[#FFD700] overflow-hidden bg-white mb-3 shadow-2xl flex items-center justify-center">{podiumSlots[0]?.photoUrl ? <img src={podiumSlots[0].photoUrl} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200" />}</div><div className="w-24 h-40 bg-gradient-to-b from-white to-yellow-50 rounded-t-[2.5rem] shadow-2xl border-t-2 border-yellow-100 flex flex-col items-center justify-center p-2"><Trophy size={32} className="text-yellow-400 mb-3" /><span className="text-3xl font-black text-[#0061f2]">{getPoints(podiumSlots[0])}</span></div></div>
-            <div className="flex flex-col items-center"><div className="w-16 h-16 rounded-full border-4 border-amber-300 overflow-hidden bg-amber-50 mb-3 shadow-lg flex items-center justify-center">{podiumSlots[2]?.photoUrl ? <img src={podiumSlots[2].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200" />}</div><div className="w-20 h-24 bg-white rounded-t-[2rem] shadow-2xl border-t border-slate-100 flex flex-col items-center justify-center p-2"><span className="text-xl font-black text-amber-500">{getPoints(podiumSlots[2])}</span></div></div>
+          {/* PÓDIO REESTRUTURADO */}
+          <div className="flex items-end justify-center gap-2 pt-6 pb-4">
+            
+            {/* 2º LUGAR */}
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full border-4 border-slate-200 overflow-hidden bg-slate-50 shadow-lg flex items-center justify-center relative z-20">
+                {podiumSlots[1]?.photoUrl ? <img src={podiumSlots[1].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200" />}
+              </div>
+              <div className="text-center mt-2 mb-2 px-1 w-20">
+                <p className="text-[9px] font-black text-slate-500 uppercase truncate leading-tight">
+                  {podiumSlots[1]?.name?.split(' ')[0] || ''}
+                </p>
+                <p className="text-[7px] font-bold text-slate-300 uppercase truncate">
+                  {podiumSlots[1]?.unit || ''}
+                </p>
+              </div>
+              <div className="w-20 h-24 bg-white rounded-t-[2rem] shadow-2xl border-t border-slate-100 flex flex-col items-center justify-center p-2">
+                <span className="text-xl font-black text-slate-400">{getPoints(podiumSlots[1])}</span>
+              </div>
+            </div>
+
+            {/* 1º LUGAR */}
+            <div className="flex flex-col items-center z-10 -translate-y-4">
+              <div className="w-20 h-20 rounded-full border-4 border-[#FFD700] overflow-hidden bg-white shadow-2xl flex items-center justify-center relative z-20">
+                {podiumSlots[0]?.photoUrl ? <img src={podiumSlots[0].photoUrl} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200" />}
+              </div>
+              <div className="text-center mt-2 mb-2 px-1 w-24">
+                <p className="text-[10px] font-black text-[#0061f2] uppercase truncate leading-tight">
+                  {podiumSlots[0]?.name?.split(' ')[0] || ''}
+                </p>
+                <p className="text-[7px] font-bold text-slate-400 uppercase truncate">
+                  {podiumSlots[0]?.unit || ''}
+                </p>
+              </div>
+              <div className="w-24 h-40 bg-gradient-to-b from-white to-yellow-50 rounded-t-[2.5rem] shadow-2xl border-t-2 border-yellow-100 flex flex-col items-center justify-center p-2 text-center">
+                <Trophy size={32} className="text-yellow-400 mb-2" />
+                <span className="text-3xl font-black text-[#0061f2]">{getPoints(podiumSlots[0])}</span>
+              </div>
+            </div>
+
+            {/* 3º LUGAR */}
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full border-4 border-amber-300 overflow-hidden bg-amber-50 shadow-lg flex items-center justify-center relative z-20">
+                {podiumSlots[2]?.photoUrl ? <img src={podiumSlots[2].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200" />}
+              </div>
+              <div className="text-center mt-2 mb-2 px-1 w-20">
+                <p className="text-[9px] font-black text-amber-600 uppercase truncate leading-tight">
+                  {podiumSlots[2]?.name?.split(' ')[0] || ''}
+                </p>
+                <p className="text-[7px] font-bold text-slate-300 uppercase truncate">
+                  {podiumSlots[2]?.unit || ''}
+                </p>
+              </div>
+              <div className="w-20 h-20 bg-white rounded-t-[2rem] shadow-2xl border-t border-slate-100 flex flex-col items-center justify-center p-2">
+                <span className="text-xl font-black text-amber-500">{getPoints(podiumSlots[2])}</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-3 pb-20">
+
+          {/* LISTAGEM GERAL */}
+          <div className="space-y-3 pb-24">
             {remaining.map((m, idx) => (
-              <div key={m.id} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5 transition-all">
+              <div key={m.id} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5">
                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-black text-sm text-slate-400 shrink-0">{idx + 4}º</div>
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-50 shrink-0">
                   {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 mt-2" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{m.name}</h4>
+                  <h4 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{m.name.split(' ')[0]}</h4>
                   <p className="text-[9px] text-slate-400 font-bold uppercase truncate">{m.unit}</p>
                 </div>
-                <div className="text-right shrink-0 px-2"><p className="text-2xl font-black text-[#0061f2] leading-none">{getPoints(m)}</p></div>
+                <div className="text-right shrink-0 px-2">
+                  <p className="text-2xl font-black text-[#0061f2] leading-none">{getPoints(m)}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="space-y-4 px-4">
+        <div className="space-y-4 px-4 pb-24">
           {[UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA].map(unit => {
             const unitMembers = members.filter(m => m.unit === unit);
             const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
@@ -90,7 +155,10 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
               <div key={unit} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <img src={UNIT_LOGOS[unit]} className="w-12 h-12 object-contain" />
-                  <div><h3 className="text-lg font-black text-slate-800 uppercase">{unit}</h3><p className="text-xs text-slate-400 font-bold">{unitMembers.length} membros</p></div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800 uppercase">{unit}</h3>
+                    <p className="text-xs text-slate-400 font-bold">{unitMembers.length} membros</p>
+                  </div>
                 </div>
                 <div className="text-right font-black text-3xl text-[#0061f2]">{total}</div>
               </div>

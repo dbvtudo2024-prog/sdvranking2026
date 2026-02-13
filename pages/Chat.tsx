@@ -19,7 +19,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     setLoading(true);
     setMessages([]);
     
-    // Carregar mensagens iniciais
+    // Carregar mensagens iniciais usando created_at
     DatabaseService.getMessages(activeTab).then(data => {
       setMessages(data);
       setLoading(false);
@@ -28,7 +28,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     // Inscrever para novas mensagens
     const sub = DatabaseService.subscribeMessages(activeTab, (newMsg) => {
       setMessages(prev => {
-        // Evitar duplicatas por id se o insert local já aconteceu
         if (prev.some(m => m.id === newMsg.id)) return prev;
         return [...prev, newMsg];
       });
@@ -55,7 +54,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       senderPhoto: user.photoUrl,
       text: inputText.trim(),
       unit: activeTab,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     setInputText('');
@@ -67,7 +66,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       await DatabaseService.sendMessage(newMsg);
     } catch (err) {
       console.error("Erro ao enviar mensagem:", err);
-      alert("Erro ao enviar mensagem. Verifique se a tabela 'messages' existe no seu Supabase.");
+      alert("Erro ao enviar mensagem. Verifique a estrutura da tabela 'messages'.");
     }
   };
 
@@ -137,7 +136,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
                   <div className={`px-4 py-2.5 rounded-[1.5rem] shadow-md relative ${isMe ? 'bg-[#0061f2] text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
                     <p className="text-sm font-semibold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className={`text-[8px] font-black mt-1 uppercase ${isMe ? 'text-white/60 text-right' : 'text-slate-300 text-right'}`}>
-                      {formatTime(msg.createdAt)}
+                      {formatTime(msg.created_at)}
                     </div>
                   </div>
                 </div>

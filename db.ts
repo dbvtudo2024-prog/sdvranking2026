@@ -52,14 +52,14 @@ export const DatabaseService = {
       .from('messages')
       .select('*')
       .eq('unit', unit)
-      .order('createdAt', { ascending: true })
+      .order('created_at', { ascending: true })
       .limit(50);
     if (error) return [];
     return data as ChatMessage[];
   },
 
   async sendMessage(msg: ChatMessage) {
-    // Remove o ID antes de enviar para o Supabase gerar automaticamente
+    // Omitir ID para que o DB gere automaticamente. created_at vai como snake_case.
     const { id, ...payload } = msg;
     const { error } = await supabase.from('messages').insert([payload]);
     if (error) throw error;

@@ -65,12 +65,11 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       senderPhoto: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
       text: 'Olá! Esta é uma mensagem de teste para verificar as notificações em tempo real! 🚀',
       unit: 'Geral',
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     try {
       await DatabaseService.sendMessage(testMsg);
-      // Sem feedback de sucesso imediato para ver o banner global
     } catch (error: any) {
       console.error("Erro detalhado:", error);
       alert("ERRO SUPABASE: " + (error.message || "Verifique o console para detalhes"));
@@ -169,7 +168,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     <div className="flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
       <div className="p-6 space-y-8 pb-32">
         
-        {/* LABORATÓRIO DE TESTES (NOVO) */}
+        {/* LABORATÓRIO DE TESTES */}
         <div className="bg-[#e0f2fe] rounded-[3rem] p-8 border-2 border-[#bae6fd] shadow-xl shadow-blue-500/10 space-y-4">
           <div className="flex items-center gap-2 px-2">
             <Zap size={16} className="text-[#0369a1]" />
