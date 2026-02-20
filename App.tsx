@@ -4,7 +4,8 @@ import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challe
 import { DatabaseService, CounselorDB, GameConfig } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
+import Units from './pages/Units';
 import UnitDetail from './pages/UnitDetail';
 import Ranking from './pages/Ranking';
 import Profile from './pages/Profile';
@@ -27,7 +28,7 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   
   const [unreadCount, setUnreadCount] = useState(0);
@@ -189,6 +190,7 @@ const App: React.FC = () => {
   const getPageTitle = () => {
     switch (currentPage) {
       case 'home': return 'Sentinelas da Verdade';
+      case 'units': return 'Unidades do Clube';
       case 'ranking': return 'Ranking Geral';
       case 'leadership': return 'Corpo Diretivo';
       case 'profile': return 'Meu Perfil';
@@ -204,24 +206,26 @@ const App: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (currentPage === 'unit_detail') setCurrentPage('home');
+    if (currentPage === 'unit_detail') setCurrentPage('units');
     else if (currentPage === 'admin_management') setCurrentPage('profile');
     else if (['admin_announcements', 'admin_quiz', 'admin_specialty'].includes(currentPage)) setCurrentPage('admin_management');
   };
 
   const renderPage = () => {
     switch (currentPage) {
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
+      case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
       case 'ranking': return <Ranking members={members} />;
       case 'leadership': return <Leadership members={members} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} />;
       case 'chat': return <Chat user={user!} />;
-      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('home')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} /> : null;
+      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} />;
-      default: return <Dashboard members={members} announcements={announcements} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
+      default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
     }
   };
 
@@ -296,30 +300,32 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
-        <div className="flex items-center gap-3">
-          {isDetailPage ? (
-            <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
-              <ArrowLeft size={22} strokeWidth={3} />
-            </button>
-          ) : (
-            <img src={LOGO_APP} alt="Logo" className="w-12 h-12 object-contain" />
-          )}
-          <div className="flex flex-col">
-            <h1 className="font-black uppercase tracking-tight text-base leading-tight">{getPageTitle()}</h1>
-            <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-              {user.name} • {user.funcao || user.role}
-            </p>
+      {currentPage !== 'home' && (
+        <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
+          <div className="flex items-center gap-3">
+            {isDetailPage ? (
+              <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
+                <ArrowLeft size={22} strokeWidth={3} />
+              </button>
+            ) : (
+              <img src={LOGO_APP} alt="Logo" className="w-12 h-12 object-contain" />
+            )}
+            <div className="flex flex-col">
+              <h1 className="font-black uppercase tracking-tight text-base leading-tight">{getPageTitle()}</h1>
+              <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
+                {user.name} • {user.funcao || user.role}
+              </p>
+            </div>
           </div>
-        </div>
-        <button onClick={handleLogout} className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
-          <LogOut size={20} strokeWidth={3} />
-        </button>
-      </header>
+          <button onClick={handleLogout} className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
+            <LogOut size={20} strokeWidth={3} />
+          </button>
+        </header>
+      )}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['home', 'ranking', 'leadership', 'profile', 'games', 'chat'].includes(currentPage) && (
+      {['units', 'ranking', 'leadership', 'profile', 'games', 'chat'].includes(currentPage) && (
         <footer className="shrink-0 bg-white border-t border-slate-100">
           <Navbar 
             currentPage={currentPage as any} 
