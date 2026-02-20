@@ -65,7 +65,9 @@ const App: React.FC = () => {
     if (!user) return;
 
     const subChallenges = DatabaseService.subscribeChallenges((challenge) => {
-      if (challenge.challengedId === user.id && challenge.status === 'pending') {
+      console.log("Desafio recebido no Realtime:", challenge);
+      if (String(challenge.challengedId) === String(user.id) && challenge.status === 'pending') {
+        console.log("Desafio é para mim!");
         setChallengeNotification(challenge);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }

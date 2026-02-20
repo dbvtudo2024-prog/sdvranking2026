@@ -301,16 +301,65 @@ export const DatabaseService = {
   },
 
   subscribeChallenges(callback: (challenge: Challenge1x1) => void) {
-    const channelId = `challenges_${Math.random().toString(36).substring(7)}`;
+    const channelId = `challenges_global`;
     return supabase
       .channel(channelId)
       .on('postgres_changes', { 
-        event: '*', 
+        event: 'INSERT', 
         schema: 'public', 
         table: 'challenges' 
       }, payload => {
         callback(payload.new as Challenge1x1);
       })
+      .on('broadcast', { event: 'new_challenge' }, payload => {
+        callback(payload.payload as Challenge1x1);
+      })
       .subscribe();
+  },
+
+  async broadcastChallenge(challenge: Challenge1x1) {
+    await supabase.channel('challenges_global').send({
+      type: 'broadcast',
+      event: 'new_challenge',
+      payload: challenge
+    });
+  },
+
+  // --- PRESENÇA / DIGITANDO ---
+  subscribeTyping(unit: string, onUpdate: (typingUsers: {id: string, name: string}[]) => void) {
+    const channel = supabase.channel(`typing_${unit}`, {
+      config: {
+        presence: {
+          key: unit,
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const typing: {id: string, name: string}[] = [];
+        
+        Object.values(state).forEach((presences: any) => {
+          presences.forEach((p: any) => {
+            if (p.isTyping) {
+              typing.push({ id: p.id, name: p.name });
+            }
+          });
+        });
+        onUpdate(typing);
+      })
+      .subscribe();
+
+    return channel;
+  },
+
+  async setTypingStatus(channel: any, user: AuthUser, isTyping: boolean) {
+    await channel.track({
+      id: user.id,
+      name: user.name,
+      isTyping: isTyping,
+      lastSeen: new Date().toISOString()
+    });
   }
 };

@@ -142,6 +142,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       questionIds: questionIds
     };
     await DatabaseService.createChallenge(newChallenge);
+    await DatabaseService.broadcastChallenge(newChallenge);
     setActiveChallenge(newChallenge);
     alert(`Desafio enviado para ${opponent.name}! Aguarde ele aceitar.`);
     setIsSearching(false);

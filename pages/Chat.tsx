@@ -13,7 +13,10 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'Geral' | UnitName>('Geral');
+  const [typingUsers, setTypingUsers] = useState<{id: string, name: string}[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<any>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -56,20 +59,48 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       }
     });
 
+    // Typing indicator subscription
+    const typingSub = DatabaseService.subscribeTyping(activeTab, (users) => {
+      setTypingUsers(users.filter(u => u.id !== user.id));
+    });
+    typingChannelRef.current = typingSub;
+
     return () => {
       sub.unsubscribe();
+      typingSub.unsubscribe();
     };
-  }, [activeTab]);
+  }, [activeTab, user.id]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, typingUsers]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+
+    // Update typing status
+    if (typingChannelRef.current) {
+      DatabaseService.setTypingStatus(typingChannelRef.current, user, true);
+      
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        DatabaseService.setTypingStatus(typingChannelRef.current, user, false);
+      }, 3000);
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
+
+    // Stop typing status immediately
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (typingChannelRef.current) {
+      DatabaseService.setTypingStatus(typingChannelRef.current, user, false);
+    }
 
     const newMsg: ChatMessage = {
       sender_id: user.id,
@@ -170,6 +201,22 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             );
           })
         )}
+
+        {/* TYPING INDICATOR */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center gap-2 ml-2 animate-in fade-in slide-in-from-bottom-1">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></span>
+            </div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              {typingUsers.length === 1 
+                ? `${typingUsers[0].name.split(' ')[0]} está digitando...` 
+                : `${typingUsers.length} pessoas estão digitando...`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* INPUT AREA */}
@@ -179,7 +226,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             type="text" 
             placeholder="Mensagem..."
             value={inputText}
-            onChange={e => setInputText(e.target.value)}
+            onChange={handleInputChange}
             className="flex-1 bg-transparent py-2.5 outline-none font-bold text-slate-700 text-sm"
           />
         </div>
