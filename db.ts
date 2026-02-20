@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -361,5 +361,194 @@ export const DatabaseService = {
       isTyping: isTyping,
       lastSeen: new Date().toISOString()
     });
+  },
+
+  // --- LEITURA BÍBLICA ---
+  async getBibleProgress(userId: string): Promise<any[]> {
+    const { data } = await supabase.from('bible_reading').select('*').eq('user_id', userId);
+    return data || [];
+  },
+
+  async updateBibleProgress(userId: string, planId: string, completedItems: string[]) {
+    await supabase.from('bible_reading').upsert([{
+      user_id: userId,
+      plan_id: planId,
+      completed_items: completedItems,
+      last_updated: new Date().toISOString()
+    }], { onConflict: 'user_id,plan_id' });
+  },
+
+  // --- BÍBLIA COMPLETA ---
+  async getBibleBooks(): Promise<string[]> {
+    // Querying only the first verse of the first chapter of each book to get the list of books efficiently
+    const { data, error } = await supabase
+      .from('Biblia_Completa')
+      .select('book_name')
+      .eq('chapter', '1')
+      .eq('verse_number', '1')
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error("Erro ao buscar livros:", error);
+      return [];
+    }
+    if (!data) return [];
+    return data.map(d => d.book_name);
+  },
+
+  async getBibleChapters(book: string): Promise<number[]> {
+    const { data, error } = await supabase
+      .from('Biblia_Completa')
+      .select('chapter')
+      .eq('book_name', book)
+      .eq('verse_number', '1') // One row per chapter
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error("Erro ao buscar capítulos:", error);
+      return [];
+    }
+    if (!data) return [];
+    const chapters = data.map(d => parseInt(d.chapter));
+    return Array.from(new Set(chapters)).sort((a, b) => a - b);
+  },
+
+  async getBibleVerses(book: string, chapter: number): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('Biblia_Completa')
+      .select('verse_number, text')
+      .eq('book_name', book)
+      .eq('chapter', String(chapter))
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error("Erro ao buscar versículos:", error);
+      return [];
+    }
+    return (data || []).map(v => ({
+      Versiculo: parseInt(v.verse_number),
+      Texto: v.text
+    }));
+  },
+
+  async searchBible(term: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('Biblia_Completa')
+      .select('book_name, chapter, verse_number, text')
+      .ilike('text', `%${term}%`)
+      .limit(50);
+    
+    if (error) {
+      console.error("Erro na busca bíblica:", error);
+      return [];
+    }
+    return (data || []).map(v => ({
+      Livro: v.book_name,
+      Capitulo: parseInt(v.chapter),
+      Versiculo: parseInt(v.verse_number),
+      Texto: v.text
+    }));
+  },
+
+  async getVerseOfTheDay(): Promise<any> {
+    // Deterministic seed based on date (changes at 7 AM)
+    const now = new Date();
+    // Adjust by 7 hours so it changes at 7 AM
+    const adjusted = new Date(now.getTime() - (7 * 60 * 60 * 1000));
+    const dateStr = adjusted.toISOString().split('T')[0];
+    
+    // Simple hash of the date string to get a deterministic number
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+      hash |= 0;
+    }
+    const seed = Math.abs(hash);
+
+    // Get total count of verses
+    const { count } = await supabase
+      .from('Biblia_Completa')
+      .select('*', { count: 'exact', head: true });
+    
+    const total = count || 31102;
+    const offset = seed % total;
+
+    // Fetch the verse at that offset
+    const { data } = await supabase
+      .from('Biblia_Completa')
+      .select('book_name, chapter, verse_number, text')
+      .range(offset, offset);
+    
+    if (data && data.length > 0) {
+      return {
+        livro: data[0].book_name,
+        cap: parseInt(data[0].chapter),
+        ver: parseInt(data[0].verse_number),
+        texto: data[0].text
+      };
+    }
+    return null;
+  },
+
+  async getDevotional(): Promise<Devotional | null> {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('devotionals')
+      .select('*')
+      .lte('scheduled_for', now)
+      .order('scheduled_for', { ascending: false })
+      .limit(1);
+    
+    if (error) {
+      console.error("Erro ao buscar devocional:", error);
+      return null;
+    }
+    return data && data.length > 0 ? data[0] : null;
+  },
+
+  async getDevotionalHistory(limit: number = 10): Promise<Devotional[]> {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('devotionals')
+      .select('*')
+      .lte('scheduled_for', now)
+      .order('scheduled_for', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.error("Erro ao buscar histórico de devocionais:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async getAllDevotionals(): Promise<Devotional[]> {
+    const { data, error } = await supabase
+      .from('devotionals')
+      .select('*')
+      .order('scheduled_for', { ascending: false });
+    
+    if (error) {
+      console.error("Erro ao buscar todos os devocionais:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async createDevotional(devotional: Omit<Devotional, 'id' | 'created_at'>): Promise<void> {
+    const { error } = await supabase
+      .from('devotionals')
+      .insert([devotional]);
+    
+    if (error) throw error;
+  },
+
+  async deleteDevotional(id: number): Promise<void> {
+    const { error } = await supabase
+      .from('devotionals')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 };

@@ -4,7 +4,7 @@ import { Home, Trophy, User, Gamepad2, ShieldCheck, MessageCircle, LayoutGrid } 
 
 interface NavbarProps {
   currentPage: string;
-  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'chat') => void;
+  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'chat' | 'bible_reading' | 'bible') => void;
   unreadCount?: number;
 }
 

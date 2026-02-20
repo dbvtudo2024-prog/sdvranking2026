@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, Wifi, WifiOff } from 'lucide-react';
-import { Member, ChatMessage } from '../types';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus } from 'lucide-react';
+import { Member, ChatMessage, Devotional } from '../types';
 import { CounselorDB, DatabaseService } from '../db';
 
 interface AdminManagementProps {
@@ -52,35 +52,78 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState('conectando...');
+  const [devotionalLink, setDevotionalLink] = useState('');
+  const [devotionalTitle, setDevotionalTitle] = useState('Devocional Diário');
+  const [devotionalContent, setDevotionalContent] = useState('');
+  const [devotionalScheduledFor, setDevotionalScheduledFor] = useState(new Date().toISOString().slice(0, 16));
+  const [isSavingDevotional, setIsSavingDevotional] = useState(false);
+  const [allDevotionals, setAllDevotionals] = useState<Devotional[]>([]);
+  const [showDevotionalList, setShowDevotionalList] = useState(false);
   
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
 
   useEffect(() => {
-    const sub = DatabaseService.subscribeAllMessages(() => {}, (status) => {
-      setRealtimeStatus(status);
-    });
-    return () => { sub.unsubscribe(); };
+    loadDevotionals();
   }, []);
 
-  const handleTestNotification = async () => {
-    setIsProcessing(true);
-    const testMsg: ChatMessage = {
-      sender_id: 'bot_' + Math.floor(Math.random() * 100000),
-      sender_name: 'Robô do Clube 🤖',
-      sender_photo: 'https://api.dicebear.com/7.x/bottts/svg?seed=sentinelas',
-      text: 'Olá! Se você está lendo isso, o Realtime está FUNCIONANDO! 🚀',
-      unit: 'Geral',
-      created_at: new Date().toISOString()
-    };
-
+  const loadDevotionals = async () => {
     try {
-      await DatabaseService.sendMessage(testMsg);
-    } catch (error: any) {
-      console.error("Erro detalhado:", error);
-      alert("ERRO SUPABASE: " + (error.message || "Verifique se a tabela 'messages' existe e se o Realtime está ativado."));
+      const data = await DatabaseService.getAllDevotionals();
+      setAllDevotionals(data);
+    } catch (err) {
+      console.error("Erro ao carregar devocionais:", err);
+    }
+  };
+
+  const handleSaveDevotional = async () => {
+    if (!devotionalLink.trim() || !devotionalTitle.trim()) {
+      alert("Preencha o título e o link.");
+      return;
+    }
+    setIsSavingDevotional(true);
+    try {
+      const scheduledDate = new Date(devotionalScheduledFor);
+      const isNow = scheduledDate <= new Date();
+
+      await DatabaseService.createDevotional({
+        link: devotionalLink,
+        title: devotionalTitle,
+        content: devotionalContent,
+        scheduled_for: scheduledDate.toISOString()
+      });
+
+      // Enviar notificação via chat/realtime
+      const notificationMsg: ChatMessage = {
+        sender_id: 'system_devotional',
+        sender_name: 'Ministério Pessoal 📖',
+        sender_photo: 'https://api.dicebear.com/7.x/shapes/svg?seed=bible',
+        text: isNow 
+          ? `✨ NOVO DEVOCIONAL: "${devotionalTitle}" já está disponível! Clique para ler.`
+          : `📅 AGENDADO: Novo devocional "${devotionalTitle}" para ${scheduledDate.toLocaleDateString('pt-BR')} às ${scheduledDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}.`,
+        unit: 'Geral',
+        created_at: new Date().toISOString()
+      };
+      await DatabaseService.sendMessage(notificationMsg);
+
+      alert("✅ Devocional agendado e notificação enviada!");
+      setDevotionalLink('');
+      setDevotionalTitle('Devocional Diário');
+      setDevotionalContent('');
+      loadDevotionals();
+    } catch (err) {
+      alert("❌ Erro ao salvar devocional.");
     } finally {
-      setIsProcessing(false);
+      setIsSavingDevotional(false);
+    }
+  };
+
+  const handleDeleteDevotional = async (id: number) => {
+    if (!confirm("Excluir este devocional?")) return;
+    try {
+      await DatabaseService.deleteDevotional(id);
+      loadDevotionals();
+    } catch (err) {
+      alert("Erro ao excluir.");
     }
   };
 
@@ -134,37 +177,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     <div className="flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
       <div className="p-6 space-y-8 pb-32">
         
-        {/* LABORATÓRIO DE TESTES - DIAGNÓSTICO */}
-        <div className="bg-[#e0f2fe] rounded-[3rem] p-8 border-2 border-[#bae6fd] shadow-xl shadow-blue-500/10 space-y-5">
-          <div className="flex justify-between items-center px-2">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-[#0369a1]" />
-              <h3 className="text-[#0369a1] text-[10px] font-black uppercase tracking-[0.2em]">Diagnóstico Realtime</h3>
-            </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${realtimeStatus === 'SUBSCRIBED' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
-              {realtimeStatus === 'SUBSCRIBED' ? <Wifi size={10} /> : <WifiOff size={10} />}
-              {realtimeStatus === 'SUBSCRIBED' ? 'Conectado' : realtimeStatus}
-            </div>
-          </div>
-          
-          <div className="bg-white/50 rounded-2xl p-4 border border-blue-100">
-             <p className="text-[10px] font-bold text-[#0369a1] uppercase leading-tight mb-2">
-               {realtimeStatus === 'SUBSCRIBED' 
-                 ? "O app está ouvindo o servidor. Clique no botão abaixo e o banner deve aparecer IMEDIATAMENTE." 
-                 : "O app não está conseguindo ouvir o servidor. Verifique se o Realtime está 'ON' no painel do Supabase."}
-             </p>
-          </div>
-
-          <button 
-            onClick={handleTestNotification}
-            disabled={isProcessing}
-            className="w-full bg-[#0ea5e9] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all uppercase text-[10px] tracking-widest"
-          >
-            {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <MessageSquare size={18} />}
-            TESTAR BANNER AGORA
-          </button>
-        </div>
-
         {/* 1. LIBERAÇÃO MANUAL DE JOGOS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
           <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>
@@ -209,7 +221,105 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
            </div>
         </div>
 
-        {/* 4. LISTA DE CONSELHEIROS */}
+        {/* 4. GESTÃO DO DEVOCIONAL */}
+        <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
+           <div className="flex items-center justify-between px-2">
+             <div className="flex items-center gap-2">
+               <BookOpen size={16} className="text-emerald-600" />
+               <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Devocional Diário</h3>
+             </div>
+             <button 
+               onClick={() => setShowDevotionalList(!showDevotionalList)}
+               className="text-[9px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-xl active:scale-95 transition-all"
+             >
+               {showDevotionalList ? 'Novo Devocional' : 'Ver Agendados'}
+             </button>
+           </div>
+           
+           {!showDevotionalList ? (
+             <div className="space-y-4 animate-in fade-in duration-300">
+               <div className="space-y-1">
+                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Título do Devocional</label>
+                 <input 
+                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700 text-sm"
+                   placeholder="Ex: Momento com Deus"
+                   value={devotionalTitle}
+                   onChange={e => setDevotionalTitle(e.target.value)}
+                 />
+               </div>
+               
+               <div className="space-y-1">
+                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Link do Vídeo ou Conteúdo</label>
+                 <input 
+                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700 text-sm"
+                   placeholder="Link do YouTube ou site"
+                   value={devotionalLink}
+                   onChange={e => setDevotionalLink(e.target.value)}
+                 />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Texto do Devocional</label>
+                 <textarea 
+                   rows={4}
+                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700 text-sm resize-none"
+                   placeholder="Escreva a mensagem do dia..."
+                   value={devotionalContent}
+                   onChange={e => setDevotionalContent(e.target.value)}
+                 />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Agendar Para</label>
+                 <div className="relative">
+                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                   <input 
+                     type="datetime-local"
+                     className="w-full p-4 pl-12 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700 text-sm"
+                     value={devotionalScheduledFor}
+                     onChange={e => setDevotionalScheduledFor(e.target.value)}
+                   />
+                 </div>
+               </div>
+
+               <button 
+                 onClick={handleSaveDevotional}
+                 disabled={isSavingDevotional}
+                 className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-md uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-50"
+               >
+                 {isSavingDevotional ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
+                 AGENDAR DEVOCIONAL
+               </button>
+             </div>
+           ) : (
+             <div className="space-y-3 animate-in fade-in duration-300">
+               {allDevotionals.length === 0 ? (
+                 <div className="py-10 text-center opacity-30">
+                   <p className="text-[10px] font-black uppercase tracking-widest">Nenhum devocional agendado</p>
+                 </div>
+               ) : (
+                 allDevotionals.map(dev => (
+                   <div key={dev.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                     <div className="min-w-0 flex-1">
+                       <p className="text-xs font-black text-slate-700 uppercase truncate">{dev.title}</p>
+                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                         {new Date(dev.scheduled_for).toLocaleString('pt-BR')}
+                       </p>
+                     </div>
+                     <button 
+                       onClick={() => handleDeleteDevotional(dev.id!)}
+                       className="p-2 text-red-300 hover:text-red-500 transition-colors"
+                     >
+                       <Trash2 size={18} />
+                     </button>
+                   </div>
+                 ))
+               )}
+             </div>
+           )}
+        </div>
+
+        {/* 5. LISTA DE CONSELHEIROS */}
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6">
           <div className="flex justify-between items-center px-2 mb-2">
             <div>

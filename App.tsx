@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1 } from './types';
 import { DatabaseService, CounselorDB, GameConfig } from './db';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Units from './pages/Units';
+import Bible, { BibleHandle } from './pages/Bible';
+import BibleReading from './pages/BibleReading';
+import Devotional from './pages/Devotional';
 import UnitDetail from './pages/UnitDetail';
 import Ranking from './pages/Ranking';
 import Profile from './pages/Profile';
@@ -28,8 +31,9 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
+  const bibleRef = useRef<BibleHandle>(null);
   
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
@@ -191,6 +195,8 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home': return 'Sentinelas da Verdade';
       case 'units': return 'Unidades do Clube';
+      case 'bible': return 'Bíblia Sagrada';
+      case 'bible_reading': return 'Plano de Leitura';
       case 'ranking': return 'Ranking Geral';
       case 'leadership': return 'Corpo Diretivo';
       case 'profile': return 'Meu Perfil';
@@ -201,12 +207,19 @@ const App: React.FC = () => {
       case 'admin_quiz': return 'Editor de Quiz';
       case 'admin_specialty': return 'Editor de Especialidades';
       case 'admin_management': return 'Gestão Administrativa';
+      case 'devotional': return 'Devocional Diário';
       default: return 'Sentinelas da Verdade';
     }
   };
 
   const handleBack = () => {
     if (currentPage === 'unit_detail') setCurrentPage('units');
+    else if (currentPage === 'bible') {
+      const handled = bibleRef.current?.goBack();
+      if (!handled) setCurrentPage('home');
+    }
+    else if (currentPage === 'bible_reading') setCurrentPage('bible');
+    else if (currentPage === 'devotional') setCurrentPage('bible');
     else if (currentPage === 'admin_management') setCurrentPage('profile');
     else if (['admin_announcements', 'admin_quiz', 'admin_specialty'].includes(currentPage)) setCurrentPage('admin_management');
   };
@@ -215,6 +228,9 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
+      case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} />;
+      case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} />;
+      case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} />;
       case 'ranking': return <Ranking members={members} />;
       case 'leadership': return <Leadership members={members} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} />;
@@ -241,14 +257,21 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 
-  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_management'].includes(currentPage);
+  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_management', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
       {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
       {lastNotification && (
         <div 
-          onClick={() => setCurrentPage('chat')}
+          onClick={() => {
+            if (lastNotification.sender_id === 'system_devotional') {
+              setCurrentPage('devotional');
+            } else {
+              setCurrentPage('chat');
+            }
+            setLastNotification(null);
+          }}
           className="fixed top-24 inset-x-4 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
         >
           <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 overflow-hidden shadow-inner">

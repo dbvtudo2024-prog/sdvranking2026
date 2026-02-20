@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Announcement } from '../types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid } from 'lucide-react';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen } from 'lucide-react';
 
 interface HomeProps {
   announcements: Announcement[];
@@ -36,7 +36,13 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-y-auto pb-24 animate-in fade-in duration-500">
       {/* BRASÃO DO CLUBE AO TOPO */}
-      <div className="flex flex-col items-center justify-center pt-12 pb-8 bg-white rounded-b-[3rem] shadow-xl shadow-blue-900/5">
+      <div className="flex flex-col items-center justify-center pt-12 pb-8 bg-white rounded-b-[3rem] shadow-xl shadow-blue-900/5 relative">
+        <button 
+          onClick={() => onNavigate('profile')}
+          className="absolute top-8 right-8 p-3 bg-slate-50 rounded-2xl text-slate-400 active:scale-90 transition-all border border-slate-100 shadow-sm"
+        >
+          <User size={24} />
+        </button>
         <img src={LOGO_APP} alt="Brasão do Clube" className="w-32 h-32 object-contain drop-shadow-2xl" />
         <h1 className="mt-4 text-xl font-black text-slate-800 uppercase tracking-tighter">Sentinelas da Verdade</h1>
         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
@@ -95,11 +101,11 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Acesso Rápido</h3>
         <div className="grid grid-cols-3 gap-4">
           <Shortcut icon={LayoutGrid} label="Unidades" page="units" color="#0061f2" />
+          <Shortcut icon={BookOpen} label="Bíblia" page="bible" color="#8b5cf6" />
           <Shortcut icon={Trophy} label="Ranking" page="ranking" color="#f59e0b" />
           <Shortcut icon={MessageCircle} label="Chat" page="chat" color="#10b981" />
           <Shortcut icon={ShieldCheck} label="Líderes" page="leadership" color="#6366f1" />
           <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
-          <Shortcut icon={User} label="Perfil" page="profile" color="#64748b" />
         </div>
       </div>
     </div>

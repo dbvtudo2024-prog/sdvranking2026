@@ -71,6 +71,14 @@ export interface AuthUser {
   counselor?: string;
 }
 
+export interface BibleReadingProgress {
+  id?: string;
+  user_id: string;
+  plan_id: string;
+  completed_items: string[];
+  last_updated: string;
+}
+
 export interface QuizQuestion {
   id: string;
   category: 'Desbravadores' | 'Bíblia';
@@ -90,4 +98,13 @@ export interface Challenge1x1 {
   questionIds: string[];
   lastAnsweredBy?: string;
   winnerId?: string;
+}
+
+export interface Devotional {
+  id?: number;
+  created_at?: string;
+  title: string;
+  link: string;
+  content: string;
+  scheduled_for: string;
 }
