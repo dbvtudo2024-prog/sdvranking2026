@@ -48,8 +48,10 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
         setNewQuestion({ clues: ['', '', ''], answer: '', category: 'Geral' });
       }
       setShowModal(false);
-    } catch (error) {
-      alert('Erro ao salvar questão no banco.');
+      alert('✅ Salvo com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar: ' + (error.message || 'Verifique o console'));
     } finally {
       setIsSaving(false);
     }
@@ -84,8 +86,11 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
               try {
                 const toSeed = THREE_CLUES_DATA.map(q => ({ ...q, category: 'Geral' }));
                 await DatabaseService.seedThreeCluesQuestions(toSeed);
-                alert('Questões importadas!');
-              } catch (e) { alert('Erro ao importar.'); }
+                alert('✅ Questões importadas com sucesso!');
+              } catch (e: any) { 
+                console.error('Erro ao importar:', e);
+                alert('❌ Erro ao importar: ' + (e.message || 'Verifique o console')); 
+              }
               finally { setIsSaving(false); }
             }}
             disabled={isSaving}

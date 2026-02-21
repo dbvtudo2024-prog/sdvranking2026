@@ -559,20 +559,38 @@ export const DatabaseService = {
   },
 
   async addThreeCluesQuestion(q: Omit<ThreeCluesQuestion, 'id'>) {
-    await supabase.from('three_clues_questions').insert([q]);
+    console.log("Tentando salvar questão:", q);
+    const { error } = await supabase.from('three_clues_questions').insert([q]);
+    if (error) {
+      console.error("Erro Supabase (add):", error);
+      throw error;
+    }
   },
 
   async updateThreeCluesQuestion(q: ThreeCluesQuestion) {
     const { id, created_at, ...updates } = q;
-    await supabase.from('three_clues_questions').update(updates).eq('id', id);
+    const { error } = await supabase.from('three_clues_questions').update(updates).eq('id', id);
+    if (error) {
+      console.error("Erro Supabase (update):", error);
+      throw error;
+    }
   },
 
   async deleteThreeCluesQuestion(id: string) {
-    await supabase.from('three_clues_questions').delete().eq('id', id);
+    const { error } = await supabase.from('three_clues_questions').delete().eq('id', id);
+    if (error) {
+      console.error("Erro Supabase (delete):", error);
+      throw error;
+    }
   },
 
   async seedThreeCluesQuestions(questions: Omit<ThreeCluesQuestion, 'id'>[]) {
-    await supabase.from('three_clues_questions').insert(questions);
+    console.log("Tentando importar questões:", questions);
+    const { error } = await supabase.from('three_clues_questions').insert(questions);
+    if (error) {
+      console.error("Erro Supabase (seed):", error);
+      throw error;
+    }
   },
 
   subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {

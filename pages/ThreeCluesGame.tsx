@@ -32,11 +32,11 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
           setQuestions([...data].sort(() => Math.random() - 0.5).slice(0, 5));
         } else {
           // Fallback para dados locais se o banco estiver vazio
-          setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })) as any);
+          setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })).sort(() => Math.random() - 0.5).slice(0, 5) as any);
         }
       } catch (err) {
         console.error("Erro ao carregar questões:", err);
-        setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })) as any);
+        setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })).sort(() => Math.random() - 0.5).slice(0, 5) as any);
       } finally {
         setLoading(false);
       }
