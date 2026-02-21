@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { DatabaseService } from '../db';
-import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History } from 'lucide-react';
+import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History, Bookmark, Trash2 } from 'lucide-react';
 
 interface BibleProps {
   onGoToReadingPlan: () => void;
@@ -13,8 +13,15 @@ export interface BibleHandle {
   goBack: () => boolean;
 }
 
+interface MarkedVerse {
+  book: string;
+  chapter: number;
+  verse: number;
+  text: string;
+}
+
 const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDevotional, onBackToHome }, ref) => {
-  const [view, setView] = useState<'menu' | 'books' | 'chapters' | 'verses' | 'search'>('menu');
+  const [view, setView] = useState<'menu' | 'books' | 'chapters' | 'verses' | 'search' | 'marked'>('menu');
   const [books, setBooks] = useState<string[]>([]);
   const [selectedTestament, setSelectedTestament] = useState<'VT' | 'NT'>('VT');
   const [selectedBook, setSelectedBook] = useState<string>('');
@@ -26,6 +33,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [verseOfDay, setVerseOfDay] = useState<{livro: string, cap: number, ver: number, texto: string} | null>(null);
   const [recentReading, setRecentReading] = useState<{book: string, chapter: number} | null>(null);
+  const [markedVerses, setMarkedVerses] = useState<MarkedVerse[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({
@@ -38,7 +46,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
         setView('books');
         return true;
       }
-      if (view === 'books' || view === 'search') {
+      if (view === 'books' || view === 'search' || view === 'marked') {
         setView('menu');
         return true;
       }
@@ -50,6 +58,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
     loadBooks();
     loadVerseOfDay();
     loadRecentReading();
+    loadMarkedVerses();
   }, []);
 
   const loadRecentReading = () => {
@@ -63,6 +72,49 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
     }
   };
 
+  const loadMarkedVerses = () => {
+    const saved = localStorage.getItem('bible_marked_verses');
+    if (saved) {
+      try {
+        setMarkedVerses(JSON.parse(saved));
+      } catch (e) {
+        console.error("Erro ao carregar versículos marcados:", e);
+      }
+    }
+  };
+
+  const toggleMarkVerse = (v: {Versiculo: number, Texto: string}) => {
+    const isMarked = markedVerses.some(mv => 
+      mv.book === selectedBook && 
+      mv.chapter === selectedChapter && 
+      mv.verse === v.Versiculo
+    );
+
+    let newMarked: MarkedVerse[];
+    if (isMarked) {
+      newMarked = markedVerses.filter(mv => 
+        !(mv.book === selectedBook && mv.chapter === selectedChapter && mv.verse === v.Versiculo)
+      );
+    } else {
+      newMarked = [...markedVerses, {
+        book: selectedBook,
+        chapter: selectedChapter,
+        verse: v.Versiculo,
+        text: v.Texto
+      }];
+    }
+
+    setMarkedVerses(newMarked);
+    localStorage.setItem('bible_marked_verses', JSON.stringify(newMarked));
+  };
+
+  const removeMarkedVerse = (mv: MarkedVerse) => {
+    const newMarked = markedVerses.filter(item => 
+      !(item.book === mv.book && item.chapter === mv.chapter && item.verse === mv.verse)
+    );
+    setMarkedVerses(newMarked);
+    localStorage.setItem('bible_marked_verses', JSON.stringify(newMarked));
+  };
   const loadVerseOfDay = async () => {
     try {
       const data = await DatabaseService.getVerseOfTheDay();
@@ -120,6 +172,34 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
     } catch (err) {
       console.error("Erro ao carregar versículos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const jumpToVerse = async (book: string, chapter: number) => {
+    setLoading(true);
+    try {
+      setSelectedBook(book);
+      setSelectedChapter(chapter);
+      
+      // Carregar capítulos para navegação (Anterior/Próximo)
+      const chaptersData = await DatabaseService.getBibleChapters(book);
+      setChapters(chaptersData);
+      
+      // Carregar versículos
+      const versesData = await DatabaseService.getBibleVerses(book, chapter);
+      setVerses(versesData);
+      
+      // Salvar leitura recente
+      const recent = { book, chapter };
+      setRecentReading(recent);
+      localStorage.setItem('bible_recent_reading', JSON.stringify(recent));
+      
+      setView('verses');
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    } catch (err) {
+      console.error("Erro ao saltar para versículo:", err);
     } finally {
       setLoading(false);
     }
@@ -238,11 +318,14 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Devocional</span>
               </button>
 
-              <button className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-emerald-100 group opacity-50 cursor-not-allowed">
-                <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600">
-                  <List size={24} />
+              <button 
+                onClick={() => setView('marked')}
+                className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-emerald-100 group"
+              >
+                <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <Bookmark size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Mais</span>
+                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Marcados</span>
               </button>
             </div>
 
@@ -251,10 +334,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Leitura Recente</h4>
               {recentReading ? (
                 <button 
-                  onClick={() => {
-                    setSelectedBook(recentReading.book);
-                    handleSelectChapter(recentReading.chapter);
-                  }}
+                  onClick={() => jumpToVerse(recentReading.book, recentReading.chapter)}
                   className="w-full bg-blue-50 p-6 rounded-[1.5rem] border border-blue-100 flex items-center justify-between group active:scale-95 transition-all"
                 >
                   <div className="text-left">
@@ -332,12 +412,23 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
             </div>
             
             <div className="space-y-4 pb-32">
-              {verses.map((v) => (
-                <div key={v.Versiculo} className="flex gap-3 group">
-                  <span className="text-[10px] font-black text-blue-600 mt-1 shrink-0 w-6 text-right">{v.Versiculo}</span>
-                  <p className="text-base font-medium text-slate-700 leading-relaxed">{v.Texto}</p>
-                </div>
-              ))}
+              {verses.map((v) => {
+                const isMarked = markedVerses.some(mv => 
+                  mv.book === selectedBook && 
+                  mv.chapter === selectedChapter && 
+                  mv.verse === v.Versiculo
+                );
+                return (
+                  <div 
+                    key={v.Versiculo} 
+                    onClick={() => toggleMarkVerse(v)}
+                    className={`flex gap-3 group p-2 rounded-xl transition-all cursor-pointer ${isMarked ? 'bg-amber-100/50 border-l-4 border-amber-400' : 'hover:bg-slate-100'}`}
+                  >
+                    <span className={`text-[10px] font-black mt-1 shrink-0 w-6 text-right ${isMarked ? 'text-amber-600' : 'text-blue-600'}`}>{v.Versiculo}</span>
+                    <p className={`text-base font-medium leading-relaxed ${isMarked ? 'text-slate-900' : 'text-slate-700'}`}>{v.Texto}</p>
+                  </div>
+                );
+              })}
             </div>
 
             {/* FIXED NAVIGATION BUTTONS */}
@@ -371,10 +462,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
               searchResults.map((res, idx) => (
                 <button 
                   key={idx}
-                  onClick={() => {
-                    setSelectedBook(res.Livro);
-                    handleSelectChapter(res.Capitulo);
-                  }}
+                  onClick={() => jumpToVerse(res.Livro, res.Capitulo)}
                   className="w-full bg-white p-4 rounded-3xl border border-slate-100 shadow-sm text-left active:scale-[0.98] transition-all"
                 >
                   <div className="flex justify-between items-center mb-2">
@@ -384,6 +472,43 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                   <p className="text-sm font-medium text-slate-600 line-clamp-3">{res.Texto}</p>
                 </button>
               ))
+            )}
+          </div>
+        ) : view === 'marked' ? (
+          <div className="py-4 space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Versículos Marcados</h3>
+            </div>
+            {markedVerses.length === 0 ? (
+              <div className="text-center py-20 opacity-30">
+                <Bookmark size={48} className="mx-auto mb-4 text-slate-300" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Nenhum versículo marcado ainda.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {markedVerses.map((mv, idx) => (
+                  <div 
+                    key={idx}
+                    className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-left relative group"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <button 
+                        onClick={() => jumpToVerse(mv.book, mv.chapter)}
+                        className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                      >
+                        {mv.book} {mv.chapter}:{mv.verse}
+                      </button>
+                      <button 
+                        onClick={() => removeMarkedVerse(mv)}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <p className="text-sm font-medium text-slate-600 leading-relaxed italic">"{mv.text}"</p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ) : null}

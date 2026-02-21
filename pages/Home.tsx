@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Announcement } from '../types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen } from 'lucide-react';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2 } from 'lucide-react';
 
 interface HomeProps {
   announcements: Announcement[];
@@ -11,6 +11,12 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+
+  const handleShare = (aviso: Announcement) => {
+    const text = `📢 *AVISO DO CLUBE: ${aviso.title.toUpperCase()}*\n\n${aviso.content}\n\n🗓️ _Postado em: ${aviso.date}_`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
 
   useEffect(() => {
     if (announcements && announcements.length > 1) {
@@ -77,12 +83,19 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
                     key={aviso.id} 
                     className={`absolute inset-0 transition-all duration-700 ease-in-out ${idx === currentAvisoIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
                   >
-                    <div className="bg-white rounded-2xl p-4 h-full flex flex-col justify-center shadow-sm">
+                    <div className="bg-white rounded-2xl p-4 h-full flex flex-col justify-center shadow-sm relative group">
+                      <button 
+                        onClick={() => handleShare(aviso)}
+                        className="absolute right-2 bottom-2 p-2 text-blue-100 hover:text-blue-600 transition-colors"
+                        title="Compartilhar no WhatsApp"
+                      >
+                        <Share2 size={14} />
+                      </button>
                       <div className="flex justify-between items-center mb-1">
-                        <p className="text-xs font-black text-slate-800 uppercase truncate pr-2">{aviso.title}</p>
+                        <p className="text-xs font-black text-slate-800 uppercase truncate pr-8">{aviso.title}</p>
                         <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{aviso.date}</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-tight font-medium line-clamp-2">{aviso.content}</p>
+                      <p className="text-[10px] text-slate-500 leading-tight font-medium line-clamp-2 pr-6">{aviso.content}</p>
                     </div>
                   </div>
                 ))

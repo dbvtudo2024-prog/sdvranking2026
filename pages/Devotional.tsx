@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DatabaseService } from '../db';
-import { Loader2, BookOpen, ExternalLink, ChevronLeft, History } from 'lucide-react';
+import { Loader2, BookOpen, ExternalLink, ChevronLeft, History, Share2 } from 'lucide-react';
 import { Devotional as DevotionalType } from '../types';
 
 interface DevotionalProps {
@@ -13,6 +13,14 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
   const [history, setHistory] = useState<DevotionalType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+
+  const handleShare = () => {
+    if (!devotional) return;
+    const dateStr = new Date(devotional.scheduled_for).toLocaleDateString('pt-BR');
+    const text = `📖 *DEVOCIONAL DIÁRIO: ${devotional.title.toUpperCase()}*\n\n${devotional.content || ''}\n\n🔗 *Link:* ${devotional.link || 'Acesse no App'}\n\n🗓️ _Data: ${dateStr}_`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
 
   useEffect(() => {
     loadDevotional();
@@ -111,12 +119,19 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
                 <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600">
                   <BookOpen size={24} />
                 </div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-none">{devotional.title}</h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-none truncate">{devotional.title}</h2>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                     {new Date(devotional.scheduled_for).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
+                <button 
+                  onClick={handleShare}
+                  className="p-3 bg-slate-50 text-slate-400 rounded-2xl active:scale-90 transition-all border border-slate-100 shadow-sm"
+                  title="Compartilhar no WhatsApp"
+                >
+                  <Share2 size={20} />
+                </button>
               </div>
 
               {/* VIDEO EMBED OR LINK */}

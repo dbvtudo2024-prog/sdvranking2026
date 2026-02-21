@@ -76,8 +76,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   };
 
   const handleSaveDevotional = async () => {
-    if (!devotionalLink.trim() || !devotionalTitle.trim()) {
-      alert("Preencha o título e o link.");
+    if (!devotionalTitle.trim()) {
+      alert("Preencha ao menos o título.");
       return;
     }
     setIsSavingDevotional(true);
