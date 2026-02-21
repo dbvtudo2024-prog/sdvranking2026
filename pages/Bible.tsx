@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { DatabaseService } from '../db';
-import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History, Bookmark, Trash2 } from 'lucide-react';
+import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History, Bookmark, Trash2, Share2 } from 'lucide-react';
 
 interface BibleProps {
   onGoToReadingPlan: () => void;
@@ -115,6 +115,13 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
     setMarkedVerses(newMarked);
     localStorage.setItem('bible_marked_verses', JSON.stringify(newMarked));
   };
+
+  const handleShareVerse = (book: string, chapter: number, verse: number, text: string) => {
+    const shareText = `📖 *${book} ${chapter}:${verse}*\n\n"${text}"\n\n_Compartilhado via Sentinelas da Verdade_`;
+    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank');
+  };
+
   const loadVerseOfDay = async () => {
     try {
       const data = await DatabaseService.getVerseOfTheDay();
@@ -262,9 +269,20 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
             <div className="bg-[#0f172a] rounded-[2.5rem] p-8 text-white shadow-2xl shadow-slate-200 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
               <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-1.5 h-6 bg-amber-400 rounded-full"></div>
-                  <h3 className="text-amber-400 font-black text-xs uppercase tracking-[0.2em]">Versículo do Dia</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-amber-400 rounded-full"></div>
+                    <h3 className="text-amber-400 font-black text-xs uppercase tracking-[0.2em]">Versículo do Dia</h3>
+                  </div>
+                  {verseOfDay && (
+                    <button 
+                      onClick={() => handleShareVerse(verseOfDay.livro, verseOfDay.cap, verseOfDay.ver, verseOfDay.texto)}
+                      className="p-2 bg-slate-800/50 text-slate-300 rounded-xl hover:text-amber-400 hover:bg-slate-800 transition-all active:scale-90"
+                      title="Compartilhar Versículo do Dia"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                  )}
                 </div>
                 {verseOfDay ? (
                   <>
@@ -467,7 +485,18 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{res.Livro} {res.Capitulo}:{res.Versiculo}</span>
-                    <ChevronRight size={14} className="text-slate-300" />
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShareVerse(res.Livro, res.Capitulo, res.Versiculo, res.Texto);
+                        }}
+                        className="p-1.5 text-slate-300 hover:text-blue-500 transition-colors"
+                      >
+                        <Share2 size={14} />
+                      </button>
+                      <ChevronRight size={14} className="text-slate-300" />
+                    </div>
                   </div>
                   <p className="text-sm font-medium text-slate-600 line-clamp-3">{res.Texto}</p>
                 </button>
@@ -498,12 +527,22 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                       >
                         {mv.book} {mv.chapter}:{mv.verse}
                       </button>
-                      <button 
-                        onClick={() => removeMarkedVerse(mv)}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleShareVerse(mv.book, mv.chapter, mv.verse, mv.text)}
+                          className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                          title="Compartilhar"
+                        >
+                          <Share2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => removeMarkedVerse(mv)}
+                          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                          title="Remover"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm font-medium text-slate-600 leading-relaxed italic">"{mv.text}"</p>
                   </div>

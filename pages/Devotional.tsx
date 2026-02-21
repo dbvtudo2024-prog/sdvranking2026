@@ -96,8 +96,8 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
                   onClick={() => handleSelectFromHistory(dev)}
                   className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
                 >
-                  <div className="text-left">
-                    <p className="text-sm font-black text-slate-700 uppercase truncate">{dev.title}</p>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-sm font-black text-slate-700 uppercase leading-tight">{dev.title}</p>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                       {new Date(dev.scheduled_for).toLocaleDateString('pt-BR')}
                     </p>
@@ -120,7 +120,7 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
                   <BookOpen size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-none truncate">{devotional.title}</h2>
+                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{devotional.title}</h2>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                     {new Date(devotional.scheduled_for).toLocaleDateString('pt-BR')}
                   </p>

@@ -92,20 +92,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         scheduled_for: scheduledDate.toISOString()
       });
 
-      // Enviar notificação via chat/realtime
-      const notificationMsg: ChatMessage = {
-        sender_id: 'system_devotional',
-        sender_name: 'Ministério Pessoal 📖',
-        sender_photo: 'https://api.dicebear.com/7.x/shapes/svg?seed=bible',
-        text: isNow 
-          ? `✨ NOVO DEVOCIONAL: "${devotionalTitle}" já está disponível! Clique para ler.`
-          : `📅 AGENDADO: Novo devocional "${devotionalTitle}" para ${scheduledDate.toLocaleDateString('pt-BR')} às ${scheduledDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}.`,
-        unit: 'Geral',
-        created_at: new Date().toISOString()
-      };
-      await DatabaseService.sendMessage(notificationMsg);
-
-      alert("✅ Devocional agendado e notificação enviada!");
+      alert("✅ Devocional agendado com sucesso!");
       setDevotionalLink('');
       setDevotionalTitle('Devocional Diário');
       setDevotionalContent('');
@@ -301,7 +288,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                  allDevotionals.map(dev => (
                    <div key={dev.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
                      <div className="min-w-0 flex-1">
-                       <p className="text-xs font-black text-slate-700 uppercase truncate">{dev.title}</p>
+                       <p className="text-xs font-black text-slate-700 uppercase leading-tight">{dev.title}</p>
                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                          {new Date(dev.scheduled_for).toLocaleString('pt-BR')}
                        </p>
