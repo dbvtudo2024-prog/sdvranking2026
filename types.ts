@@ -87,6 +87,14 @@ export interface QuizQuestion {
   correctAnswer: number;
 }
 
+export interface ThreeCluesQuestion {
+  id: string;
+  clues: string[];
+  answer: string;
+  category: string;
+  created_at?: string;
+}
+
 export interface Challenge1x1 {
   id: string;
   challengerId: string;

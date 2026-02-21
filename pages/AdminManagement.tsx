@@ -11,6 +11,7 @@ interface AdminManagementProps {
   onGoToAdminAvisos: () => void;
   onGoToAdminQuiz: () => void;
   onGoToAdminSpecialty: () => void;
+  onGoToAdminThreeClues: () => void;
   counselors: CounselorDB[];
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
@@ -33,6 +34,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminAvisos,
   onGoToAdminQuiz,
   onGoToAdminSpecialty,
+  onGoToAdminThreeClues,
   counselors = [],
   onAddCounselor,
   onUpdateCounselor,
@@ -204,6 +206,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </button>
               <button onClick={onGoToAdminSpecialty} className="bg-slate-50 text-slate-600 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border border-slate-100 uppercase text-xs tracking-widest active:scale-95 transition-all">
                 <Medal size={24} /> EDITAR ESPECIALIDADES
+              </button>
+              <button onClick={onGoToAdminThreeClues} className="bg-slate-50 text-slate-600 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border border-slate-100 uppercase text-xs tracking-widest active:scale-95 transition-all">
+                <HelpCircle size={24} /> EDITAR 3 DICAS
               </button>
            </div>
         </div>

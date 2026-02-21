@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { AuthUser, Member, Score } from '../types';
+import { AuthUser, Member, Score, ThreeCluesQuestion } from '../types';
 import { THREE_CLUES_DATA } from '../constants';
-import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info } from 'lucide-react';
+import { DatabaseService } from '../db';
+import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2 } from 'lucide-react';
 
 interface ThreeCluesGameProps {
   user: AuthUser;
@@ -13,6 +14,7 @@ interface ThreeCluesGameProps {
 }
 
 const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+  const [questions, setQuestions] = useState<ThreeCluesQuestion[]>([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2 (as 3 dicas)
   const [userInput, setUserInput] = useState('');
@@ -20,15 +22,52 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   const [showResult, setShowResult] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [showTutorial, setShowTutorial] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const questions = useMemo(() => {
-    return [...THREE_CLUES_DATA].sort(() => Math.random() - 0.5).slice(0, 5);
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        const data = await DatabaseService.getThreeCluesQuestions();
+        if (data && data.length > 0) {
+          setQuestions([...data].sort(() => Math.random() - 0.5).slice(0, 5));
+        } else {
+          // Fallback para dados locais se o banco estiver vazio
+          setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })) as any);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar questões:", err);
+        setQuestions([...THREE_CLUES_DATA].map((q, i) => ({ ...q, id: String(i), category: 'Geral' })) as any);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadQuestions();
   }, []);
 
   const currentQ = questions[currentQuestionIdx];
 
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carregando Desafio...</p>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-4">
+        <HelpCircle size={60} className="text-slate-200" />
+        <h3 className="text-xl font-black text-slate-800 uppercase">Sem Questões</h3>
+        <p className="text-slate-400 text-sm">Peça para a liderança cadastrar questões no painel admin.</p>
+        <button onClick={onBack} className="w-full max-w-xs bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-xs">VOLTAR</button>
+      </div>
+    );
+  }
 
   const handleGuess = () => {
     if (!userInput.trim() || feedback) return;

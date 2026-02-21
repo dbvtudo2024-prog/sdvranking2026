@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -550,5 +550,38 @@ export const DatabaseService = {
       .eq('id', id);
     
     if (error) throw error;
+  },
+
+  // --- JOGO 3 DICAS ---
+  async getThreeCluesQuestions(): Promise<ThreeCluesQuestion[]> {
+    const { data } = await supabase.from('three_clues_questions').select('*').order('created_at', { ascending: false });
+    return (data || []) as ThreeCluesQuestion[];
+  },
+
+  async addThreeCluesQuestion(q: Omit<ThreeCluesQuestion, 'id'>) {
+    await supabase.from('three_clues_questions').insert([q]);
+  },
+
+  async updateThreeCluesQuestion(q: ThreeCluesQuestion) {
+    const { id, created_at, ...updates } = q;
+    await supabase.from('three_clues_questions').update(updates).eq('id', id);
+  },
+
+  async deleteThreeCluesQuestion(id: string) {
+    await supabase.from('three_clues_questions').delete().eq('id', id);
+  },
+
+  async seedThreeCluesQuestions(questions: Omit<ThreeCluesQuestion, 'id'>[]) {
+    await supabase.from('three_clues_questions').insert(questions);
+  },
+
+  subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {
+    this.getThreeCluesQuestions().then(callback);
+    return supabase
+      .channel('three_clues_questions_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, () => {
+        this.getThreeCluesQuestions().then(callback);
+      })
+      .subscribe();
   }
 };
