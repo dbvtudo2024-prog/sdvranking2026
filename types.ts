@@ -35,6 +35,10 @@ export interface Score {
   specialtyGame?: number;
   challenge1x1?: number;
   threeCluesGame?: number;
+  puzzleGame?: number;
+  specialtyStudyScore?: number;
+  specialtyStudyId?: string;
+  specialtyStudyName?: string;
 }
 
 export interface Member {
@@ -95,6 +99,21 @@ export interface ThreeCluesQuestion {
   created_at?: string;
 }
 
+export interface SpecialtyStudyQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
+
+export interface SpecialtyStudy {
+  id: string;
+  name: string;
+  pdfUrl: string;
+  category: string;
+  questions: SpecialtyStudyQuestion[];
+  created_at?: string;
+}
+
 export interface Challenge1x1 {
   id: string;
   challengerId: string;
@@ -115,4 +134,11 @@ export interface Devotional {
   link: string;
   content: string;
   scheduled_for: string;
+}
+
+export interface PuzzleImage {
+  id: string;
+  url: string;
+  title: string;
+  created_at?: string;
 }

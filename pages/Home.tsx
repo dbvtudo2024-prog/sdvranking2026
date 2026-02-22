@@ -119,6 +119,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
           <Shortcut icon={MessageCircle} label="Chat" page="chat" color="#10b981" />
           <Shortcut icon={ShieldCheck} label="Líderes" page="leadership" color="#6366f1" />
           <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
+          <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion } from './types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy } from './types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -35,6 +35,7 @@ export interface GameConfig {
   memory_override: boolean;
   specialty_override: boolean;
   three_clues_override: boolean;
+  puzzle_override: boolean;
 }
 
 export const DatabaseService = {
@@ -611,12 +612,93 @@ export const DatabaseService = {
     }
   },
 
+  // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
+  async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
+    const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error("Erro ao buscar estudos:", error);
+      return [];
+    }
+    return (data || []) as SpecialtyStudy[];
+  },
+
+  async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
+    const { error } = await supabase.from('specialty_studies').insert([study]);
+    if (error) {
+      console.error("Erro ao adicionar estudo:", error);
+      throw error;
+    }
+  },
+
+  async updateSpecialtyStudy(study: SpecialtyStudy) {
+    const { id, created_at, ...updates } = study;
+    const { error } = await supabase.from('specialty_studies').update(updates).eq('id', id);
+    if (error) {
+      console.error("Erro ao atualizar estudo:", error);
+      throw error;
+    }
+  },
+
+  async deleteSpecialtyStudy(id: string) {
+    const { error } = await supabase.from('specialty_studies').delete().eq('id', id);
+    if (error) {
+      console.error("Erro ao deletar estudo:", error);
+      throw error;
+    }
+  },
+
+  subscribeSpecialtyStudies(callback: (studies: SpecialtyStudy[]) => void) {
+    this.getSpecialtyStudies().then(callback);
+    return supabase
+      .channel('specialty_studies_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, () => {
+        this.getSpecialtyStudies().then(callback);
+      })
+      .subscribe();
+  },
+
   subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {
     this.getThreeCluesQuestions().then(callback);
     return supabase
       .channel('three_clues_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, () => {
         this.getThreeCluesQuestions().then(callback);
+      })
+      .subscribe();
+  },
+
+  // --- QUEBRA-CABEÇA ---
+  async getPuzzleImages(): Promise<any[]> {
+    const { data, error } = await supabase.from('puzzle_images').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error("Erro ao buscar imagens do quebra-cabeça:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async addPuzzleImage(image: { url: string, title: string }) {
+    const { error } = await supabase.from('puzzle_images').insert([image]);
+    if (error) {
+      console.error("Erro ao adicionar imagem do quebra-cabeça:", error);
+      throw error;
+    }
+  },
+
+  async deletePuzzleImage(id: string) {
+    const { error } = await supabase.from('puzzle_images').delete().eq('id', id);
+    if (error) {
+      console.error("Erro ao deletar imagem do quebra-cabeça:", error);
+      throw error;
+    }
+  },
+
+  subscribePuzzleImages(callback: (images: any[]) => void) {
+    this.getPuzzleImages().then(callback);
+    return supabase
+      .channel('puzzle_images_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'puzzle_images' }, () => {
+        this.getPuzzleImages().then(callback);
       })
       .subscribe();
   }

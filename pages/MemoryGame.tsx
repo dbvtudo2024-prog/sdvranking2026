@@ -39,7 +39,7 @@ const CARD_IMAGES = [
 ];
 
 const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onBack, memoryOverride }) => {
-  const [difficulty, setDifficulty] = useState<'normal' | 'hard' | null>(null);
+  const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard' | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [disabled, setDisabled] = useState(false);
@@ -93,9 +93,9 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const initializeGame = (diff: 'normal' | 'hard') => {
+  const initializeGame = (diff: 'easy' | 'normal' | 'hard') => {
     setDifficulty(diff);
-    const pairCount = diff === 'normal' ? 8 : 12;
+    const pairCount = diff === 'easy' ? 4 : diff === 'normal' ? 8 : 12;
     const selectedImages = CARD_IMAGES.slice(0, pairCount);
     
     const duplicatedCards = [...selectedImages, ...selectedImages]
@@ -154,9 +154,26 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     }
   };
 
+  const calculatePoints = () => {
+    if (!difficulty) return 0;
+    const basePoints = difficulty === 'easy' ? 10 : difficulty === 'normal' ? 20 : 30;
+    const idealMoves = difficulty === 'easy' ? 6 : difficulty === 'normal' ? 14 : 22;
+    const idealTime = difficulty === 'easy' ? 15 : difficulty === 'normal' ? 40 : 70;
+    
+    // Multiplier based on moves and time efficiency
+    const moveEfficiency = Math.max(0.5, idealMoves / moves);
+    const timeEfficiency = Math.max(0.5, idealTime / seconds);
+    
+    // Combining efficiencies for a final multiplier
+    const multiplier = (moveEfficiency + timeEfficiency) / 2;
+    
+    // Final points with a small boost for performance
+    return Math.max(5, Math.floor(basePoints * multiplier * 1.3));
+  };
+
   const handleFinish = () => {
     if (currentMember) {
-      const points = difficulty === 'hard' ? 30 : 20;
+      const points = calculatePoints();
       const newScoreEntry: Score = {
         date: new Date().toLocaleDateString('pt-BR'),
         punctuality: 0,
@@ -202,14 +219,24 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   }
 
   if (isGameOver) {
-    const points = difficulty === 'hard' ? 30 : 20;
+    const points = calculatePoints();
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
         <div className="w-24 h-24 bg-[#FFD700] rounded-[2.5rem] flex items-center justify-center text-[#003366] shadow-xl mb-8"><Trophy size={48} /></div>
         <h2 className="text-3xl font-black text-slate-800 mb-10 uppercase">Excelente!</h2>
         <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full">
            <p className="text-6xl font-black text-[#0061f2]">{points} <span className="text-xl">pts</span></p>
-           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">Nível: {difficulty === 'hard' ? 'Difícil' : 'Normal'}</p>
+           <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${
+             difficulty === 'easy' ? 'text-emerald-500' : 
+             difficulty === 'normal' ? 'text-amber-500' : 
+             'text-red-500'
+           }`}>
+             Nível: {difficulty === 'easy' ? 'Fácil' : difficulty === 'normal' ? 'Médio' : 'Difícil'}
+           </p>
+           <div className="mt-4 flex justify-center gap-4 text-[10px] font-bold text-slate-500 uppercase">
+             <span>Tempo: {formatTime(seconds)}</span>
+             <span>Movimentos: {moves}</span>
+           </div>
         </div>
         <button onClick={handleFinish} className="w-full bg-[#0061f2] text-white py-6 rounded-[2rem] font-black uppercase shadow-xl">SALVAR PONTOS</button>
       </div>
@@ -234,27 +261,41 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
           </div>
 
           <button 
-            onClick={() => initializeGame('normal')}
-            className="w-full bg-white border-2 border-slate-100 p-6 sm:p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 flex items-center justify-between group active:scale-95 transition-all"
+            onClick={() => initializeGame('easy')}
+            className="w-full bg-emerald-600 p-6 sm:p-8 rounded-[2.5rem] shadow-xl shadow-emerald-900/20 flex items-center justify-between group active:scale-95 transition-all"
           >
             <div className="text-left">
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Iniciante</p>
-              <h4 className="text-lg sm:text-xl font-black text-slate-800 uppercase">Normal</h4>
-              <p className="text-slate-400 text-xs font-bold">16 Cartas • 20 Pontos</p>
+              <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">Iniciante</p>
+              <h4 className="text-lg sm:text-xl font-black text-white uppercase">Fácil</h4>
+              <p className="text-emerald-500/80 text-xs font-bold bg-white/10 px-2 py-0.5 rounded-lg inline-block mt-1">8 Cartas • Pontos Variáveis</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white/40 group-hover:bg-white/20 group-hover:text-white transition-colors">
+              <Shuffle size={20} />
+            </div>
+          </button>
+
+          <button 
+            onClick={() => initializeGame('normal')}
+            className="w-full bg-amber-400 p-6 sm:p-8 rounded-[2.5rem] shadow-xl shadow-amber-900/20 flex items-center justify-between group active:scale-95 transition-all"
+          >
+            <div className="text-left">
+              <p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-1">Intermediário</p>
+              <h4 className="text-lg sm:text-xl font-black text-amber-900 uppercase">Médio</h4>
+              <p className="text-amber-900/60 text-xs font-bold bg-black/5 px-2 py-0.5 rounded-lg inline-block mt-1">16 Cartas • Pontos Variáveis</p>
+            </div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-black/5 flex items-center justify-center text-amber-900/30 group-hover:bg-black/10 group-hover:text-amber-900 transition-colors">
               <RefreshCw size={20} />
             </div>
           </button>
 
           <button 
             onClick={() => initializeGame('hard')}
-            className="w-full bg-[#0061f2] p-6 sm:p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/20 flex items-center justify-between group active:scale-95 transition-all"
+            className="w-full bg-red-600 p-6 sm:p-8 rounded-[2.5rem] shadow-xl shadow-red-900/20 flex items-center justify-between group active:scale-95 transition-all"
           >
             <div className="text-left">
-              <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-1">Desafio</p>
+              <p className="text-[10px] font-black text-red-200 uppercase tracking-widest mb-1">Desafio</p>
               <h4 className="text-lg sm:text-xl font-black text-white uppercase">Difícil</h4>
-              <p className="text-blue-100/60 text-xs font-bold">24 Cartas • 30 Pontos</p>
+              <p className="text-red-100/60 text-xs font-bold bg-white/10 px-2 py-0.5 rounded-lg inline-block mt-1">24 Cartas • Pontos Variáveis</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white/40 group-hover:bg-white/20 group-hover:text-white transition-colors">
               <Zap size={20} />
@@ -276,11 +317,15 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         <div className="flex items-center gap-2 font-black text-slate-800"><Shuffle size={18} className="text-blue-500" /> {moves} mov</div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-10">
-        <div className={`grid ${difficulty === 'hard' ? 'grid-cols-4' : 'grid-cols-4'} gap-2 sm:gap-3`}>
+        <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 max-w-[280px] mx-auto' : 'grid-cols-4'} gap-2 sm:gap-3`}>
           {cards.map((card) => (
             <div key={card.id} onClick={() => handleCardClick(card.id)} className="aspect-square relative cursor-pointer group">
               <div className={`w-full h-full transition-all duration-500 preserve-3d ${card.isFlipped || card.isMatched ? 'rotate-y-180' : ''}`}>
-                <div className="absolute inset-0 backface-hidden rounded-xl border-2 border-slate-100 bg-[#f1f5f9] flex items-center justify-center font-black text-lg sm:text-xl text-red-500">?</div>
+                <div className={`absolute inset-0 backface-hidden rounded-xl border-2 flex items-center justify-center font-black text-lg sm:text-xl ${
+                  difficulty === 'easy' ? 'bg-emerald-500 text-white border-emerald-600' :
+                  difficulty === 'normal' ? 'bg-amber-400 text-amber-900 border-amber-500' :
+                  'bg-red-600 text-white border-red-700'
+                }`}>?</div>
                 <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-xl bg-[#6495ED] flex items-center justify-center p-1.5 sm:p-2">
                   <img src={card.content} className="w-full h-full object-contain" alt="card" />
                 </div>

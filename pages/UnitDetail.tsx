@@ -106,6 +106,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     onUpdateMember(editingMember);
     setIsEditing(false);
     setEditingMember(null);
+    setShowAddModal(false);
   };
 
   const adjustPoints = (id: string, delta: number) => {
@@ -197,8 +198,11 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" /> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`} className="w-full h-full object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0 pt-1 pr-14">
-                  <h3 className="text-lg font-black text-slate-800 truncate">{member.name}</h3>
-                  <p className="text-xs text-slate-500 font-bold mb-4 uppercase">{member.age} anos • {member.className || 'Liderança'}</p>
+                  <h3 className="text-lg font-black text-slate-800 leading-tight mb-1">{member.name}</h3>
+                  <p className="text-xs text-slate-500 font-bold mb-1 uppercase">{member.age} anos • {member.className || 'Liderança'}</p>
+                  <p className="text-[10px] text-[#0061f2] font-black uppercase tracking-wider mb-4">
+                    {isLiderancaUnit ? member.counselor : (member.counselor ? `Conselheiro: ${member.counselor}` : 'Sem Conselheiro')}
+                  </p>
                 </div>
                 <div className="absolute top-6 right-6 font-black text-[#0061f2] text-lg">
                    {member.scores.reduce((a, b) => a + calculateScoreTotal(b), 0)} pts
@@ -269,24 +273,28 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
             
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Histórico de Pontuações</p>
-              {historyMember.scores.length > 0 ? (
-                [...historyMember.scores].reverse().map((s, idx) => {
-                  const originalIndex = historyMember.scores.length - 1 - idx;
-                  return (
-                    <div key={idx} className="bg-white border border-slate-100 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-[#0061f2] uppercase">{s.date}</span>
-                        <span className="text-xl font-black text-slate-800">{calculateScoreTotal(s)} pts</span>
-                      </div>
-                      {isUserLeadership && (
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEditScore(historyMember, originalIndex)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-all"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDeleteScore(historyMember, originalIndex)} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><Trash2 size={16} /></button>
+              {historyMember.scores.filter(s => calculateScoreTotal(s) > 0).length > 0 ? (
+                [...historyMember.scores]
+                  .filter(s => calculateScoreTotal(s) > 0)
+                  .reverse()
+                  .map((s, idx) => {
+                    // Encontra o índice original para edição/exclusão correta
+                    const originalIndex = historyMember.scores.findIndex(os => os === s);
+                    return (
+                      <div key={idx} className="bg-white border border-slate-100 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-[#0061f2] uppercase">{s.date}</span>
+                          <span className="text-xl font-black text-slate-800">{calculateScoreTotal(s)} pts</span>
                         </div>
-                      )}
-                    </div>
-                  );
-                })
+                        {isUserLeadership && (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditScore(historyMember, originalIndex)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-all"><Edit2 size={16} /></button>
+                            <button onClick={() => handleDeleteScore(historyMember, originalIndex)} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><Trash2 size={16} /></button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
               ) : (
                 <div className="text-center py-20 opacity-30">
                   <History size={48} className="mx-auto mb-2" />

@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Home, Trophy, User, Gamepad2, ShieldCheck, MessageCircle, LayoutGrid } from 'lucide-react';
+import { Home, Trophy, User, Gamepad2, ShieldCheck, MessageCircle, LayoutGrid, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   currentPage: string;
-  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'chat' | 'bible_reading' | 'bible') => void;
+  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'chat' | 'bible_reading' | 'bible' | 'specialty_study') => void;
   unreadCount?: number;
 }
 
@@ -63,6 +63,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage, unreadCoun
       >
         <Gamepad2 size={16} strokeWidth={iconStroke('games')} />
         <span className="text-[8px] font-black uppercase tracking-tighter mt-1">Jogos</span>
+      </button>
+
+      <button 
+        onClick={() => setCurrentPage('specialty_study')}
+        className={getItemClasses('specialty_study')}
+      >
+        <BookOpen size={16} strokeWidth={iconStroke('specialty_study')} />
+        <span className="text-[8px] font-black uppercase tracking-tighter mt-1">Estudo</span>
       </button>
 
       <button 

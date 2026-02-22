@@ -18,7 +18,7 @@ export const LEADERSHIP_CLASSES = [
 
 export const LEADERSHIP_ROLES = [
   'Diretor (a)', 'Diretor (a) Associado (a)', 'Secretário (a)', 'Tesoureiro (a)', 
-  'Capelão (ã)', 'Instrutor (a)', 'Conselheiro (a)', 'Conselheiro (a) Associado (a)'
+  'Capelão (ã)', 'Instrutor (a)', 'Conselheiro (a)', 'Conselheiro (a) Associado (a)', 'Apoio'
 ];
 
 export const PATHFINDER_ROLES = [

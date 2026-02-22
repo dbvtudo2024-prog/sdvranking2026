@@ -1,12 +1,13 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle } from 'lucide-react';
+import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle } from 'lucide-react';
 import { AuthUser, Member, UserRole, Score } from '../types';
 import QuizSelection from './QuizSelection';
 import MemoryGame from './MemoryGame';
 import SpecialtyGame from './SpecialtyGame';
 import Challenge1x1Page from './Challenge1x1';
 import ThreeCluesGame from './ThreeCluesGame';
+import PuzzleGame from './PuzzleGame';
 
 interface GamesProps {
   user: AuthUser;
@@ -16,6 +17,7 @@ interface GamesProps {
   memoryOverride: boolean;
   specialtyOverride: boolean;
   threeCluesOverride: boolean;
+  puzzleOverride: boolean;
 }
 
 const Games: React.FC<GamesProps> = ({ 
@@ -25,9 +27,10 @@ const Games: React.FC<GamesProps> = ({
   quizOverride, 
   memoryOverride, 
   specialtyOverride,
-  threeCluesOverride
+  threeCluesOverride,
+  puzzleOverride
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle'>('hub');
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
@@ -62,6 +65,12 @@ const Games: React.FC<GamesProps> = ({
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, isSunday, threeCluesOverride]);
 
+  const puzzleStatus = useMemo(() => {
+    const unlocked = isSunday || puzzleOverride;
+    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.puzzleGame !== undefined) || false;
+    return { unlocked, alreadyPlayed };
+  }, [currentMember, todayStr, isSunday, puzzleOverride]);
+
   const getTimeToUnlock = () => {
     if (isSunday) return "Disponível Hoje!";
     const now = new Date();
@@ -75,6 +84,7 @@ const Games: React.FC<GamesProps> = ({
   if (activeGame === 'specialty') return <SpecialtyGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} specialtyOverride={specialtyOverride} />;
   if (activeGame === '1x1') return <Challenge1x1Page user={user} members={members} onBack={() => setActiveGame('hub')} onUpdateMember={onUpdateMember} />;
   if (activeGame === 'threeclues') return <ThreeCluesGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={threeCluesOverride} />;
+  if (activeGame === 'puzzle') return <PuzzleGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} puzzleOverride={puzzleOverride} />;
 
   const getButtonStyles = (unlocked: boolean, played: boolean) => {
     const base = "w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all border-2 border-b-4 active:scale-95 px-6 relative overflow-hidden ";
@@ -131,6 +141,12 @@ const Games: React.FC<GamesProps> = ({
         <button disabled={!memoryStatus.unlocked || memoryStatus.alreadyPlayed} onClick={() => setActiveGame('memory')} className={getButtonStyles(memoryStatus.unlocked, memoryStatus.alreadyPlayed)}>
           {memoryStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Gamepad2 size={24} />}
           <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Jogo da Memória</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{memoryStatus.alreadyPlayed ? 'Concluído hoje' : !memoryStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Mostre sua agilidade'}</span></div>
+        </button>
+
+        {/* QUEBRA-CABEÇA */}
+        <button disabled={!puzzleStatus.unlocked || puzzleStatus.alreadyPlayed} onClick={() => setActiveGame('puzzle')} className={getButtonStyles(puzzleStatus.unlocked, puzzleStatus.alreadyPlayed)}>
+          {puzzleStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Shuffle size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Quebra-Cabeça</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{puzzleStatus.alreadyPlayed ? 'Concluído hoje' : !puzzleStatus.unlocked ? 'Bloqueado (Abre Domingo)' : 'Descubra a imagem'}</span></div>
         </button>
       </div>
     </div>

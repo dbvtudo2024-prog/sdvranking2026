@@ -16,11 +16,15 @@ import AdminAnnouncements from './pages/AdminAnnouncements';
 import AdminQuizEditor from './pages/AdminQuizEditor';
 import AdminSpecialtyEditor from './pages/AdminSpecialtyEditor';
 import AdminThreeCluesEditor from './pages/AdminThreeCluesEditor';
+import AdminSpecialtyStudyEditor from './pages/AdminSpecialtyStudyEditor';
+import AdminPuzzleEditor from './pages/AdminPuzzleEditor';
+import SpecialtyStudyArea, { SpecialtyStudyHandle } from './pages/SpecialtyStudyArea';
 import AdminManagement from './pages/AdminManagement';
 import Games from './pages/Games';
 import Leadership from './pages/Leadership';
 import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
+import TickerBanner from './components/TickerBanner';
 import { LogOut, ArrowLeft, Bell, X, Sword } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -32,9 +36,10 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional'>('home');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
+  const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
@@ -46,6 +51,7 @@ const App: React.FC = () => {
   const [memoryOverride, setMemoryOverride] = useState(false);
   const [specialtyOverride, setSpecialtyOverride] = useState(false);
   const [threeCluesOverride, setThreeCluesOverride] = useState(false);
+  const [puzzleOverride, setPuzzleOverride] = useState(false);
 
   useEffect(() => {
     const membersSub = DatabaseService.subscribeMembers(setMembers);
@@ -56,6 +62,7 @@ const App: React.FC = () => {
       setMemoryOverride(config.memory_override);
       setSpecialtyOverride(config.specialty_override);
       setThreeCluesOverride(config.three_clues_override);
+      setPuzzleOverride(config.puzzle_override);
     });
 
     return () => {
@@ -208,6 +215,9 @@ const App: React.FC = () => {
       case 'admin_quiz': return 'Editor de Quiz';
       case 'admin_specialty': return 'Editor de Especialidades';
       case 'admin_three_clues': return 'Editor de 3 Dicas';
+      case 'admin_specialty_study': return 'Editor de Estudo';
+      case 'admin_puzzle': return 'Editor de Quebra-Cabeça';
+      case 'specialty_study': return 'Estudo de Especialidades';
       case 'admin_management': return 'Gestão Administrativa';
       case 'devotional': return 'Devocional Diário';
       default: return 'Sentinelas da Verdade';
@@ -220,10 +230,14 @@ const App: React.FC = () => {
       const handled = bibleRef.current?.goBack();
       if (!handled) setCurrentPage('home');
     }
+    else if (currentPage === 'specialty_study') {
+      const handled = specialtyStudyRef.current?.goBack();
+      if (!handled) setCurrentPage('home');
+    }
     else if (currentPage === 'bible_reading') setCurrentPage('bible');
     else if (currentPage === 'devotional') setCurrentPage('bible');
     else if (currentPage === 'admin_management') setCurrentPage('profile');
-    else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues'].includes(currentPage)) setCurrentPage('admin_management');
+    else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_specialty_study', 'admin_puzzle'].includes(currentPage)) setCurrentPage('admin_management');
   };
 
   const renderPage = () => {
@@ -236,14 +250,17 @@ const App: React.FC = () => {
       case 'ranking': return <Ranking members={members} />;
       case 'leadership': return <Leadership members={members} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} />;
       case 'chat': return <Chat user={user!} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_three_clues': return <AdminThreeCluesEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
-      case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} />;
+      case 'admin_specialty_study': return <AdminSpecialtyStudyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      case 'admin_puzzle': return <AdminPuzzleEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
+      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} />;
+      case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} puzzleOverride={puzzleOverride} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} />;
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
     }
   };
@@ -260,7 +277,7 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 
-  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
+  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'specialty_study', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
@@ -349,9 +366,11 @@ const App: React.FC = () => {
         </header>
       )}
       
+      <TickerBanner announcements={announcements} />
+      
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['units', 'ranking', 'leadership', 'profile', 'games', 'chat'].includes(currentPage) && (
+      {['units', 'ranking', 'leadership', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && (
         <footer className="shrink-0 bg-white border-t border-slate-100">
           <Navbar 
             currentPage={currentPage as any} 

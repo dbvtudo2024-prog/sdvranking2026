@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle } from 'lucide-react';
 import { Member, ChatMessage, Devotional } from '../types';
 import { CounselorDB, DatabaseService } from '../db';
 
@@ -12,6 +12,8 @@ interface AdminManagementProps {
   onGoToAdminQuiz: () => void;
   onGoToAdminSpecialty: () => void;
   onGoToAdminThreeClues: () => void;
+  onGoToAdminSpecialtyStudy: () => void;
+  onGoToAdminPuzzle: () => void;
   counselors: CounselorDB[];
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
@@ -35,6 +37,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminQuiz,
   onGoToAdminSpecialty,
   onGoToAdminThreeClues,
+  onGoToAdminSpecialtyStudy,
+  onGoToAdminPuzzle,
   counselors = [],
   onAddCounselor,
   onUpdateCounselor,
@@ -47,7 +51,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   specialtyOverride,
   onToggleSpecialtyOverride,
   threeCluesOverride,
-  onToggleThreeCluesOverride
+  onToggleThreeCluesOverride,
+  puzzleOverride,
+  onTogglePuzzleOverride
 }) => {
   const [showCounselorModal, setShowCounselorModal] = useState(false);
   const [editCounselor, setEditCounselor] = useState<CounselorDB | null>(null);
@@ -170,12 +176,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8">
           <h3 className="text-center text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">Liberação Manual de Jogos</h3>
           
-          <div className="grid grid-cols-4 gap-2">
-            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} icon={Zap} />
-            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} icon={Gamepad2} />
-            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} icon={Medal} />
-            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
-          </div>
+            <div className="grid grid-cols-4 gap-2">
+              <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} icon={Zap} />
+              <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} icon={Gamepad2} />
+              <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} icon={Medal} />
+              <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
+              <GameLockButton label="Quebra-C" active={puzzleOverride} onToggle={onTogglePuzzleOverride} icon={Shuffle} />
+            </div>
         </div>
 
         {/* 2. MURAL E EQUIPE */}
@@ -209,6 +216,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </button>
               <button onClick={onGoToAdminThreeClues} className="bg-slate-50 text-slate-600 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border border-slate-100 uppercase text-xs tracking-widest active:scale-95 transition-all">
                 <HelpCircle size={24} /> EDITAR 3 DICAS
+              </button>
+              <button onClick={onGoToAdminSpecialtyStudy} className="bg-slate-50 text-slate-600 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border border-slate-100 uppercase text-xs tracking-widest active:scale-95 transition-all">
+                <BookOpen size={24} /> EDITAR ESTUDO (PDF)
+              </button>
+              <button onClick={onGoToAdminPuzzle} className="bg-slate-50 text-slate-600 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border border-slate-100 uppercase text-xs tracking-widest active:scale-95 transition-all">
+                <Shuffle size={24} /> EDITAR QUEBRA-CABEÇA
               </button>
            </div>
         </div>
