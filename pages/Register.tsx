@@ -66,7 +66,20 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
 
     setIsLoading(true);
     try {
-      const userId = Math.random().toString(36).substr(2, 9);
+      // Verificar se o e-mail já existe
+      const users = await DatabaseService.getUsers();
+      const emailExists = users.some(u => u.email?.toLowerCase() === formData.email.trim().toLowerCase());
+      
+      if (emailExists) {
+        setErrorMsg('Este e-mail já está cadastrado. Tente fazer login.');
+        setIsLoading(false);
+        return;
+      }
+
+      const userId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
       const finalUnit = isLeadership && !shouldShowUnit ? UnitName.LIDERANCA : (formData.unit as UnitName);
 
       const newUser: AuthUser = {

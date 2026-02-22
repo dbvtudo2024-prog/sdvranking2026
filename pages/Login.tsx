@@ -40,8 +40,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
       } else {
         alert('E-mail ou senha incorretos.');
       }
-    } catch (err) {
-      alert('Erro ao processar login no Supabase.');
+    } catch (err: any) {
+      console.error("Erro no login:", err);
+      alert('Erro ao processar login: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsLoggingIn(false);
     }

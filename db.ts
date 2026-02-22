@@ -92,21 +92,29 @@ export const DatabaseService = {
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
     const { data, error } = await supabase.from('members').select('*');
+    if (error) {
+      console.error("Erro ao buscar membros:", error);
+      throw error;
+    }
     return (data || []) as Member[];
   },
 
   subscribeMembers(callback: (members: Member[]) => void) {
-    this.getMembers().then(callback);
+    this.getMembers().then(callback).catch(err => console.error("Erro no subscribeMembers:", err));
     return supabase
       .channel('members_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
-        this.getMembers().then(callback);
+        this.getMembers().then(callback).catch(err => console.error("Erro no update realtime members:", err));
       })
       .subscribe();
   },
 
   async addMember(member: Member) {
-    await supabase.from('members').insert([member]);
+    const { error } = await supabase.from('members').insert([member]);
+    if (error) {
+      console.error("Erro ao adicionar membro:", error);
+      throw error;
+    }
   },
 
   async updateMember(member: Member) {
@@ -284,12 +292,22 @@ export const DatabaseService = {
 
   // --- USUÁRIOS ---
   async getUsers(): Promise<AuthUser[]> {
-    const { data } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) {
+      console.error("Erro ao buscar usuários:", error);
+      throw error;
+    }
     return (data || []) as AuthUser[];
   },
 
   async addUser(user: AuthUser) {
-    await supabase.from('users').upsert([user]);
+    // Removemos o campo 'counselor' pois ele pertence à tabela 'members', não 'users'
+    const { counselor, ...userPayload } = user;
+    const { error } = await supabase.from('users').upsert([userPayload]);
+    if (error) {
+      console.error("Erro ao adicionar usuário:", error);
+      throw error;
+    }
   },
 
   async createChallenge(challenge: Challenge1x1) {
