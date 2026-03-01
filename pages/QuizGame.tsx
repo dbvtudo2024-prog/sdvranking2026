@@ -142,7 +142,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {currentQuestion.options.map((option, idx) => {
+            {(currentQuestion.options || []).map((option, idx) => {
               let style = "bg-white border-slate-100 text-slate-600";
               if (isAnswered) {
                 if (idx === currentQuestion.correctAnswer) style = "bg-green-500 border-green-500 text-white";

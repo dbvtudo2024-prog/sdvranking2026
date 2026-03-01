@@ -81,7 +81,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
   };
 
   const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.question.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (q.question || '').toLowerCase().includes((searchTerm || '').toLowerCase());
     const matchesCategory = categoryFilter === 'Todas' || q.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -150,7 +150,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                   </div>
                   <h4 className="text-sm font-black text-slate-800 leading-tight mb-3">{q.question}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                    {q.options.map((opt, idx) => (
+                    {(q.options || []).map((opt, idx) => (
                       <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-600 font-black' : 'text-slate-400 font-medium'}`}>
                         {idx + 1}. {opt} {idx === q.correctAnswer && '✓'}
                       </p>
@@ -198,7 +198,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
 
               <div className="space-y-3">
                 <p className={labelClasses}>Opções de Resposta</p>
-                {(editForm ? editForm.options : newQuestion.options).map((opt, i) => (
+                {(editForm ? (editForm.options || []) : (newQuestion.options || [])).map((opt, i) => (
                   <div key={i} className="relative">
                     <input 
                       required 

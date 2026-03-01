@@ -328,7 +328,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           {Array.from({ length: TILE_COUNT }).map((_, pos) => {
             const tile = tiles.find(t => t.currentPos === pos);
             if (!tile || (tile.id === TILE_COUNT - 1 && !isGameOver)) {
-              return <div key={pos} className="bg-slate-100/50" />;
+              return <div key={`empty-${pos}`} className="bg-slate-100/50" />;
             }
 
             const row = Math.floor(tile.id / GRID_SIZE);
@@ -336,7 +336,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
 
             return (
               <div 
-                key={tile.id}
+                key={`tile-${tile.id}`}
                 onClick={() => handleTileClick(tile.id)}
                 className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
               >

@@ -612,6 +612,77 @@ export const DatabaseService = {
     }
   },
 
+  async seedHistoryStudy() {
+    const study: Omit<SpecialtyStudy, 'id'> = {
+      name: "História do Velho Testamento",
+      pdf_url: "https://drive.google.com/file/d/1c5LZ2VHm5mPY_LjszYVA1QsuwBTSSvtX/view",
+      puzzle_image_url: "https://picsum.photos/seed/bible-history/800/800",
+      category: "Bíblia",
+      questions: [
+        {
+          question: "Qual é o primeiro livro da Bíblia?",
+          options: ["Êxodo", "Gênesis", "Levítico", "Números"],
+          correct_answer: 1
+        },
+        {
+          question: "Quem construiu a arca para sobreviver ao dilúvio?",
+          options: ["Abraão", "Isaque", "Noé", "Jacó"],
+          correct_answer: 2
+        },
+        {
+          question: "Qual profeta liderou o povo de Israel na saída do Egito?",
+          options: ["Josué", "Moisés", "Arão", "Calebe"],
+          correct_answer: 1
+        },
+        {
+          question: "Quem derrotou o gigante Golias com uma funda e uma pedra?",
+          options: ["Saul", "Salomão", "Davi", "Sansão"],
+          correct_answer: 2
+        },
+        {
+          question: "Qual rei de Israel era conhecido por sua imensa sabedoria?",
+          options: ["Davi", "Salomão", "Saul", "Roboão"],
+          correct_answer: 1
+        },
+        {
+          question: "Quem foi vendido por seus irmãos e se tornou governador no Egito?",
+          options: ["Benjamim", "José", "Rúben", "Judá"],
+          correct_answer: 1
+        },
+        {
+          question: "Qual profeta foi levado ao céu em um redemoinho com um carro de fogo?",
+          options: ["Eliseu", "Elias", "Isaías", "Jeremias"],
+          correct_answer: 1
+        },
+        {
+          question: "Quem foi o sucessor de Moisés e liderou a conquista de Jericó?",
+          options: ["Calebe", "Josué", "Gideão", "Sansão"],
+          correct_answer: 1
+        },
+        {
+          question: "Qual livro do Velho Testamento contém 150 cânticos e orações?",
+          options: ["Provérbios", "Eclesiastes", "Salmos", "Cantares"],
+          correct_answer: 2
+        },
+        {
+          question: "Quem foi o profeta que interpretou os sonhos do rei Nabucodonosor na Babilônia?",
+          options: ["Ezequiel", "Daniel", "Oséias", "Amós"],
+          correct_answer: 1
+        }
+      ]
+    };
+    
+    // Check if it already exists to avoid duplicates
+    const { data } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
+    if (data && data.length > 0) {
+      console.log("Estudo já existe.");
+      return;
+    }
+
+    const { error } = await supabase.from('specialty_studies').insert([study]);
+    if (error) throw error;
+  },
+
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
   async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
     const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });

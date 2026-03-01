@@ -67,8 +67,8 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
   };
 
   const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.answer.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         q.clues.some(c => c.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = (q.answer || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+                         (q.clues || []).some(c => (c || '').toLowerCase().includes((searchTerm || '').toLowerCase()));
     return matchesSearch;
   });
 

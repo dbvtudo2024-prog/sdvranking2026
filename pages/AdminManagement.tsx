@@ -304,7 +304,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                  </div>
                ) : (
                  allDevotionals.map(dev => (
-                   <div key={dev.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                   <div key={`admin-devotional-${dev.id}`} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
                      <div className="min-w-0 flex-1">
                        <p className="text-xs font-black text-slate-700 uppercase leading-tight">{dev.title}</p>
                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
@@ -340,7 +340,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
           <div className="space-y-3">
             {counselors.map(c => (
-              <div key={c.id} className="bg-white border border-slate-50 rounded-[1.8rem] p-6 shadow-sm flex items-center justify-between group">
+              <div key={`admin-counselor-${c.id}`} className="bg-white border border-slate-50 rounded-[1.8rem] p-6 shadow-sm flex items-center justify-between group">
                 <span className="font-black text-slate-700 text-sm uppercase tracking-tight">{c.name}</span>
                 <div className="flex gap-4">
                   <button onClick={() => { setEditCounselor(c); setNewCounselorName(c.name); setShowCounselorModal(true); }} className="text-blue-300 hover:text-blue-600 transition-colors">

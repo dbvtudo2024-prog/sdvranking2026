@@ -95,7 +95,7 @@ const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, 
         <div className="space-y-4">
           <h3 className="font-black text-gray-400 text-[10px] uppercase tracking-[0.2em] ml-2">Avisos Postados</h3>
           {announcements.map(a => (
-            <div key={a.id} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex justify-between items-start gap-4">
+            <div key={`announcement-item-${a.id}`} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex justify-between items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-black text-[#0061f2] text-xs uppercase truncate">{a.title}</p>

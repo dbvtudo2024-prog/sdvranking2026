@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { SpecialtyStudy, SpecialtyStudyQuestion } from '../types';
 import { DatabaseService } from '../db';
-import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft } from 'lucide-react';
+import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud } from 'lucide-react';
 
 interface AdminSpecialtyStudyEditorProps {
   onBack: () => void;
@@ -80,9 +80,22 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
     }
   };
 
+  const handleSeedHistory = async () => {
+    if (!confirm('Deseja importar o estudo "História do Velho Testamento"?')) return;
+    setIsSaving(true);
+    try {
+      await DatabaseService.seedHistoryStudy();
+      alert('✅ Estudo importado com sucesso!');
+    } catch (error) {
+      alert('❌ Erro ao importar estudo.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const filteredStudies = studies.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+    (s.category || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
 
   const inputClasses = "w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-[#0061f2] focus:bg-white font-bold text-slate-700 text-sm transition-all shadow-inner";
@@ -93,12 +106,21 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
       <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto pb-32">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Materiais de Estudo</h2>
-          <button 
-            onClick={() => { setEditForm(null); setShowModal(true); }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#0061f2] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-          >
-            <Plus size={18} /> Adicionar Material
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleSeedHistory}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              <DownloadCloud size={18} /> Importar História VT
+            </button>
+            <button 
+              onClick={() => { setEditForm(null); setShowModal(true); }}
+              className="flex items-center gap-2 px-6 py-3 bg-[#0061f2] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+            >
+              <Plus size={18} /> Adicionar Material
+            </button>
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-3 sticky top-0 z-10">
@@ -121,7 +143,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredStudies.map(s => (
-              <div key={s.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4">
+              <div key={`admin-study-${s.id}`} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">{s.category}</span>
@@ -207,7 +229,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-11">
-                        {q.options.map((opt, oIdx) => (
+                        {(q.options || []).map((opt, oIdx) => (
                           <div key={oIdx} className="flex items-center gap-2">
                             <input 
                               type="radio" 

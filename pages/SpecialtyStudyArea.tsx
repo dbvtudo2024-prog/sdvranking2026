@@ -57,18 +57,36 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   }));
 
   useEffect(() => {
-    const loadStudies = async () => {
-      try {
-        const data = await DatabaseService.getSpecialtyStudies();
-        setStudies(data);
-      } catch (err) {
-        console.error("Erro ao carregar estudos:", err);
-      } finally {
-        setLoading(false);
+    const sub = DatabaseService.subscribeSpecialtyStudies((data) => {
+      setStudies(data);
+      setLoading(false);
+    });
+    return () => {
+      if (sub && typeof sub.unsubscribe === 'function') {
+        sub.unsubscribe();
       }
     };
-    loadStudies();
   }, []);
+
+  const formatPdfUrl = (url: string) => {
+    if (!url) return '';
+    
+    // Google Drive links
+    if (url.includes('drive.google.com')) {
+      // Handle /file/d/ID/view or /file/d/ID/edit
+      const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch && fileIdMatch[1]) {
+        return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+      }
+      // Handle ?id=ID
+      const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idMatch && idMatch[1]) {
+        return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+      }
+    }
+    
+    return url;
+  };
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id);
@@ -156,16 +174,17 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   };
 
   const handleAnswer = (optionIdx: number) => {
+    if (!selectedStudy) return;
     const newAnswers = [...userAnswers, optionIdx];
     setUserAnswers(newAnswers);
     
-    if (currentQuestionIdx < 9) {
+    if (currentQuestionIdx < selectedStudy.questions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
     } else {
       // Calculate Score
       let correctCount = 0;
       newAnswers.forEach((ans, idx) => {
-        if (ans === selectedStudy!.questions[idx].correct_answer) {
+        if (selectedStudy.questions[idx] && ans === selectedStudy.questions[idx].correct_answer) {
           correctCount++;
         }
       });
@@ -211,23 +230,13 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
         <div className="p-6 space-y-4 overflow-y-auto pb-32">
-          <div className="bg-white p-6 rounded-[2rem] border border-blue-50 shadow-xl shadow-blue-900/5 flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <BookOpen size={24} />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-800 uppercase text-sm leading-tight">Central de Especialidades</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estude o PDF e faça o teste final</p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 gap-4">
             {studies.map(s => {
               const alreadyDone = currentMember?.scores?.some(score => score.specialtyStudyId === s.id);
               const bestScore = currentMember?.scores?.filter(score => score.specialtyStudyId === s.id).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
 
               return (
-                <div key={s.id} className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
+                <div key={`study-item-${s.id}`} className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">{s.category}</span>
@@ -265,13 +274,17 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   if (mode === 'study' && selectedStudy) {
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
-        <div className="flex-1 bg-slate-800 relative overflow-hidden">
+        <div className="flex-1 bg-slate-100 relative overflow-hidden">
           <iframe 
-            src={selectedStudy.pdf_url} 
+            src={formatPdfUrl(selectedStudy.pdf_url)} 
             className="w-full h-full border-none"
             title="Material de Estudo"
+            allow="autoplay"
           />
-          <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-900 to-transparent flex justify-center">
+          <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-900/80 to-transparent flex flex-col items-center gap-4">
+            <p className="text-[9px] text-white/60 font-black uppercase tracking-widest bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
+              Dica: Se o PDF não carregar, verifique se o link é público.
+            </p>
             <button 
               onClick={handleStartQuiz}
               className="bg-[#FFD700] text-[#003366] px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center gap-3"
@@ -310,7 +323,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             {Array.from({ length: TILE_COUNT }).map((_, pos) => {
               const tile = puzzleTiles.find(t => t.currentPos === pos);
               if (!tile || (tile.id === TILE_COUNT - 1 && !puzzleSolved)) {
-                return <div key={pos} className="bg-slate-100/50" />;
+                return <div key={`empty-${pos}`} className="bg-slate-100/50" />;
               }
 
               const row = Math.floor(tile.id / GRID_SIZE);
@@ -318,7 +331,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
               return (
                 <div 
-                  key={tile.id}
+                  key={`tile-${tile.id}`}
                   onClick={() => handlePuzzleTileClick(tile.id)}
                   className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
                 >
@@ -351,18 +364,33 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   if (mode === 'quiz' && selectedStudy) {
     const currentQ = selectedStudy.questions[currentQuestionIdx];
+    
+    if (!currentQ) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-50">
+          <XCircle className="text-red-500 mb-4" size={48} />
+          <h2 className="text-xl font-black text-slate-800 uppercase">Erro no Quiz</h2>
+          <p className="text-slate-500 text-sm mb-6">Não foi possível carregar as perguntas deste estudo.</p>
+          <button onClick={() => setMode('study')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">VOLTAR</button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
         <div className="p-6 flex-1 flex flex-col items-center justify-center space-y-8">
           <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
-            <h3 className="text-lg font-black text-slate-800 leading-tight mb-2">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Questão {currentQuestionIdx + 1} de {selectedStudy.questions.length}</span>
+            </div>
+            <h3 className="text-lg font-black text-slate-800 leading-tight">
               {currentQ.question}
             </h3>
           </div>
 
           <div className="w-full space-y-3">
-            {currentQ.options.map((opt, idx) => (
+            {(currentQ.options || []).map((opt, idx) => (
               <button 
                 key={idx}
                 onClick={() => handleAnswer(idx)}

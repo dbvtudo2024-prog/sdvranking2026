@@ -238,7 +238,27 @@ const App: React.FC = () => {
     else if (currentPage === 'devotional') setCurrentPage('bible');
     else if (currentPage === 'admin_management') setCurrentPage('profile');
     else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_specialty_study', 'admin_puzzle'].includes(currentPage)) setCurrentPage('admin_management');
+    else if (currentPage !== 'home') setCurrentPage('home');
   };
+
+  // LÓGICA PARA EVITAR FECHAR O APP NO BOTÃO VOLTAR DO CELULAR
+  useEffect(() => {
+    // Sempre que a página mudar, adicionamos um estado no histórico
+    window.history.pushState({ page: currentPage }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (currentPage === 'home') {
+        // Se estiver na home e tentar voltar, não faz nada ou deixa o navegador agir
+        // Mas para evitar fechar acidentalmente, podemos empurrar o estado de volta
+        window.history.pushState({ page: 'home' }, '');
+      } else {
+        handleBack();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentPage]);
 
   const renderPage = () => {
     switch (currentPage) {

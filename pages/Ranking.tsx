@@ -130,7 +130,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
           {/* LISTAGEM GERAL */}
           <div className="space-y-3 pb-24">
             {remaining.map((m, idx) => (
-              <div key={m.id} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5">
+              <div key={`rank-member-${m.id}`} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-blue-900/5">
                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-black text-sm text-slate-400 shrink-0">{idx + 4}º</div>
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-50 shrink-0">
                   {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 mt-2" />}
@@ -152,7 +152,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
             const unitMembers = members.filter(m => m.unit === unit);
             const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
             return (
-              <div key={unit} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex justify-between items-center">
+              <div key={`rank-unit-${unit}`} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <img src={UNIT_LOGOS[unit]} className="w-12 h-12 object-contain" />
                   <div>
