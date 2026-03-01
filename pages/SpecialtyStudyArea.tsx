@@ -19,8 +19,14 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<SpecialtyStudy | null>(null);
-  const [mode, setMode] = useState<'list' | 'study' | 'quiz' | 'result'>('list');
+  const [mode, setMode] = useState<'list' | 'study' | 'puzzle' | 'quiz' | 'result'>('list');
   
+  // Puzzle State
+  const [puzzleTiles, setPuzzleTiles] = useState<{id: number, currentPos: number, correctPos: number}[]>([]);
+  const [puzzleSolved, setPuzzleSolved] = useState(false);
+  const GRID_SIZE = 3;
+  const TILE_COUNT = GRID_SIZE * GRID_SIZE;
+
   // Quiz State
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
@@ -36,6 +42,10 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
         if (confirm('Sair do teste? Seu progresso será perdido.')) {
           setMode('study');
         }
+        return true;
+      }
+      if (mode === 'puzzle') {
+        setMode('study');
         return true;
       }
       if (mode === 'study') {
@@ -70,9 +80,79 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   };
 
   const handleStartQuiz = () => {
-    setMode('quiz');
-    setCurrentQuestionIdx(0);
-    setUserAnswers([]);
+    if (selectedStudy?.puzzle_image_url && !puzzleSolved) {
+      initializePuzzle();
+      setMode('puzzle');
+    } else {
+      setMode('quiz');
+      setCurrentQuestionIdx(0);
+      setUserAnswers([]);
+    }
+  };
+
+  const initializePuzzle = () => {
+    const initialTiles = [];
+    for (let i = 0; i < TILE_COUNT; i++) {
+      initialTiles.push({ id: i, currentPos: i, correctPos: i });
+    }
+    
+    let currentTiles = [...initialTiles];
+    let emptyPos = TILE_COUNT - 1;
+    
+    // Shuffle by making random valid moves
+    for (let i = 0; i < 50; i++) {
+      const neighbors = [];
+      const row = Math.floor(emptyPos / GRID_SIZE);
+      const col = emptyPos % GRID_SIZE;
+      if (row > 0) neighbors.push(emptyPos - GRID_SIZE);
+      if (row < GRID_SIZE - 1) neighbors.push(emptyPos + GRID_SIZE);
+      if (col > 0) neighbors.push(emptyPos - 1);
+      if (col < GRID_SIZE - 1) neighbors.push(emptyPos + 1);
+      
+      const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+      const tileIdx = currentTiles.findIndex(t => t.currentPos === randomNeighbor);
+      currentTiles[tileIdx].currentPos = emptyPos;
+      emptyPos = randomNeighbor;
+    }
+
+    setPuzzleTiles(currentTiles);
+    setPuzzleSolved(false);
+  };
+
+  const handlePuzzleTileClick = (tileId: number) => {
+    if (puzzleSolved) return;
+
+    const tileIdx = puzzleTiles.findIndex(t => t.id === tileId);
+    const tile = puzzleTiles[tileIdx];
+    
+    const occupiedPositions = puzzleTiles.map(t => t.currentPos);
+    let emptyPos = -1;
+    for (let i = 0; i < TILE_COUNT; i++) {
+      if (!occupiedPositions.includes(i)) {
+        emptyPos = i;
+        break;
+      }
+    }
+
+    const r1 = Math.floor(tile.currentPos / GRID_SIZE);
+    const c1 = tile.currentPos % GRID_SIZE;
+    const r2 = Math.floor(emptyPos / GRID_SIZE);
+    const c2 = emptyPos % GRID_SIZE;
+
+    if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
+      const newTiles = [...puzzleTiles];
+      newTiles[tileIdx].currentPos = emptyPos;
+      setPuzzleTiles(newTiles);
+      
+      if (newTiles.every(t => t.currentPos === t.correctPos)) {
+        setPuzzleSolved(true);
+        setTimeout(() => {
+          setMode('quiz');
+          setCurrentQuestionIdx(0);
+          setUserAnswers([]);
+        }, 1500);
+      }
+    }
   };
 
   const handleAnswer = (optionIdx: number) => {
@@ -85,7 +165,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       // Calculate Score
       let correctCount = 0;
       newAnswers.forEach((ans, idx) => {
-        if (ans === selectedStudy!.questions[idx].correctAnswer) {
+        if (ans === selectedStudy!.questions[idx].correct_answer) {
           correctCount++;
         }
       });
@@ -187,7 +267,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
         <div className="flex-1 bg-slate-800 relative overflow-hidden">
           <iframe 
-            src={selectedStudy.pdfUrl} 
+            src={selectedStudy.pdf_url} 
             className="w-full h-full border-none"
             title="Material de Estudo"
           />
@@ -200,6 +280,71 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (mode === 'puzzle' && selectedStudy) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 animate-in fade-in p-6">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-4">
+            <Trophy size={32} />
+          </div>
+          <h3 className="text-xl font-black text-slate-800 uppercase">Desafio de Quebra-Cabeça</h3>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Resolva para liberar o teste final</p>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div 
+            className="relative bg-slate-200 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
+            style={{ 
+              width: 'min(80vw, 320px)', 
+              height: 'min(80vw, 320px)',
+              display: 'grid',
+              gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+              gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
+              gap: '2px'
+            }}
+          >
+            {Array.from({ length: TILE_COUNT }).map((_, pos) => {
+              const tile = puzzleTiles.find(t => t.currentPos === pos);
+              if (!tile || (tile.id === TILE_COUNT - 1 && !puzzleSolved)) {
+                return <div key={pos} className="bg-slate-100/50" />;
+              }
+
+              const row = Math.floor(tile.id / GRID_SIZE);
+              const col = tile.id % GRID_SIZE;
+
+              return (
+                <div 
+                  key={tile.id}
+                  onClick={() => handlePuzzleTileClick(tile.id)}
+                  className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
+                >
+                  <img 
+                    src={selectedStudy.puzzle_image_url} 
+                    referrerPolicy="no-referrer"
+                    className="absolute max-w-none"
+                    style={{
+                      width: `${GRID_SIZE * 100}%`,
+                      height: `${GRID_SIZE * 100}%`,
+                      left: `-${col * 100}%`,
+                      top: `-${row * 100}%`,
+                      objectFit: 'cover'
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {puzzleSolved && (
+          <div className="mt-8 text-center animate-bounce">
+            <p className="text-emerald-500 font-black uppercase tracking-widest text-xs">✨ Excelente! Iniciando Quiz...</p>
+          </div>
+        )}
       </div>
     );
   }

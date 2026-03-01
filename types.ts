@@ -102,13 +102,14 @@ export interface ThreeCluesQuestion {
 export interface SpecialtyStudyQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer: number;
 }
 
 export interface SpecialtyStudy {
   id: string;
   name: string;
-  pdfUrl: string;
+  pdf_url: string;
+  puzzle_image_url?: string;
   category: string;
   questions: SpecialtyStudyQuestion[];
   created_at?: string;

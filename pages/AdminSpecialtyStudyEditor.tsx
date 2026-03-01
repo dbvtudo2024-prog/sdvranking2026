@@ -20,12 +20,13 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   const emptyQuestion: SpecialtyStudyQuestion = {
     question: '',
     options: ['', '', '', ''],
-    correctAnswer: 0
+    correct_answer: 0
   };
 
   const [newStudy, setNewStudy] = useState<Omit<SpecialtyStudy, 'id'>>({
     name: '',
-    pdfUrl: '',
+    pdf_url: '',
+    puzzle_image_url: '',
     category: 'Geral',
     questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
   });
@@ -55,7 +56,8 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         alert('✅ Estudo criado!');
         setNewStudy({
           name: '',
-          pdfUrl: '',
+          pdf_url: '',
+          puzzle_image_url: '',
           category: 'Geral',
           questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
         });
@@ -126,7 +128,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                     <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-amber-100 text-amber-600">10 Questões</span>
                   </div>
                   <h4 className="text-sm font-black text-slate-800 leading-tight mb-1">{s.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium truncate mb-3">PDF: {s.pdfUrl}</p>
+                  <p className="text-[10px] text-slate-400 font-medium truncate mb-3">PDF: {s.pdf_url}</p>
                   <div className="flex items-center gap-2 text-[#0061f2]">
                     <FileText size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Material de Estudo</span>
@@ -170,8 +172,14 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
 
               <div>
                 <label className={labelClasses}>URL do PDF (Estudo)</label>
-                <input required className={inputClasses} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdfUrl : newStudy.pdfUrl} onChange={e => editForm ? setEditForm({...editForm, pdfUrl: e.target.value}) : setNewStudy({...newStudy, pdfUrl: e.target.value})} />
+                <input required className={inputClasses} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdf_url : newStudy.pdf_url} onChange={e => editForm ? setEditForm({...editForm, pdf_url: e.target.value}) : setNewStudy({...newStudy, pdf_url: e.target.value})} />
                 <p className="text-[9px] text-slate-400 mt-2 ml-2 font-bold uppercase tracking-widest italic">* O PDF deve estar hospedado em um link público (Google Drive, Dropbox, etc)</p>
+              </div>
+
+              <div>
+                <label className={labelClasses}>URL da Imagem para Quebra-Cabeça (Opcional)</label>
+                <input className={inputClasses} placeholder="https://exemplo.com/imagem.jpg" value={editForm ? editForm.puzzle_image_url || '' : newStudy.puzzle_image_url || ''} onChange={e => editForm ? setEditForm({...editForm, puzzle_image_url: e.target.value}) : setNewStudy({...newStudy, puzzle_image_url: e.target.value})} />
+                <p className="text-[9px] text-slate-400 mt-2 ml-2 font-bold uppercase tracking-widest italic">* Se fornecida, o desbravador terá um desafio extra de quebra-cabeça</p>
               </div>
 
               <div className="border-t border-slate-100 pt-6">
@@ -204,10 +212,10 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                             <input 
                               type="radio" 
                               name={`correct-${qIdx}`} 
-                              checked={q.correctAnswer === oIdx} 
+                              checked={q.correct_answer === oIdx} 
                               onChange={() => {
                                 const newQs = [...(editForm ? editForm.questions : newStudy.questions)];
-                                newQs[qIdx].correctAnswer = oIdx;
+                                newQs[qIdx].correct_answer = oIdx;
                                 editForm ? setEditForm({...editForm, questions: newQs}) : setNewStudy({...newStudy, questions: newQs});
                               }}
                             />
