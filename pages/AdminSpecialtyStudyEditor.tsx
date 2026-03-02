@@ -25,7 +25,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
 
   const [newStudy, setNewStudy] = useState<Omit<SpecialtyStudy, 'id'>>({
     name: '',
-    pdf_url: '',
+    pdfurl: '',
     puzzle_image_url: '',
     category: 'Geral',
     questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
@@ -40,7 +40,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   }, []);
 
   const handleEditInit = (s: SpecialtyStudy) => {
-    setEditForm({ ...s, questions: s.questions.map(q => ({ ...q, options: [...q.options] })) });
+    setEditForm({ ...s, questions: (s.questions || []).map(q => ({ ...q, options: [...(q.options || [])] })) });
     setShowModal(true);
   };
 
@@ -56,7 +56,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         alert('✅ Estudo criado!');
         setNewStudy({
           name: '',
-          pdf_url: '',
+          pdfurl: '',
           puzzle_image_url: '',
           category: 'Geral',
           questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
@@ -150,7 +150,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                     <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-amber-100 text-amber-600">10 Questões</span>
                   </div>
                   <h4 className="text-sm font-black text-slate-800 leading-tight mb-1">{s.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium truncate mb-3">PDF: {s.pdf_url}</p>
+                  <p className="text-[10px] text-slate-400 font-medium truncate mb-3">PDF: {s.pdfurl}</p>
                   <div className="flex items-center gap-2 text-[#0061f2]">
                     <FileText size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Material de Estudo</span>
@@ -194,7 +194,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
 
               <div>
                 <label className={labelClasses}>URL do PDF (Estudo)</label>
-                <input required className={inputClasses} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdf_url : newStudy.pdf_url} onChange={e => editForm ? setEditForm({...editForm, pdf_url: e.target.value}) : setNewStudy({...newStudy, pdf_url: e.target.value})} />
+                <input required className={inputClasses} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdfurl : newStudy.pdfurl} onChange={e => editForm ? setEditForm({...editForm, pdfurl: e.target.value}) : setNewStudy({...newStudy, pdfurl: e.target.value})} />
                 <p className="text-[9px] text-slate-400 mt-2 ml-2 font-bold uppercase tracking-widest italic">* O PDF deve estar hospedado em um link público (Google Drive, Dropbox, etc)</p>
               </div>
 
@@ -211,7 +211,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                 </div>
                 
                 <div className="space-y-8">
-                  {(editForm ? editForm.questions : newStudy.questions).map((q, qIdx) => (
+                  {((editForm ? editForm.questions : newStudy.questions) || []).map((q, qIdx) => (
                     <div key={qIdx} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="w-8 h-8 rounded-lg bg-[#0061f2] text-white flex items-center justify-center font-black text-xs">{qIdx + 1}</span>
@@ -221,8 +221,9 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                           placeholder="Pergunta" 
                           value={q.question} 
                           onChange={e => {
-                            const newQs = [...(editForm ? editForm.questions : newStudy.questions)];
-                            newQs[qIdx].question = e.target.value;
+                            const currentQs = editForm ? editForm.questions : newStudy.questions;
+                            const newQs = [...(currentQs || [])];
+                            newQs[qIdx] = { ...newQs[qIdx], question: e.target.value };
                             editForm ? setEditForm({...editForm, questions: newQs}) : setNewStudy({...newStudy, questions: newQs});
                           }}
                         />
@@ -236,8 +237,9 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                               name={`correct-${qIdx}`} 
                               checked={q.correct_answer === oIdx} 
                               onChange={() => {
-                                const newQs = [...(editForm ? editForm.questions : newStudy.questions)];
-                                newQs[qIdx].correct_answer = oIdx;
+                                const currentQs = editForm ? editForm.questions : newStudy.questions;
+                                const newQs = [...(currentQs || [])];
+                                newQs[qIdx] = { ...newQs[qIdx], correct_answer: oIdx };
                                 editForm ? setEditForm({...editForm, questions: newQs}) : setNewStudy({...newStudy, questions: newQs});
                               }}
                             />
@@ -247,8 +249,11 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                               placeholder={`Opção ${oIdx + 1}`} 
                               value={opt} 
                               onChange={e => {
-                                const newQs = [...(editForm ? editForm.questions : newStudy.questions)];
-                                newQs[qIdx].options[oIdx] = e.target.value;
+                                const currentQs = editForm ? editForm.questions : newStudy.questions;
+                                const newQs = [...(currentQs || [])];
+                                const newOpts = [...(newQs[qIdx].options || ['', '', '', ''])];
+                                newOpts[oIdx] = e.target.value;
+                                newQs[qIdx] = { ...newQs[qIdx], options: newOpts };
                                 editForm ? setEditForm({...editForm, questions: newQs}) : setNewStudy({...newStudy, questions: newQs});
                               }}
                             />

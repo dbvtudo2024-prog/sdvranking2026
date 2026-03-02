@@ -154,7 +154,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
             return (
               <div key={`rank-unit-${unit}`} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                  <img src={UNIT_LOGOS[unit]} className="w-12 h-12 object-contain" />
+                  <img src={UNIT_LOGOS[unit] || undefined} className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="text-lg font-black text-slate-800 uppercase">{unit}</h3>
                     <p className="text-xs text-slate-400 font-bold">{unitMembers.length} membros</p>

@@ -221,7 +221,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
               </div>
             )}
             <img 
-              src={currentQ.image} 
+              src={currentQ.image || undefined} 
               onLoad={() => setImageLoaded(true)}
               className={`w-full h-full object-contain transition-all duration-500 ${imageLoaded ? 'scale-100 opacity-100 blur-0' : 'scale-90 opacity-0 blur-md'}`} 
               alt="Espec" 
@@ -231,7 +231,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
 
         <div className="grid grid-cols-1 gap-3 w-full">
-          {currentQ.options.map((opt, idx) => {
+          {(currentQ.options || []).map((opt, idx) => {
             let style = "bg-white border-slate-100 text-slate-600";
             if (feedback) {
               if (idx === currentQ.correct) style = "bg-green-500 border-green-600 text-white scale-105 shadow-lg";

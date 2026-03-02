@@ -277,7 +277,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
                 className="w-full bg-white border-2 border-slate-100 p-4 rounded-[2rem] shadow-xl shadow-blue-900/5 flex items-center gap-4 group active:scale-95 transition-all"
               >
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                  <img src={img.url} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  <img src={img.url || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>
                 <div className="text-left flex-1 min-w-0">
                   <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Desafio</p>
@@ -341,7 +341,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
                 className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
               >
                 <img 
-                  src={selectedImage?.url} 
+                  src={selectedImage?.url || undefined} 
                   referrerPolicy="no-referrer"
                   className="absolute max-w-none"
                   style={{

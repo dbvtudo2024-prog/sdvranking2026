@@ -615,7 +615,7 @@ export const DatabaseService = {
   async seedHistoryStudy() {
     const study: Omit<SpecialtyStudy, 'id'> = {
       name: "História do Velho Testamento",
-      pdf_url: "https://drive.google.com/file/d/1c5LZ2VHm5mPY_LjszYVA1QsuwBTSSvtX/view",
+      pdfurl: "https://drive.google.com/file/d/1c5LZ2VHm5mPY_LjszYVA1QsuwBTSSvtX/view",
       puzzle_image_url: "https://picsum.photos/seed/bible-history/800/800",
       category: "Bíblia",
       questions: [

@@ -39,9 +39,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
         return true;
       }
       if (mode === 'quiz') {
-        if (confirm('Sair do teste? Seu progresso será perdido.')) {
-          setMode('study');
-        }
+        setMode('study');
         return true;
       }
       if (mode === 'puzzle') {
@@ -178,13 +176,19 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     const newAnswers = [...userAnswers, optionIdx];
     setUserAnswers(newAnswers);
     
-    if (currentQuestionIdx < selectedStudy.questions.length - 1) {
+    const questions = Array.isArray(selectedStudy.questions) 
+      ? selectedStudy.questions 
+      : (selectedStudy.questions ? Object.values(selectedStudy.questions) : []);
+    
+    if (currentQuestionIdx < questions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
     } else {
       // Calculate Score
       let correctCount = 0;
       newAnswers.forEach((ans, idx) => {
-        if (selectedStudy.questions[idx] && ans === selectedStudy.questions[idx].correct_answer) {
+        const q = questions[idx] as any;
+        const correctAnswer = q.correct_answer !== undefined ? q.correct_answer : q.correctAnswer;
+        if (q && ans === correctAnswer) {
           correctCount++;
         }
       });
@@ -276,7 +280,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
         <div className="flex-1 bg-slate-100 relative overflow-hidden">
           <iframe 
-            src={formatPdfUrl(selectedStudy.pdf_url)} 
+            src={formatPdfUrl(selectedStudy.pdfurl)} 
             className="w-full h-full border-none"
             title="Material de Estudo"
             allow="autoplay"
@@ -336,7 +340,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                   className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
                 >
                   <img 
-                    src={selectedStudy.puzzle_image_url} 
+                    src={selectedStudy.puzzle_image_url || undefined} 
                     referrerPolicy="no-referrer"
                     className="absolute max-w-none"
                     style={{
@@ -363,7 +367,11 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   }
 
   if (mode === 'quiz' && selectedStudy) {
-    const currentQ = selectedStudy.questions[currentQuestionIdx];
+    const questions = Array.isArray(selectedStudy.questions) 
+      ? selectedStudy.questions 
+      : (selectedStudy.questions ? Object.values(selectedStudy.questions) : []);
+    
+    const currentQ = questions[currentQuestionIdx] as any;
     
     if (!currentQ) {
       return (
@@ -376,32 +384,44 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       );
     }
 
+    // Handle both 'options' and 'alternatives' from DB
+    const rawOptions = currentQ.options || currentQ.alternatives || [];
+    const options = Array.isArray(rawOptions) 
+      ? rawOptions 
+      : (rawOptions ? Object.values(rawOptions) : []);
+
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-        <div className="p-6 flex-1 flex flex-col items-center justify-center space-y-8">
-          <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl relative overflow-hidden">
+        <div className="p-6 flex-1 flex flex-col items-center justify-start space-y-8 overflow-y-auto">
+          <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl relative overflow-hidden shrink-0">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Questão {currentQuestionIdx + 1} de {selectedStudy.questions.length}</span>
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Questão {currentQuestionIdx + 1} de {questions.length}</span>
             </div>
             <h3 className="text-lg font-black text-slate-800 leading-tight">
               {currentQ.question}
             </h3>
           </div>
 
-          <div className="w-full space-y-3">
-            {(currentQ.options || []).map((opt, idx) => (
-              <button 
-                key={idx}
-                onClick={() => handleAnswer(idx)}
-                className="w-full p-5 bg-white border-2 border-slate-100 rounded-[1.5rem] text-left font-bold text-slate-700 hover:border-blue-600 hover:bg-blue-50 transition-all active:scale-[0.98] flex items-center gap-4 group shadow-sm"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center font-black text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  {String.fromCharCode(65 + idx)}
-                </div>
-                <span className="flex-1 text-sm">{opt}</span>
-              </button>
-            ))}
+          <div className="w-full space-y-3 pb-10">
+            {options.length === 0 ? (
+              <div className="text-center py-10 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma alternativa encontrada</p>
+              </div>
+            ) : (
+              options.map((opt: any, idx: number) => (
+                <button 
+                  key={idx}
+                  onClick={() => handleAnswer(idx)}
+                  className="w-full p-5 bg-white border-2 border-slate-100 rounded-[1.5rem] text-left font-bold text-slate-700 hover:border-blue-600 hover:bg-blue-50 transition-all active:scale-[0.98] flex items-center gap-4 group shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center font-black text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    {String.fromCharCode(65 + idx)}
+                  </div>
+                  <span className="flex-1 text-sm">{String(opt || '')}</span>
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>

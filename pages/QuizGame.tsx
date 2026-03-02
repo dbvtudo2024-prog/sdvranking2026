@@ -44,12 +44,12 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     setSelectedOption(optionIndex);
     setIsAnswered(true);
 
-    if (optionIndex === questions[currentQuestionIndex].correctAnswer) {
+    if (optionIndex === (questions[currentQuestionIndex]?.correctAnswer ?? -1)) {
       setScore(prev => prev + 2);
     }
 
     setTimeout(() => {
-      if (currentQuestionIndex < questions.length - 1) {
+      if (currentQuestionIndex < (questions || []).length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setSelectedOption(null);
         setIsAnswered(false);
@@ -123,7 +123,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
       <div className="flex items-center justify-between mb-8">
         <button onClick={onBack} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
         <div className="px-5 py-2 bg-blue-50 text-[#0061f2] rounded-full font-black text-[10px] uppercase tracking-widest border border-blue-100">
-          Pergunta {currentQuestionIndex + 1} de {questions.length}
+          Pergunta {currentQuestionIndex + 1} de {(questions || []).length}
         </div>
         <div className="font-black text-[#FFD700] text-lg">{score} pts</div>
       </div>

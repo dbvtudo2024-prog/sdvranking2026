@@ -49,7 +49,7 @@ const Leadership: React.FC<LeadershipProps> = ({ members }) => {
               className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center gap-4 cursor-pointer active:scale-95 transition-all group overflow-hidden relative"
             >
               <div className="absolute top-4 right-4 w-6 h-6 opacity-40">
-                 <img src={UNIT_LOGOS[leader.unit] || UNIT_LOGOS[UnitName.LIDERANCA]} className="w-full h-full object-contain" />
+                 <img src={UNIT_LOGOS[leader.unit] || UNIT_LOGOS[UnitName.LIDERANCA] || undefined} className="w-full h-full object-contain" />
               </div>
               <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-50 to-blue-100 flex-shrink-0 flex items-center justify-center border-2 border-white shadow-md overflow-hidden">
                 {leader.photoUrl ? <img src={leader.photoUrl} className="w-full h-full object-cover" /> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.id}`} className="w-full h-full object-cover" />}

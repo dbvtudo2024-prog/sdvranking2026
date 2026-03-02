@@ -103,7 +103,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     setFeedback(null);
     setUserInput('');
     setCurrentStep(0);
-    if (currentQuestionIdx < questions.length - 1) {
+    if (currentQuestionIdx < (questions || []).length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
     } else {
       setShowResult(true);
@@ -157,7 +157,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
         <div className="text-center">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Três Dicas</p>
-          <p className="font-black">Questão {currentQuestionIdx + 1}/5</p>
+          <p className="font-black">Questão {currentQuestionIdx + 1}/{(questions || []).length}</p>
         </div>
         <div className="bg-white/20 px-4 py-1.5 rounded-full font-black text-sm">{score} pts</div>
       </header>

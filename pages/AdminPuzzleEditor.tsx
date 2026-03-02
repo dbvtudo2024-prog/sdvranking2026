@@ -103,7 +103,7 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout 
             {images.map(img => (
               <div key={img.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col gap-3">
                 <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
-                  <img src={img.url} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  <img src={img.url || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex justify-between items-center px-2">
                   <p className="font-black text-gray-800 text-xs uppercase truncate flex-1 mr-2">{img.title}</p>

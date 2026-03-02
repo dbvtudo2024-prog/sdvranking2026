@@ -34,7 +34,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
   }, []);
 
   const handleEditInit = (q: QuizQuestion) => {
-    setEditForm({ ...q, options: [...q.options] });
+    setEditForm({ ...q, options: [...(q.options || [])] });
     setShowModal(true);
   };
 
@@ -207,11 +207,11 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                       value={opt} 
                       onChange={e => {
                         if (editForm) {
-                          const opts = [...editForm.options];
+                          const opts = [...(editForm.options || [])];
                           opts[i] = e.target.value;
                           setEditForm({...editForm, options: opts});
                         } else {
-                          const opts = [...newQuestion.options];
+                          const opts = [...(newQuestion.options || [])];
                           opts[i] = e.target.value;
                           setNewQuestion({...newQuestion, options: opts});
                         }

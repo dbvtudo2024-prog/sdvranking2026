@@ -90,7 +90,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               <div key={s.id} className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-14 h-14 rounded-2xl bg-slate-50 p-2 flex items-center justify-center border border-slate-100 shrink-0">
-                    <img src={s.Imagem} className="w-full h-full object-contain" alt={s.Nome} />
+                    <img src={s.Imagem || undefined} className="w-full h-full object-contain" alt={s.Nome} />
                   </div>
                   <div className="truncate">
                     <h4 className="text-sm font-black text-slate-800 truncate uppercase tracking-tight">{s.Nome}</h4>

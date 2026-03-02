@@ -340,7 +340,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {currentQuestionData.options.map((opt, idx) => (
+            {(currentQuestionData.options || []).map((opt, idx) => (
               <button 
                 key={idx}
                 disabled={answeredLocal}
@@ -450,10 +450,10 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 shrink-0">
                       {ranked.photoUrl ? <img src={ranked.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="text-slate-300 mx-auto mt-2.5" />}
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-black text-slate-800 text-xs truncate uppercase">{ranked.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-black text-slate-800 text-[10px] sm:text-xs uppercase leading-tight mb-0.5">{ranked.name}</p>
                       <div className="flex items-center gap-1">
-                        <img src={UNIT_LOGOS[ranked.unit] || UNIT_LOGOS[user.unit!]} className="w-3 h-3 object-contain" />
+                        <img src={UNIT_LOGOS[ranked.unit] || UNIT_LOGOS[user.unit!] || undefined} className="w-3 h-3 object-contain" />
                         <p className="text-[8px] font-bold text-slate-400 uppercase">{ranked.unit}</p>
                       </div>
                     </div>
