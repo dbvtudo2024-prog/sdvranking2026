@@ -25,7 +25,7 @@ import Leadership from './pages/Leadership';
 import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
 import TickerBanner from './components/TickerBanner';
-import { LogOut, ArrowLeft, Bell, X, Sword } from 'lucide-react';
+import { ArrowLeft, Bell, X, Sword } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -42,6 +42,7 @@ const App: React.FC = () => {
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
 
@@ -279,7 +280,7 @@ const App: React.FC = () => {
       case 'admin_three_clues': return <AdminThreeCluesEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_specialty_study': return <AdminSpecialtyStudyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'admin_puzzle': return <AdminPuzzleEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
-      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} />;
+      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={setActiveSpecialtyName} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} puzzleOverride={puzzleOverride} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} />;
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
     }
@@ -376,21 +377,18 @@ const App: React.FC = () => {
             <div className="flex flex-col">
               <h1 className="font-black uppercase tracking-tight text-base leading-tight">{getPageTitle()}</h1>
               <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                {user.name} • {user.funcao || user.role}
+                {activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user.funcao || user.role}`}
               </p>
             </div>
           </div>
-          <button onClick={handleLogout} className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
-            <LogOut size={20} strokeWidth={3} />
-          </button>
         </header>
       )}
       
-      <TickerBanner announcements={announcements} />
+      {currentPage !== 'specialty_study' && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['units', 'ranking', 'leadership', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && (
+      {['units', 'ranking', 'leadership', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
         <footer className="shrink-0 bg-white border-t border-slate-100">
           <Navbar 
             currentPage={currentPage as any} 

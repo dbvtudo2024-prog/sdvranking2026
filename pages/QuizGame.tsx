@@ -154,7 +154,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
 
               return (
                 <button 
-                  key={idx}
+                  key={`${currentQuestionIndex}-${idx}`}
                   disabled={isAnswered}
                   onClick={() => handleAnswer(idx)}
                   className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all active:scale-[0.98] flex justify-between items-center text-sm ${style}`}

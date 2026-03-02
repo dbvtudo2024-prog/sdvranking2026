@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { AuthUser, Member, SpecialtyStudy, Score } from '../types';
 import { DatabaseService } from '../db';
+import { formatImageUrl } from '../utils/imageUtils';
 import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info } from 'lucide-react';
 
 interface SpecialtyStudyAreaProps {
@@ -9,13 +10,14 @@ interface SpecialtyStudyAreaProps {
   members: Member[];
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
+  onStudyStateChange?: (studyName: string | null) => void;
 }
 
 export interface SpecialtyStudyHandle {
   goBack: () => boolean;
 }
 
-const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaProps>(({ user, members, onUpdateMember, onBack }, ref) => {
+const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaProps>(({ user, members, onUpdateMember, onBack, onStudyStateChange }, ref) => {
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<SpecialtyStudy | null>(null);
@@ -55,6 +57,12 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   }));
 
   useEffect(() => {
+    if (onStudyStateChange) {
+      onStudyStateChange(mode !== 'list' && selectedStudy ? selectedStudy.name : null);
+    }
+  }, [mode, selectedStudy, onStudyStateChange]);
+
+  useEffect(() => {
     const sub = DatabaseService.subscribeSpecialtyStudies((data) => {
       setStudies(data);
       setLoading(false);
@@ -89,6 +97,65 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id);
   }, [members, user.id]);
+
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date(0);
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date(dateStr);
+  };
+
+  const lockoutStatus = useMemo(() => {
+    if (!currentMember || !selectedStudy) return { isLocked: false, message: '', remainingTime: '' };
+
+    const studyScores = (currentMember.scores || [])
+      .filter(s => s.specialtyStudyId === selectedStudy.id)
+      .sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
+
+    if (studyScores.length === 0) return { isLocked: false, message: '', remainingTime: '' };
+
+    const lastScore = studyScores[0];
+    const lastDate = parseDate(lastScore.date);
+    const now = new Date();
+    const diffTime = now.getTime() - lastDate.getTime();
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+    const scoreValue = lastScore.specialtyStudyScore || 0;
+
+    if (scoreValue >= 9) {
+      return { isLocked: true, message: 'Você já concluiu esta especialidade com excelência!', remainingTime: 'CONCLUÍDO' };
+    }
+
+    if (scoreValue >= 7) {
+      const waitDays = 7;
+      if (diffDays < waitDays) {
+        const remaining = waitDays - diffDays;
+        const days = Math.floor(remaining);
+        const hours = Math.floor((remaining - days) * 24);
+        return { 
+          isLocked: true, 
+          message: 'Você tirou uma nota boa, mas precisa esperar para refazer o teste.', 
+          remainingTime: `${days}d ${hours}h` 
+        };
+      }
+    } else {
+      const waitDays = 30;
+      if (diffDays < waitDays) {
+        const remaining = waitDays - diffDays;
+        const days = Math.floor(remaining);
+        const hours = Math.floor((remaining - days) * 24);
+        return { 
+          isLocked: true, 
+          message: 'Estude mais o material! Você poderá refazer o teste em breve.', 
+          remainingTime: `${days}d ${hours}h` 
+        };
+      }
+    }
+
+    return { isLocked: false, message: '', remainingTime: '' };
+  }, [currentMember, selectedStudy]);
 
   const handleStartStudy = (study: SpecialtyStudy) => {
     setSelectedStudy(study);
@@ -200,7 +267,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const handleFinish = () => {
     if (currentMember && selectedStudy) {
       const newScore: Score = {
-        date: new Date().toLocaleDateString('pt-BR'),
+        date: new Date().toISOString(),
         punctuality: 0,
         uniform: 0,
         material: 0,
@@ -286,15 +353,27 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             allow="autoplay"
           />
           <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-900/80 to-transparent flex flex-col items-center gap-4">
-            <p className="text-[9px] text-white/60 font-black uppercase tracking-widest bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
-              Dica: Se o PDF não carregar, verifique se o link é público.
-            </p>
-            <button 
-              onClick={handleStartQuiz}
-              className="bg-[#FFD700] text-[#003366] px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center gap-3"
-            >
-              <HelpCircle size={18} /> INICIAR TESTE FINAL
-            </button>
+            {lockoutStatus.isLocked ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="bg-red-500/20 backdrop-blur-md border border-red-500/30 px-6 py-4 rounded-2xl text-center max-w-xs">
+                  <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{lockoutStatus.message}</p>
+                  <p className="text-[#FFD700] text-xl font-black">{lockoutStatus.remainingTime}</p>
+                </div>
+                <button 
+                  disabled
+                  className="bg-slate-700 text-slate-400 px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl opacity-50 cursor-not-allowed flex items-center gap-3"
+                >
+                  <HelpCircle size={18} /> TESTE BLOQUEADO
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={handleStartQuiz}
+                className="bg-[#FFD700] text-[#003366] px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center gap-3"
+              >
+                <HelpCircle size={18} /> INICIAR TESTE FINAL
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -337,21 +416,14 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 <div 
                   key={`tile-${tile.id}`}
                   onClick={() => handlePuzzleTileClick(tile.id)}
-                  className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
-                >
-                  <img 
-                    src={selectedStudy.puzzle_image_url || undefined} 
-                    referrerPolicy="no-referrer"
-                    className="absolute max-w-none"
-                    style={{
-                      width: `${GRID_SIZE * 100}%`,
-                      height: `${GRID_SIZE * 100}%`,
-                      left: `-${col * 100}%`,
-                      top: `-${row * 100}%`,
-                      objectFit: 'cover'
-                    }}
-                  />
-                </div>
+                  className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden rounded-lg border border-white/20"
+                  style={{
+                    backgroundImage: `url(${formatImageUrl(selectedStudy.puzzle_image_url || '')})`,
+                    backgroundSize: `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`,
+                    backgroundPosition: `${(col / (GRID_SIZE - 1)) * 100}% ${(row / (GRID_SIZE - 1)) * 100}%`,
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                />
               );
             })}
           </div>
@@ -411,7 +483,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             ) : (
               options.map((opt: any, idx: number) => (
                 <button 
-                  key={idx}
+                  key={`${currentQuestionIdx}-${idx}`}
                   onClick={() => handleAnswer(idx)}
                   className="w-full p-5 bg-white border-2 border-slate-100 rounded-[1.5rem] text-left font-bold text-slate-700 hover:border-blue-600 hover:bg-blue-50 transition-all active:scale-[0.98] flex items-center gap-4 group shadow-sm"
                 >

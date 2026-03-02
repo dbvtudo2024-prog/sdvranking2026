@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { QuizQuestion } from '../types';
 import { QUIZ_QUESTIONS } from '../constants';
 import { DatabaseService } from '../db';
-import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, LogOut, ChevronLeft, Plus, DownloadCloud, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, ChevronLeft, Plus, DownloadCloud, Loader2 } from 'lucide-react';
 
 interface AdminQuizEditorProps {
   onBack: () => void;

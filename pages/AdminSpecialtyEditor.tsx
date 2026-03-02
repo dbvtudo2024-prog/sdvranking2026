@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DatabaseService, SpecialtyDBV } from '../db';
-import { Trash2, Edit2, Plus, X, Search, ChevronLeft, LogOut, Loader2 } from 'lucide-react';
+import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2 } from 'lucide-react';
 
 interface AdminSpecialtyEditorProps {
   onBack: () => void;

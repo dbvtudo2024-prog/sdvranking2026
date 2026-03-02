@@ -239,7 +239,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
             }
             return (
               <button 
-                key={idx} 
+                key={`${currentIdx}-${idx}`} 
                 disabled={!!feedback} 
                 onClick={() => handleAnswer(idx)} 
                 className={`w-full p-5 rounded-2xl border-2 font-black text-sm uppercase tracking-tight transition-all active:scale-95 shadow-sm ${style}`}

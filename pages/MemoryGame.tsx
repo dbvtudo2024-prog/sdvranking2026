@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole } from '../types';
+import { formatImageUrl } from '../utils/imageUtils';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar } from 'lucide-react';
 
 interface MemoryGameProps {
@@ -327,7 +328,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
                   'bg-red-600 text-white border-red-700'
                 }`}>?</div>
                 <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-xl bg-[#6495ED] flex items-center justify-center p-1.5 sm:p-2">
-                  <img src={card.content} className="w-full h-full object-contain" alt="card" />
+                  <img src={formatImageUrl(card.content)} className="w-full h-full object-contain" alt="card" referrerPolicy="no-referrer" />
                 </div>
               </div>
             </div>

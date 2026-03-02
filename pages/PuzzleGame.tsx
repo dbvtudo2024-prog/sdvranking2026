@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole, PuzzleImage } from '../types';
 import { DatabaseService } from '../db';
+import { formatImageUrl } from '../utils/imageUtils';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Image as ImageIcon } from 'lucide-react';
 
 interface PuzzleGameProps {
@@ -277,7 +278,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
                 className="w-full bg-white border-2 border-slate-100 p-4 rounded-[2rem] shadow-xl shadow-blue-900/5 flex items-center gap-4 group active:scale-95 transition-all"
               >
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                  <img src={img.url || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  <img src={formatImageUrl(img.url) || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>
                 <div className="text-left flex-1 min-w-0">
                   <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Desafio</p>
@@ -338,20 +339,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
               <div 
                 key={`tile-${tile.id}`}
                 onClick={() => handleTileClick(tile.id)}
-                className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden"
+                className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden rounded-lg border border-white/20"
+                style={{
+                  backgroundImage: `url(${formatImageUrl(selectedImage?.url || '')})`,
+                  backgroundSize: `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`,
+                  backgroundPosition: `${(col / (GRID_SIZE - 1)) * 100}% ${(row / (GRID_SIZE - 1)) * 100}%`,
+                  backgroundRepeat: 'no-repeat'
+                }}
               >
-                <img 
-                  src={selectedImage?.url || undefined} 
-                  referrerPolicy="no-referrer"
-                  className="absolute max-w-none"
-                  style={{
-                    width: `${GRID_SIZE * 100}%`,
-                    height: `${GRID_SIZE * 100}%`,
-                    left: `-${col * 100}%`,
-                    top: `-${row * 100}%`,
-                    objectFit: 'cover'
-                  }}
-                />
                 <div className="absolute inset-0 bg-black/5 hover:bg-transparent transition-colors" />
               </div>
             );

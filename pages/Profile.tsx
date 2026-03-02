@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, UserRole, UnitName, Member } from '../types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '../constants';
-import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings } from 'lucide-react';
+import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileProps {
@@ -122,30 +122,50 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
           
           {isLeadership && (
-            <button onClick={onGoToAdminManagement} className="mt-6 bg-white border-2 border-[#0061f2] text-[#0061f2] px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md hover:bg-[#0061f2] hover:text-white transition-all active:scale-95 inline-flex items-center gap-2">
-              <ShieldCheck size={16} /> GESTÃO ADMINISTRATIVA
-            </button>
-          )}
-        </div>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <button onClick={onGoToAdminManagement} className="w-full max-w-xs bg-white border-2 border-[#0061f2] text-[#0061f2] px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md hover:bg-[#0061f2] hover:text-white transition-all active:scale-95 inline-flex items-center justify-center gap-2">
+                <ShieldCheck size={16} /> GESTÃO ADMINISTRATIVA
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setFormData({ ...user });
+                  setShowEditModal(true);
+                }}
+                className="w-full max-w-xs bg-[#0061f2] text-white px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Settings size={16} /> EDITAR PERFIL
+              </button>
 
-        {/* BOTÃO EDITAR PERFIL NO LUGAR DOS DADOS */}
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-50 shadow-xl shadow-blue-900/5 flex flex-col items-center text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-[#0061f2]">
-            <UserIcon size={32} />
-          </div>
-          <div>
-            <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight">Meus Dados Pessoais</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Mantenha suas informações atualizadas</p>
-          </div>
-          <button 
-            onClick={() => {
-              setFormData({ ...user }); // Reset to current user data before opening
-              setShowEditModal(true);
-            }}
-            className="w-full bg-[#0061f2] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-3"
-          >
-            <Settings size={18} /> EDITAR PERFIL
-          </button>
+              <button 
+                onClick={onLogout}
+                className="w-full max-w-xs bg-white border-2 border-red-100 text-red-500 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <LogOut size={16} /> SAIR DA CONTA
+              </button>
+            </div>
+          )}
+
+          {!isLeadership && (
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <button 
+                onClick={() => {
+                  setFormData({ ...user });
+                  setShowEditModal(true);
+                }}
+                className="w-full max-w-xs bg-[#0061f2] text-white px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Settings size={16} /> EDITAR PERFIL
+              </button>
+
+              <button 
+                onClick={onLogout}
+                className="w-full max-w-xs bg-white border-2 border-red-100 text-red-500 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <LogOut size={16} /> SAIR DA CONTA
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ESPECIALIDADES CONCLUÍDAS */}
