@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseService } from '../db';
 import { PuzzleImage } from '../types';
-import { formatImageUrl } from '@/utils/imgUtils';
+import { formatImageUrl } from '../helpers/imageHelpers';
 import { Plus, Trash2, ArrowLeft, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 interface AdminPuzzleEditorProps {

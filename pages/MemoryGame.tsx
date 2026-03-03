@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole } from '../types';
-import { formatImageUrl } from '@/utils/imgUtils';
+import { formatImageUrl } from '../helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar } from 'lucide-react';
 
 interface MemoryGameProps {

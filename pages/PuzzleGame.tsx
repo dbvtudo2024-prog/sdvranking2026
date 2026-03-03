@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole, PuzzleImage } from '../types';
 import { DatabaseService } from '../db';
-import { formatImageUrl } from '@/utils/imgUtils';
+import { formatImageUrl } from '../helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Image as ImageIcon } from 'lucide-react';
 
 interface PuzzleGameProps {
