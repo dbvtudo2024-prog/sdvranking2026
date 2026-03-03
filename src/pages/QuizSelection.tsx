@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight, Calendar } from 'lucide-react';
 import { AuthUser, Member, UserRole } from '@/types';
-import QuizGame from './QuizGame';
+import QuizGame from '@/pages/QuizGame';
 
 interface QuizSelectionProps {
   user: AuthUser;

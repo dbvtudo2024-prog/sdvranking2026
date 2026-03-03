@@ -9,7 +9,7 @@ interface RankingProps {
 }
 
 type TabType = 'members' | 'units' | 'games';
-type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues';
+type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle';
 
 const Ranking: React.FC<RankingProps> = ({ members }) => {
   const [tab, setTab] = useState<TabType>('members');
@@ -29,7 +29,8 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
     return calculateSpecific(member, 'quiz') + 
            calculateSpecific(member, 'memoryGame') + 
            calculateSpecific(member, 'specialtyGame') + 
-           calculateSpecific(member, 'threeCluesGame');
+           calculateSpecific(member, 'threeCluesGame') +
+           calculateSpecific(member, 'puzzleGame');
   };
 
   const getSortedData = () => {
@@ -39,6 +40,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
       if (gameTab === 'memory') return data.sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
       if (gameTab === 'specialty') return data.sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
       if (gameTab === 'threeclues') return data.sort((a, b) => calculateSpecific(b, 'threeCluesGame') - calculateSpecific(a, 'threeCluesGame'));
+      if (gameTab === 'puzzle') return data.sort((a, b) => calculateSpecific(b, 'puzzleGame') - calculateSpecific(a, 'puzzleGame'));
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
@@ -55,6 +57,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
       if (gameTab === 'memory') return calculateSpecific(m, 'memoryGame');
       if (gameTab === 'specialty') return calculateSpecific(m, 'specialtyGame');
       if (gameTab === 'threeclues') return calculateSpecific(m, 'threeCluesGame');
+      if (gameTab === 'puzzle') return calculateSpecific(m, 'puzzleGame');
       return calculateGamesTotal(m);
     }
     return calculateWeeklyTotal(m);
@@ -102,6 +105,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
           <GameTabButton type="memory" label="Memória" />
           <GameTabButton type="specialty" label="Especialid." />
           <GameTabButton type="threeclues" label="3 Dicas" />
+          <GameTabButton type="puzzle" label="Puzzle" />
         </div>
       )}
       
@@ -128,6 +132,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
                     <span className="text-[6px] font-bold text-slate-400 uppercase">M:{calculateSpecific(podiumSlots[1], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">E:{calculateSpecific(podiumSlots[1], 'specialtyGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">3D:{calculateSpecific(podiumSlots[1], 'threeCluesGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">P:{calculateSpecific(podiumSlots[1], 'puzzleGame')}</span>
                   </div>
                 )}
               </div>
@@ -154,6 +159,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
                     <span className="text-[6px] font-bold text-blue-400 uppercase">M:{calculateSpecific(podiumSlots[0], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">E:{calculateSpecific(podiumSlots[0], 'specialtyGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">3D:{calculateSpecific(podiumSlots[0], 'threeCluesGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">P:{calculateSpecific(podiumSlots[0], 'puzzleGame')}</span>
                   </div>
                 )}
               </div>
@@ -181,6 +187,7 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
                     <span className="text-[6px] font-bold text-amber-400 uppercase">M:{calculateSpecific(podiumSlots[2], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">E:{calculateSpecific(podiumSlots[2], 'specialtyGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">3D:{calculateSpecific(podiumSlots[2], 'threeCluesGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">P:{calculateSpecific(podiumSlots[2], 'puzzleGame')}</span>
                   </div>
                 )}
               </div>
@@ -202,11 +209,12 @@ const Ranking: React.FC<RankingProps> = ({ members }) => {
                   <h4 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{m.name.split(' ')[0]}</h4>
                   <p className="text-[9px] text-slate-400 font-bold uppercase truncate">{m.unit}</p>
                   {tab === 'games' && (
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-1">
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Q: {calculateSpecific(m, 'quiz')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">M: {calculateSpecific(m, 'memoryGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">E: {calculateSpecific(m, 'specialtyGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">3D: {calculateSpecific(m, 'threeCluesGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">P: {calculateSpecific(m, 'puzzleGame')}</span>
                     </div>
                   )}
                 </div>

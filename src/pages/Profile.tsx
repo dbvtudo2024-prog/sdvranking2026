@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, UserRole, UnitName, Member } from '@/types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '@/constants';
-import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut } from 'lucide-react';
+import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileProps {
@@ -34,27 +34,76 @@ const Profile: React.FC<ProfileProps> = ({
   }, [user]);
 
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
+    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.name, user.id]);
 
-  const quizStats = useMemo(() => {
-    if (!currentMember) return { total: 0, completed: 0, bestDesbravadores: 0, bestBiblia: 0, history: [] };
-    const quizScores = (currentMember.scores || []).filter(s => s.quizCategory !== undefined);
-    return { 
-      total: quizScores.reduce((acc, s) => acc + (s.quiz || 0), 0), 
+  const gameStats = useMemo(() => {
+    if (!currentMember) return { 
+      totalPoints: 0,
+      quiz: { total: 0, completed: 0, bestDesbravadores: 0, bestBiblia: 0 },
+      memory: { total: 0, best: 0 },
+      puzzle: { total: 0, best: 0 },
+      threeClues: { total: 0, best: 0 },
+      specialty: { total: 0, best: 0 },
+      study: { completed: 0, history: [] }
+    };
+
+    const scores = currentMember.scores || [];
+    
+    // Quiz Stats
+    const quizScores = scores.filter(s => s.quiz !== undefined);
+    const quizStats = {
+      total: quizScores.reduce((acc, s) => acc + (s.quiz || 0), 0),
       completed: quizScores.length,
       bestDesbravadores: Math.max(0, ...quizScores.filter(s => s.quizCategory === 'Desbravadores').map(s => s.quiz || 0)),
       bestBiblia: Math.max(0, ...quizScores.filter(s => s.quizCategory === 'Bíblia').map(s => s.quiz || 0)),
-      history: quizScores.slice().reverse() 
     };
-  }, [currentMember]);
 
-  const specialtyStudyStats = useMemo(() => {
-    if (!currentMember) return { completed: 0, history: [] };
-    const specialtyScores = (currentMember.scores || []).filter(s => s.specialtyStudyId !== undefined);
+    // Memory Game Stats
+    const memoryScores = scores.filter(s => s.memoryGame !== undefined).map(s => s.memoryGame || 0);
+    const memoryStats = {
+      total: memoryScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...memoryScores)
+    };
+
+    // Puzzle Game Stats
+    const puzzleScores = scores.filter(s => s.puzzleGame !== undefined).map(s => s.puzzleGame || 0);
+    const puzzleStats = {
+      total: puzzleScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...puzzleScores)
+    };
+
+    // Three Clues Stats
+    const threeCluesScores = scores.filter(s => s.threeCluesGame !== undefined).map(s => s.threeCluesGame || 0);
+    const threeCluesStats = {
+      total: threeCluesScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...threeCluesScores)
+    };
+
+    // Specialty Game Stats
+    const specialtyGameScores = scores.filter(s => s.specialtyGame !== undefined).map(s => s.specialtyGame || 0);
+    const specialtyGameStats = {
+      total: specialtyGameScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...specialtyGameScores)
+    };
+
+    // Specialty Study Stats
+    const studyScores = scores.filter(s => s.specialtyStudyId !== undefined);
+    const studyStats = {
+      completed: studyScores.length,
+      history: studyScores.slice().reverse()
+    };
+
+    const totalPoints = quizStats.total + memoryStats.total + puzzleStats.total + threeCluesStats.total + specialtyGameStats.total;
+
     return {
-      completed: specialtyScores.length,
-      history: specialtyScores.slice().reverse()
+      totalPoints,
+      quiz: quizStats,
+      memory: memoryStats,
+      puzzle: puzzleStats,
+      threeClues: threeCluesStats,
+      specialty: specialtyGameStats,
+      study: studyStats
     };
   }, [currentMember]);
 
@@ -168,6 +217,17 @@ const Profile: React.FC<ProfileProps> = ({
           )}
         </div>
 
+        {/* RESUMO DE PONTUAÇÃO GERAL */}
+        <div className="bg-gradient-to-br from-[#0061f2] to-[#0052cc] p-8 rounded-[3rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação Total em Jogos</p>
+            <h3 className="text-4xl font-black tracking-tight">{gameStats.totalPoints} <span className="text-sm opacity-60">pts</span></h3>
+          </div>
+          <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
+            <Trophy size={32} className="text-yellow-400" />
+          </div>
+        </div>
+
         {/* ESPECIALIDADES CONCLUÍDAS */}
         <div className="bg-white p-8 rounded-[3rem] border border-slate-50 shadow-xl shadow-blue-900/5 space-y-8">
           <div className="flex items-center gap-3">
@@ -177,15 +237,15 @@ const Profile: React.FC<ProfileProps> = ({
 
           <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex flex-col items-center justify-center text-center">
             <p className="text-[9px] font-black text-amber-300 uppercase tracking-widest mb-2">Total de Especialidades</p>
-            <p className="text-3xl font-black text-amber-600 mb-2">{specialtyStudyStats.completed}</p>
+            <p className="text-3xl font-black text-amber-600 mb-2">{gameStats.study.completed}</p>
             <ShieldCheck size={20} className="text-amber-200" />
           </div>
 
           <div className="space-y-4">
             <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] ml-2">Histórico de Estudos</p>
-            {specialtyStudyStats.history.length > 0 ? (
+            {gameStats.study.history.length > 0 ? (
               <div className="space-y-3">
-                {specialtyStudyStats.history.map((s, idx) => (
+                {gameStats.study.history.map((s, idx) => (
                   <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:bg-slate-50/50">
                     <div className="flex-1 min-w-0 pr-4">
                       <h4 className="text-[11px] font-black text-slate-700 uppercase truncate mb-0.5">
@@ -207,59 +267,68 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         </div>
 
-        {/* DESEMPENHO NO QUIZ - RESTAURADO COM MELHORES PONTUAÇÕES */}
+        {/* DESEMPENHO EM JOGOS - NOVO LAYOUT COMPLETO */}
         <div className="bg-white p-8 rounded-[3rem] border border-slate-50 shadow-xl shadow-blue-900/5 space-y-8">
           <div className="flex items-center gap-3">
-            <Trophy className="text-[#FFD700]" size={24} />
-            <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight">Desempenho no Quiz</h3>
+            <Gamepad2 className="text-[#0061f2]" size={24} />
+            <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight">Desempenho em Jogos</h3>
           </div>
           
+          {/* GRID DE JOGOS */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#f0f7ff] p-6 rounded-[2rem] border border-blue-50 flex flex-col items-center justify-center text-center">
-              <p className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-2">Pontos Totais</p>
-              <p className="text-3xl font-black text-[#0061f2] mb-2">{quizStats.total}</p>
-              <Medal size={20} className="text-blue-200" />
+            {/* QUIZ */}
+            <div className="bg-blue-50/50 p-5 rounded-[2rem] border border-blue-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Brain size={14} className="text-blue-500" />
+                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Quiz</p>
+              </div>
+              <p className="text-2xl font-black text-blue-700">{gameStats.quiz.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-blue-400 uppercase mt-1">Recorde: {Math.max(gameStats.quiz.bestDesbravadores, gameStats.quiz.bestBiblia)}</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col items-center justify-center text-center">
-              <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Quizzes</p>
-              <p className="text-3xl font-black text-slate-700 mb-2">{quizStats.completed}</p>
-              <BookOpen size={20} className="text-slate-200" />
+
+            {/* MEMÓRIA */}
+            <div className="bg-emerald-50/50 p-5 rounded-[2rem] border border-emerald-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={14} className="text-emerald-500" />
+                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Memória</p>
+              </div>
+              <p className="text-2xl font-black text-emerald-700">{gameStats.memory.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-emerald-400 uppercase mt-1">Recorde: {gameStats.memory.best}</p>
+            </div>
+
+            {/* QUEBRA-CABEÇA */}
+            <div className="bg-amber-50/50 p-5 rounded-[2rem] border border-amber-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Shuffle size={14} className="text-amber-500" />
+                <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Puzzle</p>
+              </div>
+              <p className="text-2xl font-black text-amber-700">{gameStats.puzzle.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-amber-400 uppercase mt-1">Recorde: {gameStats.puzzle.best}</p>
+            </div>
+
+            {/* 3 DICAS */}
+            <div className="bg-purple-50/50 p-5 rounded-[2rem] border border-purple-100">
+              <div className="flex items-center gap-2 mb-3">
+                <HelpCircle size={14} className="text-purple-500" />
+                <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest">3 Dicas</p>
+              </div>
+              <p className="text-2xl font-black text-purple-700">{gameStats.threeClues.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-purple-400 uppercase mt-1">Recorde: {gameStats.threeClues.best}</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] ml-2">Melhores Pontuações</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-amber-50/50 p-5 rounded-[2rem] border border-amber-100 flex flex-col">
-                <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Desbravadores</p>
-                <p className="text-2xl font-black text-amber-700">{quizStats.bestDesbravadores} pts</p>
-              </div>
-              <div className="bg-blue-50/50 p-5 rounded-[2rem] border border-blue-100 flex flex-col">
-                <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Bíblia</p>
-                <p className="text-2xl font-black text-blue-700">{quizStats.bestBiblia} pts</p>
+          <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Medal size={20} className="text-slate-400" />
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Qual a Especialidade?</p>
+                <p className="text-xl font-black text-slate-700">{gameStats.specialty.total} pts</p>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] ml-2">Histórico Recente</p>
-            {quizStats.history.length > 0 ? (
-              <div className="space-y-3">
-                {quizStats.history.slice(0, 5).map((s, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:bg-slate-50/50">
-                    <div className="flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
-                      <p className="text-[11px] font-black text-slate-600 uppercase">{s.quizCategory} • {s.date}</p>
-                    </div>
-                    <p className="text-sm font-black text-[#0061f2]">+{s.quiz} pts</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-10 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhum Registro de Quiz</p>
-              </div>
-            )}
+            <div className="text-right">
+              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Recorde</p>
+              <p className="text-sm font-black text-slate-400">{gameStats.specialty.best}</p>
+            </div>
           </div>
         </div>
       </div>
