@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { AuthUser, Member, SpecialtyStudy, Score } from '../types';
 import { DatabaseService } from '../db';
-import { formatImageUrl } from '../helpers/imageHelpers';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info } from 'lucide-react';
 
 interface SpecialtyStudyAreaProps {
