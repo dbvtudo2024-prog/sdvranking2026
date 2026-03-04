@@ -23,8 +23,8 @@ import AdminManagement from '@/pages/AdminManagement';
 import Games from '@/pages/Games';
 import Leadership from '@/pages/Leadership';
 import Chat from '@/pages/Chat';
-import Navbar from '@/components/NavbarComponent';
-import TickerBanner from '@/components/TickerBanner';
+import AppNavbar from '@/components/AppNavbar.tsx';
+import TickerBanner from '@/components/TickerBanner.tsx';
 import { ArrowLeft, Bell, X, Sword } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -390,7 +390,7 @@ const App: React.FC = () => {
 
       {['units', 'ranking', 'leadership', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
         <footer className="shrink-0 bg-white border-t border-slate-100">
-          <Navbar 
+          <AppNavbar 
             currentPage={currentPage as any} 
             setCurrentPage={setCurrentPage as any} 
             unreadCount={unreadCount}
