@@ -8,9 +8,10 @@ interface AdminAnnouncementsProps {
   onAdd: (a: Announcement) => void;
   onDelete: (id: string) => void;
   onBack: () => void;
+  isDarkMode?: boolean;
 }
 
-const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, onAdd, onDelete, onBack }) => {
+const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, onAdd, onDelete, onBack, isDarkMode }) => {
   const [newAviso, setNewAviso] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
@@ -40,14 +41,14 @@ const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, 
     alert('Aviso adicionado com sucesso!');
   };
 
-  const inputClasses = "w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0061f2] outline-none font-medium text-gray-700 transition-all text-sm";
-  const labelClasses = "text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest mb-1 block";
+  const inputClasses = `w-full p-3 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-gray-50 border-gray-200 text-gray-700'} border rounded-xl focus:ring-2 focus:ring-[#0061f2] outline-none font-medium transition-all text-sm`;
+  const labelClasses = `text-[10px] font-black ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} uppercase ml-2 tracking-widest mb-1 block`;
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc]">
+    <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'}`}>
       <div className="p-6 space-y-6 overflow-y-auto flex-1">
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-blue-900/5">
-          <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-6 rounded-[2.5rem] border shadow-xl shadow-blue-900/5`}>
+          <h3 className={`font-black ${isDarkMode ? 'text-slate-100' : 'text-gray-800'} text-sm uppercase tracking-widest mb-4 flex items-center gap-2`}>
             <Plus size={18} className="text-[#0061f2]" /> Novo Aviso
           </h3>
           
@@ -93,17 +94,17 @@ const AdminAnnouncements: React.FC<AdminAnnouncementsProps> = ({ announcements, 
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-black text-gray-400 text-[10px] uppercase tracking-[0.2em] ml-2">Avisos Postados</h3>
+          <h3 className={`font-black ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} text-[10px] uppercase tracking-[0.2em] ml-2`}>Avisos Postados</h3>
           {announcements.map(a => (
-            <div key={`announcement-item-${a.id}`} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex justify-between items-start gap-4">
+            <div key={`announcement-item-${a.id}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-5 rounded-[2.5rem] border shadow-sm flex justify-between items-start gap-4`}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-black text-[#0061f2] text-xs uppercase truncate">{a.title}</p>
-                  <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                  <span className={`text-[9px] font-black ${isDarkMode ? 'text-amber-400 bg-amber-900/30' : 'text-amber-700 bg-amber-100'} px-2 py-0.5 rounded-full shrink-0`}>
                     {a.date}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 leading-relaxed">{a.content}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-gray-500'} leading-relaxed`}>{a.content}</p>
               </div>
               <button 
                 onClick={() => { if(confirm('Excluir aviso?')) onDelete(a.id); }}

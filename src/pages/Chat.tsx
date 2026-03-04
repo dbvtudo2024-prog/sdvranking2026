@@ -6,9 +6,10 @@ import { Send, Users, Shield, MessageSquare, Loader2 } from 'lucide-react';
 
 interface ChatProps {
   user: AuthUser;
+  isDarkMode?: boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ user }) => {
+const Chat: React.FC<ChatProps> = ({ user, isDarkMode }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,11 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     // Carregar mensagens iniciais
     DatabaseService.getMessages(activeTab)
       .then(data => {
-        setMessages(data);
+        // Ensure sorting by date ascending
+        const sorted = [...data].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        setMessages(sorted);
         setLoading(false);
       })
       .catch(err => {
@@ -48,13 +53,18 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             String(m.sender_id) === String(newMsg.sender_id)
           );
 
+          let newMessages;
           if (optimisticIdx !== -1) {
-            const newArr = [...prev];
-            newArr[optimisticIdx] = newMsg;
-            return newArr;
+            newMessages = [...prev];
+            newMessages[optimisticIdx] = newMsg;
+          } else {
+            newMessages = [...prev, newMsg];
           }
 
-          return [...prev, newMsg];
+          // Always sort after adding/updating to ensure order
+          return newMessages.sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
         });
       }
     });
@@ -133,19 +143,19 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#f0f2f5] animate-in fade-in duration-500">
+    <div className="flex flex-col h-full bg-[#f0f2f5] dark:bg-[#0f172a] animate-in fade-in duration-500">
       {/* TABS SELECTOR */}
-      <div className="bg-white border-b border-slate-100 flex p-1.5 gap-1.5 shrink-0">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex p-1.5 gap-1.5 shrink-0">
         <button 
           onClick={() => setActiveTab('Geral')}
-          className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'Geral' ? 'bg-[#0061f2] text-white shadow-lg shadow-blue-500/20' : 'text-slate-400'}`}
+          className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'Geral' ? 'bg-[#0061f2] text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 dark:text-slate-500'}`}
         >
           <Users size={14} /> Global
         </button>
         {user.unit && (
           <button 
             onClick={() => setActiveTab(user.unit!)}
-            className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === user.unit ? 'bg-[#0061f2] text-white shadow-lg shadow-blue-500/20' : 'text-slate-400'}`}
+            className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === user.unit ? 'bg-[#0061f2] text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 dark:text-slate-500'}`}
           >
             <Shield size={14} /> Minha Unidade
           </button>
@@ -161,11 +171,11 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 opacity-30">
             <Loader2 className="animate-spin text-[#0061f2]" size={32} />
-            <p className="font-black uppercase text-[10px] tracking-widest">Conectando ao Chat...</p>
+            <p className="font-black uppercase text-[10px] tracking-widest text-slate-800 dark:text-slate-200">Conectando ao Chat...</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-10">
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-xl text-slate-300">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-xl text-slate-300 dark:text-slate-600">
               <MessageSquare size={40} className="mx-auto mb-2" />
               <p className="text-[10px] font-black uppercase tracking-widest leading-tight">Comece a conversa!<br/>Diga oi para o clube.</p>
             </div>
@@ -190,7 +200,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
                       {msg.sender_name.split(' ')[0]}
                     </span>
                   )}
-                  <div className={`px-4 py-2.5 rounded-[1.5rem] shadow-md relative ${isMe ? 'bg-[#0061f2] text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
+                  <div className={`px-4 py-2.5 rounded-[1.5rem] shadow-md relative ${isMe ? 'bg-[#0061f2] text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-100 dark:border-slate-700'}`}>
                     <p className="text-sm font-semibold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className={`text-[8px] font-black mt-1 uppercase ${isMe ? 'text-white/60 text-right' : 'text-slate-300 text-right'}`}>
                       {formatTime(msg.created_at)}
@@ -220,14 +230,14 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       </div>
 
       {/* INPUT AREA */}
-      <form onSubmit={handleSend} className="bg-white p-3 border-t border-slate-100 flex items-center gap-2 shrink-0">
-        <div className="flex-1 bg-slate-50 rounded-[1.5rem] border border-slate-100 px-4 py-1 flex items-center">
+      <form onSubmit={handleSend} className="bg-white dark:bg-slate-800 p-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 shrink-0">
+        <div className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 px-4 py-1 flex items-center">
           <input 
             type="text" 
             placeholder="Mensagem..."
             value={inputText}
             onChange={handleInputChange}
-            className="flex-1 bg-transparent py-2.5 outline-none font-bold text-slate-700 text-sm"
+            className="flex-1 bg-transparent py-2.5 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm"
           />
         </div>
         <button 

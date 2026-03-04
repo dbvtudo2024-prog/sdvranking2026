@@ -15,6 +15,7 @@ interface UnitDetailProps {
   role: UserRole;
   userName?: string;
   counselorList?: string[];
+  isDarkMode?: boolean;
 }
 
 const UnitDetail: React.FC<UnitDetailProps> = ({ 
@@ -24,7 +25,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   onUpdateMember, 
   onDeleteMember,
   role,
-  counselorList = []
+  counselorList = [],
+  isDarkMode
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMemberForPoints, setSelectedMemberForPoints] = useState<Member | null>(null);
@@ -172,16 +174,16 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
   const calculateScoreTotal = (s: Score) => (Number(s.punctuality) || 0) + (Number(s.uniform) || 0) + (Number(s.material) || 0) + (Number(s.bible) || 0) + (Number(s.voluntariness) || 0) + (Number(s.activities) || 0) + (Number(s.treasury) || 0);
 
-  const labelClasses = "text-[12px] font-bold text-[#1e293b] mb-1.5 block ml-1";
-  const inputClasses = "w-full p-3.5 bg-white border border-[#e2e8f0] rounded-[0.8rem] text-[#1e293b] outline-none focus:border-[#2563eb] font-semibold transition-all text-sm shadow-sm";
+  const labelClasses = "text-[12px] font-bold text-[#1e293b] dark:text-slate-300 mb-1.5 block ml-1";
+  const inputClasses = "w-full p-3.5 bg-white dark:bg-slate-900 border border-[#e2e8f0] dark:border-slate-700 rounded-[0.8rem] text-[#1e293b] dark:text-slate-100 outline-none focus:border-[#2563eb] font-semibold transition-all text-sm shadow-sm";
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500 overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto">
       <div className="p-4 sm:p-8">
-        <div className="flex justify-between items-center mb-8 bg-white/50 p-4 rounded-3xl border border-slate-100 shadow-sm min-h-[80px]">
-          <div className="flex items-center gap-4 text-slate-400 px-2">
+        <div className="flex justify-between items-center mb-8 bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm min-h-[80px]">
+          <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 px-2">
             <img src={UNIT_LOGOS[unitName]} alt="Brasão" className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-            <span className="font-black text-base sm:text-xl text-slate-600">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Desbravadores'}</span>
+            <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Desbravadores'}</span>
           </div>
           {isUserLeadership && (
             <button onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} className="bg-[#0061f2] text-white p-4 rounded-full sm:rounded-2xl font-black shadow-xl active:scale-95 transition-all">
@@ -192,14 +194,14 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           {filteredMembers.map(member => (
-            <div key={member.id} onClick={() => isUserLeadership && setSelectedMemberForPoints(member)} className="bg-white p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group">
+            <div key={member.id} onClick={() => isUserLeadership && setSelectedMemberForPoints(member)} className="bg-white dark:bg-slate-800 p-6 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group">
               <div className="flex gap-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white shadow-md overflow-hidden bg-slate-100">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white dark:border-slate-700 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-900">
                   {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" /> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`} className="w-full h-full object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0 pt-1 pr-14">
-                  <h3 className="text-lg font-black text-slate-800 leading-tight mb-1">{member.name}</h3>
-                  <p className="text-xs text-slate-500 font-bold mb-1 uppercase">{member.age} anos • {member.className || 'Liderança'}</p>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight mb-1">{member.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1 uppercase">{member.age} anos • {member.className || 'Liderança'}</p>
                   <p className="text-[10px] text-[#0061f2] font-black uppercase tracking-wider mb-4">
                     {isLiderancaUnit ? member.counselor : (member.counselor ? `Conselheiro: ${member.counselor}` : 'Sem Conselheiro')}
                   </p>
@@ -225,12 +227,12 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       {/* MODAL PONTOS */}
       {selectedMemberForPoints && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">
                 {editingScoreIndex !== null ? 'Editar Pontos' : 'Lançar Pontos'}
               </h3>
-              <button onClick={() => { setSelectedMemberForPoints(null); setEditingScoreIndex(null); setNewScore({ date: new Date().toISOString().split('T')[0] }); }} className="text-slate-300"><X size={28} /></button>
+              <button onClick={() => { setSelectedMemberForPoints(null); setEditingScoreIndex(null); setNewScore({ date: new Date().toISOString().split('T')[0] }); }} className="text-slate-300 hover:text-slate-500"><X size={28} /></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -239,12 +241,12 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               </div>
               <div className="grid grid-cols-1 gap-3">
                 {SCORE_CATEGORIES.map(cat => (
-                  <div key={cat.id} className="bg-white border border-slate-100 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <span className="text-xs font-black text-slate-700 uppercase">{cat.label}</span>
+                  <div key={cat.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">{cat.label}</span>
                     <div className="flex items-center gap-4">
-                      <button onClick={() => adjustPoints(cat.id, -1)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 active:scale-90"><Minus size={18} /></button>
+                      <button onClick={() => adjustPoints(cat.id, -1)} className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 active:scale-90"><Minus size={18} /></button>
                       <span className="w-12 text-center font-black text-lg text-[#0061f2]">{newScore[cat.id as keyof Score] || 0}</span>
-                      <button onClick={() => adjustPoints(cat.id, 1)} className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#0061f2] active:scale-90"><Plus size={18} /></button>
+                      <button onClick={() => adjustPoints(cat.id, 1)} className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-[#0061f2] active:scale-90"><Plus size={18} /></button>
                     </div>
                   </div>
                 ))}
@@ -260,19 +262,19 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       {/* MODAL HISTÓRICO - AGORA COM EDIT/EXCLUIR */}
       {selectedMemberIdForHistory && historyMember && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900">
                   <img src={historyMember.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${historyMember.id}`} className="w-full h-full object-cover" />
                 </div>
-                <h3 className="text-lg font-black text-[#0f172a] uppercase truncate max-w-[200px]">{historyMember.name}</h3>
+                <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-100 uppercase truncate max-w-[200px]">{historyMember.name}</h3>
               </div>
               <button onClick={() => setSelectedMemberIdForHistory(null)} className="text-slate-300 hover:text-slate-500"><X size={28} /></button>
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Histórico de Pontuações</p>
+              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Histórico de Pontuações</p>
               {historyMember.scores.filter(s => calculateScoreTotal(s) > 0).length > 0 ? (
                 [...historyMember.scores]
                   .filter(s => calculateScoreTotal(s) > 0)
@@ -281,15 +283,15 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                     // Encontra o índice original para edição/exclusão correta
                     const originalIndex = historyMember.scores.findIndex(os => os === s);
                     return (
-                      <div key={idx} className="bg-white border border-slate-100 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
+                      <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black text-[#0061f2] uppercase">{s.date}</span>
-                          <span className="text-xl font-black text-slate-800">{calculateScoreTotal(s)} pts</span>
+                          <span className="text-xl font-black text-slate-800 dark:text-slate-100">{calculateScoreTotal(s)} pts</span>
                         </div>
                         {isUserLeadership && (
                           <div className="flex gap-2">
-                            <button onClick={() => handleEditScore(historyMember, originalIndex)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-all"><Edit2 size={16} /></button>
-                            <button onClick={() => handleDeleteScore(historyMember, originalIndex)} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><Trash2 size={16} /></button>
+                            <button onClick={() => handleEditScore(historyMember, originalIndex)} className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl active:scale-90 transition-all"><Edit2 size={16} /></button>
+                            <button onClick={() => handleDeleteScore(historyMember, originalIndex)} className="p-2.5 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-xl active:scale-90 transition-all"><Trash2 size={16} /></button>
                           </div>
                         )}
                       </div>
@@ -309,9 +311,9 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       {/* MODAL ADD/EDIT MEMBRO */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[#0f172a]">{isEditing ? 'Editar Membro' : 'Novo Membro'}</h3>
+              <h3 className="text-xl font-bold text-[#0f172a] dark:text-slate-100">{isEditing ? 'Editar Membro' : 'Novo Membro'}</h3>
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X size={24} />
               </button>
@@ -321,16 +323,16 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               <div className="flex flex-col items-center gap-2 mb-2">
                 <div 
                   onClick={() => fileInputRef.current?.click()} 
-                  className="w-28 h-28 rounded-full border-2 border-dashed border-blue-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 relative group"
+                  className="w-28 h-28 rounded-full border-2 border-dashed border-blue-200 dark:border-blue-900 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 dark:bg-slate-900 relative group"
                 >
                   {isEditing ? (
-                    editingMember?.photoUrl ? <img src={editingMember.photoUrl} className="w-full h-full object-cover" /> : <Camera size={28} className="text-slate-400" />
+                    editingMember?.photoUrl ? <img src={editingMember.photoUrl} className="w-full h-full object-cover" /> : <Camera size={28} className="text-slate-400 dark:text-slate-600" />
                   ) : (
-                    formData.photoUrl ? <img src={formData.photoUrl} className="w-full h-full object-cover" /> : <Camera size={28} className="text-slate-400" />
+                    formData.photoUrl ? <img src={formData.photoUrl} className="w-full h-full object-cover" /> : <Camera size={28} className="text-slate-400 dark:text-slate-600" />
                   )}
                   <input type="file" ref={fileInputRef} hidden onChange={(e) => handlePhotoUpload(e, isEditing)} accept="image/*" />
                 </div>
-                <p className="text-[11px] font-medium text-slate-500">Clique para alterar foto</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Clique para alterar foto</p>
               </div>
 
               <div>

@@ -7,9 +7,10 @@ import { Users, Shield } from 'lucide-react';
 interface UnitsProps {
   members: Member[];
   onSelectUnit: (unit: UnitName) => void;
+  isDarkMode?: boolean;
 }
 
-const Units: React.FC<UnitsProps> = ({ members, onSelectUnit }) => {
+const Units: React.FC<UnitsProps> = ({ members, onSelectUnit, isDarkMode }) => {
   const safeMembers = Array.isArray(members) ? members : [];
 
   const getUnitStats = (unit: UnitName) => {
@@ -36,11 +37,11 @@ const Units: React.FC<UnitsProps> = ({ members, onSelectUnit }) => {
   const UnitButton = ({ unit, stats, color }: { unit: UnitName, stats: any, color: string }) => (
     <button 
       onClick={() => onSelectUnit(unit)}
-      className="bg-white rounded-[2rem] p-4 shadow-xl shadow-blue-900/5 border-2 flex items-center gap-4 transition-all active:scale-[0.98] hover:shadow-2xl group relative overflow-hidden w-full"
+      className="bg-white dark:bg-slate-800 rounded-[2rem] p-4 shadow-xl shadow-blue-900/5 border-2 flex items-center gap-4 transition-all active:scale-[0.98] hover:shadow-2xl group relative overflow-hidden w-full dark:border-slate-700"
       style={{ borderColor: color }}
     >
       {/* Logo Container */}
-      <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-2xl p-2 border border-slate-100">
+      <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-2xl p-2 border border-slate-100 dark:border-slate-700">
         <img 
           src={UNIT_LOGOS[unit]} 
           alt={`Logo ${unit}`} 
@@ -50,8 +51,8 @@ const Units: React.FC<UnitsProps> = ({ members, onSelectUnit }) => {
       
       {/* Info Container */}
       <div className="flex-1 text-left min-w-0">
-        <h4 className="font-black text-slate-800 text-base uppercase tracking-tight leading-tight truncate">{unit}</h4>
-        <div className="flex items-center gap-1.5 text-slate-400 mt-0.5">
+        <h4 className="font-black text-slate-800 dark:text-slate-100 text-base uppercase tracking-tight leading-tight truncate">{unit}</h4>
+        <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 mt-0.5">
           <Users size={12} />
           <span className="text-[10px] font-black uppercase tracking-widest">{stats.count} membros</span>
         </div>
@@ -69,7 +70,7 @@ const Units: React.FC<UnitsProps> = ({ members, onSelectUnit }) => {
   );
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 bg-white overflow-y-auto pb-24 pt-6">
+    <div className="flex flex-col h-full animate-in fade-in duration-500 bg-white dark:bg-[#0f172a] overflow-y-auto pb-24 pt-6">
       {/* UNITS LIST SECTION */}
       <div className="px-4 flex flex-col gap-4">
         <UnitButton unit={UnitName.AGUIA_DOURADA} stats={aguiaStats} color="#FFD700" />

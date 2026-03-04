@@ -45,11 +45,12 @@ export const DatabaseService = {
       .from('messages')
       .select('*')
       .eq('unit', unit)
-      .order('created_at', { ascending: true }) 
+      .order('created_at', { ascending: false }) 
       .limit(50);
     
     if (error) throw error;
-    return (data || []) as ChatMessage[];
+    // Reverse to show oldest first (standard chat behavior)
+    return ((data || []) as ChatMessage[]).reverse();
   },
 
   async sendMessage(msg: ChatMessage) {

@@ -11,13 +11,14 @@ interface SpecialtyStudyAreaProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   onStudyStateChange?: (studyName: string | null) => void;
+  isDarkMode?: boolean;
 }
 
 export interface SpecialtyStudyHandle {
   goBack: () => boolean;
 }
 
-const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaProps>(({ user, members, onUpdateMember, onBack, onStudyStateChange }, ref) => {
+const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaProps>(({ user, members, onUpdateMember, onBack, onStudyStateChange, isDarkMode }, ref) => {
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<SpecialtyStudy | null>(null);
@@ -299,7 +300,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   if (mode === 'list') {
     return (
-      <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in">
         <div className="p-6 space-y-4 overflow-y-auto pb-32">
           <div className="grid grid-cols-1 gap-4">
             {studies.map(s => {
@@ -307,13 +308,13 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
               const bestScore = currentMember?.scores?.filter(score => score.specialtyStudyId === s.id).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
 
               return (
-                <div key={`study-item-${s.id}`} className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
+                <div key={`study-item-${s.id}`} className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">{s.category}</span>
-                      {alreadyDone && <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-green-100 text-green-600">Concluído</span>}
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 dark:bg-blue-900/30 text-blue-600">{s.category}</span>
+                      {alreadyDone && <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-green-100 dark:bg-green-900/30 text-green-600">Concluído</span>}
                     </div>
-                    <h4 className="text-sm font-black text-slate-800 leading-tight mb-1">{s.name}</h4>
+                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1">{s.name}</h4>
                     {alreadyDone && (
                       <div className="flex items-center gap-1 text-amber-500">
                         <Trophy size={10} />
@@ -323,7 +324,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                   </div>
                   <button 
                     onClick={() => handleStartStudy(s)}
-                    className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner"
+                    className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner"
                   >
                     <Play size={20} fill="currentColor" />
                   </button>
@@ -345,7 +346,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   if (mode === 'study' && selectedStudy) {
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
-        <div className="flex-1 bg-slate-100 relative overflow-hidden">
+        <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
           <iframe 
             src={formatPdfUrl(selectedStudy.pdfurl)} 
             className="w-full h-full border-none"
@@ -382,18 +383,18 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   if (mode === 'puzzle' && selectedStudy) {
     return (
-      <div className="flex flex-col h-full bg-slate-50 animate-in fade-in p-6">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in p-6">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-4">
+          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mx-auto mb-4">
             <Trophy size={32} />
           </div>
-          <h3 className="text-xl font-black text-slate-800 uppercase">Desafio de Quebra-Cabeça</h3>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Resolva para liberar o teste final</p>
+          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Desafio de Quebra-Cabeça</h3>
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">Resolva para liberar o teste final</p>
         </div>
 
         <div className="flex-1 flex items-center justify-center">
           <div 
-            className="relative bg-slate-200 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
+            className="relative bg-slate-200 dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-700"
             style={{ 
               width: 'min(80vw, 320px)', 
               height: 'min(80vw, 320px)',
@@ -447,10 +448,10 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     
     if (!currentQ) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-50">
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-50 dark:bg-[#0f172a]">
           <XCircle className="text-red-500 mb-4" size={48} />
-          <h2 className="text-xl font-black text-slate-800 uppercase">Erro no Quiz</h2>
-          <p className="text-slate-500 text-sm mb-6">Não foi possível carregar as perguntas deste estudo.</p>
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Erro no Quiz</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Não foi possível carregar as perguntas deste estudo.</p>
           <button onClick={() => setMode('study')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">VOLTAR</button>
         </div>
       );
@@ -463,21 +464,21 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       : (rawOptions ? Object.values(rawOptions) : []);
 
     return (
-      <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in">
         <div className="p-6 flex-1 flex flex-col items-center justify-start space-y-8 overflow-y-auto">
-          <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl relative overflow-hidden shrink-0">
+          <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-2xl relative overflow-hidden shrink-0">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
             <div className="flex justify-between items-center mb-4">
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Questão {currentQuestionIdx + 1} de {questions.length}</span>
             </div>
-            <h3 className="text-lg font-black text-slate-800 leading-tight">
+            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight">
               {currentQ.question}
             </h3>
           </div>
 
           <div className="w-full space-y-3 pb-10">
             {options.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+              <div className="text-center py-10 bg-white dark:bg-slate-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma alternativa encontrada</p>
               </div>
             ) : (
@@ -485,9 +486,9 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 <button 
                   key={`${currentQuestionIdx}-${idx}`}
                   onClick={() => handleAnswer(idx)}
-                  className="w-full p-5 bg-white border-2 border-slate-100 rounded-[1.5rem] text-left font-bold text-slate-700 hover:border-blue-600 hover:bg-blue-50 transition-all active:scale-[0.98] flex items-center gap-4 group shadow-sm"
+                  className="w-full p-5 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[1.5rem] text-left font-bold text-slate-700 dark:text-slate-200 hover:border-blue-600 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all active:scale-[0.98] flex items-center gap-4 group shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center font-black text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 flex items-center justify-center font-black text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
                     {String.fromCharCode(65 + idx)}
                   </div>
                   <span className="flex-1 text-sm">{String(opt || '')}</span>
@@ -502,22 +503,22 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   if (mode === 'result' && selectedStudy) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95 duration-500 bg-slate-50">
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95 duration-500 bg-slate-50 dark:bg-[#0f172a]">
         <div className={`w-24 h-24 rounded-[2.5rem] flex items-center justify-center shadow-xl mb-8 ${score >= 7 ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
           {score >= 7 ? <Trophy size={48} /> : <Info size={48} />}
         </div>
         
-        <h2 className="text-3xl font-black text-slate-800 uppercase mb-2">
+        <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 uppercase mb-2">
           {score >= 7 ? 'Parabéns!' : 'Continue Estudando!'}
         </h2>
-        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-10">
+        <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-10">
           Você concluiu o teste de {selectedStudy.name}
         </p>
 
-        <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full max-w-sm">
-           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Sua Nota Final</p>
+        <div className="bg-white dark:bg-slate-800 p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 mb-10 w-full max-w-sm">
+           <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Sua Nota Final</p>
            <p className={`text-7xl font-black ${score >= 7 ? 'text-green-600' : 'text-amber-600'}`}>{score}</p>
-           <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mt-2">de 10 pontos possíveis</p>
+           <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 mt-2">de 10 pontos possíveis</p>
         </div>
 
         <button 

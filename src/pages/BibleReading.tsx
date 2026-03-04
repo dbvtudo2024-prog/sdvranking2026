@@ -7,6 +7,7 @@ import { BookOpen, CheckCircle2, Circle, ChevronRight, History, Loader2, Search,
 interface BibleReadingProps {
   user: AuthUser;
   onBack: () => void;
+  isDarkMode?: boolean;
 }
 
 interface ReadingItem {
@@ -38,7 +39,7 @@ const CHRONOLOGICAL_PLAN: ReadingItem[] = [
   { id: 'c19', title: 'A Revelação Final', reference: 'Apocalipse', order: 19 },
 ];
 
-const BibleReading: React.FC<BibleReadingProps> = ({ user, onBack }) => {
+const BibleReading: React.FC<BibleReadingProps> = ({ user, onBack, isDarkMode }) => {
   const [completedItems, setCompletedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,21 +86,21 @@ const BibleReading: React.FC<BibleReadingProps> = ({ user, onBack }) => {
   const progressPercentage = Math.round((completedItems.length / CHRONOLOGICAL_PLAN.length) * 100);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-hidden">
       {/* PROGRESSO */}
-      <div className="bg-white px-6 pt-4 pb-6 shadow-sm shrink-0">
-        <div className="bg-slate-50 rounded-3xl p-4 border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 px-6 pt-4 pb-6 shadow-sm shrink-0">
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-4 border border-slate-100 dark:border-slate-700">
           <div className="flex justify-between items-end mb-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Total</span>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Progresso Total</span>
             <span className="text-lg font-black text-blue-600">{progressPercentage}%</span>
           </div>
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-blue-600 transition-all duration-1000 ease-out"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
-          <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-tight">
+          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase tracking-tight">
             {completedItems.length} de {CHRONOLOGICAL_PLAN.length} marcos concluídos
           </p>
         </div>
@@ -110,20 +111,20 @@ const BibleReading: React.FC<BibleReadingProps> = ({ user, onBack }) => {
         <div className="flex gap-2 mb-4">
           <button 
             onClick={() => setActiveCategory('cronologica')}
-            className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeCategory === 'cronologica' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'}`}
+            className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeCategory === 'cronologica' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-700'}`}
           >
             <History size={14} /> Ordem Cronológica
           </button>
         </div>
 
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={16} />
           <input 
             type="text" 
             placeholder="Buscar livro ou marco..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-300 transition-colors"
+            className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-300 transition-colors"
           />
         </div>
       </div>
@@ -147,22 +148,22 @@ const BibleReading: React.FC<BibleReadingProps> = ({ user, onBack }) => {
                 <button 
                   key={item.id}
                   onClick={() => toggleItem(item.id)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-3xl border-2 transition-all active:scale-[0.98] ${isCompleted ? 'bg-blue-50 border-blue-100' : 'bg-white border-slate-50 shadow-sm'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-3xl border-2 transition-all active:scale-[0.98] ${isCompleted ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800' : 'bg-white dark:bg-slate-800 border-slate-50 dark:border-slate-700 shadow-sm'}`}
                 >
-                  <div className={`shrink-0 transition-colors ${isCompleted ? 'text-blue-600' : 'text-slate-200'}`}>
-                    {isCompleted ? <CheckCircle2 size={28} fill="currentColor" className="text-white" /> : <Circle size={28} />}
+                  <div className={`shrink-0 transition-colors ${isCompleted ? 'text-blue-600' : 'text-slate-200 dark:text-slate-700'}`}>
+                    {isCompleted ? <CheckCircle2 size={28} fill="currentColor" className="text-white dark:text-blue-900" /> : <Circle size={28} />}
                   </div>
                   
                   <div className="flex-1 text-left min-w-0">
-                    <h4 className={`font-black text-sm uppercase tracking-tight leading-tight truncate ${isCompleted ? 'text-blue-900' : 'text-slate-700'}`}>
+                    <h4 className={`font-black text-sm uppercase tracking-tight leading-tight truncate ${isCompleted ? 'text-blue-900 dark:text-blue-100' : 'text-slate-700 dark:text-slate-200'}`}>
                       {item.title}
                     </h4>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isCompleted ? 'text-blue-400' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isCompleted ? 'text-blue-400 dark:text-blue-500' : 'text-slate-400 dark:text-slate-500'}`}>
                       {item.reference}
                     </p>
                   </div>
 
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-200/50 text-blue-600' : 'bg-slate-50 text-slate-300'}`}>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-200/50 dark:bg-blue-800/50 text-blue-600 dark:text-blue-400' : 'bg-slate-50 dark:bg-slate-700 text-slate-300 dark:text-slate-500'}`}>
                     <ChevronRight size={16} />
                   </div>
                 </button>

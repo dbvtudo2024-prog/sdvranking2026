@@ -9,6 +9,7 @@ interface BibleProps {
   onGoToReadingPlan: () => void;
   onGoToDevotional: () => void;
   onBackToHome: () => void;
+  isDarkMode?: boolean;
 }
 
 export interface BibleHandle {
@@ -22,7 +23,7 @@ interface MarkedVerse {
   text: string;
 }
 
-const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDevotional, onBackToHome }, ref) => {
+const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDevotional, onBackToHome, isDarkMode }, ref) => {
   const [view, setView] = useState<'menu' | 'books' | 'chapters' | 'verses' | 'search' | 'marked'>('menu');
   const [books, setBooks] = useState<string[]>([]);
   const [selectedTestament, setSelectedTestament] = useState<'VT' | 'NT'>('VT');
@@ -246,7 +247,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-hidden">
       {/* CONTEÚDO PRINCIPAL */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-24 custom-scrollbar">
         {loading ? (
@@ -264,7 +265,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 placeholder="Pesquisar na Bíblia..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white border border-slate-100 shadow-sm rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-300 transition-colors"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-300 transition-colors"
               />
             </form>
 
@@ -311,7 +312,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => setView('books')}
-                className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-blue-100 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900 group"
               >
                 <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Book size={24} />
@@ -321,7 +322,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
 
               <button 
                 onClick={onGoToReadingPlan}
-                className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-purple-100 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-purple-100 dark:hover:border-purple-900 group"
               >
                 <div className="bg-purple-50 p-4 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                   <History size={24} />
@@ -331,7 +332,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
 
               <button 
                 onClick={onGoToDevotional}
-                className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-amber-100 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-amber-100 dark:hover:border-amber-900 group"
               >
                 <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                   <BookOpen size={24} />
@@ -341,7 +342,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
 
               <button 
                 onClick={() => setView('marked')}
-                className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-emerald-100 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-emerald-100 dark:hover:border-emerald-900 group"
               >
                 <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <Bookmark size={24} />
@@ -351,7 +352,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
             </div>
 
             {/* LEITURA RECENTE */}
-            <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Leitura Recente</h4>
               {recentReading ? (
                 <button 
@@ -380,16 +381,16 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selecione o Livro</h3>
               
               {/* TESTAMENT SELECTOR */}
-              <div className="flex bg-slate-100 p-1 rounded-2xl">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
                 <button 
                   onClick={() => setSelectedTestament('VT')}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTestament === 'VT' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTestament === 'VT' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}
                 >
                   Velho Testamento
                 </button>
                 <button 
                   onClick={() => setSelectedTestament('NT')}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTestament === 'NT' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTestament === 'NT' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}
                 >
                   Novo Testamento
                 </button>
@@ -401,7 +402,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <button 
                   key={bookName}
                   onClick={() => handleSelectBook(bookName)}
-                  className="bg-white p-4 rounded-3xl border-2 border-slate-50 shadow-sm flex flex-col items-center justify-center text-center active:scale-95 transition-all hover:border-blue-100"
+                  className="bg-white dark:bg-slate-800 p-4 rounded-3xl border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900"
                 >
                   <BookOpen size={20} className="text-blue-200 mb-2" />
                   <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{bookName}</span>
@@ -419,7 +420,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <button 
                   key={chapter}
                   onClick={() => handleSelectChapter(chapter)}
-                  className="bg-white aspect-square rounded-2xl border-2 border-slate-50 shadow-sm flex items-center justify-center active:scale-95 transition-all hover:border-blue-100"
+                  className="bg-white dark:bg-slate-800 aspect-square rounded-2xl border-2 border-slate-50 dark:border-slate-700 shadow-sm flex items-center justify-center active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900"
                 >
                   <span className="text-sm font-black text-slate-700">{chapter}</span>
                 </button>
@@ -429,7 +430,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
         ) : view === 'verses' ? (
           <div className="py-6 px-2 space-y-6">
             <div className="flex justify-center items-center mb-4">
-              <h3 className="font-black text-slate-800 uppercase tracking-widest text-sm">{selectedBook} {selectedChapter}</h3>
+              <h3 className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest text-sm">{selectedBook} {selectedChapter}</h3>
             </div>
             
             <div className="space-y-4 pb-32">
@@ -443,21 +444,21 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                   <div 
                     key={v.Versiculo} 
                     onClick={() => toggleMarkVerse(v)}
-                    className={`flex gap-3 group p-2 rounded-xl transition-all cursor-pointer ${isMarked ? 'bg-amber-100/50 border-l-4 border-amber-400' : 'hover:bg-slate-100'}`}
+                    className={`flex gap-3 group p-2 rounded-xl transition-all cursor-pointer ${isMarked ? 'bg-amber-100/50 dark:bg-amber-900/30 border-l-4 border-amber-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                   >
                     <span className={`text-[10px] font-black mt-1 shrink-0 w-6 text-right ${isMarked ? 'text-amber-600' : 'text-blue-600'}`}>{v.Versiculo}</span>
-                    <p className={`text-base font-medium leading-relaxed ${isMarked ? 'text-slate-900' : 'text-slate-700'}`}>{v.Texto}</p>
+                    <p className={`text-base font-medium leading-relaxed ${isMarked ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>{v.Texto}</p>
                   </div>
                 );
               })}
             </div>
 
             {/* FIXED NAVIGATION BUTTONS */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-100 p-4 flex justify-center gap-4 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 p-4 flex justify-center gap-4 z-20">
               <button 
                 onClick={() => navigateChapter('prev')}
                 disabled={chapters.indexOf(selectedChapter) === 0}
-                className="flex-1 max-w-[160px] px-6 py-4 bg-white rounded-2xl border border-slate-200 text-slate-500 font-black text-[10px] uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all shadow-sm"
+                className="flex-1 max-w-[160px] px-6 py-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all shadow-sm"
               >
                 Anterior
               </button>
@@ -484,7 +485,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <button 
                   key={idx}
                   onClick={() => jumpToVerse(res.Livro, res.Capitulo)}
-                  className="w-full bg-white p-4 rounded-3xl border border-slate-100 shadow-sm text-left active:scale-[0.98] transition-all"
+                  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-left active:scale-[0.98] transition-all"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{res.Livro} {res.Capitulo}:{res.Versiculo}</span>
@@ -501,7 +502,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                       <ChevronRight size={14} className="text-slate-300" />
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-600 line-clamp-3">{res.Texto}</p>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300 line-clamp-3">{res.Texto}</p>
                 </button>
               ))
             )}
@@ -521,7 +522,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 {markedVerses.map((mv, idx) => (
                   <div 
                     key={idx}
-                    className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-left relative group"
+                    className="w-full bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm text-left relative group"
                   >
                     <div className="flex justify-between items-center mb-3">
                       <button 
@@ -547,7 +548,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed italic">"{mv.text}"</p>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic">"{mv.text}"</p>
                   </div>
                 ))}
               </div>

@@ -18,6 +18,7 @@ interface GamesProps {
   specialtyOverride: boolean;
   threeCluesOverride: boolean;
   puzzleOverride: boolean;
+  isDarkMode?: boolean;
 }
 
 const Games: React.FC<GamesProps> = ({ 
@@ -28,7 +29,8 @@ const Games: React.FC<GamesProps> = ({
   memoryOverride, 
   specialtyOverride,
   threeCluesOverride,
-  puzzleOverride
+  puzzleOverride,
+  isDarkMode
 }) => {
   const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle'>('hub');
 
@@ -88,16 +90,16 @@ const Games: React.FC<GamesProps> = ({
 
   const getButtonStyles = (unlocked: boolean, played: boolean) => {
     const base = "w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all border-2 border-b-4 active:scale-95 px-6 relative overflow-hidden ";
-    if (!unlocked) return base + "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60 grayscale";
-    if (played) return base + "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed grayscale shadow-inner";
-    return base + "bg-white border-[#0061f2] text-[#0061f2] shadow-lg shadow-blue-500/10 hover:bg-blue-50";
+    if (!unlocked) return base + "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-60 grayscale";
+    if (played) return base + "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed grayscale shadow-inner";
+    return base + "bg-white dark:bg-slate-800 border-[#0061f2] dark:border-blue-500 text-[#0061f2] dark:text-blue-400 shadow-lg shadow-blue-500/10 dark:shadow-none hover:bg-blue-50 dark:hover:bg-slate-700";
   };
 
   return (
-    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-24 px-4 custom-scrollbar">
+    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-24 px-4 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
       <div className="flex flex-col gap-4 w-full">
         {/* DUELO ARENA 1x1 NO TOPO */}
-        <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 border-blue-800 border-b-4 text-white shadow-xl shadow-blue-500/20 active:scale-95 px-6 shrink-0">
+        <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 dark:bg-blue-700 border-blue-800 dark:border-blue-900 border-b-4 text-white shadow-xl shadow-blue-500/20 dark:shadow-none active:scale-95 px-6 shrink-0">
           <Sword size={28} className="text-yellow-400 shrink-0" />
           <div className="flex flex-col items-start leading-tight min-w-0">
             <span className="uppercase tracking-widest text-sm truncate w-full">Duelo 1x1 Arena</span>
@@ -108,11 +110,11 @@ const Games: React.FC<GamesProps> = ({
         {/* SEPARADOR COM CONTAGEM ABAIXO */}
         <div className="relative pt-6 pb-2 text-center">
           <div className="absolute inset-x-0 top-1/2 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-slate-200"></div>
+            <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
           </div>
           <div className="relative flex flex-col items-center justify-center">
-            <span className="bg-slate-50 px-4 text-slate-900 font-black text-[11px] uppercase tracking-[0.2em]">Desafios de Domingo</span>
-            <div className="flex items-center justify-center gap-1.5 mt-2 text-slate-400 bg-slate-50 px-3">
+            <span className="bg-slate-50 dark:bg-[#0f172a] px-4 text-slate-900 dark:text-slate-100 font-black text-[11px] uppercase tracking-[0.2em]">Desafios de Domingo</span>
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-[#0f172a] px-3">
               <Calendar size={11} />
               <span className="text-[9px] font-black uppercase tracking-widest">{getTimeToUnlock()}</span>
             </div>

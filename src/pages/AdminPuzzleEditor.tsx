@@ -8,9 +8,10 @@ import { Plus, Trash2, ArrowLeft, Image as ImageIcon, Link as LinkIcon } from 'l
 interface AdminPuzzleEditorProps {
   onBack: () => void;
   onLogout: () => void;
+  isDarkMode?: boolean;
 }
 
-const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout }) => {
+const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout, isDarkMode }) => {
   const [images, setImages] = useState<PuzzleImage[]>([]);
   const [newImage, setNewImage] = useState({ title: '', url: '' });
   const [loading, setLoading] = useState(false);
@@ -50,14 +51,14 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout 
     }
   };
 
-  const inputClasses = "w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#0061f2] outline-none font-medium text-gray-700 transition-all text-sm";
-  const labelClasses = "text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest mb-1 block";
+  const inputClasses = `w-full p-4 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-gray-50 border-gray-200 text-gray-700'} border rounded-2xl focus:ring-2 focus:ring-[#0061f2] outline-none font-medium transition-all text-sm`;
+  const labelClasses = `text-[10px] font-black ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} uppercase ml-2 tracking-widest mb-1 block`;
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc]">
+    <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'}`}>
       <div className="p-6 space-y-8 overflow-y-auto flex-1">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-blue-900/5">
-          <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border shadow-xl shadow-blue-900/5`}>
+          <h3 className={`font-black ${isDarkMode ? 'text-slate-100' : 'text-gray-800'} text-sm uppercase tracking-widest mb-6 flex items-center gap-2`}>
             <Plus size={18} className="text-[#0061f2]" /> Nova Imagem para Quebra-Cabeça
           </h3>
           
@@ -99,18 +100,18 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout 
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-black text-gray-400 text-[10px] uppercase tracking-[0.2em] ml-2">Imagens Cadastradas</h3>
+          <h3 className={`font-black ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} text-[10px] uppercase tracking-[0.2em] ml-2`}>Imagens Cadastradas</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {images.map(img => (
-              <div key={img.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col gap-3">
-                <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
+              <div key={img.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-4 rounded-[2rem] border shadow-sm flex flex-col gap-3`}>
+                <div className={`aspect-video rounded-xl overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-gray-100 border-gray-100'}`}>
                   <img src={formatImageUrl(img.url) || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex justify-between items-center px-2">
-                  <p className="font-black text-gray-800 text-xs uppercase truncate flex-1 mr-2">{img.title}</p>
+                  <p className={`font-black text-xs uppercase truncate flex-1 mr-2 ${isDarkMode ? 'text-slate-100' : 'text-gray-800'}`}>{img.title}</p>
                   <button 
                     onClick={() => handleDelete(img.id)}
-                    className="p-2 text-red-400 hover:text-red-600 transition-all bg-red-50 rounded-xl"
+                    className={`p-2 transition-all rounded-xl ${isDarkMode ? 'bg-red-900/30 text-red-400 hover:text-red-500' : 'bg-red-50 text-red-400 hover:text-red-600'}`}
                   >
                     <Trash2 size={18} />
                   </button>
@@ -119,8 +120,8 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout 
             ))}
           </div>
           {images.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-gray-200">
-              <p className="text-gray-400 text-xs font-bold uppercase">Nenhuma imagem cadastrada</p>
+            <div className={`text-center py-12 rounded-[2.5rem] border border-dashed ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+              <p className={`${isDarkMode ? 'text-slate-500' : 'text-gray-400'} text-xs font-bold uppercase`}>Nenhuma imagem cadastrada</p>
             </div>
           )}
         </div>

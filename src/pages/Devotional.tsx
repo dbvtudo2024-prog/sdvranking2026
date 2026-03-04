@@ -6,9 +6,10 @@ import { Devotional as DevotionalType } from '@/types';
 
 interface DevotionalProps {
   onBack: () => void;
+  isDarkMode?: boolean;
 }
 
-const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
+const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode }) => {
   const [devotional, setDevotional] = useState<DevotionalType | null>(null);
   const [history, setHistory] = useState<DevotionalType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,15 +64,15 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-hidden">
       <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
         <div className="flex justify-between items-center">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             {showHistory ? 'Histórico de Devocionais' : 'Devocional de Hoje'}
           </h3>
           <button 
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-2xl active:scale-95 transition-all"
+            className="flex items-center gap-2 text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-2xl active:scale-95 transition-all"
           >
             <History size={14} />
             {showHistory ? 'Ver Atual' : 'Histórico'}
@@ -94,15 +95,15 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
                 <button 
                   key={dev.id}
                   onClick={() => handleSelectFromHistory(dev)}
-                  className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
+                  className="w-full bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
                 >
                   <div className="text-left flex-1 min-w-0">
-                    <p className="text-sm font-black text-slate-700 uppercase leading-tight">{dev.title}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase leading-tight">{dev.title}</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
                       {new Date(dev.scheduled_for).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
-                  <ChevronLeft size={20} className="text-slate-300 group-hover:text-blue-500 rotate-180 transition-colors" />
+                  <ChevronLeft size={20} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors rotate-180" />
                 </button>
               ))
             )}
@@ -114,20 +115,20 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
           </div>
         ) : (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200 border border-slate-50">
+            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl shadow-slate-200 dark:shadow-none border border-slate-50 dark:border-slate-700">
               <div className="flex items-center gap-3 mb-6">
-                <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600">
+                <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-2xl text-emerald-600 dark:text-emerald-400">
                   <BookOpen size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{devotional.title}</h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-tight">{devotional.title}</h2>
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
                     {new Date(devotional.scheduled_for).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <button 
                   onClick={handleShare}
-                  className="p-3 bg-slate-50 text-slate-400 rounded-2xl active:scale-90 transition-all border border-slate-100 shadow-sm"
+                  className="p-3 bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl active:scale-90 transition-all border border-slate-100 dark:border-slate-600 shadow-sm"
                   title="Compartilhar no WhatsApp"
                 >
                   <Share2 size={20} />
@@ -136,7 +137,7 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
 
               {/* VIDEO EMBED OR LINK */}
               {devotional.link && (
-                <div className="aspect-video w-full bg-slate-100 rounded-[2rem] overflow-hidden shadow-inner border border-slate-100 mb-8">
+                <div className="aspect-video w-full bg-slate-100 dark:bg-slate-900 rounded-[2rem] overflow-hidden shadow-inner border border-slate-100 dark:border-slate-700 mb-8">
                   {devotional.link.includes('youtube') || devotional.link.includes('youtu.be') ? (
                     <iframe 
                       src={getEmbedUrl(devotional.link)}
@@ -146,13 +147,13 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
                     ></iframe>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-                      <ExternalLink size={40} className="text-slate-300" />
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-tight">O conteúdo está disponível em um link externo.</p>
+                      <ExternalLink size={40} className="text-slate-300 dark:text-slate-700" />
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">O conteúdo está disponível em um link externo.</p>
                       <a 
                         href={devotional.link} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 active:scale-95 transition-all"
+                        className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 dark:shadow-none active:scale-95 transition-all"
                       >
                         Acessar Conteúdo
                       </a>
@@ -163,8 +164,8 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack }) => {
 
               {/* TEXT CONTENT */}
               {devotional.content && (
-                <div className="prose prose-slate max-w-none">
-                  <p className="text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap">
                     {devotional.content}
                   </p>
                 </div>
