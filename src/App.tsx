@@ -23,7 +23,7 @@ import AdminManagement from '@/pages/AdminManagement';
 import Games from '@/pages/Games';
 import Leadership from '@/pages/Leadership';
 import Chat from '@/pages/Chat';
-import Navbar from '@/components/Navbar';
+import Navbar from '@/components/NavbarComponent';
 import TickerBanner from '@/components/TickerBanner';
 import { ArrowLeft, Bell, X, Sword } from 'lucide-react';
 
