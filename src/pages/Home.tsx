@@ -6,9 +6,10 @@ import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, L
 interface HomeProps {
   announcements: Announcement[];
   onNavigate: (page: any) => void;
+  isDarkMode?: boolean;
 }
 
-const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
+const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
@@ -30,27 +31,27 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
   const Shortcut = ({ icon: Icon, label, page, color }: { icon: any, label: string, page: string, color: string }) => (
     <button 
       onClick={() => onNavigate(page)}
-      className="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-50 active:scale-95 transition-all"
+      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] shadow-lg border active:scale-95 transition-all ${isDarkMode ? 'bg-dark-card border-dark-border shadow-blue-900/10' : 'bg-white border-slate-50 shadow-slate-200/50'}`}
     >
       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg`} style={{ backgroundColor: color }}>
         <Icon size={24} />
       </div>
-      <span className="text-[10px] font-black uppercase tracking-tight text-slate-600">{label}</span>
+      <span className={`text-[10px] font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
     </button>
   );
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-y-auto pb-24 animate-in fade-in duration-500">
+    <div className={`flex flex-col h-full overflow-y-auto pb-24 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
       {/* BRASÃO DO CLUBE AO TOPO */}
-      <div className="flex flex-col items-center justify-center pt-12 pb-8 bg-white rounded-b-[3rem] shadow-xl shadow-blue-900/5 relative">
+      <div className={`flex flex-col items-center justify-center pt-12 pb-8 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 
           onClick={() => onNavigate('profile')}
-          className="absolute top-8 right-8 p-3 bg-slate-50 rounded-2xl text-slate-400 active:scale-90 transition-all border border-slate-100 shadow-sm"
+          className={`absolute top-8 right-8 p-3 rounded-2xl active:scale-90 transition-all border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
         >
           <User size={24} />
         </button>
         <img src={LOGO_APP} alt="Brasão do Clube" className="w-32 h-32 object-contain drop-shadow-2xl" />
-        <h1 className="mt-4 text-xl font-black text-slate-800 uppercase tracking-tighter">Sentinelas da Verdade</h1>
+        <h1 className={`mt-4 text-xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
       </div>
 
@@ -83,19 +84,19 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate }) => {
                     key={aviso.id} 
                     className={`absolute inset-0 transition-all duration-700 ease-in-out ${idx === currentAvisoIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
                   >
-                    <div className="bg-white rounded-2xl p-4 h-full flex flex-col justify-center shadow-sm relative group">
+                    <div className={`rounded-2xl p-4 h-full flex flex-col justify-center shadow-sm relative group ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
                       <button 
                         onClick={() => handleShare(aviso)}
-                        className="absolute right-2 bottom-2 p-2 text-blue-100 hover:text-blue-600 transition-colors"
+                        className={`absolute right-2 bottom-2 p-2 transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-100 hover:text-blue-600'}`}
                         title="Compartilhar no WhatsApp"
                       >
                         <Share2 size={14} />
                       </button>
                       <div className="flex justify-between items-center mb-1">
-                        <p className="text-xs font-black text-slate-800 uppercase truncate pr-8">{aviso.title}</p>
-                        <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{aviso.date}</span>
+                        <p className={`text-xs font-black uppercase truncate pr-8 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{aviso.title}</p>
+                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-md ${isDarkMode ? 'text-blue-400 bg-blue-900/30' : 'text-blue-600 bg-blue-50'}`}>{aviso.date}</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-tight font-medium line-clamp-2 pr-6">{aviso.content}</p>
+                      <p className={`text-[10px] leading-tight font-medium line-clamp-2 pr-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{aviso.content}</p>
                     </div>
                   </div>
                 ))

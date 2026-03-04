@@ -23,14 +23,18 @@ import AdminManagement from '@/pages/AdminManagement';
 import Games from '@/pages/Games';
 import Leadership from '@/pages/Leadership';
 import Chat from '@/pages/Chat';
-import AppNavbar from '@/components/AppNavbar.tsx';
-import TickerBanner from '@/components/TickerBanner.tsx';
-import { ArrowLeft, Bell, X, Sword } from 'lucide-react';
+import AppNavbar from '@/components/AppNavbar';
+import TickerBanner from '@/components/TickerBanner';
+import { ArrowLeft, Bell, X, Sword, Moon, Sun } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const saved = localStorage.getItem('sentinelas_user');
     return saved ? JSON.parse(saved) : null;
+  });
+  
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('sentinelas_dark_mode') === 'true';
   });
   
   const [members, setMembers] = useState<Member[]>([]);
@@ -53,6 +57,15 @@ const App: React.FC = () => {
   const [specialtyOverride, setSpecialtyOverride] = useState(false);
   const [threeCluesOverride, setThreeCluesOverride] = useState(false);
   const [puzzleOverride, setPuzzleOverride] = useState(false);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+    localStorage.setItem('sentinelas_dark_mode', String(isDarkMode));
+  }, [isDarkMode]);
 
   useEffect(() => {
     const membersSub = DatabaseService.subscribeMembers(setMembers);
@@ -263,14 +276,14 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} />;
       case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} />;
       case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} />;
       case 'ranking': return <Ranking members={members} />;
       case 'leadership': return <Leadership members={members} />;
-      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} />;
+      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} />;
       case 'chat': return <Chat user={user!} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} /> : null;
@@ -282,7 +295,7 @@ const App: React.FC = () => {
       case 'admin_puzzle': return <AdminPuzzleEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} />;
       case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={setActiveSpecialtyName} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} puzzleOverride={puzzleOverride} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} />;
-      default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} />;
+      default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} />;
     }
   };
 
@@ -301,7 +314,7 @@ const App: React.FC = () => {
   const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'specialty_study', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
+    <div className={`flex flex-col h-screen overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
       {lastNotification && (
         <div 
@@ -389,11 +402,12 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
       {['units', 'ranking', 'leadership', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
-        <footer className="shrink-0 bg-white border-t border-slate-100">
+        <footer className="shrink-0">
           <AppNavbar 
             currentPage={currentPage as any} 
             setCurrentPage={setCurrentPage as any} 
             unreadCount={unreadCount}
+            isDarkMode={isDarkMode}
           />
         </footer>
       )}
