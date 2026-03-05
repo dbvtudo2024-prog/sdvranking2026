@@ -19,12 +19,14 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
   const [editForm, setEditForm] = useState<QuizQuestion | null>(null);
   const [newQuestion, setNewQuestion] = useState({
     question: '',
-    category: 'Desbravadores' as 'Desbravadores' | 'Bíblia',
+    category: 'Desbravadores' as 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades',
     options: ['', '', '', ''],
-    correctAnswer: 0
+    correctAnswer: 0,
+    image_url: '',
+    tip: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia'>('Todas');
+  const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
 
   useEffect(() => {
     const channel = DatabaseService.subscribeQuizQuestions((data) => {
@@ -131,6 +133,9 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
               <option value="Todas">Todas</option>
               <option value="Desbravadores">Desbravadores</option>
               <option value="Bíblia">Bíblia</option>
+              <option value="Natureza">Natureza</option>
+              <option value="Primeiros Socorros">Primeiros Socorros</option>
+              <option value="Especialidades">Especialidades</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
           </div>
@@ -150,6 +155,11 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${q.category === 'Bíblia' ? (isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600') : (isDarkMode ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600')}`}>{q.category}</span>
                   </div>
                   <h4 className={`text-sm font-black leading-tight mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>{q.question}</h4>
+                  {q.image_url && (
+                    <div className="w-24 h-24 rounded-xl overflow-hidden mb-3 border border-slate-200 dark:border-slate-700">
+                      <img src={q.image_url} alt="Questão" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                     {(q.options || []).map((opt, idx) => (
                       <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-500 font-black' : (isDarkMode ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium')}`}>
@@ -193,8 +203,21 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
                 <select className={`${inputClasses} appearance-none ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} value={editForm ? editForm.category : newQuestion.category} onChange={e => editForm ? setEditForm({...editForm, category: e.target.value as any}) : setNewQuestion({...newQuestion, category: e.target.value as any})}>
                   <option value="Desbravadores">Desbravadores</option>
                   <option value="Bíblia">Bíblia</option>
+                  <option value="Natureza">Natureza</option>
+                  <option value="Primeiros Socorros">Primeiros Socorros</option>
+                  <option value="Especialidades">Especialidades</option>
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
+              </div>
+
+              <div>
+                <label className={labelClasses}>URL da Imagem (Opcional)</label>
+                <input className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://exemplo.com/imagem.jpg" value={editForm ? (editForm as any).image_url || '' : newQuestion.image_url} onChange={e => editForm ? setEditForm({...editForm, image_url: e.target.value} as any) : setNewQuestion({...newQuestion, image_url: e.target.value})} />
+              </div>
+
+              <div>
+                <label className={labelClasses}>Dica / Explicação (Opcional)</label>
+                <textarea className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'} resize-none`} rows={2} placeholder="Explique por que esta é a resposta correta..." value={editForm ? (editForm as any).tip || '' : newQuestion.tip} onChange={e => editForm ? setEditForm({...editForm, tip: e.target.value} as any) : setNewQuestion({...newQuestion, tip: e.target.value})} />
               </div>
 
               <div className="space-y-3">

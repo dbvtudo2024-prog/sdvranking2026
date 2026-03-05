@@ -1,15 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { Announcement } from '@/types';
+import { Announcement, AuthUser } from '@/types';
 import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2 } from 'lucide-react';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 
 interface HomeProps {
   announcements: Announcement[];
   onNavigate: (page: any) => void;
   isDarkMode?: boolean;
+  user: AuthUser;
 }
 
-const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false }) => {
+const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
@@ -46,9 +48,18 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       <div className={`flex flex-col items-center justify-center pt-12 pb-8 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 
           onClick={() => onNavigate('profile')}
-          className={`absolute top-8 right-8 p-3 rounded-2xl active:scale-90 transition-all border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+          className={`absolute top-8 right-8 w-12 h-12 rounded-2xl active:scale-90 transition-all border shadow-sm overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
         >
-          <User size={24} />
+          {user.photoUrl ? (
+            <img 
+              src={formatImageUrl(user.photoUrl)} 
+              alt="Perfil" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <User size={24} />
+          )}
         </button>
         <img src={LOGO_APP} alt="Brasão do Clube" className="w-32 h-32 object-contain drop-shadow-2xl" />
         <h1 className={`mt-4 text-xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
@@ -119,6 +130,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
           <Shortcut icon={Trophy} label="Ranking" page="ranking" color="#f59e0b" />
           <Shortcut icon={MessageCircle} label="Chat" page="chat" color="#10b981" />
           <Shortcut icon={ShieldCheck} label="Líderes" page="leadership" color="#6366f1" />
+          <Shortcut icon={Users} label="Desbravadores" page="pathfinders" color="#f43f5e" />
           <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
           <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />
         </div>

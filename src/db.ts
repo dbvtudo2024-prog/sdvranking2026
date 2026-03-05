@@ -36,6 +36,12 @@ export interface GameConfig {
   specialty_override: boolean;
   three_clues_override: boolean;
   puzzle_override: boolean;
+  knots_override: boolean;
+  who_am_i_override: boolean;
+  specialty_trail_override: boolean;
+  scrambled_verse_override: boolean;
+  nature_id_override: boolean;
+  first_aid_override: boolean;
 }
 
 export const DatabaseService = {
@@ -219,7 +225,16 @@ export const DatabaseService = {
   // --- CONFIGURAÇÕES DE JOGOS ---
   async getGameConfigs(): Promise<GameConfig | null> {
     const { data } = await supabase.from('game_configs').select('*').eq('id', 1).single();
-    return data as GameConfig;
+    if (!data) return null;
+    return {
+      ...data,
+      knots_override: data.knots_override ?? false,
+      who_am_i_override: data.who_am_i_override ?? false,
+      specialty_trail_override: data.specialty_trail_override ?? false,
+      scrambled_verse_override: data.scrambled_verse_override ?? false,
+      nature_id_override: data.nature_id_override ?? false,
+      first_aid_override: data.first_aid_override ?? false,
+    } as GameConfig;
   },
 
   async updateGameConfig(updates: Partial<GameConfig>) {
@@ -244,7 +259,9 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correctAnswer: q.correct_answer ?? q.correctAnswer 
+      correctAnswer: q.correct_answer ?? q.correctAnswer,
+      image_url: q.image_url,
+      tip: q.tip
     })) as QuizQuestion[];
   },
 
@@ -253,7 +270,9 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correctAnswer,
+      image_url: q.image_url,
+      tip: q.tip
     };
     await supabase.from('quiz_questions').insert([payload]);
   },
@@ -263,7 +282,9 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correctAnswer,
+      image_url: q.image_url,
+      tip: q.tip
     };
     await supabase.from('quiz_questions').update(payload).eq('id', q.id);
   },
@@ -277,7 +298,9 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correctAnswer,
+      image_url: q.image_url,
+      tip: q.tip
     }));
     await supabase.from('quiz_questions').insert(payload);
   },
@@ -771,6 +794,93 @@ export const DatabaseService = {
       .channel('puzzle_images_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'puzzle_images' }, () => {
         this.getPuzzleImages().then(callback);
+      })
+      .subscribe();
+  },
+
+  // --- ATIVOS DE JOGOS (IMAGENS DINÂMICAS) ---
+  async getGameAssets(gameType: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('game_assets')
+      .select('*')
+      .eq('game_type', gameType);
+    
+    if (error) {
+      console.error(`Erro ao buscar ativos para ${gameType}:`, error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async updateGameAsset(id: number, url: string) {
+    const { error } = await supabase
+      .from('game_assets')
+      .update({ url })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  // --- QUEM SOU EU? ---
+  async getWhoAmIQuestions(): Promise<any[]> {
+    const { data } = await supabase.from('who_am_i_questions').select('*').order('created_at', { ascending: false });
+    return (data || []) as any[];
+  },
+
+  async addWhoAmIQuestion(q: any) {
+    const { error } = await supabase.from('who_am_i_questions').insert([q]);
+    if (error) throw error;
+  },
+
+  async updateWhoAmIQuestion(q: any) {
+    const { id, created_at, ...updates } = q;
+    const { error } = await supabase.from('who_am_i_questions').update(updates).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteWhoAmIQuestion(id: string) {
+    const { error } = await supabase.from('who_am_i_questions').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  subscribeWhoAmIQuestions(callback: (questions: any[]) => void) {
+    this.getWhoAmIQuestions().then(callback);
+    return supabase
+      .channel('who_am_i_questions_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'who_am_i_questions' }, () => {
+        this.getWhoAmIQuestions().then(callback);
+      })
+      .subscribe();
+  },
+
+  // --- VERSÍCULO EMBARALHADO ---
+  async getScrambledVerses(): Promise<any[]> {
+    const { data } = await supabase.from('scrambled_verses').select('*').order('created_at', { ascending: false });
+    return (data || []) as any[];
+  },
+
+  async addScrambledVerse(v: any) {
+    const { error } = await supabase.from('scrambled_verses').insert([v]);
+    if (error) throw error;
+  },
+
+  async updateScrambledVerse(v: any) {
+    const { id, created_at, ...updates } = v;
+    const { error } = await supabase.from('scrambled_verses').update(updates).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteScrambledVerse(id: string) {
+    const { error } = await supabase.from('scrambled_verses').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  subscribeScrambledVerses(callback: (verses: any[]) => void) {
+    this.getScrambledVerses().then(callback);
+    return supabase
+      .channel('scrambled_verses_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scrambled_verses' }, () => {
+        this.getScrambledVerses().then(callback);
       })
       .subscribe();
   }

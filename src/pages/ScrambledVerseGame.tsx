@@ -1,0 +1,213 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, CheckCircle2, XCircle, Type, Trophy, RefreshCcw, Undo2 } from 'lucide-react';
+import { AuthUser, Member } from '@/types';
+import { motion, AnimatePresence } from 'motion/react';
+import { DatabaseService } from '@/db';
+
+interface ScrambledVerse {
+  id: string;
+  text: string;
+  title: string;
+}
+
+interface ScrambledVerseGameProps {
+  user: AuthUser;
+  members: Member[];
+  onUpdateMember: (member: Member) => void;
+  onBack: () => void;
+  override: boolean;
+}
+
+const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+  const [verses, setVerses] = useState<ScrambledVerse[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [score, setScore] = useState(0);
+  const [gameState, setGameState] = useState<'loading' | 'playing' | 'finished'>('loading');
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  
+  useEffect(() => {
+    DatabaseService.getScrambledVerses().then(data => {
+      if (data && data.length > 0) {
+        setVerses(data);
+        setGameState('playing');
+      } else {
+        // Fallback or empty state
+        setGameState('finished');
+      }
+    });
+  }, []);
+
+  const currentVerse = useMemo(() => verses[currentStep] || { text: '', title: '' }, [verses, currentStep]);
+  
+  const originalWords = useMemo(() => {
+    return currentVerse.text.split(' ');
+  }, [currentVerse]);
+
+  const scrambledWords = useMemo(() => {
+    return [...originalWords].sort(() => Math.random() - 0.5);
+  }, [originalWords]);
+
+  const [availableWords, setAvailableWords] = useState<string[]>([]);
+
+  useEffect(() => {
+    setAvailableWords(scrambledWords);
+    setSelectedWords([]);
+  }, [scrambledWords]);
+
+  const handleWordClick = (word: string, index: number) => {
+    const newSelected = [...selectedWords, word];
+    setSelectedWords(newSelected);
+    
+    const newAvailable = [...availableWords];
+    newAvailable.splice(index, 1);
+    setAvailableWords(newAvailable);
+
+    // Check if finished
+    if (newSelected.length === originalWords.length) {
+      const isCorrect = newSelected.join(' ') === currentVerse.text;
+      if (isCorrect) {
+        setScore(prev => prev + 20);
+        setTimeout(() => {
+          if (currentStep < verses.length - 1) {
+            setCurrentStep(prev => prev + 1);
+          } else {
+            setGameState('finished');
+            saveScore();
+          }
+        }, 1000);
+      } else {
+        // Reset if wrong
+        setTimeout(() => {
+          setSelectedWords([]);
+          setAvailableWords(scrambledWords);
+        }, 1000);
+      }
+    }
+  };
+
+  const handleUndo = () => {
+    if (selectedWords.length === 0) return;
+    const lastWord = selectedWords[selectedWords.length - 1];
+    setSelectedWords(prev => prev.slice(0, -1));
+    setAvailableWords(prev => [...prev, lastWord]);
+  };
+
+  const saveScore = () => {
+    const currentMember = members.find(m => m.id === user.id);
+    if (!currentMember) return;
+
+    const todayStr = new Date().toLocaleDateString('pt-BR');
+    const updatedScores = [...(currentMember.scores || [])];
+    const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
+
+    const finalScore = score + 20; // Last verse score
+
+    if (todayScoreIndex >= 0) {
+      (updatedScores[todayScoreIndex] as any).scrambledVerseGame = finalScore;
+    } else {
+      updatedScores.push({
+        date: todayStr,
+        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+        scrambledVerseGame: finalScore
+      } as any);
+    }
+
+    onUpdateMember({ ...currentMember, scores: updatedScores });
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
+      <header className="bg-blue-500 text-white p-6 flex items-center gap-4 shrink-0">
+        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
+        <div className="flex flex-col">
+          <h2 className="font-black uppercase tracking-tight text-lg">Versículo Embaralhado</h2>
+          <p className="text-[10px] font-bold opacity-80 uppercase">{currentVerse.title}</p>
+        </div>
+        <div className="ml-auto bg-white/20 px-4 py-1 rounded-full font-black text-sm">
+          {score} PTS
+        </div>
+      </header>
+
+      <main className="flex-1 p-6 flex flex-col items-center gap-6">
+        <AnimatePresence mode="wait">
+          {gameState === 'loading' ? (
+            <div className="flex flex-col items-center py-20 gap-4">
+              <RefreshCcw className="animate-spin text-blue-500" size={40} />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carregando Versículos...</p>
+            </div>
+          ) : gameState === 'playing' ? (
+            <motion.div 
+              key={currentStep}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="w-full max-w-md flex flex-col gap-8"
+            >
+              {/* SELECTED WORDS AREA */}
+              <div className="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-xl border-2 border-slate-100 dark:border-slate-700 min-h-[160px] flex flex-wrap gap-2 content-start relative">
+                {selectedWords.length === 0 && (
+                  <p className="absolute inset-0 flex items-center justify-center text-slate-300 dark:text-slate-600 font-black uppercase text-[10px] tracking-widest">Toque nas palavras abaixo</p>
+                )}
+                {selectedWords.map((word, idx) => (
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    key={idx} 
+                    className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-sm border border-blue-100 dark:border-blue-800"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+                {selectedWords.length > 0 && (
+                  <button onClick={handleUndo} className="absolute bottom-4 right-4 p-2 text-slate-400 hover:text-blue-500 transition-colors">
+                    <Undo2 size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* AVAILABLE WORDS AREA */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {availableWords.map((word, idx) => (
+                  <button
+                    key={`${word}-${idx}`}
+                    onClick={() => handleWordClick(word, idx)}
+                    className="px-5 py-3 bg-white dark:bg-slate-800 border-2 border-b-4 border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-slate-700 dark:text-slate-200 active:scale-90 transition-all shadow-sm hover:bg-slate-50"
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-md bg-white dark:bg-slate-800 p-10 rounded-[3rem] shadow-2xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center text-center gap-6"
+            >
+              <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Trophy size={48} className="text-white" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Palavra Guardada!</h3>
+                <p className="text-slate-500 dark:text-slate-400 font-bold">Você memorizou os versículos com perfeição!</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900 w-full p-6 rounded-3xl border-2 border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pontuação Final</p>
+                <p className="text-4xl font-black text-blue-600">{score} PTS</p>
+              </div>
+              <button 
+                onClick={onBack}
+                className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                VOLTAR PARA A CENTRAL
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+};
+
+export default ScrambledVerseGame;

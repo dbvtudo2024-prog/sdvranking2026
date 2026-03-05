@@ -36,6 +36,12 @@ export interface Score {
   challenge1x1?: number;
   threeCluesGame?: number;
   puzzleGame?: number;
+  knotsGame?: number;
+  whoAmIGame?: number;
+  specialtyTrailGame?: number;
+  scrambledVerseGame?: number;
+  natureIdGame?: number;
+  firstAidGame?: number;
   specialtyStudyScore?: number;
   specialtyStudyId?: string;
   specialtyStudyName?: string;
@@ -85,10 +91,12 @@ export interface BibleReadingProgress {
 
 export interface QuizQuestion {
   id: string;
-  category: 'Desbravadores' | 'Bíblia';
+  category: 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades';
   question: string;
   options: string[];
   correctAnswer: number;
+  image_url?: string;
+  tip?: string;
 }
 
 export interface ThreeCluesQuestion {

@@ -78,24 +78,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const shuffleTiles = (array: Tile[]) => {
-    const shuffled = [...array];
-    // Fisher-Yates shuffle
-    for (let i = shuffled.length - 2; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i].currentPos, shuffled[j].currentPos] = [shuffled[j].currentPos, shuffled[i].currentPos];
-    }
-    
-    // Check if solvable (simplified: just shuffle until solvable or just use a few random moves)
-    // For sliding puzzles, a random permutation might not be solvable.
-    // Better approach: start from solved state and make N random valid moves.
-    return shuffled;
-  };
-
   const initializeGame = (image: PuzzleImage) => {
     setSelectedImage(image);
     const initialTiles: Tile[] = [];
-    for (let i = 0; i < TILE_COUNT; i++) {
+    for (let i = 0; i < TILE_COUNT - 1; i++) {
       initialTiles.push({ id: i, currentPos: i, correctPos: i });
     }
     
@@ -328,7 +314,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         >
           {Array.from({ length: TILE_COUNT }).map((_, pos) => {
             const tile = tiles.find(t => t.currentPos === pos);
-            if (!tile || (tile.id === TILE_COUNT - 1 && !isGameOver)) {
+            if (!tile) {
               return <div key={`empty-${pos}`} className="bg-slate-100/50" />;
             }
 
