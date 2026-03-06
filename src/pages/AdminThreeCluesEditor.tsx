@@ -67,7 +67,8 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
     }
   };
 
-  const filteredQuestions = questions.filter(q => {
+  const filteredQuestions = (questions || []).filter(q => {
+    if (!q) return false;
     const matchesSearch = (q.answer || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
                          (q.clues || []).some(c => (c || '').toLowerCase().includes((searchTerm || '').toLowerCase()));
     return matchesSearch;
@@ -126,27 +127,30 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredQuestions.map(q => (
-              <div key={q.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>{q.category}</span>
+            {filteredQuestions.map(q => {
+              if (!q) return null;
+              return (
+                <div key={q.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>{q.category}</span>
+                    </div>
+                    <h4 className={`text-sm font-black leading-tight mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Resposta: {q.answer}</h4>
+                    <div className="space-y-1">
+                      {(q.clues || []).map((clue, idx) => (
+                        <p key={idx} className={`text-[10px] font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Dica {idx + 1}: {clue}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                  <h4 className={`text-sm font-black leading-tight mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Resposta: {q.answer}</h4>
-                  <div className="space-y-1">
-                    {q.clues.map((clue, idx) => (
-                      <p key={idx} className={`text-[10px] font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Dica {idx + 1}: {clue}
-                      </p>
-                    ))}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button onClick={() => handleEditInit(q)} className={`p-2.5 rounded-xl active:scale-90 ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-[#0061f2]'}`}><Edit2 size={16} /></button>
+                    <button onClick={() => handleDelete(q.id)} className={`p-2.5 rounded-xl active:scale-90 ${isDarkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'}`}><Trash2 size={16} /></button>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
-                  <button onClick={() => handleEditInit(q)} className={`p-2.5 rounded-xl active:scale-90 ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-[#0061f2]'}`}><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(q.id)} className={`p-2.5 rounded-xl active:scale-90 ${isDarkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'}`}><Trash2 size={16} /></button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {filteredQuestions.length === 0 && (
               <div className="text-center py-20 opacity-30">
                 <Search size={48} className="mx-auto mb-2" />

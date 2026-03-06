@@ -87,7 +87,9 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
         <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
         <div className="flex flex-col">
           <h2 className="font-black uppercase tracking-tight text-lg">Identificação de Natureza</h2>
-          <p className="text-[10px] font-bold opacity-80 uppercase">{currentItem.category} • {currentStep + 1} de {questions.length}</p>
+          {currentItem && (
+            <p className="text-[10px] font-bold opacity-80 uppercase">{currentItem.category} • {currentStep + 1} de {questions.length}</p>
+          )}
         </div>
         <div className="ml-auto bg-white/20 px-4 py-1 rounded-full font-black text-sm">
           {score} PTS

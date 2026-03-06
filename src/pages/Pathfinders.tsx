@@ -42,10 +42,25 @@ const Pathfinders: React.FC<PathfindersProps> = ({ members, isDarkMode }) => {
 
   const getCompletedSpecialties = (member: Member) => {
     if (!member || !member.scores) return [];
-    const specialties = member.scores
-      .filter(s => s.specialtyStudyId && s.specialtyStudyName)
-      .map(s => s.specialtyStudyName as string);
-    return Array.from(new Set(specialties));
+    
+    // Use a Map to keep only the best score for each specialty
+    const specialtyMap = new Map<string, number>();
+    
+    member.scores.forEach(s => {
+      if (s.specialtyStudyName) {
+        const currentScore = s.specialtyStudyScore || 0;
+        const existingScore = specialtyMap.get(s.specialtyStudyName) || 0;
+        if (currentScore > existingScore) {
+          specialtyMap.set(s.specialtyStudyName, currentScore);
+        } else if (!specialtyMap.has(s.specialtyStudyName)) {
+          specialtyMap.set(s.specialtyStudyName, currentScore);
+        }
+      }
+    });
+
+    return Array.from(specialtyMap.entries())
+      .map(([name, score]) => ({ name, score }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   };
 
   return (
@@ -163,9 +178,15 @@ const Pathfinders: React.FC<PathfindersProps> = ({ members, isDarkMode }) => {
                 <div className="flex flex-wrap justify-center gap-2">
                   {getCompletedSpecialties(selectedPathfinder).length > 0 ? (
                     getCompletedSpecialties(selectedPathfinder).map((spec, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase rounded-lg border border-emerald-100 dark:border-emerald-800">
-                        {spec}
-                      </span>
+                      <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800 shadow-sm">
+                        <span className="text-[9px] font-black uppercase whitespace-nowrap">
+                          {spec.name}
+                        </span>
+                        <div className="w-[1px] h-3 bg-emerald-200 dark:bg-emerald-800 mx-0.5"></div>
+                        <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300">
+                          {spec.score}
+                        </span>
+                      </div>
                     ))
                   ) : (
                     <p className="text-[10px] text-slate-400 italic">Nenhuma especialidade concluída ainda.</p>

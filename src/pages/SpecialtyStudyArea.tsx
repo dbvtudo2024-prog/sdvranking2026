@@ -311,7 +311,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 <div key={`study-item-${s.id}`} className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 dark:bg-blue-900/30 text-blue-600">{s.category}</span>
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 dark:bg-blue-900/30 text-blue-600">{s.category || 'Geral'}</span>
                       {alreadyDone && <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-green-100 dark:bg-green-900/30 text-green-600">Concluído</span>}
                     </div>
                     <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1">{s.name}</h4>

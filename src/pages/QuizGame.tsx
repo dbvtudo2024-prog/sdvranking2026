@@ -25,8 +25,8 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     const fetchQuestions = async () => {
       try {
         const allQuestions = await DatabaseService.getQuizQuestions();
-        const filtered = allQuestions
-          .filter(q => q.category === category)
+        const filtered = (allQuestions || [])
+          .filter(q => q && q.category === category)
           .sort(() => Math.random() - 0.5)
           .slice(0, 10);
         setQuestions(filtered);
