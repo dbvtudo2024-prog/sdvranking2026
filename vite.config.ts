@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
             start_url: '/',
             icons: [
               {
-                src: 'https://drive.google.com/file/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx/view?usp=sharing',
+                src: 'https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok',
                 sizes: '192x192',
                 type: 'image/png',
                 
