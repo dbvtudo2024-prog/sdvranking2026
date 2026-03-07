@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
                 
               },
               {
-                src: 'https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok',
+                src: 'https://drive.google.com/file/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx/view?usp=sharing',
                 sizes: '512x512',
                 type: 'image/png'
               }
