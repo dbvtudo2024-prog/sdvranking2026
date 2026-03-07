@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1 } from '@/types';
-import { DatabaseService, CounselorDB, GameConfig } from '@/db';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig } from '@/types';
+import { DatabaseService } from '@/db';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Home from '@/pages/Home';

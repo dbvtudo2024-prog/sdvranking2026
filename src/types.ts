@@ -153,3 +153,41 @@ export interface PuzzleImage {
   title: string;
   created_at?: string;
 }
+
+export interface SpecialtyDBV {
+  id?: number;
+  created_at?: string;
+  ID: string;
+  Nome: string;
+  Questoes: string;
+  Sigla: string;
+  Imagem: string;
+  Categoria: string;
+  Nivel: string;
+  Ano: string;
+  Origem: string;
+  Like: boolean;
+  Cor: string;
+}
+
+export interface CounselorDB {
+  id?: string | number;
+  name: string;
+  created_at?: string;
+}
+
+export interface GameConfig {
+  id: number;
+  quiz_override: boolean;
+  memory_override: boolean;
+  specialty_override: boolean;
+  three_clues_override: boolean;
+  puzzle_override: boolean;
+  knots_override: boolean;
+  who_am_i_override: boolean;
+  specialty_trail_override: boolean;
+  specialty_study_override?: boolean;
+  scrambled_verse_override: boolean;
+  nature_id_override: boolean;
+  first_aid_override: boolean;
+}

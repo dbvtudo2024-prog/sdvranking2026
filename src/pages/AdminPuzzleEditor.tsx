@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseService } from '@/db';
 import { PuzzleImage } from '@/types';
+import { PUZZLE_IMAGES_DATA } from '@/constants';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { Plus, Trash2, ArrowLeft, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Image as ImageIcon, Link as LinkIcon, DownloadCloud, Search, Check } from 'lucide-react';
+import { SpecialtyDBV } from '@/types';
 
 interface AdminPuzzleEditorProps {
   onBack: () => void;
@@ -15,11 +17,24 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout,
   const [images, setImages] = useState<PuzzleImage[]>([]);
   const [newImage, setNewImage] = useState({ title: '', url: '' });
   const [loading, setLoading] = useState(false);
+  const [availableSpecialties, setAvailableSpecialties] = useState<SpecialtyDBV[]>([]);
+  const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
+  const [specialtySearch, setSpecialtySearch] = useState('');
 
   useEffect(() => {
     const sub = DatabaseService.subscribePuzzleImages(setImages);
+    DatabaseService.getSpecialties().then(setAvailableSpecialties);
     return () => { sub.unsubscribe(); };
   }, []);
+
+  const handleSelectSpecialty = (spec: SpecialtyDBV) => {
+    setNewImage({
+      title: spec.Nome,
+      url: spec.Imagem || ''
+    });
+    setShowSpecialtyPicker(false);
+    setSpecialtySearch('');
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +73,76 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout,
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'}`}>
       <div className="p-6 space-y-8 overflow-y-auto flex-1">
         <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border shadow-xl shadow-blue-900/5`}>
-          <h3 className={`font-black ${isDarkMode ? 'text-slate-100' : 'text-gray-800'} text-sm uppercase tracking-widest mb-6 flex items-center gap-2`}>
-            <Plus size={18} className="text-[#0061f2]" /> Nova Imagem para Quebra-Cabeça
-          </h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className={`font-black ${isDarkMode ? 'text-slate-100' : 'text-gray-800'} text-sm uppercase tracking-widest flex items-center gap-2`}>
+              <Plus size={18} className="text-[#0061f2]" /> Nova Imagem para Quebra-Cabeça
+            </h3>
+            <button 
+              onClick={async () => {
+                if (!confirm('Importar as imagens padrão?')) return;
+                setLoading(true);
+                try {
+                  await DatabaseService.seedPuzzleImages(PUZZLE_IMAGES_DATA);
+                  alert('✅ Imagens importadas com sucesso!');
+                } catch (e: any) { 
+                  console.error('Erro ao importar:', e);
+                  alert('❌ Erro ao importar: ' + (e.message || 'Verifique o console')); 
+                }
+                finally { setLoading(false); }
+              }}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              <DownloadCloud size={18} /> Importar Padrão
+            </button>
+          </div>
           
           <form onSubmit={handleAdd} className="space-y-5">
+            <div className="relative">
+              <button 
+                type="button"
+                onClick={() => setShowSpecialtyPicker(!showSpecialtyPicker)}
+                className={`w-full p-4 flex items-center justify-between border-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-blue-400' : 'bg-blue-50 border-blue-100 text-[#0061f2]'}`}
+              >
+                <span>Puxar de EspecialidadesDBV</span>
+                <Search size={16} />
+              </button>
+
+              {showSpecialtyPicker && (
+                <div className={`absolute top-full left-0 right-0 mt-2 z-[300] rounded-2xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="p-3 border-b border-slate-700">
+                    <input 
+                      className={`w-full p-2 rounded-lg text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-700'}`}
+                      placeholder="Pesquisar especialidade..."
+                      autoFocus
+                      value={specialtySearch}
+                      onChange={e => setSpecialtySearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {availableSpecialties
+                      .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
+                      .map(spec => (
+                        <button
+                          key={spec.id}
+                          type="button"
+                          onClick={() => handleSelectSpecialty(spec)}
+                          className={`w-full p-3 text-left flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}
+                        >
+                          {spec.Imagem && <img src={spec.Imagem} className="w-6 h-6 rounded object-cover" referrerPolicy="no-referrer" />}
+                          <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-tight">{spec.Nome}</p>
+                            <p className="text-[8px] opacity-60 uppercase">{spec.Categoria}</p>
+                          </div>
+                          <Check size={14} className="opacity-0 group-hover:opacity-100" />
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className={labelClasses}>Título da Imagem</label>
               <div className="relative">

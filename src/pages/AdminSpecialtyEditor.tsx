@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { DatabaseService, SpecialtyDBV } from '@/db';
-import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2 } from 'lucide-react';
+import { DatabaseService } from '@/db';
+import { SpecialtyDBV } from '@/types';
+import { SPECIALTIES } from '@/constants';
+import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2, DownloadCloud } from 'lucide-react';
 
 interface AdminSpecialtyEditorProps {
   onBack: () => void;
@@ -70,6 +72,24 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'} overflow-hidden`}>
       <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto pb-32">
         <div className="flex items-center justify-end gap-3">
+          <button 
+            onClick={async () => {
+              if (!confirm('Importar as especialidades padrão?')) return;
+              setIsSaving(true);
+              try {
+                await DatabaseService.seedSpecialties(SPECIALTIES);
+                alert('✅ Especialidades importadas com sucesso!');
+              } catch (e: any) { 
+                console.error('Erro ao importar:', e);
+                alert('❌ Erro ao importar: ' + (e.message || 'Verifique o console')); 
+              }
+              finally { setIsSaving(false); }
+            }}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+          >
+            <DownloadCloud size={16} /> Importar Padrão
+          </button>
           <button onClick={() => { setEditItem(null); setFormData({ ID: '', Nome: '', Imagem: '', Categoria: '', Like: false }); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#0061f2] text-white rounded-2xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all">
             <Plus size={16} /> Nova Especialidade
           </button>

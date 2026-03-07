@@ -1,48 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy } from '@/types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig } from '@/types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-export interface SpecialtyDBV {
-  id?: number;
-  created_at?: string;
-  ID: string;
-  Nome: string;
-  Questoes: string;
-  Sigla: string;
-  Imagem: string;
-  Categoria: string;
-  Nivel: string;
-  Ano: string;
-  Origem: string;
-  Like: boolean;
-  Cor: string;
-}
-
-export interface CounselorDB {
-  id?: string | number;
-  name: string;
-  created_at?: string;
-}
-
-export interface GameConfig {
-  id: number;
-  quiz_override: boolean;
-  memory_override: boolean;
-  specialty_override: boolean;
-  three_clues_override: boolean;
-  puzzle_override: boolean;
-  knots_override: boolean;
-  who_am_i_override: boolean;
-  specialty_trail_override: boolean;
-  scrambled_verse_override: boolean;
-  nature_id_override: boolean;
-  first_aid_override: boolean;
-}
 
 export const DatabaseService = {
   // --- CHAT ---
@@ -218,8 +181,18 @@ export const DatabaseService = {
     await supabase.from('EspecialidadesDBV').delete().eq('id', id);
   },
 
-  async seedSpecialties(specialties: Omit<SpecialtyDBV, 'id' | 'created_at'>[]) {
-    await supabase.from('EspecialidadesDBV').insert(specialties);
+  async seedSpecialties(specialties: any[]) {
+    for (const s of specialties) {
+      const { data } = await supabase.from('EspecialidadesDBV').select('id').eq('Nome', s.name);
+      if (!data || data.length === 0) {
+        await this.addSpecialty({
+          Nome: s.name,
+          Imagem: s.image,
+          Categoria: s.category || 'Geral',
+          Like: false
+        });
+      }
+    }
   },
 
   // --- CONFIGURAÇÕES DE JOGOS ---
@@ -707,6 +680,73 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
+  async seedNatureStudy() {
+    const study: Omit<SpecialtyStudy, 'id'> = {
+      name: "Estudo da Natureza",
+      pdfurl: "https://desbravadores.org.br/assets/especialidades/estudo-da-natureza/estudo-da-natureza.pdf",
+      puzzle_image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000",
+      category: "Natureza",
+      questions: [
+        {
+          question: "Qual é o processo pelo qual as plantas produzem seu próprio alimento?",
+          options: ["Respiração", "Fotossíntese", "Transpiração", "Germinação"],
+          correct_answer: 1
+        },
+        {
+          question: "Qual destes animais é um anfíbio?",
+          options: ["Cobra", "Sapo", "Tartaruga", "Jacaré"],
+          correct_answer: 1
+        },
+        {
+          question: "Como se chama o fenômeno da transformação da lagarta em borboleta?",
+          options: ["Evolução", "Metamorfose", "Crescimento", "Mutação"],
+          correct_answer: 1
+        },
+        {
+          question: "Qual é o maior oceano da Terra?",
+          options: ["Atlântico", "Índico", "Pacífico", "Ártico"],
+          correct_answer: 2
+        },
+        {
+          question: "Qual gás os humanos expiram e as plantas absorvem?",
+          options: ["Oxigênio", "Nitrogênio", "Dióxido de Carbono", "Hidrogênio"],
+          correct_answer: 2
+        },
+        {
+          question: "Qual é a principal fonte de energia para a vida na Terra?",
+          options: ["Lua", "Vento", "Sol", "Água"],
+          correct_answer: 2
+        },
+        {
+          question: "O que as abelhas coletam das flores para fazer mel?",
+          options: ["Pólen", "Néctar", "Sementes", "Pétalas"],
+          correct_answer: 1
+        },
+        {
+          question: "Qual destes é um recurso natural renovável?",
+          options: ["Petróleo", "Carvão", "Energia Solar", "Gás Natural"],
+          correct_answer: 2
+        },
+        {
+          question: "Como se chama o estudo dos animais?",
+          options: ["Botânica", "Geologia", "Zoologia", "Ecologia"],
+          correct_answer: 2
+        },
+        {
+          question: "Qual é a camada de ar que envolve a Terra?",
+          options: ["Litosfera", "Hidrosfera", "Atmosfera", "Biosfera"],
+          correct_answer: 2
+        }
+      ]
+    };
+
+    const { data } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
+    if (data && data.length > 0) return;
+
+    const { error } = await supabase.from('specialty_studies').insert([study]);
+    if (error) throw error;
+  },
+
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
   async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
     const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
@@ -788,6 +828,15 @@ export const DatabaseService = {
     }
   },
 
+  async seedPuzzleImages(images: { title: string, url: string }[]) {
+    for (const img of images) {
+      const { data } = await supabase.from('puzzle_images').select('id').eq('title', img.title);
+      if (!data || data.length === 0) {
+        await this.addPuzzleImage(img);
+      }
+    }
+  },
+
   subscribePuzzleImages(callback: (images: any[]) => void) {
     this.getPuzzleImages().then(callback);
     return supabase
@@ -828,14 +877,30 @@ export const DatabaseService = {
   },
 
   async addWhoAmIQuestion(q: any) {
-    const { error } = await supabase.from('who_am_i_questions').insert([q]);
-    if (error) throw error;
+    // Omitting category if it causes issues with the schema
+    const { category, ...dataToInsert } = q;
+    const { error } = await supabase.from('who_am_i_questions').insert([dataToInsert]);
+    if (error) {
+      // If it's not a category error, throw it
+      if (!error.message.includes('category')) throw error;
+      // If it was a category error, it means the column is missing, but we already omitted it.
+      // If it still fails, it's something else.
+    }
   },
 
   async updateWhoAmIQuestion(q: any) {
-    const { id, created_at, ...updates } = q;
+    const { id, created_at, category, ...updates } = q;
     const { error } = await supabase.from('who_am_i_questions').update(updates).eq('id', id);
     if (error) throw error;
+  },
+
+  async seedWhoAmIQuestions(questions: any[]) {
+    for (const q of questions) {
+      const { data } = await supabase.from('who_am_i_questions').select('id').eq('answer', q.answer);
+      if (!data || data.length === 0) {
+        await this.addWhoAmIQuestion(q);
+      }
+    }
   },
 
   async deleteWhoAmIQuestion(id: string) {
@@ -873,6 +938,15 @@ export const DatabaseService = {
   async deleteScrambledVerse(id: string) {
     const { error } = await supabase.from('scrambled_verses').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  async seedScrambledVerses(verses: any[]) {
+    for (const v of verses) {
+      const { data } = await supabase.from('scrambled_verses').select('id').eq('title', v.title);
+      if (!data || data.length === 0) {
+        await this.addScrambledVerse(v);
+      }
+    }
   },
 
   subscribeScrambledVerses(callback: (verses: any[]) => void) {

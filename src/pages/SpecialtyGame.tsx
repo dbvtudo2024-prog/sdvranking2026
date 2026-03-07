@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { DatabaseService, SpecialtyDBV } from '@/db';
-import { AuthUser, Member, Score, UserRole } from '@/types';
+import { DatabaseService } from '@/db';
+import { AuthUser, Member, Score, UserRole, SpecialtyDBV } from '@/types';
 import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen } from 'lucide-react';
 
 interface SpecialtyGameProps {

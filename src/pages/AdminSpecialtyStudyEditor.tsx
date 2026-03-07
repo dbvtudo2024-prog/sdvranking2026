@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { SpecialtyStudy, SpecialtyStudyQuestion } from '@/types';
 import { DatabaseService } from '@/db';
-import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud } from 'lucide-react';
+import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud, Check } from 'lucide-react';
+import { SpecialtyDBV } from '@/types';
 
 interface AdminSpecialtyStudyEditorProps {
   onBack: () => void;
@@ -17,6 +18,9 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState<SpecialtyStudy | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableSpecialties, setAvailableSpecialties] = useState<SpecialtyDBV[]>([]);
+  const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
+  const [specialtySearch, setSpecialtySearch] = useState('');
 
   const emptyQuestion: SpecialtyStudyQuestion = {
     question: '',
@@ -37,6 +41,9 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
       setStudies(data);
       setLoading(false);
     });
+
+    DatabaseService.getSpecialties().then(setAvailableSpecialties);
+
     return () => { if(channel) channel.unsubscribe(); };
   }, []);
 
@@ -94,6 +101,39 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
     }
   };
 
+  const handleSeedNature = async () => {
+    if (!confirm('Deseja importar o estudo "Estudo da Natureza"?')) return;
+    setIsSaving(true);
+    try {
+      await DatabaseService.seedNatureStudy();
+      alert('✅ Estudo importado com sucesso!');
+    } catch (error) {
+      alert('❌ Erro ao importar estudo.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSelectSpecialty = (spec: SpecialtyDBV) => {
+    if (editForm) {
+      setEditForm({
+        ...editForm,
+        name: spec.Nome,
+        category: spec.Categoria,
+        puzzle_image_url: spec.Imagem || editForm.puzzle_image_url
+      });
+    } else {
+      setNewStudy({
+        ...newStudy,
+        name: spec.Nome,
+        category: spec.Categoria,
+        puzzle_image_url: spec.Imagem || newStudy.puzzle_image_url
+      });
+    }
+    setShowSpecialtyPicker(false);
+    setSpecialtySearch('');
+  };
+
   const filteredStudies = studies.filter(s => 
     (s.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
     (s.category || '').toLowerCase().includes((searchTerm || '').toLowerCase())
@@ -107,13 +147,20 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
       <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto pb-32">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Materiais de Estudo</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button 
               onClick={handleSeedHistory}
               disabled={isSaving}
               className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
             >
               <DownloadCloud size={18} /> Importar História VT
+            </button>
+            <button 
+              onClick={handleSeedNature}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              <DownloadCloud size={18} /> Importar Natureza
             </button>
             <button 
               onClick={() => { setEditForm(null); setShowModal(true); }}
@@ -182,6 +229,51 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
             </div>
             
             <form onSubmit={handleSave} className="space-y-8">
+              <div className="relative">
+                <button 
+                  type="button"
+                  onClick={() => setShowSpecialtyPicker(!showSpecialtyPicker)}
+                  className={`w-full p-4 flex items-center justify-between border-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-blue-400' : 'bg-blue-50 border-blue-100 text-[#0061f2]'}`}
+                >
+                  <span>Puxar de EspecialidadesDBV</span>
+                  <Search size={16} />
+                </button>
+
+                {showSpecialtyPicker && (
+                  <div className={`absolute top-full left-0 right-0 mt-2 z-[300] rounded-2xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="p-3 border-b border-slate-700">
+                      <input 
+                        className={`w-full p-2 rounded-lg text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-700'}`}
+                        placeholder="Pesquisar especialidade..."
+                        autoFocus
+                        value={specialtySearch}
+                        onChange={e => setSpecialtySearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {availableSpecialties
+                        .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
+                        .map(spec => (
+                          <button
+                            key={spec.id}
+                            type="button"
+                            onClick={() => handleSelectSpecialty(spec)}
+                            className={`w-full p-3 text-left flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}
+                          >
+                            {spec.Imagem && <img src={spec.Imagem} className="w-6 h-6 rounded object-cover" referrerPolicy="no-referrer" />}
+                            <div className="flex-1">
+                              <p className="text-[10px] font-black uppercase tracking-tight">{spec.Nome}</p>
+                              <p className="text-[8px] opacity-60 uppercase">{spec.Categoria}</p>
+                            </div>
+                            <Check size={14} className="opacity-0 group-hover:opacity-100" />
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClasses}>Nome da Especialidade</label>

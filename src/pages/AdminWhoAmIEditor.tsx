@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DatabaseService } from '@/db';
+import { WHO_AM_I_DATA } from '@/constants';
 import { Edit2, Trash2, X, ChevronDown, Save, Search, Plus, Loader2, DownloadCloud, User } from 'lucide-react';
 
 interface WhoAmIQuestion {
@@ -88,12 +89,32 @@ const AdminWhoAmIEditor: React.FC<AdminWhoAmIEditorProps> = ({ onBack, onLogout,
       <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto pb-32">
         <div className="flex justify-between items-center">
            <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Editor: Quem Sou Eu?</h2>
-           <button 
-            onClick={() => { setEditForm(null); setShowModal(true); }}
-            className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-          >
-            <Plus size={18} /> Adicionar
-          </button>
+           <div className="flex gap-2">
+            <button 
+              onClick={async () => {
+                if (!confirm('Importar os personagens padrão?')) return;
+                setIsSaving(true);
+                try {
+                  await DatabaseService.seedWhoAmIQuestions(WHO_AM_I_DATA);
+                  alert('✅ Personagens importados com sucesso!');
+                } catch (e: any) { 
+                  console.error('Erro ao importar:', e);
+                  alert('❌ Erro ao importar: ' + (e.message || 'Verifique o console')); 
+                }
+                finally { setIsSaving(false); }
+              }}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              <DownloadCloud size={18} /> Importar Padrão
+            </button>
+            <button 
+              onClick={() => { setEditForm(null); setShowModal(true); }}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+            >
+              <Plus size={18} /> Adicionar
+            </button>
+           </div>
         </div>
 
         <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-4 rounded-3xl shadow-sm flex flex-col sm:flex-row gap-3 sticky top-0 z-10 border`}>

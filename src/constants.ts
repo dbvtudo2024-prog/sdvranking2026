@@ -80,6 +80,40 @@ export const THREE_CLUES_DATA = [
   { answer: 'Acampamento', clues: ['É uma das atividades favoritas dos desbravadores', 'Envolve montar barracas e cozinhar ao ar livre', 'É o local onde fazemos o fogo do conselho'] }
 ];
 
+export const WHO_AM_I_DATA = [
+  { answer: 'Gideão', clues: ['Fui o quinto juiz de Israel', 'Pedi um sinal a Deus usando um velo de lã', 'Venci os midianitas com apenas 300 homens'], category: 'Bíblico' },
+  { answer: 'Jonas', clues: ['Tentei fugir da presença de Deus indo para Társis', 'Fui engolido por um grande peixe', 'Preguei o arrependimento na cidade de Nínive'], category: 'Bíblico' },
+  { answer: 'Rute', clues: ['Fui uma moça moabita que seguiu sua sogra Noemi', 'Disse: "O teu povo é o meu povo, o teu Deus é o meu Deus"', 'Casei-me com Boaz e tornei-me ancestral de Davi'], category: 'Bíblico' },
+  { answer: 'Elias', clues: ['Fui um profeta que desafiou os profetas de Baal no Monte Carmelo', 'Fui alimentado por corvos junto ao ribeiro de Querite', 'Fui levado ao céu em um redemoinho por um carro de fogo'], category: 'Bíblico' },
+  { answer: 'Pedro', clues: ['Fui um pescador chamado por Jesus para ser pescador de homens', 'Andei sobre as águas por um breve momento', 'Neguei Jesus três vezes antes do galo cantar'], category: 'Bíblico' },
+  { answer: 'José', clues: ['Ganhei uma túnica colorida de meu pai Jacó', 'Fui vendido como escravo pelos meus próprios irmãos', 'Tornei-me governador do Egito após interpretar os sonhos do Faraó'], category: 'Bíblico' },
+  { answer: 'João Batista', clues: ['Vivia no deserto e me alimentava de gafanhotos e mel silvestre', 'Preparei o caminho para a vinda do Messias', 'Batizei Jesus no rio Jordão'], category: 'Bíblico' },
+  { answer: 'Débora', clues: ['Fui a única mulher a servir como juíza em Israel', 'Era também profetisa e esposa de Lapidote', 'Liderei o exército junto com Baraque contra os cananeus'], category: 'Bíblico' },
+  { answer: 'Salomão', clues: ['Pedi sabedoria a Deus para governar o povo', 'Construí o primeiro grande Templo em Jerusalém', 'Fui o rei mais rico e sábio de Israel'], category: 'Bíblico' },
+  { answer: 'Marta', clues: ['Era irmã de Maria e Lázaro', 'Ficava muito ocupada com os serviços da casa', 'Jesus me disse que Maria escolheu a melhor parte'], category: 'Bíblico' }
+];
+
+export const SCRAMBLED_VERSES_DATA = [
+  { title: 'Gênesis 1:1', text: 'No princípio criou Deus os céus e a terra.' },
+  { title: 'João 3:16', text: 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito.' },
+  { title: 'Salmo 23:1', text: 'O Senhor é o meu pastor, nada me faltará.' },
+  { title: 'Filipenses 4:13', text: 'Tudo posso naquele que me fortalece.' },
+  { title: 'Salmo 119:105', text: 'Lâmpada para os meus pés é tua palavra, e luz para o meu caminho.' },
+  { title: 'Josué 1:9', text: 'Não to mandei eu? Esforça-te, e tem bom ânimo; não temas, nem te espantes.' },
+  { title: 'Mateus 5:14', text: 'Vós sois a luz do mundo; não se pode esconder uma cidade edificada sobre um monte.' },
+  { title: 'Provérbios 3:5', text: 'Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento.' },
+  { title: 'Romanos 8:28', text: 'E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus.' },
+  { title: 'Apocalipse 21:4', text: 'E Deus limpará de seus olhos toda a lágrima; e não haverá mais morte, nem pranto, nem clamor, nem dor.' }
+];
+
+export const PUZZLE_IMAGES_DATA = [
+  { title: 'Acampamento', url: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1000' },
+  { title: 'Bíblia e Café', url: 'https://images.unsplash.com/photo-1507434965515-61970f2bd7c6?auto=format&fit=crop&q=80&w=1000' },
+  { title: 'Natureza Montanhas', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1000' },
+  { title: 'Fogo do Conselho', url: 'https://images.unsplash.com/photo-1473679408190-0693dd22fe6a?auto=format&fit=crop&q=80&w=1000' },
+  { title: 'Desbravadores em Marcha', url: 'https://images.unsplash.com/photo-1533234458684-d4ba71586448?auto=format&fit=crop&q=80&w=1000' }
+];
+
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // Categoria Desbravadores
   { id: 'd1', category: 'Desbravadores', question: 'Qual o significado do triângulo invertido no emblema D1?', options: ['Santíssima Trindade', 'Ordem, Hierarquia e Disciplina', 'Físico, Mental e Espiritual', 'Pai, Filho e Espírito Santo'], correctAnswer: 2 },
@@ -103,5 +137,19 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   { id: 'b7', category: 'Bíblia', question: 'Qual o nome da esposa de Abraão?', options: ['Rebeca', 'Sara', 'Raquel', 'Lia'], correctAnswer: 1 },
   { id: 'b8', category: 'Bíblia', question: 'Quantas pragas caíram sobre o Egito?', options: ['7', '10', '12', '3'], correctAnswer: 1 },
   { id: 'b9', category: 'Bíblia', question: 'Quem escreveu o livro de Apocalipse?', options: ['Paulo', 'Pedro', 'Tiago', 'João'], correctAnswer: 3 },
-  { id: 'b10', category: 'Bíblia', question: 'Qual mar se abriu para o povo de Israel passar?', options: ['Mar Morto', 'Mar da Galileia', 'Mar Vermelho', 'Mar Mediterrâneo'], correctAnswer: 2 }
+  { id: 'b10', category: 'Bíblia', question: 'Qual mar se abriu para o povo de Israel passar?', options: ['Mar Morto', 'Mar da Galileia', 'Mar Vermelho', 'Mar Mediterrâneo'], correctAnswer: 2 },
+  
+  // Categoria Natureza
+  { id: 'n1', category: 'Natureza', question: 'Qual destas árvores é conhecida por ser a maior do mundo em volume?', options: ['Carvalho', 'Sequóia Gigante', 'Pinheiro', 'Eucalipto'], correctAnswer: 1, image_url: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80&w=512' },
+  { id: 'n2', category: 'Natureza', question: 'Qual animal é conhecido como o "Rei da Selva"?', options: ['Tigre', 'Elefante', 'Leão', 'Gorila'], correctAnswer: 2, image_url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=512' },
+  { id: 'n3', category: 'Natureza', question: 'Qual é o maior mamífero marinho?', options: ['Tubarão Branco', 'Baleia Azul', 'Orca', 'Golfinho'], correctAnswer: 1, image_url: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?auto=format&fit=crop&q=80&w=512' },
+  { id: 'n4', category: 'Natureza', question: 'Quantas patas tem uma aranha?', options: ['6', '8', '10', '12'], correctAnswer: 1, image_url: 'https://images.unsplash.com/photo-1525869916826-972885c91c1e?auto=format&fit=crop&q=80&w=512' },
+  { id: 'n5', category: 'Natureza', question: 'Qual destes pássaros é famoso por não conseguir voar?', options: ['Águia', 'Beija-flor', 'Avestruz', 'Pardal'], correctAnswer: 2, image_url: 'https://images.unsplash.com/photo-1551009175-15bdf9dcb580?auto=format&fit=crop&q=80&w=512' },
+
+  // Categoria Primeiros Socorros
+  { id: 'ps1', category: 'Primeiros Socorros', question: 'O que deve ser feito em caso de queimadura leve?', options: ['Passar manteiga', 'Colocar gelo direto', 'Lavar com água corrente fria', 'Furar as bolhas'], correctAnswer: 2, tip: 'Água corrente fria ajuda a resfriar a pele sem causar choque térmico ou infecções.' },
+  { id: 'ps2', category: 'Primeiros Socorros', question: 'Qual o número do SAMU no Brasil?', options: ['190', '192', '193', '153'], correctAnswer: 1, tip: '192 é o número do Serviço de Atendimento Móvel de Urgência.' },
+  { id: 'ps3', category: 'Primeiros Socorros', question: 'O que fazer se alguém estiver engasgado e não conseguir tossir?', options: ['Dar água', 'Fazer a Manobra de Heimlich', 'Deitar a pessoa', 'Esperar passar'], correctAnswer: 1, tip: 'A Manobra de Heimlich ajuda a expulsar o objeto que está obstruindo as vias aéreas.' },
+  { id: 'ps4', category: 'Primeiros Socorros', question: 'Como estancar um sangramento externo abundante?', options: ['Fazer pressão direta com pano limpo', 'Lavar com sabão', 'Passar álcool', 'Não mexer'], correctAnswer: 0, tip: 'A pressão direta ajuda a comprimir os vasos sanguíneos e iniciar a coagulação.' },
+  { id: 'ps5', category: 'Primeiros Socorros', question: 'Em caso de suspeita de fratura, qual a primeira medida?', options: ['Tentar colocar o osso no lugar', 'Massagear o local', 'Imobilizar a região', 'Passar pomada'], correctAnswer: 2, tip: 'Imobilizar evita que o osso quebrado cause danos a nervos ou vasos sanguíneos.' }
 ];
