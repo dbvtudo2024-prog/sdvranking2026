@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
   const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_who_am_i' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional'>('home');
+  const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
@@ -314,7 +315,7 @@ const App: React.FC = () => {
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
-      case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
+      case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_three_clues': return <AdminThreeCluesEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_specialty_study': return <AdminSpecialtyStudyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
@@ -322,7 +323,19 @@ const App: React.FC = () => {
       case 'admin_who_am_i': return <AdminWhoAmIEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={setActiveSpecialtyName} isDarkMode={isDarkMode} />;
-      case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} onGoToAdminQuiz={() => setCurrentPage('admin_quiz')} onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} onGoToAdminWhoAmI={() => setCurrentPage('admin_who_am_i')} onGoToAdminScrambledVerse={() => setCurrentPage('admin_scrambled_verse')} counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} 
+      case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
+      onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
+      onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
+      onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} 
+      onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} 
+      onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} 
+      onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} 
+      onGoToAdminWhoAmI={() => setCurrentPage('admin_who_am_i')} 
+      onGoToAdminScrambledVerse={() => setCurrentPage('admin_scrambled_verse')} 
+      onGoToAdminNatureId={() => { setAdminQuizCategory('Natureza'); setCurrentPage('admin_quiz'); }}
+      onGoToAdminFirstAid={() => { setAdminQuizCategory('Primeiros Socorros'); setCurrentPage('admin_quiz'); }}
+      onGoToAdminSpecialtyTrail={() => { setAdminQuizCategory('Especialidades'); setCurrentPage('admin_quiz'); }}
+      counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} 
       quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} 
       memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} 
       specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} 

@@ -1,38 +1,48 @@
 
 import React, { useState, useEffect } from 'react';
-import { QuizQuestion } from '@/types';
+import { QuizQuestion, SpecialtyDBV } from '@/types';
 import { QUIZ_QUESTIONS } from '@/constants';
 import { DatabaseService } from '@/db';
-import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, ChevronLeft, Plus, DownloadCloud, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, ChevronLeft, Plus, DownloadCloud, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface AdminQuizEditorProps {
   onBack: () => void;
   onLogout?: () => void;
   isDarkMode?: boolean;
+  initialCategory?: 'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades';
 }
 
-const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isDarkMode }) => {
+const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isDarkMode, initialCategory = 'Todas' }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [editForm, setEditForm] = useState<QuizQuestion | null>(null);
   const [newQuestion, setNewQuestion] = useState({
     question: '',
-    category: 'Desbravadores' as 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades',
+    category: (initialCategory !== 'Todas' ? initialCategory : 'Desbravadores') as 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades',
     options: ['', '', '', ''],
     correctAnswer: 0,
     image_url: '',
     tip: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
+  const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>(initialCategory);
+  
+  const [availableSpecialties, setAvailableSpecialties] = useState<SpecialtyDBV[]>([]);
+  const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
+  const [specialtySearch, setSpecialtySearch] = useState('');
 
   useEffect(() => {
     const channel = DatabaseService.subscribeQuizQuestions((data) => {
       setQuestions(data);
       setLoading(false);
     });
+    
+    DatabaseService.getSpecialties().then(setAvailableSpecialties);
+    
     return () => { if(channel) channel.unsubscribe(); };
   }, []);
 
@@ -50,7 +60,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         setEditForm(null);
       } else {
         await DatabaseService.addQuizQuestion(newQuestion);
-        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0 });
+        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0, image_url: '', tip: '' });
       }
       setShowModal(false);
     } catch (error) {
@@ -70,7 +80,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
   };
 
   const handleSeedQuestions = async () => {
-    if (!confirm('Deseja enviar as 20 questões padrão para o banco de dados?')) return;
+    if (!confirm('Deseja enviar as questões padrão (incluindo Natureza, Socorros e Especialidades) para o banco de dados?')) return;
     setIsSaving(true);
     try {
       const questionsToSeed = QUIZ_QUESTIONS.map(({ id, ...q }) => q);
@@ -80,6 +90,52 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
       alert('Erro ao enviar questões.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const generateWithAI = async (specialtyName: string) => {
+    if (!specialtyName) return;
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Gere 5 perguntas de múltipla escolha para a especialidade de Desbravadores: "${specialtyName}". 
+        Retorne em formato JSON como um array de objetos com as propriedades: 
+        "question" (string), "options" (array de 4 strings), "correctAnswer" (number 0-3), "tip" (string curta explicando a resposta).`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                question: { type: Type.STRING },
+                options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                correctAnswer: { type: Type.INTEGER },
+                tip: { type: Type.STRING }
+              },
+              required: ["question", "options", "correctAnswer", "tip"]
+            }
+          }
+        }
+      });
+
+      const generated = JSON.parse(response.text || '[]');
+      if (generated.length > 0) {
+        const questionsToSave = generated.map((q: any) => ({
+          ...q,
+          category: 'Especialidades'
+        }));
+        await DatabaseService.seedQuizQuestions(questionsToSave);
+        alert(`✅ ${generated.length} questões geradas e salvas para ${specialtyName}!`);
+      }
+    } catch (error) {
+      console.error("Erro AI:", error);
+      alert("Erro ao gerar questões com IA.");
+    } finally {
+      setIsGenerating(false);
+      setShowSpecialtyPicker(false);
     }
   };
 
@@ -96,8 +152,53 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
   return (
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'} overflow-hidden`}>
       <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto pb-32">
-        <div className="flex flex-wrap justify-end items-center gap-4">
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Banco de Questões</h2>
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <button 
+                onClick={() => setShowSpecialtyPicker(!showSpecialtyPicker)}
+                disabled={isGenerating}
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />} 
+                Gerar p/ Especialidade
+              </button>
+
+              {showSpecialtyPicker && (
+                <div className={`absolute top-full right-0 mt-2 w-72 z-[150] rounded-2xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="p-3 border-b border-slate-700">
+                    <input 
+                      className={`w-full p-2 rounded-lg text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-700'}`}
+                      placeholder="Pesquisar especialidade..."
+                      autoFocus
+                      value={specialtySearch}
+                      onChange={e => setSpecialtySearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {availableSpecialties
+                      .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
+                      .map(spec => (
+                        <button
+                          key={spec.id}
+                          onClick={() => generateWithAI(spec.Nome)}
+                          className={`w-full p-3 text-left flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}
+                        >
+                          {spec.Imagem && <img src={spec.Imagem} className="w-6 h-6 rounded object-cover" referrerPolicy="no-referrer" />}
+                          <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-tight">{spec.Nome}</p>
+                            <p className="text-[8px] opacity-60 uppercase">{spec.Categoria}</p>
+                          </div>
+                          <Wand2 size={14} className="opacity-40" />
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={handleSeedQuestions}
               disabled={isSaving}

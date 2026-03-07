@@ -16,6 +16,9 @@ interface AdminManagementProps {
   onGoToAdminPuzzle: () => void;
   onGoToAdminWhoAmI: () => void;
   onGoToAdminScrambledVerse: () => void;
+  onGoToAdminNatureId: () => void;
+  onGoToAdminFirstAid: () => void;
+  onGoToAdminSpecialtyTrail: () => void;
   counselors: CounselorDB[];
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
@@ -58,6 +61,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminPuzzle,
   onGoToAdminWhoAmI,
   onGoToAdminScrambledVerse,
+  onGoToAdminNatureId,
+  onGoToAdminFirstAid,
+  onGoToAdminSpecialtyTrail,
   counselors = [],
   onAddCounselor,
   onUpdateCounselor,
@@ -307,6 +313,15 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 <button onClick={onGoToAdminScrambledVerse} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <Shuffle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> VERSÍCULO
                 </button>
+                <button onClick={onGoToAdminNatureId} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
+                  <Leaf size={22} className={isDarkMode ? 'text-emerald-500' : 'text-emerald-600'} /> NATUREZA
+                </button>
+                <button onClick={onGoToAdminFirstAid} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
+                  <HeartPulse size={22} className={isDarkMode ? 'text-red-500' : 'text-red-600'} /> 1º SOCORROS
+                </button>
+                <button onClick={onGoToAdminSpecialtyTrail} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
+                  <Map size={22} className={isDarkMode ? 'text-blue-500' : 'text-blue-600'} /> TRILHA ESPECIAL.
+                </button>
               </div>
               <button 
                 onClick={() => { loadAssets(); setShowAssetsModal(true); }} 
@@ -362,6 +377,24 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                     {isResetting === 'threeclues' ? <Loader2 className="animate-spin" size={20} /> : <HelpCircle size={20} />} 
                   </div>
                   Zerar 3 Dicas
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('natureid', 'Natureza')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'natureid' ? <Loader2 className="animate-spin" size={20} /> : <Leaf size={20} />} 
+                  </div>
+                  Zerar Natureza
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('firstaid', 'Socorros')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'firstaid' ? <Loader2 className="animate-spin" size={20} /> : <HeartPulse size={20} />} 
+                  </div>
+                  Zerar Socorros
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('specialtytrail', 'Trilha')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'specialtytrail' ? <Loader2 className="animate-spin" size={20} /> : <Map size={20} />} 
+                  </div>
+                  Zerar Trilha
                 </button>
               </div>
             </div>

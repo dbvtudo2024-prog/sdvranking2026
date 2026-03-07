@@ -360,7 +360,7 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         </div>
       </div>
-      <div className="text-center py-10 opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">v2.2.6 • Seção Restaurada</p></div>
+      <div className="text-center py-10 opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">v3.0.0 • Versão Oficial</p></div>
 
       <AnimatePresence>
         {showEditModal && (
