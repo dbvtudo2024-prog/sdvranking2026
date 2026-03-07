@@ -89,7 +89,7 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
     const updatedScores = [...(currentMember.scores || [])];
     const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
 
-    const finalScore = score + (isCorrect ? (revealedClues === 1 ? 30 : revealedClues === 2 ? 20 : 10) : 0);
+    const finalScore = score;
 
     if (todayScoreIndex >= 0) {
       (updatedScores[todayScoreIndex] as any).whoAmIGame = finalScore;

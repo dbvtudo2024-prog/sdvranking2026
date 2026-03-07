@@ -61,12 +61,12 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
         setIsCorrect(null);
       } else {
         setGameState('finished');
-        saveScore(correct);
+        saveScore();
       }
     }, 1500);
   };
 
-  const saveScore = (lastCorrect: boolean) => {
+  const saveScore = () => {
     const currentMember = members.find(m => m.id === user.id);
     if (!currentMember) return;
 
@@ -74,7 +74,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     const updatedScores = [...(currentMember.scores || [])];
     const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
 
-    const finalScore = score + (lastCorrect ? 25 : 0);
+    const finalScore = score;
 
     if (todayScoreIndex >= 0) {
       (updatedScores[todayScoreIndex] as any).specialtyTrailGame = finalScore;

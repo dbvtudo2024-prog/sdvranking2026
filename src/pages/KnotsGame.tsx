@@ -89,7 +89,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     const updatedScores = [...(currentMember.scores || [])];
     const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
 
-    const finalScore = score + (isCorrect ? 20 : 0); // Add last question score if correct
+    const finalScore = score;
 
     if (todayScoreIndex >= 0) {
       (updatedScores[todayScoreIndex] as any).knotsGame = finalScore;

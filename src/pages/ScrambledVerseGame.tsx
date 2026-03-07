@@ -101,7 +101,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const updatedScores = [...(currentMember.scores || [])];
     const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
 
-    const finalScore = score + 20; // Last verse score
+    const finalScore = score;
 
     if (todayScoreIndex >= 0) {
       (updatedScores[todayScoreIndex] as any).scrambledVerseGame = finalScore;

@@ -66,7 +66,7 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
     const updatedScores = [...(currentMember.scores || [])];
     const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
 
-    const finalScore = score + (isCorrect ? 20 : 0);
+    const finalScore = score;
 
     if (todayScoreIndex >= 0) {
       (updatedScores[todayScoreIndex] as any).firstAidGame = finalScore;

@@ -89,7 +89,11 @@ export const DatabaseService = {
   },
 
   async updateMember(member: Member) {
-    await supabase.from('members').update(member).eq('id', member.id);
+    const { error } = await supabase.from('members').update(member).eq('id', member.id);
+    if (error) {
+      console.error("Erro ao atualizar membro no Supabase:", error);
+      throw error;
+    }
   },
 
   async deleteMember(id: string) {
