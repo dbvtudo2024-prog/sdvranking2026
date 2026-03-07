@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
                 src: 'https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok',
                 sizes: '192x192',
                 type: 'image/png',
-                
+                purpose: 'any maskable'
               },
               {
                 src: 'https://lh3.googleusercontent.com/d/1RSopVlUN5znsyAR7bq1z2kvbOa0kh4ok',
