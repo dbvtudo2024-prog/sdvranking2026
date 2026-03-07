@@ -191,3 +191,12 @@ export interface GameConfig {
   nature_id_override: boolean;
   first_aid_override: boolean;
 }
+
+declare global {
+  interface Window {
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}

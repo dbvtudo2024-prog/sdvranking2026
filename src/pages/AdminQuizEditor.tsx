@@ -97,12 +97,28 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
     if (!specialtyName) return;
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Tenta pegar de várias fontes possíveis de ambiente
+      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        // Se estiver no ambiente do AI Studio e sem chave, tenta abrir o seletor
+        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          if (!hasKey) {
+            await window.aistudio.openSelectKey();
+          }
+        } else {
+          throw new Error("Chave de API (GEMINI_API_KEY) não configurada. Se estiver no Vercel, adicione-a às variáveis de ambiente.");
+        }
+      }
+
+      const ai = new GoogleGenAI({ apiKey: apiKey || '' });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: `Gere 5 perguntas de múltipla escolha para a especialidade de Desbravadores: "${specialtyName}". 
-        Retorne em formato JSON como um array de objetos com as propriedades: 
-        "question" (string), "options" (array de 4 strings), "correctAnswer" (number 0-3), "tip" (string curta explicando a resposta).`,
+        Retorne APENAS o JSON puro, sem blocos de código markdown.
+        Formato: um array de objetos com as propriedades: 
+        "question" (string), "options" (array de 4 strings), "correctAnswer" (number 0-3), "tip" (string curta).`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -121,18 +137,35 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         }
       });
 
-      const generated = JSON.parse(response.text || '[]');
-      if (generated.length > 0) {
+      const text = response.text || '';
+      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      let generated;
+      try {
+        generated = JSON.parse(cleanedText);
+      } catch (e) {
+        console.error("Erro ao parsear JSON da IA:", text);
+        throw new Error("A resposta da IA não veio em um formato JSON válido.");
+      }
+
+      if (generated && Array.isArray(generated) && generated.length > 0) {
         const questionsToSave = generated.map((q: any) => ({
           ...q,
           category: 'Especialidades'
         }));
         await DatabaseService.seedQuizQuestions(questionsToSave);
         alert(`✅ ${generated.length} questões geradas e salvas para ${specialtyName}!`);
+      } else {
+        throw new Error("A IA não gerou nenhuma questão válida.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro AI:", error);
-      alert("Erro ao gerar questões com IA.");
+      const errorMsg = error.message || "";
+      if (errorMsg.includes("API_KEY") || errorMsg.includes("key") || errorMsg.includes("403")) {
+        alert("Erro: Chave de API do Gemini não encontrada, inválida ou sem permissão. Verifique as variáveis de ambiente (GEMINI_API_KEY).");
+      } else {
+        alert(`Erro ao gerar questões com IA: ${error.message || 'Erro desconhecido'}`);
+      }
     } finally {
       setIsGenerating(false);
       setShowSpecialtyPicker(false);
