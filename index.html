@@ -8,9 +8,14 @@
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0061f2">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Sentinelas">
+    
+    <!-- Splash Screen Meta for iOS -->
+    <link rel="apple-touch-startup-image" href="https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG">
+    
     <link rel="apple-touch-icon" href="https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG">
     <link rel="icon" type="image/png" href="https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG">
     
@@ -42,8 +47,10 @@
         }
         html, body {
             height: 100%;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
-            background-color: #0061f2; /* Cor sólida única */
+            background-color: #0061f2 !important; /* Força o azul desde o milissegundo zero */
         }
         #root {
             height: 100%;
