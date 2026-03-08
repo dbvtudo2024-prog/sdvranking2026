@@ -53,7 +53,6 @@ const App: React.FC = () => {
   const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
-  const [isAppLoading, setIsAppLoading] = useState(true);
 
   const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
   const BRASAO_3D = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
@@ -69,13 +68,6 @@ const App: React.FC = () => {
   const [scrambledVerseOverride, setScrambledVerseOverride] = useState(false);
   const [natureIdOverride, setNatureIdOverride] = useState(false);
   const [firstAidOverride, setFirstAidOverride] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAppLoading(false);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -360,36 +352,6 @@ const App: React.FC = () => {
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
     }
   };
-
-  if (isAppLoading) {
-    return (
-      <div className="fixed inset-0 z-[9999] bg-[#0061f2] flex flex-col items-center justify-center p-8 animate-in fade-in duration-500">
-        <div className="relative">
-          <div className="absolute inset-0 bg-white/20 rounded-full blur-3xl animate-pulse"></div>
-          <img 
-            src={BRASAO_3D} 
-            alt="Sentinelas da Verdade" 
-            className="w-64 h-64 object-contain relative z-10 animate-in zoom-in duration-1000 ease-out drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" 
-            referrerPolicy="no-referrer"
-          />
-        </div>
-        <div className="mt-12 flex flex-col items-center gap-4">
-          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">Sentinelas da Verdade</h1>
-          <div className="w-48 h-1.5 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white animate-[loading_2s_ease-in-out_infinite]"></div>
-          </div>
-          <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">Carregando Clube...</p>
-        </div>
-        <style>{`
-          @keyframes loading {
-            0% { width: 0%; transform: translateX(-100%); }
-            50% { width: 70%; transform: translateX(50%); }
-            100% { width: 0%; transform: translateX(150%); }
-          }
-        `}</style>
-      </div>
-    );
-  }
 
   if (!user) {
     if (currentPage === 'register') return <Register onRegister={(u, m) => { 
