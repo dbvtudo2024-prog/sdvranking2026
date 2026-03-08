@@ -26,6 +26,11 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   const [gameQuestions, setGameQuestions] = useState<{question: string, options: string[], correct: number, image: string}[]>([]);
 
   const timerRef = useRef<number | null>(null);
+  const imageLoadedRef = useRef(false);
+
+  useEffect(() => {
+    imageLoadedRef.current = imageLoaded;
+  }, [imageLoaded]);
 
   useEffect(() => {
     const prepareGame = async () => {
@@ -85,6 +90,8 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     const actualLimit = limit || timeLimit;
     setTimeLeft(actualLimit);
     timerRef.current = window.setInterval(() => {
+      if (!imageLoadedRef.current) return;
+      
       setTimeLeft(prev => {
         if (prev <= 1) {
           handleAnswer(-1);
@@ -116,6 +123,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     setTimeout(() => {
       setFeedback(null);
       setImageLoaded(false);
+      imageLoadedRef.current = false;
       if (currentIdx < gameQuestions.length - 1) {
         setCurrentIdx(prev => prev + 1);
         startTimer();
@@ -255,7 +263,10 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
             )}
             <img 
               src={currentQ.image || undefined} 
-              onLoad={() => setImageLoaded(true)}
+              onLoad={() => {
+                setImageLoaded(true);
+                imageLoadedRef.current = true;
+              }}
               className={`w-full h-full object-contain transition-all duration-500 ${imageLoaded ? 'scale-100 opacity-100 blur-0' : 'scale-90 opacity-0 blur-md'}`} 
               alt="Espec" 
             />
