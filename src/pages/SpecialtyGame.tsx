@@ -10,9 +10,10 @@ interface SpecialtyGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   specialtyOverride: boolean;
+  isDarkMode?: boolean;
 }
 
-const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride }) => {
+const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride, isDarkMode }) => {
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'result'>('lobby');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLimit, setTimeLimit] = useState(5);
@@ -125,25 +126,53 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   };
 
   const handleFinish = () => {
-    if (currentMember) {
-      const newScore: Score = {
-        date: new Date().toLocaleDateString('pt-BR'),
-        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-        specialtyGame: score
-      };
-      onUpdateMember({ ...currentMember, scores: [...currentMember.scores, newScore] });
+    try {
+      if (currentMember) {
+        const newScore: Score = {
+          date: new Date().toLocaleDateString('pt-BR'),
+          punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+          specialtyGame: score
+        };
+        
+        // Garante que scores seja um array antes de espalhar
+        const currentScores = Array.isArray(currentMember.scores) ? currentMember.scores : [];
+        onUpdateMember({ ...currentMember, scores: [...currentScores, newScore] });
+      }
+    } catch (err) {
+      console.error("Erro ao salvar pontuação:", err);
+    } finally {
+      onBack();
     }
-    onBack();
   };
 
-  if (loading) return <div className="flex flex-col items-center justify-center h-full gap-4"><Loader2 className="animate-spin text-[#0061f2]" size={40} /><p className="text-xs font-black text-slate-400 uppercase">Sincronizando Especialidades...</p></div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-full gap-4">
+      <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+      <p className="text-xs font-black text-slate-400 uppercase">Sincronizando Especialidades...</p>
+    </div>
+  );
 
   if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
-        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Limite Diário</h2>
-        <p className="text-slate-500 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
+        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6">
+          <Lock size={40} />
+        </div>
+        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Limite Diário</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
+        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs">VOLTAR</button>
+      </div>
+    );
+  }
+
+  if (gameQuestions.length === 0 && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
+        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-[2rem] flex items-center justify-center text-red-500 mb-6">
+          <Lock size={40} />
+        </div>
+        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Erro de Carga</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Não foi possível carregar as especialidades. Verifique sua conexão.</p>
         <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs">VOLTAR</button>
       </div>
     );
@@ -152,20 +181,22 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (gameState === 'lobby') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6 animate-in fade-in">
-        <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center text-[#0061f2] shadow-inner"><BookOpen size={48} /></div>
+        <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-[2.5rem] flex items-center justify-center text-[#0061f2] shadow-inner">
+          <BookOpen size={48} />
+        </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Qual a Especialidade?</h2>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest px-4">Identifique o brasão correto da especialidade mostrada na tela.</p>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Qual a Especialidade?</h2>
+          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-widest px-4">Identifique o brasão correto da especialidade mostrada na tela.</p>
         </div>
 
         <div className="w-full space-y-3">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Escolha o tempo por pergunta:</p>
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Escolha o tempo por pergunta:</p>
           <div className="flex gap-2">
             {[5, 3, 2].map(t => (
               <button 
                 key={t} 
                 onClick={() => setTimeLimit(t)}
-                className={`flex-1 py-4 rounded-2xl font-black border-2 transition-all active:scale-95 ${timeLimit === t ? 'bg-[#0061f2] border-blue-700 text-white shadow-lg shadow-blue-500/20' : 'bg-white border-slate-100 text-slate-400'}`}
+                className={`flex-1 py-4 rounded-2xl font-black border-2 transition-all active:scale-95 ${timeLimit === t ? 'bg-[#0061f2] border-blue-700 text-white shadow-lg shadow-blue-500/20' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500'}`}
               >
                 {t}s
               </button>
@@ -173,13 +204,13 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           </div>
         </div>
 
-        <div className="bg-amber-50 p-5 rounded-[2rem] border border-amber-100 w-full">
-           <p className="text-amber-700 text-[10px] font-black uppercase tracking-widest mb-1">Premiação</p>
-           <p className="text-sm font-bold text-amber-800">Ganhe até {timeLimit === 2 ? 40 : timeLimit === 3 ? 30 : 20} pontos!</p>
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-5 rounded-[2rem] border border-amber-100 dark:border-amber-900/30 w-full">
+           <p className="text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest mb-1">Premiação</p>
+           <p className="text-sm font-bold text-amber-800 dark:text-amber-200">Ganhe até {timeLimit === 2 ? 40 : timeLimit === 3 ? 30 : 20} pontos!</p>
         </div>
 
         <button onClick={() => { setGameState('playing'); startTimer(timeLimit); }} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">INICIAR DESAFIO</button>
-        <button onClick={onBack} className="text-slate-300 font-black uppercase text-[10px] tracking-widest">Sair</button>
+        <button onClick={onBack} className="text-slate-300 dark:text-slate-600 font-black uppercase text-[10px] tracking-widest">Sair</button>
       </div>
     );
   }
@@ -188,11 +219,11 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95">
         <Trophy size={80} className="text-yellow-400 mb-8" />
-        <h2 className="text-3xl font-black text-slate-800 mb-2 uppercase">Duelo Encerrado!</h2>
-        <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full">
-           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pontuação conquistada</p>
-           <p className="text-6xl font-black text-[#0061f2]">{score} <span className="text-xl">pts</span></p>
-           <p className="text-[9px] font-black text-slate-300 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
+        <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Desafio Concluído!</h2>
+        <div className="bg-white dark:bg-slate-800 p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 mb-10 w-full">
+           <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Pontuação conquistada</p>
+           <p className="text-6xl font-black text-[#0061f2] dark:text-blue-400">{score} <span className="text-xl">pts</span></p>
+           <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
         </div>
         <button onClick={handleFinish} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase shadow-xl">SALVAR E VOLTAR</button>
       </div>
@@ -201,23 +232,25 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   const currentQ = gameQuestions[currentIdx];
 
+  if (!currentQ) return null;
+
   return (
     <div className="flex flex-col h-full animate-in fade-in p-6">
       <div className="flex items-center justify-between mb-8">
-        <button onClick={onBack} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
-        <div className="bg-blue-50 px-6 py-2 rounded-full border border-blue-100 flex items-center gap-2">
-           <Timer size={18} className="text-blue-600" />
-           <span className={`font-black text-xl font-mono ${timeLeft <= 1 ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>{timeLeft}s</span>
+        <button onClick={onBack} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 dark:text-slate-500"><ArrowLeft size={20} /></button>
+        <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-2 rounded-full border border-blue-100 dark:border-blue-900/30 flex items-center gap-2">
+           <Timer size={18} className="text-blue-600 dark:text-blue-400" />
+           <span className={`font-black text-xl font-mono ${timeLeft <= 1 ? 'text-red-500 animate-pulse' : 'text-blue-600 dark:text-blue-400'}`}>{timeLeft}s</span>
         </div>
         <div className="text-right"><p className="text-xl font-black text-[#FFD700]">{score} pts</p></div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-        <div className="w-full bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl text-center space-y-6 relative overflow-hidden">
-          <div className="w-36 h-36 mx-auto bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center justify-center relative overflow-hidden">
+        <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-6 relative overflow-hidden">
+          <div className="w-36 h-36 mx-auto bg-slate-50 dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
-                <Loader2 className="animate-spin text-slate-200" size={24} />
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+                <Loader2 className="animate-spin text-slate-200 dark:text-slate-700" size={24} />
               </div>
             )}
             <img 
@@ -227,15 +260,15 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
               alt="Espec" 
             />
           </div>
-          <h3 className="text-lg font-black text-slate-800 leading-tight px-2 uppercase tracking-tight">{currentQ.question}</h3>
+          <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight px-2 uppercase tracking-tight">{currentQ.question}</h3>
         </div>
 
         <div className="grid grid-cols-1 gap-3 w-full">
           {(currentQ.options || []).map((opt, idx) => {
-            let style = "bg-white border-slate-100 text-slate-600";
+            let style = "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300";
             if (feedback) {
               if (idx === currentQ.correct) style = "bg-green-500 border-green-600 text-white scale-105 shadow-lg";
-              else style = "bg-slate-50 border-slate-50 text-slate-300 opacity-50";
+              else style = "bg-slate-50 dark:bg-slate-900 border-slate-50 dark:border-slate-800 text-slate-300 dark:text-slate-600 opacity-50";
             }
             return (
               <button 
@@ -252,7 +285,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
       </div>
 
       <div className="mt-8 text-center">
-         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Desafio {currentIdx + 1} de {gameQuestions.length}</p>
+         <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Desafio {currentIdx + 1} de {gameQuestions.length}</p>
       </div>
     </div>
   );

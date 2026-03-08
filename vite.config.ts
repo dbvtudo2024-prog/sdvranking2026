@@ -18,43 +18,7 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-          manifest: {
-            name: 'Sentinelas da Verdade',
-            short_name: 'Sentinelas',
-            description: 'App oficial para gestão do Clube de Desbravadores Sentinelas da Verdade',
-            theme_color: '#0061f2',
-            background_color: '#0061f2',
-            display: 'standalone',
-            orientation: 'portrait',
-            start_url: '/',
-            icons: [
-              {
-                src: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG',
-                sizes: '192x192',
-                type: 'image/png',
-                purpose: 'any'
-              },
-              {
-                src: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'any'
-              },
-              {
-                src: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG',
-                sizes: '192x192',
-                type: 'image/png',
-                purpose: 'maskable'
-              },
-              {
-                src: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable'
-              }
-            ]
-          },
+          manifest: false,
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
             runtimeCaching: [
