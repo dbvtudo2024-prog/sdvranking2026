@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DatabaseService } from '@/db';
 import { AuthUser, Member, Score, QuizQuestion } from '@/types';
-import { ArrowLeft, Check, X, Trophy, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, X, Trophy, Loader2, HelpCircle } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 
 interface QuizGameProps {
   category: 'Desbravadores' | 'Bíblia';
@@ -20,6 +21,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
   const [showResult, setShowResult] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -119,9 +121,20 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <button onClick={onBack} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
+    <div className="flex flex-col h-full animate-in fade-in duration-500 pt-4">
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title={`Quiz: ${category}`}
+        instructions={[
+          "Responda 10 perguntas aleatórias.",
+          "Cada acerto vale 2 pontos.",
+          "Você tem tempo ilimitado para pensar.",
+          "Ao final, sua pontuação será salva no seu perfil."
+        ]}
+        icon={<HelpCircle size={32} className="text-white" />}
+      />
+      <div className="flex items-center justify-end mb-8">
         <div className="px-5 py-2 bg-blue-50 text-[#0061f2] rounded-full font-black text-[10px] uppercase tracking-widest border border-blue-100">
           Pergunta {currentQuestionIndex + 1} de {(questions || []).length}
         </div>

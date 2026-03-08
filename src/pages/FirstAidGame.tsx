@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, HeartPulse, Trophy, AlertCircle, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, HeartPulse, Trophy, AlertCircle, RefreshCcw, Activity } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 import { AuthUser, Member, QuizQuestion } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -14,6 +15,7 @@ interface FirstAidGameProps {
 }
 
 const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+  const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [score, setScore] = useState(0);
@@ -83,8 +85,19 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <header className="bg-red-600 text-white p-6 flex items-center gap-4 shrink-0">
-        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Primeiros Socorros"
+        instructions={[
+          "Analise a situação de emergência apresentada.",
+          "Escolha a conduta correta de primeiros socorros.",
+          "Cada acerto salva uma vida e soma pontos!",
+          "O jogo termina após 5 situações."
+        ]}
+        icon={<Activity size={32} className="text-white" />}
+      />
+      <header className="bg-red-600 text-white p-6 flex items-center gap-4 shrink-0 pt-10">
         <div className="flex flex-col">
           <h2 className="font-black uppercase tracking-tight text-lg">Primeiros Socorros</h2>
           <p className="text-[10px] font-bold opacity-80 uppercase">Cenário {currentStep + 1} de {questions.length}</p>

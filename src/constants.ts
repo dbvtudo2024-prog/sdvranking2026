@@ -1,6 +1,8 @@
 
 import { UnitName, QuizQuestion } from './types';
 
+export const APP_VERSION = '3.1.0';
+
 export const COLORS = {
   PRIMARY_BLUE: '#0061f2',
   PRIMARY_YELLOW: '#FFD700',

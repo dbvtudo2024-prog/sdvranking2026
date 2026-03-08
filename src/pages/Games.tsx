@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse } from 'lucide-react';
+import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music } from 'lucide-react';
 import { AuthUser, Member, UserRole, Score } from '@/types';
 import QuizSelection from '@/pages/QuizSelection';
 import MemoryGame from '@/pages/MemoryGame';
@@ -14,6 +14,7 @@ import SpecialtyTrailGame from '@/pages/SpecialtyTrailGame';
 import ScrambledVerseGame from '@/pages/ScrambledVerseGame';
 import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
+import PianoTilesGame from '@/pages/PianoTilesGame';
 
 interface GamesProps {
   user: AuthUser;
@@ -50,9 +51,10 @@ const Games: React.FC<GamesProps> = ({
   firstAidOverride,
   isDarkMode
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles'>('hub');
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+  const isMaster = user.email === 'ronaldosonic@gmail.com';
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
@@ -137,18 +139,50 @@ const Games: React.FC<GamesProps> = ({
     return daysLeft === 1 ? "Abre Amanhã (00:00)" : `Abre em ${daysLeft} dias`;
   };
 
-  if (activeGame === 'quiz') return <QuizSelection user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} quizOverride={quizOverride} />;
-  if (activeGame === 'memory') return <MemoryGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} memoryOverride={memoryOverride} />;
-  if (activeGame === 'specialty') return <SpecialtyGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} specialtyOverride={specialtyOverride} isDarkMode={isDarkMode} />;
-  if (activeGame === '1x1') return <Challenge1x1Page user={user} members={members} onBack={() => setActiveGame('hub')} onUpdateMember={onUpdateMember} />;
-  if (activeGame === 'threeclues') return <ThreeCluesGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={threeCluesOverride} />;
-  if (activeGame === 'puzzle') return <PuzzleGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} puzzleOverride={puzzleOverride} />;
-  if (activeGame === 'knots') return <KnotsGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={knotsOverride} />;
-  if (activeGame === 'whoami') return <WhoAmIGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={whoAmIOverride} />;
-  if (activeGame === 'specialtytrail') return <SpecialtyTrailGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={specialtyTrailOverride} />;
-  if (activeGame === 'scrambledverse') return <ScrambledVerseGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={scrambledVerseOverride} />;
-  if (activeGame === 'natureid') return <NatureIdGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={natureIdOverride} />;
-  if (activeGame === 'firstaid') return <FirstAidGame user={user} members={members} onUpdateMember={onUpdateMember} onBack={() => setActiveGame('hub')} override={firstAidOverride} />;
+  const renderActiveGame = () => {
+    const gameProps = { user, members, onUpdateMember, onBack: () => setActiveGame('hub') };
+    
+    let gameComponent = null;
+    switch (activeGame) {
+      case 'quiz': gameComponent = <QuizSelection {...gameProps} quizOverride={quizOverride} />; break;
+      case 'memory': gameComponent = <MemoryGame {...gameProps} memoryOverride={memoryOverride} />; break;
+      case 'specialty': gameComponent = <SpecialtyGame {...gameProps} specialtyOverride={specialtyOverride} isDarkMode={isDarkMode} />; break;
+      case '1x1': gameComponent = <Challenge1x1Page {...gameProps} />; break;
+      case 'threeclues': gameComponent = <ThreeCluesGame {...gameProps} override={threeCluesOverride} />; break;
+      case 'puzzle': gameComponent = <PuzzleGame {...gameProps} puzzleOverride={puzzleOverride} />; break;
+      case 'knots': gameComponent = <KnotsGame {...gameProps} override={knotsOverride} />; break;
+      case 'whoami': gameComponent = <WhoAmIGame {...gameProps} override={whoAmIOverride} />; break;
+      case 'specialtytrail': gameComponent = <SpecialtyTrailGame {...gameProps} override={specialtyTrailOverride} />; break;
+      case 'scrambledverse': gameComponent = <ScrambledVerseGame {...gameProps} override={scrambledVerseOverride} />; break;
+      case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} />; break;
+      case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
+      case 'pianotiles': gameComponent = <PianoTilesGame {...gameProps} />; break;
+      default: return null;
+    }
+
+    return (
+      <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">
+        <div className="h-16 shrink-0 bg-[#0061f2] text-white flex items-center justify-between px-6 shadow-lg z-10">
+          <div className="flex items-center gap-3">
+            <Gamepad2 size={24} className="text-yellow-400" />
+            <h2 className="font-black uppercase tracking-tight text-sm">Modo Tela Cheia</h2>
+          </div>
+          <button 
+            onClick={() => setActiveGame('hub')}
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90 flex items-center gap-2"
+          >
+            <span className="text-[10px] font-black uppercase tracking-widest">Sair</span>
+            <X size={20} strokeWidth={3} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {gameComponent}
+        </div>
+      </div>
+    );
+  };
+
+  if (activeGame !== 'hub') return renderActiveGame();
 
   const getButtonStyles = (unlocked: boolean, played: boolean) => {
     const base = "w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all border-2 border-b-4 active:scale-95 px-6 relative overflow-hidden ";
@@ -168,6 +202,16 @@ const Games: React.FC<GamesProps> = ({
             <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Sempre disponível para duelar</span>
           </div>
         </button>
+
+        {isMaster && (
+          <button onClick={() => setActiveGame('pianotiles')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-4 text-white shadow-xl active:scale-95 px-6 shrink-0">
+            <Music size={28} className="text-blue-400 shrink-0" />
+            <div className="flex flex-col items-start leading-tight min-w-0">
+              <span className="uppercase tracking-widest text-sm truncate w-full">Piano Tiles</span>
+              <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Exclusivo Admin</span>
+            </div>
+          </button>
+        )}
 
         {/* SEPARADOR COM CONTAGEM ABAIXO */}
         <div className="relative pt-6 pb-2 text-center">

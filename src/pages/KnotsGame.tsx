@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw, Hash } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 import { AuthUser, Member } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -23,6 +24,7 @@ const KNOTS_DATA = [
 ];
 
 const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+  const [showInstructions, setShowInstructions] = useState(true);
   const [knots, setKnots] = useState(KNOTS_DATA);
   const [currentStep, setCurrentStep] = useState(0);
   const [score, setScore] = useState(0);
@@ -106,8 +108,19 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <header className="bg-blue-600 text-white p-6 flex items-center gap-4 shrink-0">
-        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Desafio dos Nós"
+        instructions={[
+          "Observe a imagem do nó ou amarra.",
+          "Identifique o nome correto entre as opções.",
+          "Cada acerto demonstra sua habilidade em pioneiria!",
+          "O jogo termina após 5 nós."
+        ]}
+        icon={<Hash size={32} className="text-white" />}
+      />
+      <header className="bg-blue-600 text-white p-6 flex items-center gap-4 shrink-0 pt-10">
         <div className="flex flex-col">
           <h2 className="font-black uppercase tracking-tight text-lg">Desafio dos Nós</h2>
           <p className="text-[10px] font-bold opacity-80 uppercase">Passo {currentStep + 1} de {questions.length}</p>

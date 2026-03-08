@@ -115,13 +115,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   };
 
   return (
-    <div className="flex flex-col items-center h-full animate-in fade-in duration-500 max-w-sm mx-auto px-2">
-      <div className="w-full flex justify-start mb-2">
-        <button onClick={onBack} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-          <ArrowLeft size={24} />
-        </button>
-      </div>
-
+    <div className="flex flex-col items-center h-full animate-in fade-in duration-500 max-w-sm mx-auto px-2 pt-4">
       <div className="w-full bg-[#fffbeb] border border-[#fef3c7] rounded-2xl p-4 mb-6 shadow-sm flex gap-3">
         <div className="shrink-0 flex items-start pt-0.5">
            <AlertTriangle size={16} className="text-amber-500" />

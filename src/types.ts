@@ -42,6 +42,7 @@ export interface Score {
   scrambledVerseGame?: number;
   natureIdGame?: number;
   firstAidGame?: number;
+  pianoTilesGame?: number;
   specialtyStudyScore?: number;
   specialtyStudyId?: string;
   specialtyStudyName?: string;

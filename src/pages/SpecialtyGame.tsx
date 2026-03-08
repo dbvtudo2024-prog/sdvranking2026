@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { DatabaseService } from '@/db';
 import { AuthUser, Member, Score, UserRole, SpecialtyDBV } from '@/types';
-import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen } from 'lucide-react';
+import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -14,6 +15,7 @@ interface SpecialtyGameProps {
 }
 
 const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride, isDarkMode }) => {
+  const [showInstructions, setShowInstructions] = useState(true);
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'result'>('lobby');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLimit, setTimeLimit] = useState(5);
@@ -168,7 +170,6 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Limite Diário</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
-        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs">VOLTAR</button>
       </div>
     );
   }
@@ -181,7 +182,6 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Erro de Carga</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Não foi possível carregar as especialidades. Verifique sua conexão.</p>
-        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs">VOLTAR</button>
       </div>
     );
   }
@@ -189,6 +189,19 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (gameState === 'lobby') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6 animate-in fade-in">
+        <GameInstructions
+          isOpen={showInstructions}
+          onStart={() => setShowInstructions(false)}
+          title="Qual a Especialidade?"
+          instructions={[
+            "Veja a imagem da especialidade.",
+            "Escolha o nome correto entre as opções.",
+            "Você tem um tempo limitado para cada resposta.",
+            "Quanto mais rápido responder, mais pontos ganha!",
+            "O jogo acaba após 10 especialidades."
+          ]}
+          icon={<Image size={32} className="text-white" />}
+        />
         <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-[2.5rem] flex items-center justify-center text-[#0061f2] shadow-inner">
           <BookOpen size={48} />
         </div>
@@ -218,7 +231,6 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
 
         <button onClick={() => { setGameState('playing'); startTimer(timeLimit); }} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">INICIAR DESAFIO</button>
-        <button onClick={onBack} className="text-slate-300 dark:text-slate-600 font-black uppercase text-[10px] tracking-widest">Sair</button>
       </div>
     );
   }
@@ -243,9 +255,8 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (!currentQ) return null;
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in p-6">
-      <div className="flex items-center justify-between mb-8">
-        <button onClick={onBack} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 dark:text-slate-500"><ArrowLeft size={20} /></button>
+    <div className="flex flex-col h-full animate-in fade-in p-6 pt-10">
+      <div className="flex items-center justify-end mb-8">
         <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-2 rounded-full border border-blue-100 dark:border-blue-900/30 flex items-center gap-2">
            <Timer size={18} className="text-blue-600 dark:text-blue-400" />
            <span className={`font-black text-xl font-mono ${timeLeft <= 1 ? 'text-red-500 animate-pulse' : 'text-blue-600 dark:text-blue-400'}`}>{timeLeft}s</span>

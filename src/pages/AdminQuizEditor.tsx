@@ -63,8 +63,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0, image_url: '', tip: '' });
       }
       setShowModal(false);
-    } catch (error) {
-      alert('Erro ao salvar questão no banco.');
+    } catch (error: any) {
+      alert(`Erro ao salvar questão no banco: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsSaving(false);
     }

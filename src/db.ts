@@ -89,7 +89,8 @@ export const DatabaseService = {
   },
 
   async updateMember(member: Member) {
-    const { error } = await supabase.from('members').update(member).eq('id', member.id);
+    const { id, ...updates } = member;
+    const { error } = await supabase.from('members').update(updates).eq('id', id);
     if (error) {
       console.error("Erro ao atualizar membro no Supabase:", error);
       throw error;
@@ -251,7 +252,11 @@ export const DatabaseService = {
       image_url: q.image_url,
       tip: q.tip
     };
-    await supabase.from('quiz_questions').insert([payload]);
+    const { error } = await supabase.from('quiz_questions').insert([payload]);
+    if (error) {
+      console.error("Erro ao adicionar questão no Supabase:", error);
+      throw error;
+    }
   },
 
   async updateQuizQuestion(q: QuizQuestion) {

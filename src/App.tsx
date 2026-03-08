@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig } from '@/types';
 import { DatabaseService } from '@/db';
+import { APP_VERSION } from '@/constants';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Home from '@/pages/Home';
@@ -53,6 +54,7 @@ const App: React.FC = () => {
   const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
+  const [showUpdateNotice, setShowUpdateNotice] = useState(false);
 
   const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
   const BRASAO_3D = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
@@ -87,6 +89,14 @@ const App: React.FC = () => {
     }
     localStorage.setItem('sentinelas_dark_mode', String(isDarkMode));
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const savedVersion = localStorage.getItem('sentinelas_version');
+    if (savedVersion && savedVersion !== APP_VERSION) {
+      setShowUpdateNotice(true);
+    }
+    localStorage.setItem('sentinelas_version', APP_VERSION);
+  }, []);
 
   useEffect(() => {
     const membersSub = DatabaseService.subscribeMembers(setMembers);
@@ -438,6 +448,32 @@ const App: React.FC = () => {
           <button onClick={(e) => { e.stopPropagation(); setChallengeNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
              <X size={20} />
           </button>
+        </div>
+      )}
+
+      {/* AVISO DE ATUALIZAÇÃO */}
+      {showUpdateNotice && (
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-[#0061f2] flex flex-col items-center text-center gap-6">
+            <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[#0061f2]">
+              <Bell size={40} className="animate-bounce" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Nova Atualização!</h3>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Uma nova versão do app está disponível para você. Para garantir que tudo funcione perfeitamente, por favor:
+              </p>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl w-full border-2 border-dashed border-slate-200 dark:border-slate-700">
+              <p className="text-xs font-black uppercase text-[#0061f2] dark:text-blue-400">Feche o app completamente e abra-o novamente.</p>
+            </div>
+            <button 
+              onClick={() => setShowUpdateNotice(false)}
+              className="w-full h-14 bg-[#0061f2] hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/25"
+            >
+              Entendi
+            </button>
+          </div>
         </div>
       )}
 

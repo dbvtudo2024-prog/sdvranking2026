@@ -3,7 +3,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AuthUser, Member, Score, ThreeCluesQuestion } from '@/types';
 import { THREE_CLUES_DATA } from '@/constants';
 import { DatabaseService } from '@/db';
-import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2, MessageSquare } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 
 interface ThreeCluesGameProps {
   user: AuthUser;
@@ -21,7 +22,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,7 +65,6 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         <HelpCircle size={60} className="text-slate-200" />
         <h3 className="text-xl font-black text-slate-800 uppercase">Sem Questões</h3>
         <p className="text-slate-400 text-sm">Peça para a liderança cadastrar questões no painel admin.</p>
-        <button onClick={onBack} className="w-full max-w-xs bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-xs">VOLTAR</button>
       </div>
     );
   }
@@ -153,8 +153,20 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in relative">
-      <header className="bg-blue-600 p-6 pt-12 text-white flex justify-between items-center shadow-lg">
-        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Três Dicas"
+        instructions={[
+          "Acertou na 1ª dica: 7 pontos",
+          "Acertou na 2ª dica: 5 pontos",
+          "Acertou na 3ª dica: 3 pontos",
+          "Digite sua resposta e clique em enviar.",
+          "O jogo termina após 5 palavras."
+        ]}
+        icon={<MessageSquare size={32} className="text-white" />}
+      />
+      <header className="bg-blue-600 p-6 pt-12 text-white flex justify-end items-center shadow-lg">
         <div className="text-center">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Três Dicas</p>
           <p className="font-black">Questão {currentQuestionIdx + 1}/{(questions || []).length}</p>
@@ -213,42 +225,6 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
           {currentStep === 0 ? 'VALENDO 7 PONTOS' : currentStep === 1 ? 'VALENDO 5 PONTOS' : 'VALENDO 3 PONTOS'}
         </p>
       </div>
-
-      {showTutorial && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[300] flex items-center justify-center p-6 animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl space-y-6 relative animate-in zoom-in-95">
-             <div className="text-center space-y-2">
-                <div className="bg-blue-50 w-16 h-16 rounded-[1.5rem] mx-auto flex items-center justify-center text-blue-600">
-                  <Info size={32} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 uppercase">Três Dicas</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regras do Jogo</p>
-             </div>
-             
-             <div className="space-y-3">
-               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                 <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xs">1</div>
-                 <p className="text-[10px] font-bold text-slate-500 uppercase">Acertou na 1ª dica: 7 pontos</p>
-               </div>
-               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                 <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xs">2</div>
-                 <p className="text-[10px] font-bold text-slate-500 uppercase">Acertou na 2ª dica: 5 pontos</p>
-               </div>
-               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                 <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xs">3</div>
-                 <p className="text-[10px] font-bold text-slate-500 uppercase">Acertou na 3ª dica: 3 pontos</p>
-               </div>
-             </div>
-
-             <button 
-              onClick={() => setShowTutorial(false)}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs"
-             >
-               ENTENDI, COMEÇAR!
-             </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

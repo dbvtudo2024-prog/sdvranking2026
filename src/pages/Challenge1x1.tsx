@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthUser, Member, Challenge1x1, QuizQuestion } from '@/types';
 import { QUIZ_QUESTIONS, UNIT_LOGOS } from '@/constants';
 import { DatabaseService, supabase } from '@/db';
-import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target } from 'lucide-react';
+import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 
 interface Challenge1x1PageProps {
   user: AuthUser;
@@ -19,7 +20,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   const [showArena, setShowArena] = useState(false);
   const [answeredLocal, setAnsweredLocal] = useState(false);
   const [isMachineMode, setIsMachineMode] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(true);
   
   const machineTimerRef = useRef<number | null>(null);
   const myMember = useMemo(() => members.find(m => m.id === user.id), [members, user.id]);
@@ -365,12 +366,24 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in relative">
-      <header className="bg-blue-600 p-6 h-24 flex items-center justify-between shadow-lg text-white">
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Duelo 1x1"
+        instructions={[
+          "Cada duelista começa com 5 corações (vidas).",
+          "Sempre que você acertar uma pergunta, retira 1 vida do oponente.",
+          "Ganha quem zerar a vida do outro.",
+          "O vencedor recebe +10 pontos extras no ranking.",
+          "Responda o mais rápido possível!"
+        ]}
+        icon={<Swords size={32} className="text-white" />}
+      />
+      <header className="bg-blue-600 p-6 h-24 flex items-center justify-between shadow-lg text-white pt-10">
         <div className="flex items-center gap-3">
           <Sword size={24} className="text-yellow-400" />
           <h2 className="text-xl font-black uppercase tracking-tight">Arena 1x1</h2>
         </div>
-        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl hover:bg-white/20"><X size={20} /></button>
       </header>
 
       <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-24">
@@ -471,62 +484,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
            </div>
         </div>
       </div>
-
-      {/* MODAL DE TUTORIAL / REGRAS */}
-      {showTutorial && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[300] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl space-y-6 relative overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
-            
-            <div className="text-center space-y-2 pt-2">
-              <div className="bg-blue-50 w-16 h-16 rounded-[1.5rem] mx-auto flex items-center justify-center text-blue-600">
-                <Info size={32} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Como Funciona?</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Regras de Combate 1x1</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="shrink-0 text-red-500 pt-1">
-                  <Heart size={20} fill="currentColor" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-700 uppercase">Sistema de Vidas</p>
-                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Cada duelista começa com 5 corações cheios na arena.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="shrink-0 text-blue-600 pt-1">
-                  <Target size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-700 uppercase">Ataque e Dano</p>
-                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Sempre que você acertar uma pergunta, retira 1 vida do oponente.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="shrink-0 text-yellow-500 pt-1">
-                  <Trophy size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-700 uppercase">Vitória e Bônus</p>
-                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase">Ganha quem zerar a vida do outro. O vencedor recebe +10 pontos extras.</p>
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setShowTutorial(false)}
-              className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
-            >
-              Entendi, vamos duelar!
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

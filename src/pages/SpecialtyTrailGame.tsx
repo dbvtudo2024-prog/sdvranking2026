@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, RefreshCcw, Flag } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 import { AuthUser, Member, QuizQuestion } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -14,6 +15,7 @@ interface SpecialtyTrailGameProps {
 }
 
 const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+  const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentPos, setCurrentPos] = useState(0);
   const [score, setScore] = useState(0);
@@ -91,8 +93,19 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <header className="bg-emerald-600 text-white p-6 flex items-center gap-4 shrink-0">
-        <button onClick={onBack} className="p-2 bg-white/10 rounded-xl"><ArrowLeft size={20} /></button>
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Trilha das Especialidades"
+        instructions={[
+          "Percorra a trilha respondendo perguntas sobre especialidades.",
+          "Cada acerto faz você avançar uma casa.",
+          "Chegue ao final da trilha para conquistar a pontuação máxima!",
+          "O jogo termina quando você completa os 6 passos da trilha."
+        ]}
+        icon={<Flag size={32} className="text-white" />}
+      />
+      <header className="bg-emerald-600 text-white p-6 flex items-center gap-4 shrink-0 pt-10">
         <div className="flex flex-col">
           <h2 className="font-black uppercase tracking-tight text-lg">Trilha das Especialidades</h2>
           <p className="text-[10px] font-bold opacity-80 uppercase">Progresso: {Math.round((currentPos / totalSteps) * 100)}%</p>

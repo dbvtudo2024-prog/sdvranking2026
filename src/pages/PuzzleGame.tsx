@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole, PuzzleImage } from '@/types';
 import { DatabaseService } from '@/db';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Image as ImageIcon, Puzzle } from 'lucide-react';
+import GameInstructions from '@/components/GameInstructions';
 
 interface PuzzleGameProps {
   user: AuthUser;
@@ -23,6 +24,7 @@ const GRID_SIZE = 4; // 4x4 grid
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
 const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, onBack, puzzleOverride }) => {
+  const [showInstructions, setShowInstructions] = useState(true);
   const [images, setImages] = useState<PuzzleImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<PuzzleImage | null>(null);
   const [tiles, setTiles] = useState<Tile[]>([]);
@@ -204,7 +206,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
         <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Limite Diário</h2>
         <p className="text-slate-500 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
-        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">VOLTAR</button>
       </div>
     );
   }
@@ -215,7 +216,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
         <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Aguarde o Domingo</h2>
         <p className="text-slate-500 mb-8 text-sm">O jogo abre automaticamente aos domingos.</p>
-        <button onClick={onBack} className="w-full bg-[#0061f2] text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">VOLTAR</button>
       </div>
     );
   }
@@ -242,9 +242,21 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   if (!isStarted) {
     return (
       <div className="flex flex-col h-full animate-in fade-in duration-500 p-6 overflow-y-auto">
+        <GameInstructions
+          isOpen={showInstructions}
+          onStart={() => setShowInstructions(false)}
+          title="Quebra-Cabeça"
+          instructions={[
+            "Escolha uma imagem para começar o desafio.",
+            "Deslize as peças para os espaços vazios.",
+            "Organize todas as peças na posição correta.",
+            "Quanto menos movimentos e tempo, mais pontos!",
+            "O jogo termina quando a imagem estiver completa."
+          ]}
+          icon={<Puzzle size={32} className="text-white" />}
+        />
         <div className="flex items-center mb-10">
-          <button onClick={onBack} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
-          <h2 className="ml-4 text-xl font-black text-slate-800 uppercase">Quebra-Cabeça</h2>
+          <h2 className="text-xl font-black text-slate-800 uppercase">Quebra-Cabeça</h2>
         </div>
         
         <div className="flex-1 flex flex-col gap-6 pb-10">
@@ -289,9 +301,8 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   }
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between mb-4 px-2">
-        <button onClick={() => setIsStarted(false)} className="p-3 bg-slate-100 rounded-2xl text-slate-400"><ArrowLeft size={20} /></button>
+    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden pt-4">
+      <div className="flex items-center justify-end mb-4 px-2">
         <button onClick={() => initializeGame(selectedImage!)} className="px-6 py-2.5 bg-[#FFD700] text-[#003366] rounded-2xl font-black uppercase text-[10px] shadow-md"><RefreshCw size={14} className="inline mr-2" /> Reiniciar</button>
       </div>
       
