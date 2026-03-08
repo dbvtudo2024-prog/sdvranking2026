@@ -46,6 +46,7 @@ const Units: React.FC<UnitsProps> = ({ members, onSelectUnit, isDarkMode }) => {
           src={UNIT_LOGOS[unit]} 
           alt={`Logo ${unit}`} 
           className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
+          referrerPolicy="no-referrer"
         />
       </div>
       

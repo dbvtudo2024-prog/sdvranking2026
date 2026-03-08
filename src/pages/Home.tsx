@@ -13,7 +13,7 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
-  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
 
   const handleShare = (aviso: Announcement) => {
     const text = `📢 *AVISO DO CLUBE: ${aviso.title.toUpperCase()}*\n\n${aviso.content}\n\n🗓️ _Postado em: ${aviso.date}_`;
@@ -61,7 +61,12 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
             <User size={24} />
           )}
         </button>
-        <img src={LOGO_APP} alt="Brasão do Clube" className="w-32 h-32 object-contain drop-shadow-2xl" />
+        <img 
+          src={LOGO_APP} 
+          alt="Brasão do Clube" 
+          className="w-32 h-32 object-contain drop-shadow-2xl" 
+          referrerPolicy="no-referrer"
+        />
         <h1 className={`mt-4 text-xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
       </div>

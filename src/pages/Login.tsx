@@ -15,7 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Logo Interna Original
-  const LOGO_URL = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  const LOGO_URL = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +56,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
       <div className="w-full max-w-sm bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative z-10 border border-white/20">
         <div className="text-center mb-8">
           <div className="relative inline-block mb-4">
-            <div className="w-32 h-32 mx-auto drop-shadow-xl flex items-center justify-center">
-              <img src={LOGO_URL} alt="Brasão" className="w-full h-full object-contain" />
+            <div className="w-32 h-32 mx-auto drop-shadow-2xl flex items-center justify-center">
+              <img 
+                src={LOGO_URL} 
+                alt="Brasão" 
+                className="w-full h-full object-contain" 
+                referrerPolicy="no-referrer"
+              />
             </div>
           </div>
           <h1 className="text-xl font-black text-[#0061f2] tracking-tight uppercase">Sentinelas da Verdade</h1>
