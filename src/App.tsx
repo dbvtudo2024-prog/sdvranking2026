@@ -70,6 +70,16 @@ const App: React.FC = () => {
   const [firstAidOverride, setFirstAidOverride] = useState(false);
 
   useEffect(() => {
+    // Remove o splash screen do HTML após o React carregar
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      splash.classList.add('splash-hidden');
+      // Remove do DOM após a transição de fade
+      setTimeout(() => {
+        splash.remove();
+      }, 500);
+    }
+
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
