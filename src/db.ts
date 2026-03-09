@@ -243,12 +243,20 @@ export const DatabaseService = {
     })) as QuizQuestion[];
   },
 
+  async getQuizCategories(): Promise<string[]> {
+    const { data, error } = await supabase.from('quiz_questions').select('category');
+    if (error) return ['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'];
+    const categories = Array.from(new Set(data.map(d => d.category)));
+    return categories.length > 0 ? categories : ['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'];
+  },
+
   async addQuizQuestion(q: Omit<QuizQuestion, 'id'>) {
     const payload = {
       category: q.category,
       question: q.question,
       options: q.options,
       correct_answer: q.correctAnswer,
+      correctAnswer: q.correctAnswer, // Envia ambos para compatibilidade
       image_url: q.image_url,
       tip: q.tip
     };
@@ -265,10 +273,12 @@ export const DatabaseService = {
       question: q.question,
       options: q.options,
       correct_answer: q.correctAnswer,
+      correctAnswer: q.correctAnswer, // Envia ambos para compatibilidade
       image_url: q.image_url,
       tip: q.tip
     };
-    await supabase.from('quiz_questions').update(payload).eq('id', q.id);
+    const { error } = await supabase.from('quiz_questions').update(payload).eq('id', q.id);
+    if (error) throw error;
   },
 
   async deleteQuizQuestion(id: string) {

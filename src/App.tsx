@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig } from '@/types';
 import { DatabaseService } from '@/db';
 import { APP_VERSION } from '@/constants';
@@ -185,52 +185,52 @@ const App: React.FC = () => {
     }
   }, [currentPage]);
 
-  const handleAddMember = async (newMember: Member) => {
+  const handleAddMember = useCallback(async (newMember: Member) => {
     setMembers(prev => [...prev, newMember]);
     try { await DatabaseService.addMember(newMember); } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleUpdateMember = async (updatedMember: Member) => {
+  const handleUpdateMember = useCallback(async (updatedMember: Member) => {
     setMembers(prev => prev.map(m => String(m.id) === String(updatedMember.id) ? updatedMember : m));
     try { await DatabaseService.updateMember(updatedMember); } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleDeleteMember = async (id: string | number) => {
+  const handleDeleteMember = useCallback(async (id: string | number) => {
     setMembers(prev => prev.filter(m => String(m.id) !== String(id)));
     try { await DatabaseService.deleteMember(String(id)); } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleAddAnnouncement = async (ann: Announcement) => {
+  const handleAddAnnouncement = useCallback(async (ann: Announcement) => {
     setAnnouncements(prev => [ann, ...prev]);
     try { await DatabaseService.addAnnouncement(ann); } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleDeleteAnnouncement = async (id: string) => {
+  const handleDeleteAnnouncement = useCallback(async (id: string) => {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
     try { await DatabaseService.deleteAnnouncement(id); } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleLogin = (authUser: AuthUser) => {
+  const handleLogin = useCallback((authUser: AuthUser) => {
     setUser(authUser);
     localStorage.setItem('sentinelas_user', JSON.stringify(authUser));
     setCurrentPage('home');
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('sentinelas_user');
     setCurrentPage('home');
     setSelectedUnit(null);
-  };
+  }, []);
 
-  const handleUpdateUser = async (updatedUser: AuthUser, updatedMember?: Member) => {
+  const handleUpdateUser = useCallback(async (updatedUser: AuthUser, updatedMember?: Member) => {
     setUser(updatedUser);
     localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
     await DatabaseService.addUser(updatedUser);
     if (updatedMember) handleUpdateMember(updatedMember);
-  };
+  }, [handleUpdateMember]);
 
-  const handleResetRanking = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid') => {
+  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid') => {
     const updatedMembers = members.map(m => {
       const newScores = (m.scores || []).map(s => {
         const news = { ...s };
@@ -255,7 +255,7 @@ const App: React.FC = () => {
     });
     setMembers(updatedMembers);
     for (const m of updatedMembers) await DatabaseService.updateMember(m);
-  };
+  }, [members]);
 
   const getPageTitle = () => {
     switch (currentPage) {

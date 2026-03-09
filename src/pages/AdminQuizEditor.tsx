@@ -34,6 +34,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
   const [availableSpecialties, setAvailableSpecialties] = useState<SpecialtyDBV[]>([]);
   const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
   const [specialtySearch, setSpecialtySearch] = useState('');
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const channel = DatabaseService.subscribeQuizQuestions((data) => {
@@ -42,6 +43,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
     });
     
     DatabaseService.getSpecialties().then(setAvailableSpecialties);
+    DatabaseService.getQuizCategories().then(setDbCategories);
     
     return () => { if(channel) channel.unsubscribe(); };
   }, []);
@@ -60,11 +62,16 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         setEditForm(null);
       } else {
         await DatabaseService.addQuizQuestion(newQuestion);
-        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0, image_url: '', tip: '' });
+        setNewQuestion({ question: '', category: (initialCategory !== 'Todas' ? initialCategory : 'Desbravadores') as any, options: ['', '', '', ''], correctAnswer: 0, image_url: '', tip: '' });
       }
       setShowModal(false);
     } catch (error: any) {
-      alert(`Erro ao salvar questão no banco: ${error.message || 'Erro desconhecido'}`);
+      console.error("Erro ao salvar:", error);
+      let msg = error.message || 'Erro desconhecido';
+      if (msg.includes('quiz_questions_category_check')) {
+        msg = `Erro de Categoria: O banco de dados não aceita a categoria selecionada. Categorias permitidas no banco atualmente: ${dbCategories.join(', ')}.`;
+      }
+      alert(`Erro ao salvar questão no banco: ${msg}`);
     } finally {
       setIsSaving(false);
     }

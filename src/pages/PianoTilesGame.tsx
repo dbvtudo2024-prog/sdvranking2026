@@ -123,31 +123,44 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
     };
   }, [gameState, update]);
 
-  const handleNoteClick = (id: number) => {
+  const handleColumnClick = (col: number) => {
     if (gameState !== 'playing' || !audioRef.current) return;
     
     const currentTime = audioRef.current.currentTime;
     
     setActiveNotes(prev => {
-      const note = prev.find(n => n.id === id);
-      if (note && !note.hit) {
-        const timeDiff = Math.abs(note.time - currentTime);
-        if (timeDiff < 0.3) {
+      // Encontra a nota mais próxima não atingida nesta coluna
+      const columnNotes = prev.filter(n => n.col === col && !n.hit);
+      const closestNote = columnNotes.reduce((prev, curr) => {
+        return Math.abs(curr.time - currentTime) < Math.abs(prev.time - currentTime) ? curr : prev;
+      }, columnNotes[0]);
+
+      if (closestNote) {
+        const timeDiff = Math.abs(closestNote.time - currentTime);
+        if (timeDiff < 0.4) { // Janela de acerto um pouco maior para melhor jogabilidade
           setScore(s => s + 1);
-          return prev.map(n => n.id === id ? { ...n, hit: true } : n);
+          return prev.map(n => n.id === closestNote.id ? { ...n, hit: true } : n);
         } else {
           setGameState('gameover');
           if (audioRef.current) audioRef.current.pause();
         }
+      } else {
+        // Clicou na coluna sem nota próxima
+        setGameState('gameover');
+        if (audioRef.current) audioRef.current.pause();
       }
       return prev;
     });
   };
 
+  const hasSavedScore = useRef(false);
+
   const saveScore = useCallback(() => {
+    if (hasSavedScore.current) return;
+    
     const member = members.find(m => m.id === user.id);
     if (member) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('pt-BR');
       const newScores = [...member.scores];
       const todayScoreIndex = newScores.findIndex(s => s.date === today);
       
@@ -163,6 +176,7 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
           pianoTilesGame: score
         });
       }
+      hasSavedScore.current = true;
       onUpdateMember({ ...member, scores: newScores });
     }
   }, [score, members, user.id, onUpdateMember]);
@@ -170,6 +184,8 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   useEffect(() => {
     if (gameState === 'gameover') {
       saveScore();
+    } else if (gameState === 'playing') {
+      hasSavedScore.current = false;
     }
   }, [gameState, saveScore]);
 
@@ -183,9 +199,9 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
         title="Piano Tiles"
         instructions={[
           "Escolha uma música no menu inicial.",
-          "Toque nas teclas pretas que descem no ritmo da música.",
+          "Toque em qualquer lugar da coluna quando a tecla branca passar.",
           "Não deixe nenhuma tecla passar sem ser tocada!",
-          "Cuidado para não tocar fora das teclas.",
+          "Cuidado para não tocar na coluna errada ou sem teclas.",
           "O jogo acaba se você errar o tempo ou deixar uma tecla passar."
         ]}
         icon={<Music size={32} className="text-white" />}
@@ -204,10 +220,14 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
       </header>
 
       <main className="flex-1 relative overflow-hidden bg-slate-900">
-        {/* Columns Visual */}
+        {/* Columns Visual & Click Areas */}
         <div className="absolute inset-0 flex">
           {[0, 1, 2].map(i => (
-            <div key={i} className="flex-1 border-r border-white/5 last:border-0" />
+            <div 
+              key={i} 
+              onClick={() => handleColumnClick(i)}
+              className="flex-1 border-r border-white/5 last:border-0 active:bg-white/5 transition-colors cursor-pointer" 
+            />
           ))}
         </div>
 
@@ -221,9 +241,8 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
           return (
             <motion.div
               key={note.id}
-              onClick={() => handleNoteClick(note.id)}
-              className={`absolute w-1/3 h-[20%] border border-slate-950 shadow-xl transition-opacity ${
-                note.hit ? 'opacity-0' : 'bg-slate-800'
+              className={`absolute w-1/3 h-[20%] border border-slate-950 shadow-xl transition-opacity pointer-events-none ${
+                note.hit ? 'opacity-0' : 'bg-white'
               }`}
               style={{
                 left: `${note.col * 33.33}%`,

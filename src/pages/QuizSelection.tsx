@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight, Calendar } from 'lucide-react';
 import { AuthUser, Member, UserRole } from '@/types';
 import QuizGame from '@/pages/QuizGame';
+import GameInstructions from '@/components/GameInstructions';
 
 interface QuizSelectionProps {
   user: AuthUser;
@@ -14,18 +15,22 @@ interface QuizSelectionProps {
 
 const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onBack, quizOverride }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
   }, [members, user.id, user.name]);
 
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+
   const isAvailable = useMemo(() => {
     const now = new Date();
     const isSunday = now.getDay() === 0;
-    return isSunday || quizOverride; 
-  }, [quizOverride]);
+    return isSunday || quizOverride || isAdmin; 
+  }, [quizOverride, isAdmin]);
 
   const hasPlayedToday = (category: 'Desbravadores' | 'Bíblia') => {
+    if (isAdmin) return false; // Admins podem jogar sempre
     if (!currentMember) return false;
     const now = new Date();
     const todayStr = now.toLocaleDateString('pt-BR');
@@ -116,6 +121,19 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   return (
     <div className="flex flex-col items-center h-full animate-in fade-in duration-500 max-w-sm mx-auto px-2 pt-4">
+      <GameInstructions
+        isOpen={showInstructions}
+        onStart={() => setShowInstructions(false)}
+        title="Desafio do Quiz"
+        instructions={[
+          "Escolha uma das categorias: Desbravadores ou Bíblia.",
+          "Cada categoria tem 10 perguntas aleatórias.",
+          "Você tem uma tentativa por categoria a cada domingo.",
+          "Admins têm acesso liberado para testes.",
+          "Boa sorte!"
+        ]}
+        icon={<Brain size={32} className="text-white" />}
+      />
       <div className="w-full bg-[#fffbeb] border border-[#fef3c7] rounded-2xl p-4 mb-6 shadow-sm flex gap-3">
         <div className="shrink-0 flex items-start pt-0.5">
            <AlertTriangle size={16} className="text-amber-500" />

@@ -64,70 +64,70 @@ const Games: React.FC<GamesProps> = ({
   const isSunday = useMemo(() => new Date().getDay() === 0, []);
 
   const quizStatus = useMemo(() => {
-    const unlocked = isSunday || quizOverride;
+    const unlocked = isSunday || quizOverride || isAdmin;
     if (!currentMember) return { unlocked, alreadyPlayed: false };
     const playedDesb = currentMember.scores.some(s => s.date === todayStr && s.quizCategory === 'Desbravadores');
     const playedBiblia = currentMember.scores.some(s => s.date === todayStr && s.quizCategory === 'Bíblia');
-    return { unlocked, alreadyPlayed: playedDesb && playedBiblia };
-  }, [currentMember, todayStr, isSunday, quizOverride]);
+    return { unlocked, alreadyPlayed: playedDesb && playedBiblia && !isAdmin };
+  }, [currentMember, todayStr, isSunday, quizOverride, isAdmin]);
 
   const memoryStatus = useMemo(() => {
-    const unlocked = isSunday || memoryOverride;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false;
+    const unlocked = isSunday || memoryOverride || isAdmin;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isSunday, memoryOverride]);
+  }, [currentMember, todayStr, isSunday, memoryOverride, isAdmin]);
 
   const specialtyStatus = useMemo(() => {
-    const unlocked = isSunday || specialtyOverride;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false;
+    const unlocked = isSunday || specialtyOverride || isAdmin;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isSunday, specialtyOverride]);
+  }, [currentMember, todayStr, isSunday, specialtyOverride, isAdmin]);
 
   const threeCluesStatus = useMemo(() => {
-    const unlocked = isSunday || threeCluesOverride;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.threeCluesGame !== undefined) || false;
+    const unlocked = isSunday || threeCluesOverride || isAdmin;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.threeCluesGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isSunday, threeCluesOverride]);
+  }, [currentMember, todayStr, isSunday, threeCluesOverride, isAdmin]);
 
   const puzzleStatus = useMemo(() => {
     const unlocked = isSunday || puzzleOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && s.puzzleGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.puzzleGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, isSunday, puzzleOverride, isAdmin]);
 
   const knotsStatus = useMemo(() => {
     const unlocked = knotsOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).knotsGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).knotsGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, knotsOverride, isAdmin]);
 
   const whoAmIStatus = useMemo(() => {
     const unlocked = whoAmIOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).whoAmIGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).whoAmIGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, whoAmIOverride, isAdmin]);
 
   const specialtyTrailStatus = useMemo(() => {
     const unlocked = specialtyTrailOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).specialtyTrailGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).specialtyTrailGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, specialtyTrailOverride, isAdmin]);
 
   const scrambledVerseStatus = useMemo(() => {
     const unlocked = scrambledVerseOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).scrambledVerseGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).scrambledVerseGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, scrambledVerseOverride, isAdmin]);
 
   const natureIdStatus = useMemo(() => {
     const unlocked = natureIdOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).natureIdGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).natureIdGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, natureIdOverride, isAdmin]);
 
   const firstAidStatus = useMemo(() => {
     const unlocked = firstAidOverride || isAdmin;
-    const alreadyPlayed = currentMember?.scores.some(s => s.date === todayStr && (s as any).firstAidGame !== undefined) || false;
+    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).firstAidGame !== undefined) || false) && !isAdmin;
     return { unlocked, alreadyPlayed };
   }, [currentMember, todayStr, firstAidOverride, isAdmin]);
 
