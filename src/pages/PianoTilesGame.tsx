@@ -129,23 +129,26 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
     const currentTime = audioRef.current.currentTime;
     
     setActiveNotes(prev => {
-      // Encontra a nota mais próxima não atingida nesta coluna
+      // Filtra notas não atingidas nesta coluna
       const columnNotes = prev.filter(n => n.col === col && !n.hit);
-      const closestNote = columnNotes.reduce((prev, curr) => {
-        return Math.abs(curr.time - currentTime) < Math.abs(prev.time - currentTime) ? curr : prev;
-      }, columnNotes[0]);
+      
+      // Pega a nota que está mais embaixo (menor tempo) para ser o alvo prioritário
+      const sortedNotes = [...columnNotes].sort((a, b) => a.time - b.time);
+      const targetNote = sortedNotes[0];
 
-      if (closestNote) {
-        const timeDiff = Math.abs(closestNote.time - currentTime);
-        if (timeDiff < 0.4) { // Janela de acerto um pouco maior para melhor jogabilidade
+      if (targetNote) {
+        const timeDiff = targetNote.time - currentTime;
+        
+        // Janela de acerto ampliada para cobrir toda a coluna visível (de -0.2s até 2.2s)
+        if (timeDiff > -0.2 && timeDiff < 2.2) {
           setScore(s => s + 1);
-          return prev.map(n => n.id === closestNote.id ? { ...n, hit: true } : n);
+          return prev.map(n => n.id === targetNote.id ? { ...n, hit: true } : n);
         } else {
           setGameState('gameover');
           if (audioRef.current) audioRef.current.pause();
         }
       } else {
-        // Clicou na coluna sem nota próxima
+        // Clicou na coluna sem nenhuma nota visível
         setGameState('gameover');
         if (audioRef.current) audioRef.current.pause();
       }
