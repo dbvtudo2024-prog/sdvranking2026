@@ -232,15 +232,34 @@ export const DatabaseService = {
   // --- QUESTÕES DO QUIZ ---
   async getQuizQuestions(): Promise<QuizQuestion[]> {
     const { data } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
-    return (data || []).map(q => ({
-      id: q.id,
-      category: q.category,
-      question: q.question,
-      options: q.options,
-      correctAnswer: q.correct_answer ?? q.correctAnswer,
-      image_url: q.image_url,
-      tip: q.tip
-    })) as QuizQuestion[];
+    return (data || []).map(q => {
+      let category = q.category;
+      let question = q.question;
+
+      // Lógica de mapeamento reverso: extrai a subcategoria do prefixo da pergunta
+      if (q.category === 'Desbravadores') {
+        if (q.question.startsWith('[Natureza] ')) {
+          category = 'Natureza';
+          question = q.question.replace('[Natureza] ', '');
+        } else if (q.question.startsWith('[Primeiros Socorros] ')) {
+          category = 'Primeiros Socorros';
+          question = q.question.replace('[Primeiros Socorros] ', '');
+        } else if (q.question.startsWith('[Especialidades] ')) {
+          category = 'Especialidades';
+          question = q.question.replace('[Especialidades] ', '');
+        }
+      }
+
+      return {
+        id: q.id,
+        category: category as any,
+        question: question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        image_url: q.image_url,
+        tip: q.tip
+      };
+    }) as QuizQuestion[];
   },
 
   async getQuizCategories(): Promise<string[]> {
@@ -251,12 +270,20 @@ export const DatabaseService = {
   },
 
   async addQuizQuestion(q: Omit<QuizQuestion, 'id'>) {
+    let dbCategory = q.category;
+    let dbQuestion = q.question;
+
+    // Mapeia categorias extras para 'Desbravadores' com prefixo no texto
+    if (['Natureza', 'Primeiros Socorros', 'Especialidades'].includes(q.category)) {
+      dbCategory = 'Desbravadores';
+      dbQuestion = `[${q.category}] ${q.question}`;
+    }
+
     const payload = {
-      category: q.category,
-      question: q.question,
+      category: dbCategory,
+      question: dbQuestion,
       options: q.options,
-      correct_answer: q.correctAnswer,
-      correctAnswer: q.correctAnswer, // Envia ambos para compatibilidade
+      correct_answer: q.correct_answer,
       image_url: q.image_url,
       tip: q.tip
     };
@@ -268,12 +295,19 @@ export const DatabaseService = {
   },
 
   async updateQuizQuestion(q: QuizQuestion) {
+    let dbCategory = q.category;
+    let dbQuestion = q.question;
+
+    if (['Natureza', 'Primeiros Socorros', 'Especialidades'].includes(q.category)) {
+      dbCategory = 'Desbravadores';
+      dbQuestion = `[${q.category}] ${q.question}`;
+    }
+
     const payload = {
-      category: q.category,
-      question: q.question,
+      category: dbCategory,
+      question: dbQuestion,
       options: q.options,
-      correct_answer: q.correctAnswer,
-      correctAnswer: q.correctAnswer, // Envia ambos para compatibilidade
+      correct_answer: q.correct_answer,
       image_url: q.image_url,
       tip: q.tip
     };
@@ -286,14 +320,24 @@ export const DatabaseService = {
   },
 
   async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
-    const payload = questions.map(q => ({
-      category: q.category,
-      question: q.question,
-      options: q.options,
-      correct_answer: q.correctAnswer,
-      image_url: q.image_url,
-      tip: q.tip
-    }));
+    const payload = questions.map(q => {
+      let dbCategory = q.category;
+      let dbQuestion = q.question;
+
+      if (['Natureza', 'Primeiros Socorros', 'Especialidades'].includes(q.category)) {
+        dbCategory = 'Desbravadores';
+        dbQuestion = `[${q.category}] ${q.question}`;
+      }
+
+      return {
+        category: dbCategory,
+        question: dbQuestion,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        image_url: q.image_url,
+        tip: q.tip
+      };
+    });
     await supabase.from('quiz_questions').insert(payload);
   },
 

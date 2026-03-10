@@ -255,8 +255,8 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       let correctCount = 0;
       newAnswers.forEach((ans, idx) => {
         const q = questions[idx] as any;
-        const correct_answer = q.correct_answer !== undefined ? q.correct_answer : q.correct_answer;
-        if (q && ans === correct_answer) {
+        const correctAnswer = q.correct_answer !== undefined ? q.correct_answer : q.correctAnswer;
+        if (q && ans === correctAnswer) {
           correctCount++;
         }
       });

@@ -96,7 +96,7 @@ export interface QuizQuestion {
   category: 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades';
   question: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer: number;
   image_url?: string;
   tip?: string;
 }
