@@ -24,7 +24,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
     question: '',
     category: (initialCategory !== 'Todas' ? initialCategory : 'Desbravadores') as 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades',
     options: ['', '', '', ''],
-    correctAnswer: 0,
+    correct_answer: 0,
     image_url: '',
     tip: ''
   });
@@ -62,7 +62,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         setEditForm(null);
       } else {
         await DatabaseService.addQuizQuestion(newQuestion);
-        setNewQuestion({ question: '', category: (initialCategory !== 'Todas' ? initialCategory : 'Desbravadores') as any, options: ['', '', '', ''], correctAnswer: 0, image_url: '', tip: '' });
+        setNewQuestion({ question: '', category: (initialCategory !== 'Todas' ? initialCategory : 'Desbravadores') as any, options: ['', '', '', ''], correct_answer: 0, image_url: '', tip: '' });
       }
       setShowModal(false);
     } catch (error: any) {
@@ -125,7 +125,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         contents: `Gere 5 perguntas de múltipla escolha para a especialidade de Desbravadores: "${specialtyName}". 
         Retorne APENAS o JSON puro, sem blocos de código markdown.
         Formato: um array de objetos com as propriedades: 
-        "question" (string), "options" (array de 4 strings), "correctAnswer" (number 0-3), "tip" (string curta).`,
+        "question" (string), "options" (array de 4 strings), "correct_answer" (number 0-3), "tip" (string curta).`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -135,10 +135,10 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
               properties: {
                 question: { type: Type.STRING },
                 options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                correctAnswer: { type: Type.INTEGER },
+                correct_answer: { type: Type.INTEGER },
                 tip: { type: Type.STRING }
               },
-              required: ["question", "options", "correctAnswer", "tip"]
+              required: ["question", "options", "correct_answer", "tip"]
             }
           }
         }
@@ -306,8 +306,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                       {(q.options || []).map((opt, idx) => (
-                        <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-500 font-black' : (isDarkMode ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium')}`}>
-                          {idx + 1}. {opt} {idx === q.correctAnswer && '✓'}
+                        <p key={idx} className={`text-[10px] truncate ${idx === q.correct_answer ? 'text-green-500 font-black' : (isDarkMode ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium')}`}>
+                          {idx + 1}. {opt} {idx === q.correct_answer && '✓'}
                         </p>
                       ))}
                     </div>
@@ -386,14 +386,14 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
                         }
                       }} 
                     />
-                    {(editForm ? editForm.correctAnswer : newQuestion.correctAnswer) === i && <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" size={20} />}
+                    {(editForm ? editForm.correct_answer : newQuestion.correct_answer) === i && <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" size={20} />}
                   </div>
                 ))}
               </div>
 
               <div className="relative">
                 <label className={labelClasses}>Resposta Correta</label>
-                <select className={`${inputClasses} appearance-none ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} value={editForm ? editForm.correctAnswer : newQuestion.correctAnswer} onChange={e => editForm ? setEditForm({...editForm, correctAnswer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correctAnswer: parseInt(e.target.value)})}>
+                <select className={`${inputClasses} appearance-none ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} value={editForm ? editForm.correct_answer : newQuestion.correct_answer} onChange={e => editForm ? setEditForm({...editForm, correct_answer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correct_answer: parseInt(e.target.value)})}>
                   {[0,1,2,3].map((i) => <option key={i} value={i}>Opção {i + 1}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
