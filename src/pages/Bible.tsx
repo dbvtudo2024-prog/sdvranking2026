@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { DatabaseService } from '@/db';
-import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History, Bookmark, Trash2, Share2, Sparkles } from 'lucide-react';
-import GeminiBibleAssistant from '@/components/GeminiBibleAssistant';
+import { Book, ChevronLeft, ChevronRight, Search, List, BookOpen, Loader2, History, Bookmark, Trash2, Share2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
 interface BibleProps {
@@ -37,7 +36,6 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
   const [verseOfDay, setVerseOfDay] = useState<{livro: string, cap: number, ver: number, texto: string} | null>(null);
   const [recentReading, setRecentReading] = useState<{book: string, chapter: number} | null>(null);
   const [markedVerses, setMarkedVerses] = useState<MarkedVerse[]>([]);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({
@@ -556,24 +554,6 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
           </div>
         ) : null}
       </div>
-
-      {/* BOTÃO FLUTUANTE GEMINI */}
-      <button 
-        onClick={() => setIsAssistantOpen(true)}
-        className="fixed bottom-28 right-6 w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl shadow-xl shadow-orange-200 flex items-center justify-center active:scale-90 transition-all z-[100] animate-bounce"
-      >
-        <Sparkles size={24} />
-      </button>
-
-      <AnimatePresence>
-        {isAssistantOpen && (
-          <GeminiBibleAssistant 
-            isOpen={isAssistantOpen} 
-            onClose={() => setIsAssistantOpen(false)} 
-            contextVerse={view === 'verses' ? `${selectedBook} ${selectedChapter}` : undefined}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 });

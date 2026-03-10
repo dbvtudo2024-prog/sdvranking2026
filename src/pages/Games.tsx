@@ -15,6 +15,7 @@ import ScrambledVerseGame from '@/pages/ScrambledVerseGame';
 import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
 import PianoTilesGame from '@/pages/PianoTilesGame';
+import MahjongGame from '@/pages/MahjongGame';
 
 interface GamesProps {
   user: AuthUser;
@@ -51,7 +52,7 @@ const Games: React.FC<GamesProps> = ({
   firstAidOverride,
   isDarkMode
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong'>('hub');
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
   const isMaster = user.email === 'ronaldosonic@gmail.com';
@@ -157,6 +158,7 @@ const Games: React.FC<GamesProps> = ({
       case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} />; break;
       case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
       case 'pianotiles': gameComponent = <PianoTilesGame {...gameProps} />; break;
+      case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
       default: return null;
     }
 
@@ -209,6 +211,16 @@ const Games: React.FC<GamesProps> = ({
             <div className="flex flex-col items-start leading-tight min-w-0">
               <span className="uppercase tracking-widest text-sm truncate w-full">Piano Tiles</span>
               <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Exclusivo Admin</span>
+            </div>
+          </button>
+        )}
+
+        {isMaster && (
+          <button onClick={() => setActiveGame('mahjong')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-4 text-white shadow-xl active:scale-95 px-6 shrink-0">
+            <Medal size={28} className="text-amber-400 shrink-0" />
+            <div className="flex flex-col items-start leading-tight min-w-0">
+              <span className="uppercase tracking-widest text-sm truncate w-full">Mahjong Solitaire</span>
+              <span className="text-[10px] font-bold opacity-80 lowercase mt-0.5 truncate w-full">Exclusivo Master</span>
             </div>
           </button>
         )}

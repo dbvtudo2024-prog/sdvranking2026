@@ -43,6 +43,7 @@ export interface Score {
   natureIdGame?: number;
   firstAidGame?: number;
   pianoTilesGame?: number;
+  mahjongGame?: number;
   specialtyStudyScore?: number;
   specialtyStudyId?: string;
   specialtyStudyName?: string;

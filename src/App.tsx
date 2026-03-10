@@ -230,7 +230,7 @@ const App: React.FC = () => {
     if (updatedMember) handleUpdateMember(updatedMember);
   }, [handleUpdateMember]);
 
-  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid') => {
+  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'mahjong') => {
     const updatedMembers = members.map(m => {
       const newScores = (m.scores || []).map(s => {
         const news = { ...s };
@@ -249,6 +249,7 @@ const App: React.FC = () => {
         else if (type === 'scrambledverse') news.scrambledVerseGame = 0;
         else if (type === 'natureid') news.natureIdGame = 0;
         else if (type === 'firstaid') news.firstAidGame = 0;
+        else if (type === 'mahjong') news.mahjongGame = 0;
         return news;
       });
       return { ...m, scores: newScores };
