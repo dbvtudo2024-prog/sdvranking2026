@@ -162,18 +162,37 @@ const Games: React.FC<GamesProps> = ({
       default: return null;
     }
 
+    const getGameName = (game: string) => {
+      switch (game) {
+        case 'quiz': return 'Quiz Desbravador';
+        case 'memory': return 'Jogo da Memória';
+        case 'specialty': return 'Desafio Especialidade';
+        case '1x1': return 'Duelo 1x1 Arena';
+        case 'threeclues': return 'Três Pistas';
+        case 'puzzle': return 'Quebra-Cabeça';
+        case 'knots': return 'Mestre dos Nós';
+        case 'whoami': return 'Quem Sou Eu?';
+        case 'specialtytrail': return 'Trilha de Especialidades';
+        case 'scrambledverse': return 'Versículo Embaralhado';
+        case 'natureid': return 'Identificação de Natureza';
+        case 'firstaid': return 'Primeiros Socorros';
+        case 'pianotiles': return 'Piano Tiles';
+        case 'mahjong': return 'Mahjong Desbravador';
+        default: return 'Jogo';
+      }
+    };
+
     return (
       <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">
         <div className="h-16 shrink-0 bg-[#0061f2] text-white flex items-center justify-between px-6 shadow-lg z-10">
           <div className="flex items-center gap-3">
             <Gamepad2 size={24} className="text-yellow-400" />
-            <h2 className="font-black uppercase tracking-tight text-sm">Modo Tela Cheia</h2>
+            <h2 className="font-black uppercase tracking-tight text-sm">{getGameName(activeGame)}</h2>
           </div>
           <button 
             onClick={() => setActiveGame('hub')}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90 flex items-center gap-2"
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90 flex items-center justify-center"
           >
-            <span className="text-[10px] font-black uppercase tracking-widest">Sair</span>
             <X size={20} strokeWidth={3} />
           </button>
         </div>

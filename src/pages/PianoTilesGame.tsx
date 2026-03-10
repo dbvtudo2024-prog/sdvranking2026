@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, RotateCcw, Trophy, Music, Settings, List } from 'lucide-react';
+import GameHeader from '@/components/GameHeader';
 import { AuthUser, Member } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import GameInstructions from '@/components/GameInstructions';
@@ -210,17 +211,12 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
         icon={<Music size={32} className="text-white" />}
       />
 
-      <header className="bg-slate-900/50 backdrop-blur-md text-white p-4 flex items-center justify-between z-20 border-b border-white/5 pt-10">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <h2 className="font-black uppercase tracking-tight text-sm">{selectedSong.name}</h2>
-            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Ritmo e Reflexo</p>
-          </div>
-        </div>
-        <div className="bg-blue-600 px-4 py-1 rounded-full font-black text-sm shadow-lg shadow-blue-600/20">
-          {score}
-        </div>
-      </header>
+      <GameHeader 
+        stats={[
+          { label: 'Pontos', value: score }
+        ]}
+        onRefresh={startGame}
+      />
 
       <main className="flex-1 relative overflow-hidden bg-slate-900">
         {/* Columns Visual & Click Areas */}

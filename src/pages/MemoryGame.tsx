@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, Member, Score, UserRole } from '@/types';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Brain } from 'lucide-react';
+import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
 
 interface MemoryGameProps {
@@ -260,7 +261,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
           ]}
           icon={<Brain size={32} className="text-white" />}
         />
-        <div className="flex items-center mb-10">
+        <div className="flex items-center mb-6">
           <h2 className="text-xl font-black text-slate-800 uppercase">Jogo da Memória</h2>
         </div>
         
@@ -320,15 +321,15 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   }
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden pt-4">
-      <div className="flex items-center justify-end mb-4 px-2">
-        <button onClick={() => initializeGame(difficulty)} className="px-6 py-2.5 bg-[#FFD700] text-[#003366] rounded-2xl font-black uppercase text-[10px] shadow-md"><RefreshCw size={14} className="inline mr-2" /> Reiniciar</button>
-      </div>
-      <div className="bg-white rounded-[1.5rem] p-4 mb-4 shadow-sm border border-slate-100 flex items-center justify-between mx-2">
-        <div className="flex items-center gap-2 font-black text-slate-800 font-mono"><Timer size={20} className="text-blue-600" /> {formatTime(seconds)}</div>
-        <div className="flex items-center gap-2 font-black text-slate-800"><Shuffle size={18} className="text-blue-500" /> {moves} mov</div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-2 pb-10">
+    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden">
+      <GameHeader 
+        stats={[
+          { label: 'Tempo', value: formatTime(seconds) },
+          { label: 'Movimentos', value: moves }
+        ]}
+        onRefresh={() => initializeGame(difficulty)}
+      />
+      <div className="flex-1 overflow-y-auto px-2 pb-10 pt-4">
         <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 max-w-[280px] mx-auto' : 'grid-cols-4'} gap-2 sm:gap-3`}>
           {cards.map((card) => (
             <div key={card.id} onClick={() => handleCardClick(card.id)} className="aspect-square relative cursor-pointer group">

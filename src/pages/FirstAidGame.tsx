@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, HeartPulse, Trophy, AlertCircle, RefreshCcw, Activity } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
+import GameHeader from '@/components/GameHeader';
 import { AuthUser, Member, QuizQuestion } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -85,6 +86,12 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
+      <GameHeader 
+        stats={[
+          { label: 'Cenário', value: `${currentStep + 1}/${questions.length}` },
+          { label: 'Pontos', value: score }
+        ]}
+      />
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -97,15 +104,6 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
         ]}
         icon={<Activity size={32} className="text-white" />}
       />
-      <header className="bg-red-600 text-white p-6 flex items-center gap-4 shrink-0 pt-10">
-        <div className="flex flex-col">
-          <h2 className="font-black uppercase tracking-tight text-lg">Primeiros Socorros</h2>
-          <p className="text-[10px] font-bold opacity-80 uppercase">Cenário {currentStep + 1} de {questions.length}</p>
-        </div>
-        <div className="ml-auto bg-white/20 px-4 py-1 rounded-full font-black text-sm">
-          {score} PTS
-        </div>
-      </header>
 
       <main className="flex-1 p-6 flex flex-col items-center gap-6">
         <AnimatePresence mode="wait">

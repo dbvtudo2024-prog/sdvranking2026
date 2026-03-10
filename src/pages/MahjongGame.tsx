@@ -7,6 +7,7 @@ import {
   Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock
 } from 'lucide-react';
 import { AuthUser, Member, Score } from '@/types';
+import GameHeader from '@/components/GameHeader';
 
 interface MahjongGameProps {
   user: AuthUser;
@@ -217,21 +218,13 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
-      <header className="bg-white dark:bg-slate-800 p-4 flex items-center justify-between shadow-sm z-10">
-        <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-          <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
-        </button>
-        <div className="flex flex-col items-center">
-          <h2 className="font-black uppercase tracking-tighter text-slate-800 dark:text-white">Mahjong Desbravador</h2>
-          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <span className="flex items-center gap-1"><Clock size={10} /> {formatTime(seconds)}</span>
-            <span className="flex items-center gap-1"><Trophy size={10} /> {score}</span>
-          </div>
-        </div>
-        <button onClick={initGame} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-          <RefreshCw size={20} className="text-blue-600" />
-        </button>
-      </header>
+      <GameHeader 
+        stats={[
+          { label: 'Tempo', value: formatTime(seconds) },
+          { label: 'Pontos', value: score }
+        ]}
+        onRefresh={initGame}
+      />
 
       <main className="flex-1 relative p-4 flex items-center justify-center overflow-auto">
         {!isStarted ? (

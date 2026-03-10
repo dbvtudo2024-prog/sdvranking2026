@@ -313,7 +313,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
 
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-        <header className="bg-blue-600 p-6 text-white flex justify-between items-center shadow-lg pt-10">
+        <div className="p-4 bg-blue-600 text-white flex justify-between items-center shadow-lg">
           <div className="flex flex-col items-center flex-1">
              <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: VOCÊ</span>
              {renderHearts(oppHitsDone)}
@@ -328,7 +328,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
              <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: {isMachineMode ? 'ROBÔ' : 'OPONENTE'}</span>
              {renderHearts(myHitsDone)}
           </div>
-        </header>
+        </div>
 
         <div className="p-6 space-y-6 flex-1 flex flex-col justify-center">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl text-center relative overflow-hidden">
@@ -379,12 +379,12 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         ]}
         icon={<Swords size={32} className="text-white" />}
       />
-      <header className="bg-blue-600 p-6 h-24 flex items-center justify-between shadow-lg text-white pt-10">
+      <div className="bg-blue-600 p-6 flex items-center justify-between shadow-lg text-white">
         <div className="flex items-center gap-3">
           <Sword size={24} className="text-yellow-400" />
           <h2 className="text-xl font-black uppercase tracking-tight">Arena 1x1</h2>
         </div>
-      </header>
+      </div>
 
       <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-24">
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">

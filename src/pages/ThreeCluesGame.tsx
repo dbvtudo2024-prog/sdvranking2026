@@ -166,13 +166,13 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         ]}
         icon={<MessageSquare size={32} className="text-white" />}
       />
-      <header className="bg-blue-600 p-6 pt-12 text-white flex justify-end items-center shadow-lg">
+      <div className="bg-blue-600 p-4 text-white flex justify-between items-center shadow-lg">
         <div className="text-center">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Três Dicas</p>
           <p className="font-black">Questão {currentQuestionIdx + 1}/{(questions || []).length}</p>
         </div>
         <div className="bg-white/20 px-4 py-1.5 rounded-full font-black text-sm">{score} pts</div>
-      </header>
+      </div>
 
       <div className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
         <div className="w-full space-y-3">

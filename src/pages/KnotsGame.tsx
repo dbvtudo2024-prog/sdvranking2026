@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw, Hash } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
+import GameHeader from '@/components/GameHeader';
 import { AuthUser, Member } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -108,6 +109,12 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
+      <GameHeader 
+        stats={[
+          { label: 'Questão', value: `${currentStep + 1}/${questions.length}` },
+          { label: 'Pontos', value: score }
+        ]}
+      />
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -120,15 +127,6 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
         ]}
         icon={<Hash size={32} className="text-white" />}
       />
-      <header className="bg-blue-600 text-white p-6 flex items-center gap-4 shrink-0 pt-10">
-        <div className="flex flex-col">
-          <h2 className="font-black uppercase tracking-tight text-lg">Desafio dos Nós</h2>
-          <p className="text-[10px] font-bold opacity-80 uppercase">Passo {currentStep + 1} de {questions.length}</p>
-        </div>
-        <div className="ml-auto bg-white/20 px-4 py-1 rounded-full font-black text-sm">
-          {score} PTS
-        </div>
-      </header>
 
       <main className="flex-1 p-6 flex flex-col items-center gap-6">
         <AnimatePresence mode="wait">

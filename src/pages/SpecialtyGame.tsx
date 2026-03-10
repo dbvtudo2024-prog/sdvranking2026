@@ -4,6 +4,7 @@ import { DatabaseService } from '@/db';
 import { AuthUser, Member, Score, UserRole, SpecialtyDBV } from '@/types';
 import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
+import GameHeader from '@/components/GameHeader';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -255,16 +256,21 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (!currentQ) return null;
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in p-6 pt-10">
-      <div className="flex items-center justify-end mb-8">
-        <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-2 rounded-full border border-blue-100 dark:border-blue-900/30 flex items-center gap-2">
-           <Timer size={18} className="text-blue-600 dark:text-blue-400" />
-           <span className={`font-black text-xl font-mono ${timeLeft <= 1 ? 'text-red-500 animate-pulse' : 'text-blue-600 dark:text-blue-400'}`}>{timeLeft}s</span>
-        </div>
-        <div className="text-right"><p className="text-xl font-black text-[#FFD700]">{score} pts</p></div>
-      </div>
+    <div className="flex flex-col h-full animate-in fade-in">
+      <GameHeader 
+        stats={[
+          { label: 'Tempo', value: `${timeLeft}s` },
+          { label: 'Pontos', value: score }
+        ]}
+        onRefresh={() => {
+          setScore(0);
+          setCurrentIdx(0);
+          setTimeLeft(10);
+          setGameState('playing');
+        }}
+      />
 
-      <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+      <div className="flex-1 flex flex-col items-center justify-center space-y-8 p-6">
         <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-6 relative overflow-hidden">
           <div className="w-36 h-36 mx-auto bg-slate-50 dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">
             {!imageLoaded && (
