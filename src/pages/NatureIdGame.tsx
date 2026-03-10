@@ -45,7 +45,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null) return;
     setSelectedOption(index);
-    const correct = index === currentItem.correctAnswer;
+    const correct = index === currentItem.correct_answer;
     setIsCorrect(correct);
     if (correct) setScore(prev => prev + 20);
 
@@ -140,7 +140,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
                           ? isCorrect 
                             ? 'bg-green-500 border-green-700 text-white' 
                             : 'bg-red-500 border-red-700 text-white'
-                          : idx === currentItem.correctAnswer && selectedOption !== null
+                          : idx === currentItem.correct_answer && selectedOption !== null
                             ? 'bg-green-500/20 border-green-500/40 text-green-600'
                             : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 opacity-50'
                       }`}

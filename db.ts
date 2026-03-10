@@ -243,7 +243,7 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correctAnswer: q.correct_answer ?? q.correctAnswer 
+      correct_answer: q.correct_answer ?? q.correct_answer 
     })) as QuizQuestion[];
   },
 
@@ -252,7 +252,7 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correct_answer
     };
     await supabase.from('quiz_questions').insert([payload]);
   },
@@ -262,7 +262,7 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correct_answer
     };
     await supabase.from('quiz_questions').update(payload).eq('id', q.id);
   },
@@ -276,7 +276,7 @@ export const DatabaseService = {
       category: q.category,
       question: q.question,
       options: q.options,
-      correct_answer: q.correctAnswer
+      correct_answer: q.correct_answer
     }));
     await supabase.from('quiz_questions').insert(payload);
   },

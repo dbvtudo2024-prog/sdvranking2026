@@ -82,26 +82,26 @@ export const THREE_CLUES_DATA = [
 
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // Categoria Desbravadores
-  { id: 'd1', category: 'Desbravadores', question: 'Qual o significado do triângulo invertido no emblema D1?', options: ['Santíssima Trindade', 'Ordem, Hierarquia e Disciplina', 'Físico, Mental e Espiritual', 'Pai, Filho e Espírito Santo'], correctAnswer: 2 },
-  { id: 'd2', category: 'Desbravadores', question: 'Quem foi o autor da letra do Hino dos Desbravadores?', options: ['John Hancock', 'Ismael Derani', 'Henry Bergh', 'Arthur Spalding'], correctAnswer: 1 },
-  { id: 'd3', category: 'Desbravadores', question: 'Em que ano foi oficializado o Clube de Desbravadores pela Associação Geral?', options: ['1946', '1950', '1954', '1960'], correctAnswer: 1 },
-  { id: 'd4', category: 'Desbravadores', question: 'Qual a cor que simboliza a pureza no uniforme?', options: ['Azul', 'Vermelho', 'Branco', 'Amarelo'], correctAnswer: 2 },
-  { id: 'd5', category: 'Desbravadores', question: 'A espada no emblema D1 representa o quê?', options: ['O poder de Deus', 'A Bíblia', 'A proteção', 'A luta contra o mal'], correctAnswer: 1 },
-  { id: 'd6', category: 'Desbravadores', question: 'O que significa a cor azul no triângulo?', options: ['Lealdade', 'Céu', 'Água', 'Nobreza'], correctAnswer: 0 },
-  { id: 'd7', category: 'Desbravadores', question: 'Qual o lema dos Desbravadores?', options: ['Sempre Avante', 'Servir a Deus e ao Próximo', 'O amor de Cristo me motiva', 'Salvação e Serviço'], correctAnswer: 2 },
-  { id: 'd8', category: 'Desbravadores', question: 'Quantas classes regulares existem?', options: ['4', '5', '6', '7'], correctAnswer: 2 },
-  { id: 'd9', category: 'Desbravadores', question: 'O escudo no emblema representa o quê?', options: ['Proteção', 'Fé', 'Verdade', 'Deus'], correctAnswer: 1 },
-  { id: 'd10', category: 'Desbravadores', question: 'Quem é o Diretor da Associação Geral atualmente?', options: ['Uderson Coelho', 'Alacy Barbosa', 'Busi Khumalo', 'Ted Wilson'], correctAnswer: 2 },
+  { id: 'd1', category: 'Desbravadores', question: 'Qual o significado do triângulo invertido no emblema D1?', options: ['Santíssima Trindade', 'Ordem, Hierarquia e Disciplina', 'Físico, Mental e Espiritual', 'Pai, Filho e Espírito Santo'], correct_answer: 2 },
+  { id: 'd2', category: 'Desbravadores', question: 'Quem foi o autor da letra do Hino dos Desbravadores?', options: ['John Hancock', 'Ismael Derani', 'Henry Bergh', 'Arthur Spalding'], correct_answer: 1 },
+  { id: 'd3', category: 'Desbravadores', question: 'Em que ano foi oficializado o Clube de Desbravadores pela Associação Geral?', options: ['1946', '1950', '1954', '1960'], correct_answer: 1 },
+  { id: 'd4', category: 'Desbravadores', question: 'Qual a cor que simboliza a pureza no uniforme?', options: ['Azul', 'Vermelho', 'Branco', 'Amarelo'], correct_answer: 2 },
+  { id: 'd5', category: 'Desbravadores', question: 'A espada no emblema D1 representa o quê?', options: ['O poder de Deus', 'A Bíblia', 'A proteção', 'A luta contra o mal'], correct_answer: 1 },
+  { id: 'd6', category: 'Desbravadores', question: 'O que significa a cor azul no triângulo?', options: ['Lealdade', 'Céu', 'Água', 'Nobreza'], correct_answer: 0 },
+  { id: 'd7', category: 'Desbravadores', question: 'Qual o lema dos Desbravadores?', options: ['Sempre Avante', 'Servir a Deus e ao Próximo', 'O amor de Cristo me motiva', 'Salvação e Serviço'], correct_answer: 2 },
+  { id: 'd8', category: 'Desbravadores', question: 'Quantas classes regulares existem?', options: ['4', '5', '6', '7'], correct_answer: 2 },
+  { id: 'd9', category: 'Desbravadores', question: 'O escudo no emblema representa o quê?', options: ['Proteção', 'Fé', 'Verdade', 'Deus'], correct_answer: 1 },
+  { id: 'd10', category: 'Desbravadores', question: 'Quem é o Diretor da Associação Geral atualmente?', options: ['Uderson Coelho', 'Alacy Barbosa', 'Busi Khumalo', 'Ted Wilson'], correct_answer: 2 },
   
   // Categoria Bíblia
-  { id: 'b1', category: 'Bíblia', question: 'Qual o menor livro da Bíblia em número de versículos?', options: ['Judas', 'Obadias', '2 João', 'Filemom'], correctAnswer: 2 },
-  { id: 'b2', category: 'Bíblia', question: 'Quem foi o homem mais velho da Bíblia?', options: ['Noé', 'Matusalém', 'Adão', 'Enoque'], correctAnswer: 1 },
-  { id: 'b3', category: 'Bíblia', question: 'Quantos discípulos Jesus tinha?', options: ['10', '12', '13', '7'], correctAnswer: 1 },
-  { id: 'b4', category: 'Bíblia', question: 'Qual o primeiro livro da Bíblia?', options: ['Êxodo', 'Mateus', 'Gênesis', 'Salmos'], correctAnswer: 2 },
-  { id: 'b5', category: 'Bíblia', question: 'Quem derrotou o gigante Golias?', options: ['Saul', 'Salomão', 'Davi', 'Sansão'], correctAnswer: 2 },
-  { id: 'b6', category: 'Bíblia', question: 'Em que dia da criação o homem foi feito?', options: ['4º dia', '5º dia', '6º dia', '7º dia'], correctAnswer: 2 },
-  { id: 'b7', category: 'Bíblia', question: 'Qual o nome da esposa de Abraão?', options: ['Rebeca', 'Sara', 'Raquel', 'Lia'], correctAnswer: 1 },
-  { id: 'b8', category: 'Bíblia', question: 'Quantas pragas caíram sobre o Egito?', options: ['7', '10', '12', '3'], correctAnswer: 1 },
-  { id: 'b9', category: 'Bíblia', question: 'Quem escreveu o livro de Apocalipse?', options: ['Paulo', 'Pedro', 'Tiago', 'João'], correctAnswer: 3 },
-  { id: 'b10', category: 'Bíblia', question: 'Qual mar se abriu para o povo de Israel passar?', options: ['Mar Morto', 'Mar da Galileia', 'Mar Vermelho', 'Mar Mediterrâneo'], correctAnswer: 2 }
+  { id: 'b1', category: 'Bíblia', question: 'Qual o menor livro da Bíblia em número de versículos?', options: ['Judas', 'Obadias', '2 João', 'Filemom'], correct_answer: 2 },
+  { id: 'b2', category: 'Bíblia', question: 'Quem foi o homem mais velho da Bíblia?', options: ['Noé', 'Matusalém', 'Adão', 'Enoque'], correct_answer: 1 },
+  { id: 'b3', category: 'Bíblia', question: 'Quantos discípulos Jesus tinha?', options: ['10', '12', '13', '7'], correct_answer: 1 },
+  { id: 'b4', category: 'Bíblia', question: 'Qual o primeiro livro da Bíblia?', options: ['Êxodo', 'Mateus', 'Gênesis', 'Salmos'], correct_answer: 2 },
+  { id: 'b5', category: 'Bíblia', question: 'Quem derrotou o gigante Golias?', options: ['Saul', 'Salomão', 'Davi', 'Sansão'], correct_answer: 2 },
+  { id: 'b6', category: 'Bíblia', question: 'Em que dia da criação o homem foi feito?', options: ['4º dia', '5º dia', '6º dia', '7º dia'], correct_answer: 2 },
+  { id: 'b7', category: 'Bíblia', question: 'Qual o nome da esposa de Abraão?', options: ['Rebeca', 'Sara', 'Raquel', 'Lia'], correct_answer: 1 },
+  { id: 'b8', category: 'Bíblia', question: 'Quantas pragas caíram sobre o Egito?', options: ['7', '10', '12', '3'], correct_answer: 1 },
+  { id: 'b9', category: 'Bíblia', question: 'Quem escreveu o livro de Apocalipse?', options: ['Paulo', 'Pedro', 'Tiago', 'João'], correct_answer: 3 },
+  { id: 'b10', category: 'Bíblia', question: 'Qual mar se abriu para o povo de Israel passar?', options: ['Mar Morto', 'Mar da Galileia', 'Mar Vermelho', 'Mar Mediterrâneo'], correct_answer: 2 }
 ];

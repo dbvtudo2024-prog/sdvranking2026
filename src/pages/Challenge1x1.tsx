@@ -345,7 +345,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
               <button 
                 key={idx}
                 disabled={answeredLocal}
-                onClick={() => handleAnswer(activeChallenge.currentQuestion, idx === currentQuestionData.correctAnswer)}
+                onClick={() => handleAnswer(activeChallenge.currentQuestion, idx === currentQuestionData.correct_answer)}
                 className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all active:scale-[0.98] flex justify-between items-center
                   ${answeredLocal ? 'bg-slate-50 text-slate-300 border-slate-100' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-400'}`}
               >

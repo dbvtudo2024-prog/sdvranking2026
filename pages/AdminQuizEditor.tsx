@@ -20,7 +20,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
     question: '',
     category: 'Desbravadores' as 'Desbravadores' | 'Bíblia',
     options: ['', '', '', ''],
-    correctAnswer: 0
+    correct_answer: 0
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'Todas' | 'Desbravadores' | 'Bíblia'>('Todas');
@@ -47,7 +47,7 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
         setEditForm(null);
       } else {
         await DatabaseService.addQuizQuestion(newQuestion);
-        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correctAnswer: 0 });
+        setNewQuestion({ question: '', category: 'Desbravadores', options: ['', '', '', ''], correct_answer: 0 });
       }
       setShowModal(false);
     } catch (error) {
@@ -151,8 +151,8 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                   <h4 className="text-sm font-black text-slate-800 leading-tight mb-3">{q.question}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                     {(q.options || []).map((opt, idx) => (
-                      <p key={idx} className={`text-[10px] truncate ${idx === q.correctAnswer ? 'text-green-600 font-black' : 'text-slate-400 font-medium'}`}>
-                        {idx + 1}. {opt} {idx === q.correctAnswer && '✓'}
+                      <p key={idx} className={`text-[10px] truncate ${idx === q.correct_answer ? 'text-green-600 font-black' : 'text-slate-400 font-medium'}`}>
+                        {idx + 1}. {opt} {idx === q.correct_answer && '✓'}
                       </p>
                     ))}
                   </div>
@@ -217,14 +217,14 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout }) =
                         }
                       }} 
                     />
-                    {(editForm ? editForm.correctAnswer : newQuestion.correctAnswer) === i && <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" size={20} />}
+                    {(editForm ? editForm.correct_answer : newQuestion.correct_answer) === i && <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" size={20} />}
                   </div>
                 ))}
               </div>
 
               <div className="relative">
                 <label className={labelClasses}>Resposta Correta</label>
-                <select className={`${inputClasses} appearance-none`} value={editForm ? editForm.correctAnswer : newQuestion.correctAnswer} onChange={e => editForm ? setEditForm({...editForm, correctAnswer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correctAnswer: parseInt(e.target.value)})}>
+                <select className={`${inputClasses} appearance-none`} value={editForm ? editForm.correct_answer : newQuestion.correct_answer} onChange={e => editForm ? setEditForm({...editForm, correct_answer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correct_answer: parseInt(e.target.value)})}>
                   {[0,1,2,3].map((i) => <option key={i} value={i}>Opção {i + 1}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />

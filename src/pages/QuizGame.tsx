@@ -46,7 +46,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     setSelectedOption(optionIndex);
     setIsAnswered(true);
 
-    if (optionIndex === (questions[currentQuestionIndex]?.correctAnswer ?? -1)) {
+    if (optionIndex === (questions[currentQuestionIndex]?.correct_answer ?? -1)) {
       setScore(prev => prev + 2);
     }
 
@@ -158,7 +158,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
             {(currentQuestion.options || []).map((option, idx) => {
               let style = "bg-white border-slate-100 text-slate-600";
               if (isAnswered) {
-                if (idx === currentQuestion.correctAnswer) style = "bg-green-500 border-green-500 text-white";
+                if (idx === currentQuestion.correct_answer) style = "bg-green-500 border-green-500 text-white";
                 else if (idx === selectedOption) style = "bg-red-500 border-red-500 text-white";
                 else style = "bg-slate-50 border-slate-50 text-slate-300";
               } else if (selectedOption === idx) {
@@ -173,8 +173,8 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
                   className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all active:scale-[0.98] flex justify-between items-center text-sm ${style}`}
                 >
                   <span className="pr-4">{option}</span>
-                  {isAnswered && idx === currentQuestion.correctAnswer && <Check size={18} className="shrink-0" />}
-                  {isAnswered && idx === selectedOption && idx !== currentQuestion.correctAnswer && <X size={18} className="shrink-0" />}
+                  {isAnswered && idx === currentQuestion.correct_answer && <Check size={18} className="shrink-0" />}
+                  {isAnswered && idx === selectedOption && idx !== currentQuestion.correct_answer && <X size={18} className="shrink-0" />}
                 </button>
               );
             })}

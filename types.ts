@@ -88,7 +88,7 @@ export interface QuizQuestion {
   category: 'Desbravadores' | 'Bíblia';
   question: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer: number;
 }
 
 export interface ThreeCluesQuestion {
@@ -104,7 +104,7 @@ export interface SpecialtyStudyQuestion {
   options?: string[];
   alternatives?: string[];
   correct_answer?: number;
-  correctAnswer?: number;
+  correct_answer?: number;
 }
 
 export interface SpecialtyStudy {
