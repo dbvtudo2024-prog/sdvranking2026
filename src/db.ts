@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig } from '@/types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig, PianoSong } from '@/types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -347,6 +347,36 @@ export const DatabaseService = {
       .channel('quiz_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, () => {
         this.getQuizQuestions().then(callback);
+      })
+      .subscribe();
+  },
+
+  // --- PIANO SONGS ---
+  async getPianoSongs(): Promise<PianoSong[]> {
+    const { data, error } = await supabase.from('piano_songs').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error("Erro ao buscar músicas do piano:", error);
+      return [];
+    }
+    return (data || []) as PianoSong[];
+  },
+
+  async addPianoSong(song: Omit<PianoSong, 'id'>) {
+    const { error } = await supabase.from('piano_songs').insert([song]);
+    if (error) throw error;
+  },
+
+  async deletePianoSong(id: string) {
+    const { error } = await supabase.from('piano_songs').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  subscribePianoSongs(callback: (songs: PianoSong[]) => void) {
+    this.getPianoSongs().then(callback);
+    return supabase
+      .channel('piano_songs_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piano_songs' }, () => {
+        this.getPianoSongs().then(callback);
       })
       .subscribe();
   },

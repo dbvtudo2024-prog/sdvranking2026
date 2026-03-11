@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tent, Compass, Flame, Map, Anchor, HeartPulse, Shield, Sword, 
@@ -57,8 +57,42 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const [isGameOver, setIsGameOver] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [shuffles, setShuffles] = useState(3);
+  const [hints, setHints] = useState(3);
+  const [hintedPair, setHintedPair] = useState<number[]>([]);
   const [showMilestone, setShowMilestone] = useState<{title: string, msg: string, reward: string} | null>(null);
   const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
+
+  const scoreRef = useRef(score);
+  const levelRef = useRef(level);
+
+  useEffect(() => {
+    scoreRef.current = score;
+    levelRef.current = level;
+  }, [score, level]);
+
+  useEffect(() => {
+    const member = members.find(m => m.id === user.id);
+    if (member && member.mahjongLevel) {
+      setLevel(member.mahjongLevel);
+      setScore(member.mahjongAccumulatedScore || 0);
+    }
+    
+    // Auto-save on unmount
+    return () => {
+      saveProgress(levelRef.current, scoreRef.current);
+    };
+  }, []);
+
+  const saveProgress = (currentLevel: number, currentScore: number) => {
+    const member = members.find(m => m.id === user.id);
+    if (member) {
+      onUpdateMember({
+        ...member,
+        mahjongLevel: currentLevel,
+        mahjongAccumulatedScore: currentScore
+      });
+    }
+  };
 
   const globalProgress = useMemo(() => {
     const levelProgress = tiles.length > 0 ? (tiles.filter(t => t.removed).length / tiles.length) : 0;
@@ -72,6 +106,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     if (currentMilestone) {
       setReachedMilestones(prev => [...prev, currentMilestone]);
       setShuffles(s => s + 2);
+      setHints(h => h + 1);
       
       const messages: Record<number, {title: string, msg: string}> = {
         25: { title: "Iniciante de Elite", msg: "Você dominou o primeiro quarto da jornada!" },
@@ -82,7 +117,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       
       setShowMilestone({
         ...messages[currentMilestone],
-        reward: "+2 Embaralhamentos"
+        reward: "+2 Embaralhamentos, +1 Dica"
       });
       
       setTimeout(() => setShowMilestone(null), 4000);
@@ -250,11 +285,14 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       setScore(0);
       setSeconds(0);
       setShuffles(3);
+      setHints(3);
     }
     setLevel(lvl);
     setIsGameOver(false);
     setIsStarted(true);
     setSelectedId(null);
+    setHintedPair([]);
+    saveProgress(lvl, score);
   };
 
   const handleShuffle = () => {
@@ -273,6 +311,23 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     setTiles(newTiles);
     setShuffles(prev => prev - 1);
     setSelectedId(null);
+    setHintedPair([]);
+  };
+
+  const handleHint = () => {
+    if (hints <= 0 || hintedPair.length > 0) return;
+
+    const selectable = tiles.filter(t => !t.removed && isTileSelectable(t));
+    for (let i = 0; i < selectable.length; i++) {
+      for (let j = i + 1; j < selectable.length; j++) {
+        if (selectable[i].iconName === selectable[j].iconName) {
+          setHintedPair([selectable[i].id, selectable[j].id]);
+          setHints(h => h - 1);
+          setTimeout(() => setHintedPair([]), 3000);
+          return;
+        }
+      }
+    }
   };
 
   const checkPossibleMoves = (currentTiles: Tile[]) => {
@@ -337,6 +392,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       
       const firstTile = tiles.find(t => t.id === selectedId)!;
       if (firstTile.iconName === tile.iconName) {
+        setHintedPair([]);
         const newTiles = tiles.map(t => 
           (t.id === firstTile.id || t.id === tile.id) ? { ...t, removed: true } : t
         );
@@ -375,9 +431,16 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       } as Score;
       onUpdateMember({
         ...member,
-        scores: [...(member.scores || []), newScore]
+        scores: [...(member.scores || []), newScore],
+        mahjongLevel: 1, // Reset level on full completion
+        mahjongAccumulatedScore: 0
       });
     }
+    onBack();
+  };
+
+  const handleExit = () => {
+    saveProgress(level, score);
     onBack();
   };
 
@@ -387,9 +450,8 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     const maxCol = Math.max(...tiles.map(t => t.col));
     const maxRow = Math.max(...tiles.map(t => t.row));
     
-    // Base: 16% de largura. Se tiver muitas colunas/linhas, reduzimos.
-    // Queremos que (maxCol * spacingX + tileWidth) caiba em ~90% da tela
-    let tileWidth = 16;
+    // Base: Tamanho inicial menor para manter padrão entre níveis
+    let tileWidth = 10;
     const availableWidth = 92;
     const availableHeight = 85;
 
@@ -397,9 +459,9 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     const getWidth = (tw: number) => maxCol * (tw * 0.85) + tw;
     const getHeight = (tw: number) => maxRow * (tw * 1.1) + (tw * 1.33);
 
-    // Redução iterativa simples para encontrar o tamanho ideal
-    while (tileWidth > 6 && (getWidth(tileWidth) > availableWidth || getHeight(tileWidth) > availableHeight)) {
-      tileWidth -= 0.5;
+    // Redução iterativa se necessário para níveis muito densos
+    while (tileWidth > 5 && (getWidth(tileWidth) > availableWidth || getHeight(tileWidth) > availableHeight)) {
+      tileWidth -= 0.2;
     }
 
     const spacingX = tileWidth * 0.85;
@@ -425,14 +487,16 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
-      <GameHeader 
-        stats={[
-          { label: 'Nível', value: `${level}/100` },
-          { label: 'Tempo', value: formatTime(seconds) },
-          { label: 'Pontos', value: score }
-        ]}
-        onRefresh={() => initGame(level)}
-      />
+      {isStarted && (
+        <GameHeader 
+          stats={[
+            { label: 'Nível', value: `${level}/100` },
+            { label: 'Tempo', value: formatTime(seconds) },
+            { label: 'Pontos', value: score }
+          ]}
+          onRefresh={() => initGame(level)}
+        />
+      )}
 
       {isStarted && !isGameOver && (
         <div className="px-4 pt-2 relative">
@@ -502,10 +566,10 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Combine os pares de símbolos. São 100 níveis de desafio crescente!</p>
             </div>
             <button 
-              onClick={() => initGame(1)}
+              onClick={() => initGame(level)}
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
             >
-              Começar Nível 1
+              {level > 1 ? `Continuar Nível ${level}` : 'Começar Nível 1'}
             </button>
           </div>
         ) : isGameOver ? (
@@ -545,7 +609,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
                     absolute rounded-lg flex items-center justify-center transition-all cursor-pointer
                     ${tile.removed ? 'pointer-events-none' : ''}
                     ${isTileSelectable(tile) ? 'hover:-translate-y-1 active:scale-95' : 'opacity-40 grayscale'}
-                    ${selectedId === tile.id ? 'bg-blue-600 text-white ring-4 ring-blue-400/50' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'}
+                    ${selectedId === tile.id ? 'bg-blue-600 text-white ring-4 ring-blue-400/50' : hintedPair.includes(tile.id) ? 'bg-amber-100 dark:bg-amber-900/40 ring-4 ring-amber-400 animate-pulse' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'}
                   `}
                   style={{
                     width: `${layoutInfo.tileWidth}%`,
@@ -592,6 +656,20 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
             >
               <RefreshCw size={20} className={shuffles > 0 ? 'animate-spin-slow' : ''} />
               <span className="tabular-nums">{shuffles}</span>
+            </button>
+
+            <button
+              onClick={handleHint}
+              disabled={hints <= 0 || hintedPair.length > 0}
+              title="Mostrar uma dica"
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-base shadow-lg transition-all active:scale-95 ${
+                hints > 0 && hintedPair.length === 0
+                  ? 'bg-amber-500 text-white shadow-amber-500/20' 
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <Star size={20} className={hints > 0 ? "text-white" : ""} />
+              <span className="tabular-nums">{hints}</span>
             </button>
 
             <AnimatePresence>

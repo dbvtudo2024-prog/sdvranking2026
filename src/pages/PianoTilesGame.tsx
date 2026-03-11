@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, RotateCcw, Trophy, Music, Settings, List } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member } from '@/types';
+import { AuthUser, Member, PianoSong } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import GameInstructions from '@/components/GameInstructions';
+import { DatabaseService } from '@/db';
 
 interface PianoTilesGameProps {
   user: AuthUser;
@@ -17,42 +18,91 @@ interface Song {
   id: string;
   name: string;
   url: string;
-  notes: { time: number; col: number }[];
 }
-
-const SONGS: Song[] = [
-  {
-    id: 'hino',
-    name: 'Hino dos Desbravadores',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    notes: [] // Will be generated procedurally
-  },
-  {
-    id: 'brilha',
-    name: 'Brilha Brilha Estrelinha',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    notes: []
-  },
-  {
-    id: 'alegria',
-    name: 'Ode à Alegria',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    notes: []
-  }
-];
 
 const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdateMember, onBack }) => {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu');
   const [showInstructions, setShowInstructions] = useState(true);
   const [score, setScore] = useState(0);
-  const [selectedSong, setSelectedSong] = useState<Song>(SONGS[0]);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [activeNotes, setActiveNotes] = useState<{ id: number; col: number; time: number; hit: boolean }[]>([]);
   
+  useEffect(() => {
+    const sub = DatabaseService.subscribePianoSongs((dbSongs) => {
+      const formattedSongs = dbSongs.map(s => ({
+        id: s.id,
+        name: s.name,
+        url: s.url
+      }));
+      setSongs(formattedSongs);
+      if (formattedSongs.length > 0 && !selectedSong) {
+        setSelectedSong(formattedSongs[0]);
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [selectedSong]);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const requestRef = useRef<number>();
   const lastNoteTimeRef = useRef<number>(0);
   const gameTimeRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
+  const noteIndexRef = useRef<number>(0);
+
+  const PIANO_NOTES = [
+    261.63, // C4
+    293.66, // D4
+    329.63, // E4
+    349.23, // F4
+    392.00, // G4
+    440.00, // A4
+    493.88, // B4
+    523.25, // C5
+  ];
+
+  const playPianoNote = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      // Piano-like characteristics
+      osc.type = 'triangle';
+      const freq = PIANO_NOTES[noteIndexRef.current % PIANO_NOTES.length];
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      
+      // Envelope
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+
+      // Filter to soften the sound
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2000, ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 1);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 1);
+      
+      noteIndexRef.current++;
+    } catch (e) {
+      console.error("Audio error:", e);
+    }
+  }, []);
 
   const ranking = useMemo(() => {
     return members
@@ -66,6 +116,7 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   }, [members]);
 
   const startGame = () => {
+    if (!selectedSong) return;
     setScore(0);
     setActiveNotes([]);
     lastNoteTimeRef.current = 0;
@@ -152,6 +203,7 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
         // Isso permite clicar em qualquer lugar da coluna onde a nota esteja visível
         if (timeDiff > -0.2 && timeDiff < 2.2) {
           setScore(s => s + 1);
+          playPianoNote();
           return prev.map(n => n.id === targetNote.id ? { ...n, hit: true } : n);
         } else {
           setGameState('gameover');
@@ -203,7 +255,7 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
 
   return (
     <div className="flex flex-col h-full bg-slate-950 overflow-hidden select-none touch-none">
-      <audio ref={audioRef} src={selectedSong.url} />
+      {selectedSong && <audio ref={audioRef} src={selectedSong.url} />}
       
       <GameInstructions
         isOpen={showInstructions}
@@ -287,23 +339,29 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <List size={12} /> Escolha a Música
                   </h4>
-                  {SONGS.map(song => (
-                    <button
-                      key={song.id}
-                      onClick={() => setSelectedSong(song)}
-                      className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all ${
-                        selectedSong.id === song.id 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Music size={18} />
-                        <span className="font-bold text-sm">{song.name}</span>
-                      </div>
-                      {selectedSong.id === song.id && <Play size={16} fill="currentColor" />}
-                    </button>
-                  ))}
+                  {songs.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-800/50 rounded-2xl border border-dashed border-slate-700">
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Nenhuma música disponível</p>
+                    </div>
+                  ) : (
+                    songs.map(song => (
+                      <button
+                        key={song.id}
+                        onClick={() => setSelectedSong(song)}
+                        className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all ${
+                          selectedSong?.id === song.id 
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Music size={18} />
+                          <span className="font-bold text-sm">{song.name}</span>
+                        </div>
+                        {selectedSong?.id === song.id && <Play size={16} fill="currentColor" />}
+                      </button>
+                    ))
+                  )}
                 </div>
 
                 {/* Ranking */}
@@ -331,7 +389,8 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
 
               <button 
                 onClick={startGame}
-                className="mt-8 w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                disabled={!selectedSong}
+                className="mt-8 w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale"
               >
                 <Play size={20} fill="currentColor" /> COMEÇAR JOGO
               </button>

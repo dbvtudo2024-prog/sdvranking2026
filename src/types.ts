@@ -60,6 +60,8 @@ export interface Member {
   unit: UnitName;
   scores: Score[];
   photoUrl?: string;
+  mahjongLevel?: number;
+  mahjongAccumulatedScore?: number;
 }
 
 export interface Announcement {
@@ -175,6 +177,13 @@ export interface SpecialtyDBV {
 export interface CounselorDB {
   id?: string | number;
   name: string;
+  created_at?: string;
+}
+
+export interface PianoSong {
+  id: string;
+  name: string;
+  url: string;
   created_at?: string;
 }
 

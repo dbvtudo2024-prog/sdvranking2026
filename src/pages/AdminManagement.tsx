@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
 import { DatabaseService } from '@/db';
 
@@ -19,6 +19,7 @@ interface AdminManagementProps {
   onGoToAdminNatureId: () => void;
   onGoToAdminFirstAid: () => void;
   onGoToAdminSpecialtyTrail: () => void;
+  onGoToAdminPiano: () => void;
   counselors: CounselorDB[];
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
@@ -64,6 +65,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminNatureId,
   onGoToAdminFirstAid,
   onGoToAdminSpecialtyTrail,
+  onGoToAdminPiano,
   counselors = [],
   onAddCounselor,
   onUpdateCounselor,
@@ -321,6 +323,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 </button>
                 <button onClick={onGoToAdminSpecialtyTrail} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <Map size={22} className={isDarkMode ? 'text-blue-500' : 'text-blue-600'} /> TRILHA ESPECIAL.
+                </button>
+                <button onClick={onGoToAdminPiano} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
+                  <Music size={22} className={isDarkMode ? 'text-indigo-500' : 'text-indigo-600'} /> MÚSICAS PIANO
                 </button>
               </div>
               <button 
