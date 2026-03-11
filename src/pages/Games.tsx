@@ -16,6 +16,8 @@ import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
 import PianoTilesGame from '@/pages/PianoTilesGame';
 import MahjongGame from '@/pages/MahjongGame';
+import BallSortGame from '@/pages/BallSortGame';
+import BrickBreakerGame from '@/pages/BrickBreakerGame';
 
 interface GamesProps {
   user: AuthUser;
@@ -52,7 +54,7 @@ const Games: React.FC<GamesProps> = ({
   firstAidOverride,
   isDarkMode
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong' | 'ballsort' | 'brickbreaker'>('hub');
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
   const isMaster = user.email === 'ronaldosonic@gmail.com';
@@ -159,6 +161,8 @@ const Games: React.FC<GamesProps> = ({
       case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
       case 'pianotiles': gameComponent = <PianoTilesGame {...gameProps} />; break;
       case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
+      case 'ballsort': gameComponent = <BallSortGame onBack={() => setActiveGame('hub')} isDarkMode={isDarkMode} />; break;
+      case 'brickbreaker': gameComponent = <BrickBreakerGame onBack={() => setActiveGame('hub')} isDarkMode={isDarkMode} />; break;
       default: return null;
     }
 
@@ -178,6 +182,8 @@ const Games: React.FC<GamesProps> = ({
         case 'firstaid': return 'Primeiros Socorros';
         case 'pianotiles': return 'Piano Tiles';
         case 'mahjong': return 'Mahjong Desbravador';
+        case 'ballsort': return 'Organizar Cores';
+        case 'brickbreaker': return 'Destruir Blocos';
         default: return 'Jogo';
       }
     };
@@ -216,6 +222,17 @@ const Games: React.FC<GamesProps> = ({
     <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-24 px-4 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
       <div className="flex flex-col gap-4 w-full">
         {/* DUELO ARENA 1x1 NO TOPO */}
+        <div className="grid grid-cols-2 gap-4 shrink-0">
+          <button onClick={() => setActiveGame('ballsort')} className="h-24 rounded-3xl font-black flex flex-col items-center justify-center gap-1 transition-all bg-emerald-500 dark:bg-emerald-600 border-emerald-700 dark:border-emerald-800 border-b-4 text-white shadow-lg active:scale-95 px-4">
+            <Shuffle size={24} className="text-white" />
+            <span className="uppercase tracking-widest text-[10px]">Organizar Cores</span>
+          </button>
+          <button onClick={() => setActiveGame('brickbreaker')} className="h-24 rounded-3xl font-black flex flex-col items-center justify-center gap-1 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 dark:border-orange-800 border-b-4 text-white shadow-lg active:scale-95 px-4">
+            <Gamepad2 size={24} className="text-white" />
+            <span className="uppercase tracking-widest text-[10px]">Destruir Blocos</span>
+          </button>
+        </div>
+
         <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 dark:bg-blue-700 border-blue-800 dark:border-blue-900 border-b-4 text-white shadow-xl shadow-blue-500/20 dark:shadow-none active:scale-95 px-6 shrink-0">
           <Sword size={28} className="text-yellow-400 shrink-0" />
           <div className="flex flex-col items-start leading-tight min-w-0">

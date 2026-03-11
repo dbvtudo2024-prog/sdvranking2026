@@ -71,17 +71,43 @@ export const DatabaseService = {
   },
 
   subscribeMembers(callback: (members: Member[]) => void) {
-    this.getMembers().then(callback).catch(err => console.error("Erro no subscribeMembers:", err));
+    let localMembers: Member[] = [];
+    this.getMembers().then(data => {
+      localMembers = data;
+      callback(localMembers);
+    }).catch(err => console.error("Erro no subscribeMembers:", err));
+
     return supabase
       .channel('members_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
-        this.getMembers().then(callback).catch(err => console.error("Erro no update realtime members:", err));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localMembers = [...localMembers, payload.new as Member];
+        } else if (payload.eventType === 'UPDATE') {
+          localMembers = localMembers.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m);
+        } else if (payload.eventType === 'DELETE') {
+          localMembers = localMembers.filter(m => m.id !== payload.old.id);
+        }
+        callback([...localMembers]);
       })
       .subscribe();
   },
 
   async addMember(member: Member) {
-    const { error } = await supabase.from('members').insert([member]);
+    const payload = {
+      id: member.id,
+      name: member.name,
+      role: member.role,
+      age: member.age,
+      className: member.className,
+      joinedAt: member.joinedAt,
+      counselor: member.counselor,
+      unit: member.unit,
+      scores: member.scores,
+      photoUrl: member.photoUrl,
+      mahjongLevel: member.mahjongLevel,
+      mahjongAccumulatedScore: member.mahjongAccumulatedScore
+    };
+    const { error } = await supabase.from('members').insert([payload]);
     if (error) {
       console.error("Erro ao adicionar membro:", error);
       throw error;
@@ -90,7 +116,20 @@ export const DatabaseService = {
 
   async updateMember(member: Member) {
     const { id, ...updates } = member;
-    const { error } = await supabase.from('members').update(updates).eq('id', id);
+    const payload = {
+      name: updates.name,
+      role: updates.role,
+      age: updates.age,
+      className: updates.className,
+      joinedAt: updates.joinedAt,
+      counselor: updates.counselor,
+      unit: updates.unit,
+      scores: updates.scores,
+      photoUrl: updates.photoUrl,
+      mahjongLevel: updates.mahjongLevel,
+      mahjongAccumulatedScore: updates.mahjongAccumulatedScore
+    };
+    const { error } = await supabase.from('members').update(payload).eq('id', id);
     if (error) {
       console.error("Erro ao atualizar membro no Supabase:", error);
       throw error;
@@ -125,11 +164,25 @@ export const DatabaseService = {
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
-    this.getCounselors().then(callback);
+    let localCounselors: CounselorDB[] = [];
+    this.getCounselors().then(data => {
+      localCounselors = data;
+      callback(localCounselors);
+    });
+
     return supabase
       .channel('conselheiros_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, () => {
-        this.getCounselors().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          localCounselors = [...localCounselors, newC];
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          localCounselors = localCounselors.map(c => c.id === payload.new.id ? updatedC : c);
+        } else if (payload.eventType === 'DELETE') {
+          localCounselors = localCounselors.filter(c => c.id !== payload.old.id);
+        }
+        callback([...localCounselors].sort((a, b) => a.name.localeCompare(b.name)));
       })
       .subscribe();
   },
@@ -141,11 +194,23 @@ export const DatabaseService = {
   },
 
   subscribeAnnouncements(callback: (announcements: Announcement[]) => void) {
-    this.getAnnouncements().then(callback);
+    let localAnnouncements: Announcement[] = [];
+    this.getAnnouncements().then(data => {
+      localAnnouncements = data;
+      callback(localAnnouncements);
+    });
+
     return supabase
       .channel('announcements_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
-        this.getAnnouncements().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localAnnouncements = [payload.new as Announcement, ...localAnnouncements];
+        } else if (payload.eventType === 'UPDATE') {
+          localAnnouncements = localAnnouncements.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a);
+        } else if (payload.eventType === 'DELETE') {
+          localAnnouncements = localAnnouncements.filter(a => a.id !== payload.old.id);
+        }
+        callback([...localAnnouncements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       })
       .subscribe();
   },
@@ -165,11 +230,23 @@ export const DatabaseService = {
   },
 
   subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
-    this.getSpecialties().then(callback);
+    let localSpecialties: SpecialtyDBV[] = [];
+    this.getSpecialties().then(data => {
+      localSpecialties = data;
+      callback(localSpecialties);
+    });
+
     return supabase
       .channel('specialties_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'EspecialidadesDBV' }, () => {
-        this.getSpecialties().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'EspecialidadesDBV' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localSpecialties = [...localSpecialties, payload.new as SpecialtyDBV];
+        } else if (payload.eventType === 'UPDATE') {
+          localSpecialties = localSpecialties.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
+        } else if (payload.eventType === 'DELETE') {
+          localSpecialties = localSpecialties.filter(s => s.id !== payload.old.id);
+        }
+        callback([...localSpecialties].sort((a, b) => a.Nome.localeCompare(b.Nome)));
       })
       .subscribe();
   },
@@ -342,11 +419,50 @@ export const DatabaseService = {
   },
 
   subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
-    this.getQuizQuestions().then(callback);
+    let localQuestions: QuizQuestion[] = [];
+    
+    const mapQ = (q: any): QuizQuestion => {
+      let category = q.category;
+      let question = q.question;
+      if (q.category === 'Desbravadores') {
+        if (q.question.startsWith('[Natureza] ')) {
+          category = 'Natureza';
+          question = q.question.replace('[Natureza] ', '');
+        } else if (q.question.startsWith('[Primeiros Socorros] ')) {
+          category = 'Primeiros Socorros';
+          question = q.question.replace('[Primeiros Socorros] ', '');
+        } else if (q.question.startsWith('[Especialidades] ')) {
+          category = 'Especialidades';
+          question = q.question.replace('[Especialidades] ', '');
+        }
+      }
+      return {
+        id: q.id,
+        category: category as any,
+        question: question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        image_url: q.image_url,
+        tip: q.tip
+      };
+    };
+
+    this.getQuizQuestions().then(data => {
+      localQuestions = data;
+      callback(localQuestions);
+    });
+
     return supabase
       .channel('quiz_questions_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, () => {
-        this.getQuizQuestions().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localQuestions = [mapQ(payload.new), ...localQuestions];
+        } else if (payload.eventType === 'UPDATE') {
+          localQuestions = localQuestions.map(q => q.id === payload.new.id ? mapQ(payload.new) : q);
+        } else if (payload.eventType === 'DELETE') {
+          localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
+        }
+        callback([...localQuestions]);
       })
       .subscribe();
   },
@@ -372,11 +488,23 @@ export const DatabaseService = {
   },
 
   subscribePianoSongs(callback: (songs: PianoSong[]) => void) {
-    this.getPianoSongs().then(callback);
+    let localSongs: PianoSong[] = [];
+    this.getPianoSongs().then(data => {
+      localSongs = data;
+      callback(localSongs);
+    });
+
     return supabase
       .channel('piano_songs_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piano_songs' }, () => {
-        this.getPianoSongs().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piano_songs' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localSongs = [payload.new as PianoSong, ...localSongs];
+        } else if (payload.eventType === 'UPDATE') {
+          localSongs = localSongs.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
+        } else if (payload.eventType === 'DELETE') {
+          localSongs = localSongs.filter(s => s.id !== payload.old.id);
+        }
+        callback([...localSongs]);
       })
       .subscribe();
   },
@@ -394,7 +522,18 @@ export const DatabaseService = {
   async addUser(user: AuthUser) {
     // Removemos o campo 'counselor' pois ele pertence à tabela 'members', não 'users'
     const { counselor, ...userPayload } = user;
-    const { error } = await supabase.from('users').upsert([userPayload]);
+    const payload = {
+      id: userPayload.id,
+      name: userPayload.name,
+      role: userPayload.role,
+      funcao: userPayload.funcao,
+      unit: userPayload.unit,
+      age: userPayload.age,
+      className: userPayload.className,
+      email: userPayload.email,
+      photoUrl: userPayload.photoUrl
+    };
+    const { error } = await supabase.from('users').upsert([payload]);
     if (error) {
       console.error("Erro ao adicionar usuário:", error);
       throw error;
@@ -876,21 +1015,45 @@ export const DatabaseService = {
   },
 
   subscribeSpecialtyStudies(callback: (studies: SpecialtyStudy[]) => void) {
-    this.getSpecialtyStudies().then(callback);
+    let localStudies: SpecialtyStudy[] = [];
+    this.getSpecialtyStudies().then(data => {
+      localStudies = data;
+      callback(localStudies);
+    });
+
     return supabase
       .channel('specialty_studies_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, () => {
-        this.getSpecialtyStudies().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localStudies = [payload.new as SpecialtyStudy, ...localStudies];
+        } else if (payload.eventType === 'UPDATE') {
+          localStudies = localStudies.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
+        } else if (payload.eventType === 'DELETE') {
+          localStudies = localStudies.filter(s => s.id !== payload.old.id);
+        }
+        callback([...localStudies]);
       })
       .subscribe();
   },
 
   subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {
-    this.getThreeCluesQuestions().then(callback);
+    let localQuestions: ThreeCluesQuestion[] = [];
+    this.getThreeCluesQuestions().then(data => {
+      localQuestions = data;
+      callback(localQuestions);
+    });
+
     return supabase
       .channel('three_clues_questions_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, () => {
-        this.getThreeCluesQuestions().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localQuestions = [payload.new as ThreeCluesQuestion, ...localQuestions];
+        } else if (payload.eventType === 'UPDATE') {
+          localQuestions = localQuestions.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q);
+        } else if (payload.eventType === 'DELETE') {
+          localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
+        }
+        callback([...localQuestions]);
       })
       .subscribe();
   },
@@ -931,11 +1094,23 @@ export const DatabaseService = {
   },
 
   subscribePuzzleImages(callback: (images: any[]) => void) {
-    this.getPuzzleImages().then(callback);
+    let localImages: any[] = [];
+    this.getPuzzleImages().then(data => {
+      localImages = data;
+      callback(localImages);
+    });
+
     return supabase
       .channel('puzzle_images_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'puzzle_images' }, () => {
-        this.getPuzzleImages().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'puzzle_images' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localImages = [payload.new, ...localImages];
+        } else if (payload.eventType === 'UPDATE') {
+          localImages = localImages.map(img => img.id === payload.new.id ? { ...img, ...payload.new } : img);
+        } else if (payload.eventType === 'DELETE') {
+          localImages = localImages.filter(img => img.id !== payload.old.id);
+        }
+        callback([...localImages]);
       })
       .subscribe();
   },
@@ -1002,11 +1177,23 @@ export const DatabaseService = {
   },
 
   subscribeWhoAmIQuestions(callback: (questions: any[]) => void) {
-    this.getWhoAmIQuestions().then(callback);
+    let localQuestions: any[] = [];
+    this.getWhoAmIQuestions().then(data => {
+      localQuestions = data;
+      callback(localQuestions);
+    });
+
     return supabase
       .channel('who_am_i_questions_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'who_am_i_questions' }, () => {
-        this.getWhoAmIQuestions().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'who_am_i_questions' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localQuestions = [payload.new, ...localQuestions];
+        } else if (payload.eventType === 'UPDATE') {
+          localQuestions = localQuestions.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q);
+        } else if (payload.eventType === 'DELETE') {
+          localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
+        }
+        callback([...localQuestions]);
       })
       .subscribe();
   },
@@ -1043,11 +1230,23 @@ export const DatabaseService = {
   },
 
   subscribeScrambledVerses(callback: (verses: any[]) => void) {
-    this.getScrambledVerses().then(callback);
+    let localVerses: any[] = [];
+    this.getScrambledVerses().then(data => {
+      localVerses = data;
+      callback(localVerses);
+    });
+
     return supabase
       .channel('scrambled_verses_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scrambled_verses' }, () => {
-        this.getScrambledVerses().then(callback);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scrambled_verses' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localVerses = [payload.new, ...localVerses];
+        } else if (payload.eventType === 'UPDATE') {
+          localVerses = localVerses.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v);
+        } else if (payload.eventType === 'DELETE') {
+          localVerses = localVerses.filter(v => v.id !== payload.old.id);
+        }
+        callback([...localVerses]);
       })
       .subscribe();
   }
