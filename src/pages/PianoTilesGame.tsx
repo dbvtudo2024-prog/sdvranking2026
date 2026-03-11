@@ -25,28 +25,19 @@ const SONGS: Song[] = [
     id: 'hino',
     name: 'Hino dos Desbravadores',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    notes: Array.from({ length: 100 }, (_, i) => ({
-      time: 2 + i * 0.8,
-      col: Math.floor(Math.random() * 3)
-    }))
+    notes: [] // Will be generated procedurally
   },
   {
     id: 'brilha',
     name: 'Brilha Brilha Estrelinha',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    notes: Array.from({ length: 100 }, (_, i) => ({
-      time: 2 + i * 1.2,
-      col: Math.floor(Math.random() * 3)
-    }))
+    notes: []
   },
   {
     id: 'alegria',
     name: 'Ode à Alegria',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    notes: Array.from({ length: 100 }, (_, i) => ({
-      time: 2 + i * 0.5,
-      col: Math.floor(Math.random() * 3)
-    }))
+    notes: []
   }
 ];
 
@@ -59,8 +50,9 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number>();
-  const lastTimeRef = useRef<number>();
-  const nextNoteIndex = useRef(0);
+  const lastNoteTimeRef = useRef<number>(0);
+  const gameTimeRef = useRef<number>(0);
+  const lastFrameTimeRef = useRef<number>(0);
 
   const ranking = useMemo(() => {
     return members
@@ -76,31 +68,49 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   const startGame = () => {
     setScore(0);
     setActiveNotes([]);
-    nextNoteIndex.current = 0;
+    lastNoteTimeRef.current = 0;
+    gameTimeRef.current = 0;
+    lastFrameTimeRef.current = performance.now();
     setGameState('playing');
     
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
+      audioRef.current.loop = true;
       audioRef.current.play().catch(console.error);
     }
   };
 
   const update = useCallback(() => {
-    if (!audioRef.current || gameState !== 'playing') return;
+    if (gameState !== 'playing') return;
 
-    const currentTime = audioRef.current.currentTime;
+    const now = performance.now();
+    const deltaTime = (now - lastFrameTimeRef.current) / 1000;
+    lastFrameTimeRef.current = now;
 
-    // Spawn new notes
-    while (nextNoteIndex.current < selectedSong.notes.length && 
-           selectedSong.notes[nextNoteIndex.current].time < currentTime + 2) {
-      const note = selectedSong.notes[nextNoteIndex.current];
-      setActiveNotes(prev => [...prev, { ...note, id: nextNoteIndex.current, hit: false }]);
-      nextNoteIndex.current++;
+    // Speed increases with score
+    const speedMultiplier = 1 + Math.floor(score / 10) * 0.1;
+    gameTimeRef.current += deltaTime * speedMultiplier;
+
+    const currentTime = gameTimeRef.current;
+
+    // Spawn new notes procedurally
+    // Interval decreases as score increases
+    const spawnInterval = Math.max(0.3, 0.8 - (Math.floor(score / 20) * 0.05));
+    
+    if (currentTime > lastNoteTimeRef.current + spawnInterval) {
+      const col = Math.floor(Math.random() * 3);
+      setActiveNotes(prev => [...prev, { 
+        id: Date.now() + Math.random(), 
+        col, 
+        time: currentTime + 2, // Note will be hit in 2 seconds at base speed
+        hit: false 
+      }]);
+      lastNoteTimeRef.current = currentTime;
     }
 
     // Check for missed notes
     setActiveNotes(prev => {
-      const missed = prev.find(n => !n.hit && n.time < currentTime - 0.2);
+      const missed = prev.find(n => !n.hit && n.time < currentTime - 0.1);
       if (missed) {
         setGameState('gameover');
         if (audioRef.current) audioRef.current.pause();
@@ -111,10 +121,11 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
     });
 
     requestRef.current = requestAnimationFrame(update);
-  }, [gameState, selectedSong]);
+  }, [gameState, score]);
 
   useEffect(() => {
     if (gameState === 'playing') {
+      lastFrameTimeRef.current = performance.now();
       requestRef.current = requestAnimationFrame(update);
     } else {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
@@ -125,22 +136,20 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   }, [gameState, update]);
 
   const handleColumnClick = (col: number) => {
-    if (gameState !== 'playing' || !audioRef.current) return;
+    if (gameState !== 'playing') return;
     
-    const currentTime = audioRef.current.currentTime;
+    const currentTime = gameTimeRef.current;
     
     setActiveNotes(prev => {
-      // Filtra notas não atingidas nesta coluna
       const columnNotes = prev.filter(n => n.col === col && !n.hit);
-      
-      // Pega a nota que está mais embaixo (menor tempo) para ser o alvo prioritário
       const sortedNotes = [...columnNotes].sort((a, b) => a.time - b.time);
       const targetNote = sortedNotes[0];
 
       if (targetNote) {
         const timeDiff = targetNote.time - currentTime;
         
-        // Janela de acerto ampliada para cobrir toda a coluna visível (de -0.2s até 2.2s)
+        // Restaurada a janela de acerto ampliada (de -0.2s até 2.2s)
+        // Isso permite clicar em qualquer lugar da coluna onde a nota esteja visível
         if (timeDiff > -0.2 && timeDiff < 2.2) {
           setScore(s => s + 1);
           return prev.map(n => n.id === targetNote.id ? { ...n, hit: true } : n);
@@ -149,7 +158,6 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
           if (audioRef.current) audioRef.current.pause();
         }
       } else {
-        // Clicou na coluna sem nenhuma nota visível
         setGameState('gameover');
         if (audioRef.current) audioRef.current.pause();
       }
@@ -203,17 +211,18 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
         title="Piano Tiles"
         instructions={[
           "Escolha uma música no menu inicial.",
-          "Toque em qualquer lugar da coluna quando a tecla branca passar.",
+          "Toque na coluna quando a tecla branca passar pela linha de batida.",
+          "O jogo acelera conforme sua pontuação aumenta!",
           "Não deixe nenhuma tecla passar sem ser tocada!",
-          "Cuidado para não tocar na coluna errada ou sem teclas.",
-          "O jogo acaba se você errar o tempo ou deixar uma tecla passar."
+          "Cuidado para não tocar na coluna errada ou sem teclas."
         ]}
         icon={<Music size={32} className="text-white" />}
       />
 
       <GameHeader 
         stats={[
-          { label: 'Pontos', value: score }
+          { label: 'Pontos', value: score },
+          { label: 'Velocidade', value: `${(1 + Math.floor(score / 10) * 0.1).toFixed(1)}x` }
         ]}
         onRefresh={startGame}
       />
@@ -225,15 +234,20 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
             <div 
               key={i} 
               onClick={() => handleColumnClick(i)}
-              className="flex-1 border-r border-white/5 last:border-0 active:bg-white/5 transition-colors cursor-pointer" 
+              className="flex-1 border-r border-white/5 last:border-0 active:bg-white/10 transition-colors cursor-pointer" 
             />
           ))}
         </div>
 
+        {/* Hit Line Visual */}
+        <div className="absolute bottom-[20%] left-0 right-0 h-1 bg-white/20 z-10" />
+
         {/* Notes */}
         {activeNotes.map(note => {
-          const currentTime = audioRef.current?.currentTime || 0;
-          const row = 80 - (note.time - currentTime) * 40; // 40% per second
+          const currentTime = gameTimeRef.current;
+          // Visual position calculation
+          // 20% is the hit line (bottom 20%)
+          const row = 80 - (note.time - currentTime) * 40; 
           
           if (row < -20 || row > 120) return null;
 

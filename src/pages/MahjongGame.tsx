@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tent, Compass, Flame, Map, Anchor, HeartPulse, Shield, Sword, 
   Music, Medal, Users, TreePine, Mountain, Sun, Moon, CloudRain,
-  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock
+  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock, Star
 } from 'lucide-react';
 import { AuthUser, Member, Score } from '@/types';
 import GameHeader from '@/components/GameHeader';
@@ -49,74 +49,240 @@ const ICONS = [
 ];
 
 const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember, onBack, isDarkMode }) => {
+  const [level, setLevel] = useState(1);
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
+  const [shuffles, setShuffles] = useState(3);
+  const [showMilestone, setShowMilestone] = useState<{title: string, msg: string, reward: string} | null>(null);
+  const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
 
-  const initGame = () => {
-    const newTiles: Tile[] = [];
-    let idCounter = 0;
+  const globalProgress = useMemo(() => {
+    const levelProgress = tiles.length > 0 ? (tiles.filter(t => t.removed).length / tiles.length) : 0;
+    return ((level - 1 + levelProgress) / 100) * 100;
+  }, [level, tiles]);
+
+  useEffect(() => {
+    const milestones = [25, 50, 75, 100];
+    const currentMilestone = milestones.find(m => level >= m && !reachedMilestones.includes(m));
     
-    // We need pairs. Let's create a 8x4 grid (32 tiles) for simplicity, or a more "Mahjong" shape.
-    // Layer 0: 6x6 (36 tiles)
-    // Layer 1: 4x4 (16 tiles)
-    // Total: 52 tiles (26 pairs)
-    
-    const pairsNeeded = 26;
-    const selectedIcons = [];
-    for (let i = 0; i < pairsNeeded; i++) {
-      const icon = ICONS[i % ICONS.length];
-      selectedIcons.push(icon, icon);
+    if (currentMilestone) {
+      setReachedMilestones(prev => [...prev, currentMilestone]);
+      setShuffles(s => s + 2);
+      
+      const messages: Record<number, {title: string, msg: string}> = {
+        25: { title: "Iniciante de Elite", msg: "Você dominou o primeiro quarto da jornada!" },
+        50: { title: "Mestre do Equilíbrio", msg: "Metade do caminho percorrido com perfeição." },
+        75: { title: "Sábio dos Símbolos", msg: "A maestria absoluta está ao seu alcance." },
+        100: { title: "Lenda do Mahjong", msg: "Você transcedeu todos os desafios!" }
+      };
+      
+      setShowMilestone({
+        ...messages[currentMilestone],
+        reward: "+2 Embaralhamentos"
+      });
+      
+      setTimeout(() => setShowMilestone(null), 4000);
     }
+  }, [level, reachedMilestones]);
+
+  const generateLayout = (currentLevel: number): Tile[] => {
+    const positions: { r: number; c: number; l: number }[] = [];
+    const type = currentLevel % 5;
     
-    // Shuffle icons
-    const shuffledIcons = [...selectedIcons].sort(() => Math.random() - 0.5);
-    
-    // Layer 0 (Bottom)
-    for (let r = 0; r < 6; r++) {
-      for (let c = 0; c < 6; c++) {
-        if (shuffledIcons.length > 0) {
-          const icon = shuffledIcons.pop()!;
-          newTiles.push({
-            id: idCounter++,
-            icon: icon.component,
-            iconName: icon.name,
-            row: r,
-            col: c,
-            layer: 0,
-            removed: false
-          });
+    // Cálculo da quantidade de pedras: Base 24 (12 pares) + 2 pedras (1 par) a cada 10 níveis
+    const targetCount = 24 + Math.floor((currentLevel - 1) / 10) * 2;
+
+    // Gerar posições baseadas no tipo de layout
+    if (type === 1) { // Rectangle
+      const rows = 4;
+      const cols = 6;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          positions.push({ r, c, l: 0 });
         }
       }
-    }
-    
-    // Layer 1 (Top)
-    for (let r = 1; r < 5; r++) {
-      for (let c = 1; c < 5; c++) {
-        if (shuffledIcons.length > 0) {
-          const icon = shuffledIcons.pop()!;
-          newTiles.push({
-            id: idCounter++,
-            icon: icon.component,
-            iconName: icon.name,
-            row: r,
-            col: c,
-            layer: 1,
-            removed: false
-          });
+    } else if (type === 2) { // Pyramid
+      // Camada 0: 4x4 (16)
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) positions.push({ r, c, l: 0 });
+      // Camada 1: 3x3 (9)
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) positions.push({ r: r + 0.5, c: c + 0.5, l: 1 });
+    } else if (type === 3) { // Cross
+      for (let i = 0; i < 7; i++) {
+        positions.push({ r: 3, c: i, l: 0 });
+        if (i !== 3) positions.push({ r: i, c: 3, l: 0 });
+      }
+      for (let i = 1; i < 6; i++) {
+        positions.push({ r: 3, c: i, l: 1 });
+        if (i !== 3) positions.push({ r: i, c: 3, l: 1 });
+      }
+    } else if (type === 4) { // Hollow Square
+      for (let i = 0; i < 6; i++) {
+        positions.push({ r: 0, c: i, l: 0 });
+        positions.push({ r: 5, c: i, l: 0 });
+        if (i > 0 && i < 5) {
+          positions.push({ r: i, c: 0, l: 0 });
+          positions.push({ r: i, c: 5, l: 0 });
         }
+      }
+    } else { // Clusters
+      for (let i = 0; i < 24; i++) {
+        positions.push({ r: Math.floor(i / 6), c: i % 6, l: 0 });
       }
     }
 
+    // Ajustar para o targetCount exato do nível
+    let finalPositions = [...positions];
+    if (finalPositions.length > targetCount) {
+      finalPositions = finalPositions.slice(0, targetCount);
+    } else {
+      // Adicionar pedras extras se o layout base for menor que o necessário
+      while (finalPositions.length < targetCount) {
+        const last = finalPositions[finalPositions.length - 1] || { r: 0, c: 0, l: 0 };
+        finalPositions.push({ 
+          r: (last.r + 1) % 6, 
+          c: (last.c + 1) % 8, 
+          l: last.l 
+        });
+      }
+    }
+
+    // Garantir que o número de pedras seja par
+    if (finalPositions.length % 2 !== 0) finalPositions.pop();
+
+    // Reverse Simulation to guarantee solvability
+    const tilesWithIcons: Tile[] = finalPositions.map((p, i) => ({
+      id: i,
+      icon: null as any,
+      iconName: '',
+      row: p.r,
+      col: p.c,
+      layer: p.l,
+      removed: false
+    }));
+
+    const tempTiles = [...tilesWithIcons];
+    const iconPool = [...ICONS].sort(() => Math.random() - 0.5);
+    let iconIndex = 0;
+
+    const isVerticallyBlocking = (t1: Tile, t2: Tile) => {
+      return Math.abs(t1.row - t2.row) < 0.7 && Math.abs(t1.col - t2.col) < 0.7;
+    };
+
+    const isSelectableInSimulation = (tile: Tile, currentTiles: Tile[]) => {
+      const onTop = currentTiles.some(t => 
+        t.id !== tile.id &&
+        t.layer > tile.layer && 
+        isVerticallyBlocking(t, tile)
+      );
+      if (onTop) return false;
+      const leftBlocked = currentTiles.some(t => 
+        t.id !== tile.id &&
+        t.layer === tile.layer && 
+        t.row === tile.row && 
+        t.col === tile.col - 1
+      );
+      const rightBlocked = currentTiles.some(t => 
+        t.id !== tile.id &&
+        t.layer === tile.layer && 
+        t.row === tile.row && 
+        t.col === tile.col + 1
+      );
+      return !leftBlocked || !rightBlocked;
+    };
+
+    const workingSet = [...tilesWithIcons];
+    const finalTiles: Tile[] = [];
+
+    while (workingSet.length > 0) {
+      const selectable = workingSet.filter(t => isSelectableInSimulation(t, workingSet));
+      
+      let t1: Tile | undefined;
+      let t2: Tile | undefined;
+
+      if (selectable.length >= 2) {
+        const idx1 = Math.floor(Math.random() * selectable.length);
+        let idx2 = Math.floor(Math.random() * selectable.length);
+        while (idx1 === idx2) idx2 = Math.floor(Math.random() * selectable.length);
+        t1 = selectable[idx1];
+        t2 = selectable[idx2];
+      } else {
+        // Fallback: Encontrar qualquer par que não se bloqueie verticalmente
+        for (let i = 0; i < workingSet.length; i++) {
+          for (let j = i + 1; j < workingSet.length; j++) {
+            if (!isVerticallyBlocking(workingSet[i], workingSet[j])) {
+              t1 = workingSet[i];
+              t2 = workingSet[j];
+              break;
+            }
+          }
+          if (t1) break;
+        }
+        if (!t1) {
+          t1 = workingSet[0];
+          t2 = workingSet[1];
+        }
+      }
+
+      if (t1 && t2) {
+        const icon = iconPool[iconIndex % iconPool.length];
+        iconIndex++;
+        finalTiles.push({...t1, icon: icon.component, iconName: icon.name});
+        finalTiles.push({...t2, icon: icon.component, iconName: icon.name});
+        const id1 = t1.id;
+        const id2 = t2.id;
+        workingSet.splice(workingSet.findIndex(t => t.id === id1), 1);
+        workingSet.splice(workingSet.findIndex(t => t.id === id2), 1);
+      } else {
+        break;
+      }
+    }
+    return finalTiles;
+  };
+
+  const initGame = (lvl = 1) => {
+    const newTiles = generateLayout(lvl);
     setTiles(newTiles);
-    setScore(0);
-    setSeconds(0);
+    if (lvl === 1) {
+      setScore(0);
+      setSeconds(0);
+      setShuffles(3);
+    }
+    setLevel(lvl);
     setIsGameOver(false);
     setIsStarted(true);
     setSelectedId(null);
+  };
+
+  const handleShuffle = () => {
+    if (shuffles <= 0) return;
+    
+    const remainingTiles = tiles.filter(t => !t.removed);
+    const icons = remainingTiles.map(t => ({ name: t.iconName, component: t.icon }));
+    const shuffledIcons = [...icons].sort(() => Math.random() - 0.5);
+    
+    const newTiles = tiles.map(t => {
+      if (t.removed) return t;
+      const icon = shuffledIcons.pop()!;
+      return { ...t, icon: icon.component, iconName: icon.name };
+    });
+    
+    setTiles(newTiles);
+    setShuffles(prev => prev - 1);
+    setSelectedId(null);
+  };
+
+  const checkPossibleMoves = (currentTiles: Tile[]) => {
+    const selectable = currentTiles.filter(t => !t.removed && isTileSelectable(t));
+    for (let i = 0; i < selectable.length; i++) {
+      for (let j = i + 1; j < selectable.length; j++) {
+        if (selectable[i].iconName === selectable[j].iconName) return true;
+      }
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -132,15 +298,11 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const isTileSelectable = (tile: Tile) => {
     if (tile.removed) return false;
     
-    // A tile is selectable if:
-    // 1. No tile is on top of it (higher layer at same or overlapping position)
-    // 2. It has at least one side (left or right) free in its own layer
-    
     const onTop = tiles.some(t => 
       !t.removed && 
       t.layer > tile.layer && 
-      Math.abs(t.row - tile.row) < 1 && 
-      Math.abs(t.col - tile.col) < 1
+      Math.abs(t.row - tile.row) < 0.7 && 
+      Math.abs(t.col - tile.col) < 0.7
     );
     
     if (onTop) return false;
@@ -175,7 +337,6 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       
       const firstTile = tiles.find(t => t.id === selectedId)!;
       if (firstTile.iconName === tile.iconName) {
-        // Match!
         const newTiles = tiles.map(t => 
           (t.id === firstTile.id || t.id === tile.id) ? { ...t, removed: true } : t
         );
@@ -184,10 +345,15 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
         setSelectedId(null);
         
         if (newTiles.every(t => t.removed)) {
-          setIsGameOver(true);
+          if (level < 100) {
+            setTimeout(() => {
+              initGame(level + 1);
+            }, 1000);
+          } else {
+            setIsGameOver(true);
+          }
         }
       } else {
-        // No match
         setSelectedId(tile.id);
       }
     }
@@ -205,9 +371,8 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       const points = Math.max(10, Math.floor(score * 2 - seconds / 10));
       const newScore: Score = {
         date: new Date().toLocaleDateString('pt-BR'),
-        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
         mahjongGame: points
-      };
+      } as Score;
       onUpdateMember({
         ...member,
         scores: [...(member.scores || []), newScore]
@@ -216,31 +381,108 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     onBack();
   };
 
+  const layoutBounds = useMemo(() => {
+    if (tiles.length === 0) return { offsetX: 0, offsetY: 0 };
+    const maxCol = Math.max(...tiles.map(t => t.col));
+    const maxRow = Math.max(...tiles.map(t => t.row));
+    // 16 e 20 são as larguras/alturas aproximadas das peças em %
+    return {
+      offsetX: (100 - (maxCol * 14 + 16)) / 2,
+      offsetY: (100 - (maxRow * 16 + 20)) / 2
+    };
+  }, [tiles]);
+
+  const progress = useMemo(() => {
+    if (tiles.length === 0) return 0;
+    const removedCount = tiles.filter(t => t.removed).length;
+    return (removedCount / tiles.length) * 100;
+  }, [tiles]);
+
+  const noMovesLeft = isStarted && !isGameOver && tiles.some(t => !t.removed) && !checkPossibleMoves(tiles);
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
       <GameHeader 
         stats={[
+          { label: 'Nível', value: `${level}/100` },
           { label: 'Tempo', value: formatTime(seconds) },
           { label: 'Pontos', value: score }
         ]}
-        onRefresh={initGame}
+        onRefresh={() => initGame(level)}
       />
 
-      <main className="flex-1 relative p-4 flex items-center justify-center overflow-auto">
+      {isStarted && !isGameOver && (
+        <div className="px-4 pt-2 relative">
+          <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner relative">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${globalProgress}%` }}
+              className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+            />
+            {/* Marcadores */}
+            {[25, 50, 75].map(m => (
+              <div 
+                key={m}
+                className={`absolute top-0 h-full w-0.5 z-10 ${globalProgress >= m ? 'bg-white/50' : 'bg-slate-400/20'}`}
+                style={{ left: `${m}%` }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between mt-1">
+            <div className="flex gap-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Global</span>
+              <div className="flex gap-2">
+                {[25, 50, 75, 100].map(m => (
+                  <span key={m} className={`text-[8px] font-bold px-1.5 rounded-full ${level >= m ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+              Nível {level} / 100 ({Math.round(globalProgress)}%)
+            </span>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 relative p-4 flex flex-col items-center justify-center overflow-auto">
+        <AnimatePresence>
+          {showMilestone && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              className="absolute inset-0 z-50 flex items-center justify-center p-6 pointer-events-none"
+            >
+              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-blue-500/30 p-8 rounded-[3rem] shadow-2xl text-center max-w-xs pointer-events-auto">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
+                  <Star size={40} className="text-white animate-pulse" />
+                </div>
+                <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">{showMilestone.title}</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">{showMilestone.msg}</p>
+                <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-full">
+                  <RefreshCw size={14} className="text-blue-600" />
+                  <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{showMilestone.reward}</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {!isStarted ? (
           <div className="text-center space-y-6 max-w-xs animate-in fade-in zoom-in duration-500">
             <div className="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl shadow-blue-600/20 rotate-12">
               <Medal size={48} className="text-white" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mahjong</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Combine os pares de símbolos dos desbravadores para limpar o tabuleiro.</p>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mahjong 3D</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Combine os pares de símbolos. São 100 níveis de desafio crescente!</p>
             </div>
             <button 
-              onClick={initGame}
+              onClick={() => initGame(1)}
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
             >
-              Começar Desafio
+              Começar Nível 1
             </button>
           </div>
         ) : isGameOver ? (
@@ -249,13 +491,13 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               <Trophy size={48} className="text-white" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Vitória!</h3>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Você limpou todo o tabuleiro</p>
+              <h3 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mestre do Mahjong!</h3>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Você completou os 100 níveis!</p>
             </div>
             <div className="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-xl border border-slate-100 dark:border-slate-700">
               <p className="text-5xl font-black text-blue-600 mb-2">{score}</p>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pontos Conquistados</p>
-              <div className="mt-4 text-xs font-bold text-slate-500">Tempo: {formatTime(seconds)}</div>
+              <div className="mt-4 text-xs font-bold text-slate-500">Tempo Total: {formatTime(seconds)}</div>
             </div>
             <button 
               onClick={handleFinish}
@@ -265,39 +507,86 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
             </button>
           </div>
         ) : (
-          <div className="relative w-full max-w-md aspect-square grid grid-cols-6 gap-1">
-            {tiles.map(tile => (
-              <motion.div
-                key={tile.id}
-                initial={false}
-                animate={{ 
-                  scale: tile.removed ? 0 : 1,
-                  opacity: tile.removed ? 0 : 1,
-                  zIndex: tile.layer * 10 + (selectedId === tile.id ? 5 : 0)
-                }}
-                className={`
-                  relative aspect-square rounded-xl flex items-center justify-center transition-all cursor-pointer
-                  ${tile.removed ? 'pointer-events-none' : ''}
-                  ${isTileSelectable(tile) ? 'hover:scale-105 active:scale-95' : 'opacity-40 grayscale'}
-                  ${selectedId === tile.id ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-200' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-md'}
-                  ${tile.layer === 1 ? 'border-2 border-blue-100 dark:border-blue-900/30' : ''}
-                `}
-                style={{
-                  gridRow: tile.row + 1,
-                  gridColumn: tile.col + 1,
-                  transform: `translate(${tile.layer * 4}px, ${tile.layer * -4}px)`
-                }}
-                onClick={() => handleTileClick(tile)}
-              >
-                {tile.icon}
-                {tile.layer === 1 && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full" />
-                )}
-              </motion.div>
-            ))}
+          <div className="relative w-full max-w-4xl h-[80vh] flex items-center justify-center">
+            <div className="relative w-full h-full max-w-2xl max-h-[600px]">
+              {tiles.map(tile => (
+                <motion.div
+                  key={tile.id}
+                  initial={false}
+                  animate={{ 
+                    scale: tile.removed ? 0 : 1,
+                    opacity: tile.removed ? 0 : 1,
+                    zIndex: tile.layer * 10 + (selectedId === tile.id ? 5 : 0)
+                  }}
+                  className={`
+                    absolute w-[16%] aspect-[3/4] rounded-lg flex items-center justify-center transition-all cursor-pointer
+                    ${tile.removed ? 'pointer-events-none' : ''}
+                    ${isTileSelectable(tile) ? 'hover:-translate-y-1 active:scale-95' : 'opacity-40 grayscale'}
+                    ${selectedId === tile.id ? 'bg-blue-600 text-white ring-4 ring-blue-400/50' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'}
+                  `}
+                  style={{
+                    left: `${layoutBounds.offsetX + tile.col * 14 + tile.layer * 0.8}%`,
+                    top: `${layoutBounds.offsetY + tile.row * 16 - tile.layer * 0.8}%`,
+                    boxShadow: !tile.removed ? `
+                      ${tile.layer * 2 + 1}px ${tile.layer * 2 + 1}px 0px ${isDarkMode ? '#1e293b' : '#cbd5e1'},
+                      ${tile.layer * 2 + 2}px ${tile.layer * 2 + 2}px 0px ${isDarkMode ? '#0f172a' : '#94a3b8'},
+                      ${tile.layer * 4 + 4}px ${tile.layer * 4 + 4}px 12px rgba(0,0,0,0.15)
+                    ` : 'none',
+                    border: !tile.removed ? `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` : 'none',
+                  }}
+                  onClick={() => handleTileClick(tile)}
+                >
+                  <div className="transform scale-90 sm:scale-100">
+                    {tile.icon}
+                  </div>
+                  {tile.layer > 0 && (
+                    <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-blue-400/20 rounded-full" />
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
       </main>
+
+      {isStarted && !isGameOver && (
+        <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex items-center justify-between z-30">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleShuffle}
+              disabled={shuffles <= 0}
+              title="Embaralhar peças"
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-base shadow-lg transition-all active:scale-95 ${
+                shuffles > 0 
+                  ? 'bg-blue-600 text-white shadow-blue-600/20' 
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <RefreshCw size={20} className={shuffles > 0 ? 'animate-spin-slow' : ''} />
+              <span className="tabular-nums">{shuffles}</span>
+            </button>
+
+            <AnimatePresence>
+              {noMovesLeft && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="bg-amber-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg"
+                >
+                  ⚠️ Sem movimentos possíveis!
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="hidden sm:block">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Dica: Use o embaralhar se ficar travado
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };
