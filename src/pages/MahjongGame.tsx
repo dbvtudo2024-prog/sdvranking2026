@@ -381,14 +381,37 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     onBack();
   };
 
-  const layoutBounds = useMemo(() => {
-    if (tiles.length === 0) return { offsetX: 0, offsetY: 0 };
+  const layoutInfo = useMemo(() => {
+    if (tiles.length === 0) return { offsetX: 0, offsetY: 0, tileWidth: 16, spacingX: 14, spacingY: 16 };
+    
     const maxCol = Math.max(...tiles.map(t => t.col));
     const maxRow = Math.max(...tiles.map(t => t.row));
-    // 16 e 20 são as larguras/alturas aproximadas das peças em %
+    
+    // Base: 16% de largura. Se tiver muitas colunas/linhas, reduzimos.
+    // Queremos que (maxCol * spacingX + tileWidth) caiba em ~90% da tela
+    let tileWidth = 16;
+    const availableWidth = 92;
+    const availableHeight = 85;
+
+    // Fatores de proporção baseados no design original
+    const getWidth = (tw: number) => maxCol * (tw * 0.85) + tw;
+    const getHeight = (tw: number) => maxRow * (tw * 1.1) + (tw * 1.33);
+
+    // Redução iterativa simples para encontrar o tamanho ideal
+    while (tileWidth > 6 && (getWidth(tileWidth) > availableWidth || getHeight(tileWidth) > availableHeight)) {
+      tileWidth -= 0.5;
+    }
+
+    const spacingX = tileWidth * 0.85;
+    const spacingY = tileWidth * 1.1;
+    const tileHeight = tileWidth * 1.33;
+
     return {
-      offsetX: (100 - (maxCol * 14 + 16)) / 2,
-      offsetY: (100 - (maxRow * 16 + 20)) / 2
+      tileWidth,
+      spacingX,
+      spacingY,
+      offsetX: (100 - (maxCol * spacingX + tileWidth)) / 2,
+      offsetY: (100 - (maxRow * spacingY + tileHeight)) / 2
     };
   }, [tiles]);
 
@@ -519,14 +542,16 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
                     zIndex: tile.layer * 10 + (selectedId === tile.id ? 5 : 0)
                   }}
                   className={`
-                    absolute w-[16%] aspect-[3/4] rounded-lg flex items-center justify-center transition-all cursor-pointer
+                    absolute rounded-lg flex items-center justify-center transition-all cursor-pointer
                     ${tile.removed ? 'pointer-events-none' : ''}
                     ${isTileSelectable(tile) ? 'hover:-translate-y-1 active:scale-95' : 'opacity-40 grayscale'}
                     ${selectedId === tile.id ? 'bg-blue-600 text-white ring-4 ring-blue-400/50' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'}
                   `}
                   style={{
-                    left: `${layoutBounds.offsetX + tile.col * 14 + tile.layer * 0.8}%`,
-                    top: `${layoutBounds.offsetY + tile.row * 16 - tile.layer * 0.8}%`,
+                    width: `${layoutInfo.tileWidth}%`,
+                    aspectRatio: '3/4',
+                    left: `${layoutInfo.offsetX + tile.col * layoutInfo.spacingX + tile.layer * 0.8}%`,
+                    top: `${layoutInfo.offsetY + tile.row * layoutInfo.spacingY - tile.layer * 0.8}%`,
                     boxShadow: !tile.removed ? `
                       ${tile.layer * 2 + 1}px ${tile.layer * 2 + 1}px 0px ${isDarkMode ? '#1e293b' : '#cbd5e1'},
                       ${tile.layer * 2 + 2}px ${tile.layer * 2 + 2}px 0px ${isDarkMode ? '#0f172a' : '#94a3b8'},
@@ -536,7 +561,10 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
                   }}
                   onClick={() => handleTileClick(tile)}
                 >
-                  <div className="transform scale-90 sm:scale-100">
+                  <div 
+                    className="transform transition-transform"
+                    style={{ scale: layoutInfo.tileWidth / 16 }}
+                  >
                     {tile.icon}
                   </div>
                   {tile.layer > 0 && (
