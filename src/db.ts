@@ -397,7 +397,7 @@ export const DatabaseService = {
   },
 
   async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
-    const payload = questions.map(q => {
+    for (const q of questions) {
       let dbCategory = q.category;
       let dbQuestion = q.question;
 
@@ -406,16 +406,26 @@ export const DatabaseService = {
         dbQuestion = `[${q.category}] ${q.question}`;
       }
 
-      return {
-        category: dbCategory,
-        question: dbQuestion,
-        options: q.options,
-        correct_answer: q.correct_answer,
-        image_url: q.image_url,
-        tip: q.tip
-      };
-    });
-    await supabase.from('quiz_questions').insert(payload);
+      // Check for duplicate
+      const { data } = await supabase
+        .from('quiz_questions')
+        .select('id')
+        .eq('category', dbCategory)
+        .eq('question', dbQuestion)
+        .limit(1);
+
+      if (!data || data.length === 0) {
+        const payload = {
+          category: dbCategory,
+          question: dbQuestion,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          image_url: q.image_url,
+          tip: q.tip
+        };
+        await supabase.from('quiz_questions').insert([payload]);
+      }
+    }
   },
 
   subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
@@ -833,11 +843,17 @@ export const DatabaseService = {
   },
 
   async seedThreeCluesQuestions(questions: Omit<ThreeCluesQuestion, 'id'>[]) {
-    console.log("Tentando importar questões:", questions);
-    const { error } = await supabase.from('three_clues_questions').insert(questions);
-    if (error) {
-      console.error("Erro Supabase (seed):", error);
-      throw error;
+    for (const q of questions) {
+      const { data } = await supabase
+        .from('three_clues_questions')
+        .select('id')
+        .eq('answer', q.answer)
+        .limit(1);
+
+      if (!data || data.length === 0) {
+        const { error } = await supabase.from('three_clues_questions').insert([q]);
+        if (error) console.error("Erro ao inserir questão de 3 dicas:", error);
+      }
     }
   },
 
@@ -979,6 +995,16 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
+  async seedSpecialtyStudies(studies: Omit<SpecialtyStudy, 'id'>[]) {
+    for (const study of studies) {
+      const { data } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
+      if (!data || data.length === 0) {
+        const { error } = await supabase.from('specialty_studies').insert([study]);
+        if (error) console.error("Erro ao inserir estudo de especialidade:", error);
+      }
+    }
+  },
+
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
   async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
     const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
@@ -1113,6 +1139,22 @@ export const DatabaseService = {
         callback([...localImages]);
       })
       .subscribe();
+  },
+
+  async seedGameAssets(assets: { game_type: string, name: string, url: string }[]) {
+    for (const asset of assets) {
+      const { data } = await supabase
+        .from('game_assets')
+        .select('id')
+        .eq('game_type', asset.game_type)
+        .eq('name', asset.name)
+        .limit(1);
+
+      if (!data || data.length === 0) {
+        const { error } = await supabase.from('game_assets').insert([asset]);
+        if (error) console.error("Erro ao inserir asset de jogo:", error);
+      }
+    }
   },
 
   // --- ATIVOS DE JOGOS (IMAGENS DINÂMICAS) ---

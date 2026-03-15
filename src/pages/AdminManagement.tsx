@@ -4,6 +4,8 @@ import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, T
 import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
 import { DatabaseService } from '@/db';
 
+import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_SPECIALTY_STUDY_QUESTIONS, NEW_KNOTS_ASSETS } from '@/seedData';
+
 interface AdminManagementProps {
   members: Member[];
   userEmail?: string;
@@ -98,6 +100,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [showCounselorModal, setShowCounselorModal] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [editCounselor, setEditCounselor] = useState<CounselorDB | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -221,6 +224,25 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     } catch (error) { alert("Erro ao salvar conselheiro."); } finally { setIsProcessing(false); }
   };
 
+  const handleSeedAllData = async () => {
+    if (!window.confirm("Deseja adicionar 20 novas questões inéditas para todos os jogos? (Duplicatas serão ignoradas)")) return;
+    setIsSeeding(true);
+    try {
+      await DatabaseService.seedQuizQuestions(NEW_QUIZ_QUESTIONS);
+      await DatabaseService.seedThreeCluesQuestions(NEW_THREE_CLUES_QUESTIONS);
+      await DatabaseService.seedWhoAmIQuestions(NEW_WHO_AM_I_QUESTIONS);
+      await DatabaseService.seedScrambledVerses(NEW_SCRAMBLED_VERSES);
+      await DatabaseService.seedSpecialtyStudies(NEW_SPECIALTY_STUDY_QUESTIONS);
+      await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);
+      alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");
+    } catch (error) {
+      console.error("Erro ao semear dados:", error);
+      alert("❌ ERRO: Falha ao adicionar novas questões.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const GameLockButton = ({ label, active, onToggle, icon: Icon }: any) => (
     <button 
       onClick={onToggle}
@@ -333,6 +355,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 className={`w-full ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border-blue-900/30' : 'bg-blue-50 text-blue-600 border-blue-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
               >
                 <Zap size={24} /> GERENCIAR IMAGENS (ASSETS)
+              </button>
+              <button 
+                onClick={handleSeedAllData} 
+                disabled={isSeeding}
+                className={`w-full ${isDarkMode ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' : 'bg-emerald-50 text-emerald-600 border-emerald-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
+              >
+                {isSeeding ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
+                ADICIONAR 20 NOVAS QUESTÕES (TODOS OS JOGOS)
               </button>
            </div>
         </div>
