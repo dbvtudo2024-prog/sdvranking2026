@@ -50,6 +50,66 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
+  const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
+
+  const isAvailable = useMemo(() => {
+    if (override || isAdmin) return true;
+    const day = new Date().getDay();
+    return day !== 5; // Bloqueado na Sexta
+  }, [override, isAdmin]);
+
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day + 1) % 7;
+    const start = new Date(now);
+    start.setDate(now.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, []);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (isAdmin) return false;
+    const currentMember = members.find(m => m.id === user.id);
+    if (!currentMember) return false;
+    return currentMember.scores.some(s => {
+      const [day, month, year] = s.date.split('/').map(Number);
+      const scoreDate = new Date(year, month - 1, day);
+      scoreDate.setHours(0, 0, 0, 0);
+      return scoreDate >= cycleStart && (s as any).threeCluesGame !== undefined;
+    });
+  }, [members, user.id, cycleStart, isAdmin]);
+
+  if (!isAvailable && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
+        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+          <Lock size={40} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+        </div>
+        <button onClick={onBack} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
+      </div>
+    );
+  }
+
+  if (hasPlayedThisWeek && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
+        <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
+          <CheckCircle2 size={40} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Concluído</h3>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+        </div>
+        <button onClick={onBack} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -111,24 +171,26 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   };
 
   const handleFinish = () => {
-    const member = members.find(m => m.id === user.id);
-    if (member) {
-      const newScore: Score = {
-        date: new Date().toLocaleDateString('pt-BR'),
-        punctuality: 0,
-        uniform: 0,
-        material: 0,
-        bible: 0,
-        voluntariness: 0,
-        activities: 0,
-        treasury: 0,
-        threeCluesGame: score
-      };
-      onUpdateMember({
-        ...member,
-        scores: [...(member.scores || []), newScore]
-      });
+    const currentMember = members.find(m => m.id === user.id);
+    if (!currentMember) return;
+
+    const todayStr = new Date().toLocaleDateString('pt-BR');
+    const updatedScores = [...(currentMember.scores || [])];
+    const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
+
+    const finalScore = score;
+
+    if (todayScoreIndex >= 0) {
+      (updatedScores[todayScoreIndex] as any).threeCluesGame = finalScore;
+    } else {
+      updatedScores.push({
+        date: todayStr,
+        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+        threeCluesGame: finalScore
+      } as any);
     }
+
+    onUpdateMember({ ...currentMember, scores: updatedScores });
     onBack();
   };
 

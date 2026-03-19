@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Play, RotateCcw, Trophy, Music, Settings, List } from 'lucide-react';
+import { Play, RotateCcw, Trophy, Music, Settings, List, CheckCircle2, Home } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member, PianoSong } from '@/types';
+import { AuthUser, Member, PianoSong, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import GameInstructions from '@/components/GameInstructions';
 import { DatabaseService } from '@/db';
@@ -12,6 +12,7 @@ interface PianoTilesGameProps {
   members: Member[];
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
+  override?: boolean;
 }
 
 interface Song {
@@ -20,7 +21,7 @@ interface Song {
   url: string;
 }
 
-const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu');
   const [showInstructions, setShowInstructions] = useState(true);
   const [score, setScore] = useState(0);
@@ -28,7 +29,29 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [activeNotes, setActiveNotes] = useState<{ id: number; col: number; time: number; hit: boolean }[]>([]);
   
+  const currentMember = useMemo(() => 
+    members.find(m => m.id === user.id),
+  [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (override) return false;
+    if (!currentMember?.scores) return false;
+    
+    const now = new Date();
+    const day = now.getDay();
+    // Saturday (6) is the start of the week
+    const diff = (day + 1) % 7;
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
+
+    return (currentMember.scores || []).some(s => 
+      s.gameId === 'pianoTilesGame' && new Date(s.date) >= saturday
+    );
+  }, [currentMember, override]);
+
   useEffect(() => {
+    if (hasPlayedThisWeek) return;
     const sub = DatabaseService.subscribePianoSongs((dbSongs) => {
       const formattedSongs = dbSongs.map(s => ({
         id: s.id,
@@ -41,7 +64,7 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
       }
     });
     return () => sub.unsubscribe();
-  }, [selectedSong]);
+  }, [selectedSong, hasPlayedThisWeek]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -220,30 +243,22 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   const hasSavedScore = useRef(false);
 
   const saveScore = useCallback(() => {
-    if (hasSavedScore.current) return;
+    if (hasSavedScore.current || !currentMember) return;
     
-    const member = members.find(m => m.id === user.id);
-    if (member) {
-      const today = new Date().toLocaleDateString('pt-BR');
-      const newScores = [...member.scores];
-      const todayScoreIndex = newScores.findIndex(s => s.date === today);
-      
-      if (todayScoreIndex >= 0) {
-        newScores[todayScoreIndex] = {
-          ...newScores[todayScoreIndex],
-          pianoTilesGame: Math.max(newScores[todayScoreIndex].pianoTilesGame || 0, score)
-        };
-      } else {
-        newScores.push({
-          date: today,
-          punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-          pianoTilesGame: score
-        });
-      }
-      hasSavedScore.current = true;
-      onUpdateMember({ ...member, scores: newScores });
-    }
-  }, [score, members, user.id, onUpdateMember]);
+    const newScore = {
+      gameId: 'pianoTilesGame',
+      points: score,
+      date: new Date().toISOString()
+    };
+
+    const updatedMember = {
+      ...currentMember,
+      scores: [...(currentMember.scores || []), newScore]
+    };
+
+    hasSavedScore.current = true;
+    onUpdateMember(updatedMember);
+  }, [score, currentMember, onUpdateMember]);
 
   useEffect(() => {
     if (gameState === 'gameover') {
@@ -252,6 +267,27 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
       hasSavedScore.current = false;
     }
   }, [gameState, saveScore]);
+
+  if (hasPlayedThisWeek) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-950">
+        <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={48} className="text-green-400" />
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
+        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você já completou este desafio esta semana. Volte na próxima segunda!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Home size={20} />
+          Voltar ao Início
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-950 overflow-hidden select-none touch-none">

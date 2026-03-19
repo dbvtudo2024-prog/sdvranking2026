@@ -56,26 +56,35 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
-  const { isAvailable, hasPlayedToday } = useMemo(() => {
+  const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const isSunday = now.getDay() === 0;
-    const available = isSunday || memoryOverride;
+    const day = now.getDay();
+    // Open from Saturday (6) to Thursday (4). Locked on Friday (5).
+    const available = day !== 5 || memoryOverride;
     
-    let alreadyPlayed = false;
+    // Calculate start of current week (Saturday)
+    const diff = (day + 1) % 7;
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
+
+    let played = false;
     if (currentMember) {
-      const todayStr = now.toLocaleDateString('pt-BR');
-      alreadyPlayed = (currentMember.scores || []).some(s => s.date === todayStr && s.memoryGame !== undefined);
+      played = (currentMember.scores || []).some(s => {
+        const scoreDate = new Date(s.date);
+        return scoreDate >= saturday && s.gameId === 'memoryGame';
+      });
     }
     
-    return { isAvailable: available, hasPlayedToday: alreadyPlayed };
+    return { isAvailable: available, hasPlayedThisWeek: played };
   }, [memoryOverride, currentMember]);
 
   useEffect(() => {
-    if (isAvailable && (!hasPlayedToday || user.role === UserRole.LEADERSHIP)) {
+    if (isAvailable && (!hasPlayedThisWeek || user.role === UserRole.LEADERSHIP)) {
       // Don't auto-initialize, let user pick difficulty
     }
     return () => stopTimer();
-  }, [isAvailable, hasPlayedToday, user.role]);
+  }, [isAvailable, hasPlayedThisWeek, user.role]);
 
   const startTimer = () => {
     stopTimer();
@@ -178,19 +187,13 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   const handleFinish = () => {
     if (currentMember) {
       const points = calculatePoints();
-      const newScoreEntry: Score = {
-        date: new Date().toLocaleDateString('pt-BR'),
-        punctuality: 0,
-        uniform: 0,
-        material: 0,
-        bible: 0,
-        voluntariness: 0,
-        activities: 0,
-        treasury: 0,
-        memoryGame: points
+      const newScore = {
+        gameId: 'memoryGame',
+        points: points,
+        date: new Date().toISOString()
       };
       
-      const updatedScores = Array.isArray(currentMember.scores) ? [...currentMember.scores, newScoreEntry] : [newScoreEntry];
+      const updatedScores = [...(currentMember.scores || []), newScore];
 
       onUpdateMember({
         ...currentMember,
@@ -200,12 +203,12 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     onBack();
   };
 
-  if (hasPlayedToday && user.role === UserRole.PATHFINDER) {
+  if (hasPlayedThisWeek && user.role === UserRole.PATHFINDER) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
-        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Limite Diário</h2>
-        <p className="text-slate-500 mb-8 text-sm">Você já jogou hoje. Volte no próximo domingo!</p>
+        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Concluído</h2>
+        <p className="text-slate-500 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
       </div>
     );
   }
@@ -214,8 +217,8 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
-        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Aguarde o Domingo</h2>
-        <p className="text-slate-500 mb-8 text-sm">O jogo abre automaticamente aos domingos.</p>
+        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Indisponível</h2>
+        <p className="text-slate-500 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
       </div>
     );
   }

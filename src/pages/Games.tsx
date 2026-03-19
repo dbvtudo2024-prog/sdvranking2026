@@ -63,79 +63,132 @@ const Games: React.FC<GamesProps> = ({
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
-  const todayStr = useMemo(() => new Date().toLocaleDateString('pt-BR'), []);
   const isGameDay = useMemo(() => {
     const day = new Date().getDay();
-    return day !== 5; // Unlocked from Saturday (6) to Thursday (4). Locked on Friday (5).
+    // Aberto de Sábado (6) até Quinta (4).
+    // Bloqueado na Sexta (5).
+    return day !== 5;
   }, []);
+
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    // O ciclo começa no sábado (6).
+    // Dias desde o último sábado:
+    // Sáb: 0, Dom: 1, Seg: 2, Ter: 3, Qua: 4, Qui: 5, Sex: 6
+    const diff = (day + 1) % 7;
+    const start = new Date(now);
+    start.setDate(now.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, []);
+
+  const checkPlayedThisWeek = (gameId: string) => {
+    if (!currentMember || isAdmin) return false;
+    return (currentMember.scores || []).some(s => {
+      const scoreDate = new Date(s.date);
+      if (isNaN(scoreDate.getTime())) {
+        // Fallback for old date format DD/MM/YYYY
+        const parts = s.date.split('/');
+        if (parts.length === 3) {
+          const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          return d >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
+        }
+        return false;
+      }
+      return scoreDate >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
+    });
+  };
 
   const quizStatus = useMemo(() => {
     const unlocked = isGameDay || quizOverride || isAdmin;
     if (!currentMember) return { unlocked, alreadyPlayed: false };
-    const playedDesb = currentMember.scores.some(s => s.date === todayStr && s.quizCategory === 'Desbravadores');
-    const playedBiblia = currentMember.scores.some(s => s.date === todayStr && s.quizCategory === 'Bíblia');
+    
+    const playedDesb = (currentMember.scores || []).some(s => {
+      const scoreDate = new Date(s.date);
+      const d = isNaN(scoreDate.getTime()) ? new Date(s.date.split('/').reverse().join('-')) : scoreDate;
+      return d >= cycleStart && (s.quizCategory === 'Desbravadores' || (s as any).quizCategory === 'Desbravadores');
+    });
+    const playedBiblia = (currentMember.scores || []).some(s => {
+      const scoreDate = new Date(s.date);
+      const d = isNaN(scoreDate.getTime()) ? new Date(s.date.split('/').reverse().join('-')) : scoreDate;
+      return d >= cycleStart && (s.quizCategory === 'Bíblia' || (s as any).quizCategory === 'Bíblia');
+    });
+    
     return { unlocked, alreadyPlayed: playedDesb && playedBiblia && !isAdmin };
-  }, [currentMember, todayStr, isGameDay, quizOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
 
   const memoryStatus = useMemo(() => {
     const unlocked = isGameDay || memoryOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.memoryGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('memoryGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, memoryOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, memoryOverride, isAdmin]);
 
   const specialtyStatus = useMemo(() => {
     const unlocked = isGameDay || specialtyOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.specialtyGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('specialtyGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, specialtyOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, specialtyOverride, isAdmin]);
 
   const threeCluesStatus = useMemo(() => {
     const unlocked = isGameDay || threeCluesOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.threeCluesGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('threeCluesGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, threeCluesOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, threeCluesOverride, isAdmin]);
 
   const puzzleStatus = useMemo(() => {
     const unlocked = isGameDay || puzzleOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && s.puzzleGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('puzzleGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, puzzleOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, puzzleOverride, isAdmin]);
 
   const knotsStatus = useMemo(() => {
     const unlocked = isGameDay || knotsOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).knotsGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('knotsGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, knotsOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, knotsOverride, isAdmin]);
 
   const whoAmIStatus = useMemo(() => {
     const unlocked = isGameDay || whoAmIOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).whoAmIGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('whoAmIGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, whoAmIOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, whoAmIOverride, isAdmin]);
 
   const specialtyTrailStatus = useMemo(() => {
     const unlocked = isGameDay || specialtyTrailOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).specialtyTrailGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('specialtyTrailGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, specialtyTrailOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, specialtyTrailOverride, isAdmin]);
 
   const scrambledVerseStatus = useMemo(() => {
     const unlocked = isGameDay || scrambledVerseOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).scrambledVerseGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('scrambledVerseGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, scrambledVerseOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, scrambledVerseOverride, isAdmin]);
 
   const natureIdStatus = useMemo(() => {
     const unlocked = isGameDay || natureIdOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).natureIdGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('natureIdGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, natureIdOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, natureIdOverride, isAdmin]);
 
   const firstAidStatus = useMemo(() => {
     const unlocked = isGameDay || firstAidOverride || isAdmin;
-    const alreadyPlayed = (currentMember?.scores.some(s => s.date === todayStr && (s as any).firstAidGame !== undefined) || false) && !isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('firstAidGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, todayStr, isGameDay, firstAidOverride, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
+
+  const ballSortStatus = useMemo(() => {
+    const unlocked = isGameDay || isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('ballSortGame');
+    return { unlocked, alreadyPlayed };
+  }, [currentMember, cycleStart, isGameDay, isAdmin]);
+
+  const brickBreakerStatus = useMemo(() => {
+    const unlocked = isGameDay || isAdmin;
+    const alreadyPlayed = checkPlayedThisWeek('brickBreakerGame');
+    return { unlocked, alreadyPlayed };
+  }, [currentMember, cycleStart, isGameDay, isAdmin]);
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
@@ -161,8 +214,8 @@ const Games: React.FC<GamesProps> = ({
       case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
       case 'pianotiles': gameComponent = <PianoTilesGame {...gameProps} />; break;
       case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
-      case 'ballsort': gameComponent = <BallSortGame onBack={() => setActiveGame('hub')} isDarkMode={isDarkMode} />; break;
-      case 'brickbreaker': gameComponent = <BrickBreakerGame onBack={() => setActiveGame('hub')} isDarkMode={isDarkMode} />; break;
+      case 'ballsort': gameComponent = <BallSortGame {...gameProps} override={isAdmin} isDarkMode={isDarkMode} />; break;
+      case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} override={isAdmin} isDarkMode={isDarkMode} />; break;
       default: return null;
     }
 
@@ -222,17 +275,6 @@ const Games: React.FC<GamesProps> = ({
     <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 max-w-sm mx-auto pt-8 pb-24 px-4 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
       <div className="flex flex-col gap-4 w-full">
         {/* DUELO ARENA 1x1 NO TOPO */}
-        <div className="grid grid-cols-2 gap-4 shrink-0">
-          <button onClick={() => setActiveGame('ballsort')} className="h-24 rounded-3xl font-black flex flex-col items-center justify-center gap-1 transition-all bg-emerald-500 dark:bg-emerald-600 border-emerald-700 dark:border-emerald-800 border-b-4 text-white shadow-lg active:scale-95 px-4">
-            <Shuffle size={24} className="text-white" />
-            <span className="uppercase tracking-widest text-[10px]">Organizar Cores</span>
-          </button>
-          <button onClick={() => setActiveGame('brickbreaker')} className="h-24 rounded-3xl font-black flex flex-col items-center justify-center gap-1 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 dark:border-orange-800 border-b-4 text-white shadow-lg active:scale-95 px-4">
-            <Gamepad2 size={24} className="text-white" />
-            <span className="uppercase tracking-widest text-[10px]">Destruir Blocos</span>
-          </button>
-        </div>
-
         <button onClick={() => setActiveGame('1x1')} className="w-full h-24 rounded-3xl font-black flex items-center justify-center gap-4 transition-all bg-blue-600 dark:bg-blue-700 border-blue-800 dark:border-blue-900 border-b-4 text-white shadow-xl shadow-blue-500/20 dark:shadow-none active:scale-95 px-6 shrink-0">
           <Sword size={28} className="text-yellow-400 shrink-0" />
           <div className="flex flex-col items-start leading-tight min-w-0">
@@ -278,62 +320,72 @@ const Games: React.FC<GamesProps> = ({
         {/* QUIZ */}
         <button disabled={!quizStatus.unlocked || quizStatus.alreadyPlayed} onClick={() => setActiveGame('quiz')} className={getButtonStyles(quizStatus.unlocked, quizStatus.alreadyPlayed)}>
           {quizStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Brain size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio do Quiz</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{quizStatus.alreadyPlayed ? 'Concluído hoje' : !quizStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Teste seus conhecimentos'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio do Quiz</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{quizStatus.alreadyPlayed ? 'Concluído esta semana' : !quizStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Teste seus conhecimentos'}</span></div>
         </button>
 
         {/* TRÊS DICAS */}
         <button disabled={!threeCluesStatus.unlocked || threeCluesStatus.alreadyPlayed} onClick={() => setActiveGame('threeclues')} className={getButtonStyles(threeCluesStatus.unlocked, threeCluesStatus.alreadyPlayed)}>
           {threeCluesStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <HelpCircle size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Três Dicas</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{threeCluesStatus.alreadyPlayed ? 'Concluído hoje' : !threeCluesStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Adivinhe o segredo'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Três Dicas</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{threeCluesStatus.alreadyPlayed ? 'Concluído esta semana' : !threeCluesStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Adivinhe o segredo'}</span></div>
         </button>
 
         {/* ESPECIALIDADE */}
         <button disabled={!specialtyStatus.unlocked || specialtyStatus.alreadyPlayed} onClick={() => setActiveGame('specialty')} className={getButtonStyles(specialtyStatus.unlocked, specialtyStatus.alreadyPlayed)}>
           {specialtyStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Medal size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Qual a Especialidade?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyStatus.alreadyPlayed ? 'Concluído hoje' : !specialtyStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Acerte o brasão'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Qual a Especialidade?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyStatus.alreadyPlayed ? 'Concluído esta semana' : !specialtyStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Acerte o brasão'}</span></div>
         </button>
 
         {/* MEMÓRIA */}
         <button disabled={!memoryStatus.unlocked || memoryStatus.alreadyPlayed} onClick={() => setActiveGame('memory')} className={getButtonStyles(memoryStatus.unlocked, memoryStatus.alreadyPlayed)}>
           {memoryStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Gamepad2 size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Jogo da Memória</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{memoryStatus.alreadyPlayed ? 'Concluído hoje' : !memoryStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Mostre sua agilidade'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Jogo da Memória</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{memoryStatus.alreadyPlayed ? 'Concluído esta semana' : !memoryStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Mostre sua agilidade'}</span></div>
         </button>
 
         {/* QUEBRA-CABEÇA */}
         <button disabled={!puzzleStatus.unlocked || puzzleStatus.alreadyPlayed} onClick={() => setActiveGame('puzzle')} className={getButtonStyles(puzzleStatus.unlocked, puzzleStatus.alreadyPlayed)}>
           {puzzleStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Shuffle size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Quebra-Cabeça</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{puzzleStatus.alreadyPlayed ? 'Concluído hoje' : !puzzleStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Descubra a imagem'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Quebra-Cabeça</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{puzzleStatus.alreadyPlayed ? 'Concluído esta semana' : !puzzleStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Descubra a imagem'}</span></div>
         </button>
 
         {/* NOVOS JOGOS */}
         <button disabled={!knotsStatus.unlocked || knotsStatus.alreadyPlayed} onClick={() => setActiveGame('knots')} className={getButtonStyles(knotsStatus.unlocked, knotsStatus.alreadyPlayed)}>
           {knotsStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Anchor size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio dos Nós</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{knotsStatus.alreadyPlayed ? 'Concluído hoje' : !knotsStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Domine as cordas'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Desafio dos Nós</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{knotsStatus.alreadyPlayed ? 'Concluído esta semana' : !knotsStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Domine as cordas'}</span></div>
         </button>
 
         <button disabled={!whoAmIStatus.unlocked || whoAmIStatus.alreadyPlayed} onClick={() => setActiveGame('whoami')} className={getButtonStyles(whoAmIStatus.unlocked, whoAmIStatus.alreadyPlayed)}>
           {whoAmIStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <User size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Quem Sou Eu?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{whoAmIStatus.alreadyPlayed ? 'Concluído hoje' : !whoAmIStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Personagens Bíblicos'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Quem Sou Eu?</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{whoAmIStatus.alreadyPlayed ? 'Concluído esta semana' : !whoAmIStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Personagens Bíblicos'}</span></div>
         </button>
 
         <button disabled={!specialtyTrailStatus.unlocked || specialtyTrailStatus.alreadyPlayed} onClick={() => setActiveGame('specialtytrail')} className={getButtonStyles(specialtyTrailStatus.unlocked, specialtyTrailStatus.alreadyPlayed)}>
           {specialtyTrailStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Map size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Trilha das Especialidades</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyTrailStatus.alreadyPlayed ? 'Concluído hoje' : !specialtyTrailStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Aventure-se no conhecimento'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Trilha das Especialidades</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{specialtyTrailStatus.alreadyPlayed ? 'Concluído esta semana' : !specialtyTrailStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Aventure-se no conhecimento'}</span></div>
         </button>
 
         <button disabled={!scrambledVerseStatus.unlocked || scrambledVerseStatus.alreadyPlayed} onClick={() => setActiveGame('scrambledverse')} className={getButtonStyles(scrambledVerseStatus.unlocked, scrambledVerseStatus.alreadyPlayed)}>
           {scrambledVerseStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Type size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Versículo Embaralhado</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{scrambledVerseStatus.alreadyPlayed ? 'Concluído hoje' : !scrambledVerseStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Memorize a palavra'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Versículo Embaralhado</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{scrambledVerseStatus.alreadyPlayed ? 'Concluído esta semana' : !scrambledVerseStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Memorize a palavra'}</span></div>
         </button>
 
         <button disabled={!natureIdStatus.unlocked || natureIdStatus.alreadyPlayed} onClick={() => setActiveGame('natureid')} className={getButtonStyles(natureIdStatus.unlocked, natureIdStatus.alreadyPlayed)}>
           {natureIdStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Leaf size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Identificação de Natureza</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{natureIdStatus.alreadyPlayed ? 'Concluído hoje' : !natureIdStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Conheça a criação'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Identificação de Natureza</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{natureIdStatus.alreadyPlayed ? 'Concluído esta semana' : !natureIdStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Conheça a criação'}</span></div>
         </button>
 
         <button disabled={!firstAidStatus.unlocked || firstAidStatus.alreadyPlayed} onClick={() => setActiveGame('firstaid')} className={getButtonStyles(firstAidStatus.unlocked, firstAidStatus.alreadyPlayed)}>
           {firstAidStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <HeartPulse size={24} />}
-          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Primeiros Socorros</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{firstAidStatus.alreadyPlayed ? 'Concluído hoje' : !firstAidStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Saiba como ajudar'}</span></div>
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Primeiros Socorros</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{firstAidStatus.alreadyPlayed ? 'Concluído esta semana' : !firstAidStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Saiba como ajudar'}</span></div>
+        </button>
+
+        <button disabled={!ballSortStatus.unlocked || ballSortStatus.alreadyPlayed} onClick={() => setActiveGame('ballsort')} className={getButtonStyles(ballSortStatus.unlocked, ballSortStatus.alreadyPlayed)}>
+          {ballSortStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Shuffle size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Organizar Cores</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{ballSortStatus.alreadyPlayed ? 'Concluído esta semana' : !ballSortStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Desafio de lógica'}</span></div>
+        </button>
+
+        <button disabled={!brickBreakerStatus.unlocked || brickBreakerStatus.alreadyPlayed} onClick={() => setActiveGame('brickbreaker')} className={getButtonStyles(brickBreakerStatus.unlocked, brickBreakerStatus.alreadyPlayed)}>
+          {brickBreakerStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Gamepad2 size={24} />}
+          <div className="flex flex-col items-start leading-tight min-w-0"><span className="uppercase tracking-widest text-sm truncate w-full">Destruir Blocos</span><span className="text-[10px] font-bold opacity-60 lowercase mt-0.5 truncate w-full">{brickBreakerStatus.alreadyPlayed ? 'Concluído esta semana' : !brickBreakerStatus.unlocked ? 'Bloqueado (Abre Sábado)' : 'Clássico arcade'}</span></div>
         </button>
 
         <div className="bg-slate-100 dark:bg-slate-800/50 p-6 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-2">

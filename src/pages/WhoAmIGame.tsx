@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, User, Trophy, HelpCircle, ChevronRight, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, User, Trophy, HelpCircle, ChevronRight, Search, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member } from '@/types';
+import { AuthUser, Member, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -21,7 +21,7 @@ interface WhoAmIGameProps {
   override: boolean;
 }
 
-const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, onBack }) => {
+const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<WhoAmIQuestion[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -85,7 +85,7 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
   };
 
   const saveScore = () => {
-    const currentMember = members.find(m => m.id === user.id);
+    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!currentMember) return;
 
     const todayStr = new Date().toLocaleDateString('pt-BR');
@@ -106,6 +106,72 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
 
     onUpdateMember({ ...currentMember, scores: updatedScores });
   };
+
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+
+  const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    // Aberto de Sábado (6) até Quinta (4). Bloqueado na Sexta (5).
+    const isGameDay = day !== 5;
+    const available = isGameDay || override || isAdmin;
+    
+    // O ciclo começa no sábado (6).
+    const diff = (day + 1) % 7;
+    const cycleStart = new Date(now);
+    cycleStart.setDate(now.getDate() - diff);
+    cycleStart.setHours(0, 0, 0, 0);
+
+    let played = false;
+    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    
+    if (currentMember && !isAdmin) {
+      played = (currentMember.scores || []).some(s => {
+        const scoreDate = new Date(s.date);
+        if (isNaN(scoreDate.getTime())) {
+          const parts = s.date.split('/');
+          if (parts.length === 3) {
+            const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            return d >= cycleStart && ((s as any).whoAmIGame !== undefined || s.gameId === 'whoAmIGame');
+          }
+          return false;
+        }
+        return scoreDate >= cycleStart && ((s as any).whoAmIGame !== undefined || s.gameId === 'whoAmIGame');
+      });
+    }
+    
+    return { isAvailable: available, hasPlayedThisWeek: played };
+  }, [override, isAdmin, members, user.id, user.name]);
+
+  if (!isAvailable && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
+        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+          <Lock size={40} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+        </div>
+        <button onClick={onBack} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
+      </div>
+    );
+  }
+
+  if (hasPlayedThisWeek && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
+        <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
+          <CheckCircle2 size={40} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Concluído</h3>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+        </div>
+        <button onClick={onBack} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">

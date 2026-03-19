@@ -1,11 +1,16 @@
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { RotateCcw, Trophy, Heart, Play, Pause } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AuthUser, Member, UserRole } from '@/types';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
   isDarkMode?: boolean;
+  user: AuthUser | null;
+  members: Member[];
+  onUpdateMember: (member: Member) => void;
+  override?: boolean;
 }
 
 interface Ball {
@@ -23,12 +28,33 @@ interface Brick {
   bonus?: 'multiball' | 'expand';
 }
 
-const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode }) => {
+const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, override }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
+
+  const currentMember = useMemo(() => 
+    members.find(m => m.email === user?.email),
+  [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (override) return false;
+    if (!currentMember?.scores) return false;
+    
+    const now = new Date();
+    const day = now.getDay();
+    // Saturday (6) is the start of the week
+    const diff = (day + 1) % 7;
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
+
+    return (currentMember.scores || []).some(s => 
+      s.gameId === 'brickBreakerGame' && new Date(s.date) >= saturday
+    );
+  }, [currentMember, override]);
 
   // Game constants
   const PADDLE_HEIGHT = 10;
@@ -48,8 +74,9 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
   const bonusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const initBricks = useCallback(() => {
+    if (!canvasRef.current) return;
     const bricks: Brick[][] = [];
-    const brickWidth = (canvasRef.current!.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
+    const brickWidth = (canvasRef.current.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
     const brickHeight = 20;
 
     for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
@@ -102,7 +129,27 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
     setGameState('playing');
   };
 
+  const handleFinish = useCallback(() => {
+    if (!currentMember) return;
+
+    const points = 50; 
+    const newScore = {
+      gameId: 'brickBreakerGame',
+      points,
+      date: new Date().toISOString()
+    };
+
+    const updatedMember = {
+      ...currentMember,
+      scores: [...(currentMember.scores || []), newScore]
+    };
+
+    onUpdateMember(updatedMember);
+    setGameState('finished');
+  }, [currentMember, onUpdateMember]);
+
   useEffect(() => {
+    if (hasPlayedThisWeek) return;
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d')!;
@@ -184,7 +231,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
                 // Check Win
                 const activeBricks = bricksRef.current.flat().filter(br => br.status === 1).length;
                 if (activeBricks === 0) {
-                  setGameState('won');
+                  handleFinish();
                 }
               }
             });
@@ -248,7 +295,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
     }
 
     return () => cancelAnimationFrame(animationFrameRef.current);
-  }, [gameState, resetBall, initBricks]);
+  }, [gameState, resetBall, initBricks, hasPlayedThisWeek, handleFinish]);
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current) return;
@@ -265,6 +312,51 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
       paddleRef.current.x = relativeX - paddleRef.current.width / 2;
     }
   };
+
+  if (hasPlayedThisWeek) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
+        <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={48} className="text-green-400" />
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
+        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você já completou este desafio esta semana. Volte na próxima segunda!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Home size={20} />
+          Voltar ao Início
+        </button>
+      </div>
+    );
+  }
+
+  if (gameState === 'finished') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
+        >
+          <Trophy size={48} className="text-slate-900" />
+        </motion.div>
+        <h2 className="text-3xl font-black text-white uppercase mb-2">Parabéns!</h2>
+        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você destruiu todos os blocos e ganhou 50 pontos!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+        >
+          Finalizar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-900 p-4 text-white overflow-hidden">
@@ -284,12 +376,20 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode 
             </div>
           </div>
         </div>
-        <button 
-          onClick={restartGame}
-          className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
-        >
-          <RotateCcw size={18} />
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={restartGame}
+            className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button 
+            onClick={onBack}
+            className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-3xl border-4 border-slate-800 overflow-hidden">

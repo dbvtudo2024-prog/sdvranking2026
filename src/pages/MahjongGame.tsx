@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tent, Compass, Flame, Map, Anchor, HeartPulse, Shield, Sword, 
   Music, Medal, Users, TreePine, Mountain, Sun, Moon, CloudRain,
-  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock, Star
+  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock, Star, CheckCircle2, Home
 } from 'lucide-react';
 import { AuthUser, Member, Score } from '@/types';
 import GameHeader from '@/components/GameHeader';
@@ -15,6 +15,7 @@ interface MahjongGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   isDarkMode?: boolean;
+  override?: boolean;
 }
 
 interface Tile {
@@ -48,7 +49,7 @@ const ICONS = [
   { name: 'Zap', component: <Zap size={24} /> },
 ];
 
-const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember, onBack, isDarkMode }) => {
+const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember, onBack, isDarkMode, override }) => {
   const [level, setLevel] = useState(1);
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -61,6 +62,27 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const [hintedPair, setHintedPair] = useState<number[]>([]);
   const [showMilestone, setShowMilestone] = useState<{title: string, msg: string, reward: string} | null>(null);
   const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
+
+  const currentMember = useMemo(() => 
+    members.find(m => m.id === user.id),
+  [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (override) return false;
+    if (!currentMember?.scores) return false;
+    
+    const now = new Date();
+    const day = now.getDay();
+    // Saturday (6) is the start of the week
+    const diff = (day + 1) % 7;
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
+
+    return (currentMember.scores || []).some(s => 
+      s.gameId === 'mahjongGame' && new Date(s.date) >= saturday
+    );
+  }, [currentMember, override]);
 
   const scoreRef = useRef(score);
   const levelRef = useRef(level);
@@ -422,16 +444,16 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   };
 
   const handleFinish = () => {
-    const member = members.find(m => m.id === user.id);
-    if (member) {
+    if (currentMember) {
       const points = Math.max(10, Math.floor(score * 2 - seconds / 10));
-      const newScore: Score = {
-        date: new Date().toLocaleDateString('pt-BR'),
-        mahjongGame: points
-      } as Score;
+      const newScore = {
+        gameId: 'mahjongGame',
+        points: points,
+        date: new Date().toISOString()
+      };
       onUpdateMember({
-        ...member,
-        scores: [...(member.scores || []), newScore],
+        ...currentMember,
+        scores: [...(currentMember.scores || []), newScore],
         mahjongLevel: 1, // Reset level on full completion
         mahjongAccumulatedScore: 0
       });
@@ -484,6 +506,27 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   }, [tiles]);
 
   const noMovesLeft = isStarted && !isGameOver && tiles.some(t => !t.removed) && !checkPossibleMoves(tiles);
+
+  if (hasPlayedThisWeek) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-950">
+        <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={48} className="text-green-400" />
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
+        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você já completou este desafio esta semana. Volte na próxima segunda!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Home size={20} />
+          Voltar ao Início
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">

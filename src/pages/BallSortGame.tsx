@@ -1,11 +1,16 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RotateCcw, Trophy, Info } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ArrowLeft, RotateCcw, Trophy, Info, CheckCircle2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AuthUser, Member, UserRole } from '@/types';
 
 interface BallSortGameProps {
   onBack: () => void;
   isDarkMode?: boolean;
+  user: AuthUser | null;
+  members: Member[];
+  onUpdateMember: (member: Member) => void;
+  override?: boolean;
 }
 
 const COLORS = [
@@ -20,13 +25,36 @@ const COLORS = [
 ];
 
 const TUBE_CAPACITY = 4;
+const LEVELS_TO_COMPLETE = 3;
 
-const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode }) => {
+const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, override }) => {
   const [tubes, setTubes] = useState<string[][]>([]);
   const [selectedTubeIndex, setSelectedTubeIndex] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   const [isWon, setIsWon] = useState(false);
   const [level, setLevel] = useState(1);
+  const [isFinished, setIsFinished] = useState(false);
+
+  const currentMember = useMemo(() => 
+    members.find(m => m.email === user?.email),
+  [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (override) return false;
+    if (!currentMember?.scores) return false;
+    
+    const now = new Date();
+    const day = now.getDay();
+    // Saturday (6) is the start of the week
+    const diff = (day + 1) % 7;
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
+
+    return (currentMember.scores || []).some(s => 
+      s.gameId === 'ballSortGame' && new Date(s.date) >= saturday
+    );
+  }, [currentMember, override]);
 
   const initGame = useCallback((lvl: number) => {
     const numColors = Math.min(lvl + 2, COLORS.length);
@@ -61,11 +89,13 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode }) => {
   }, []);
 
   useEffect(() => {
-    initGame(level);
-  }, [level, initGame]);
+    if (!hasPlayedThisWeek) {
+      initGame(level);
+    }
+  }, [level, initGame, hasPlayedThisWeek]);
 
   const handleTubeClick = (index: number) => {
-    if (isWon) return;
+    if (isWon || isFinished) return;
 
     if (selectedTubeIndex === null) {
       if (tubes[index].length > 0) {
@@ -108,22 +138,99 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode }) => {
   };
 
   const nextLevel = () => {
-    setLevel(l => l + 1);
+    if (level >= LEVELS_TO_COMPLETE) {
+      handleFinish();
+    } else {
+      setLevel(l => l + 1);
+    }
   };
+
+  const handleFinish = () => {
+    if (!currentMember) return;
+
+    const points = 50; // Pontos fixos por completar o desafio semanal
+    const newScore = {
+      gameId: 'ballSortGame',
+      points,
+      date: new Date().toISOString()
+    };
+
+    const updatedMember = {
+      ...currentMember,
+      scores: [...(currentMember.scores || []), newScore]
+    };
+
+    onUpdateMember(updatedMember);
+    setIsFinished(true);
+    setIsWon(false);
+  };
+
+  if (hasPlayedThisWeek) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50 dark:bg-[#0f172a]">
+        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={48} className="text-green-600 dark:text-green-400" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase mb-2">Missão Cumprida!</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você já completou este desafio esta semana. Volte na próxima segunda!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Home size={20} />
+          Voltar ao Início
+        </button>
+      </div>
+    );
+  }
+
+  if (isFinished) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50 dark:bg-[#0f172a]">
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
+        >
+          <Trophy size={48} className="text-white" />
+        </motion.div>
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase mb-2">Parabéns!</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Você completou todos os níveis e ganhou 50 pontos!
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+        >
+          Finalizar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] p-4">
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col">
           <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Organizar Cores</h1>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível {level} • {moves} Movimentos</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível {level}/{LEVELS_TO_COMPLETE} • {moves} Movimentos</p>
         </div>
-        <button 
-          onClick={() => initGame(level)}
-          className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all"
-        >
-          <RotateCcw size={20} className="text-blue-600 dark:text-blue-400" />
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => initGame(level)}
+            className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all"
+          >
+            <RotateCcw size={20} className="text-blue-600 dark:text-blue-400" />
+          </button>
+          <button 
+            onClick={onBack}
+            className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all"
+          >
+            <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-wrap justify-center items-center gap-6 content-center">

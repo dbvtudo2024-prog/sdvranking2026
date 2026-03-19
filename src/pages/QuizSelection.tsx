@@ -25,20 +25,28 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const isAvailable = useMemo(() => {
     const now = new Date();
-    const isSunday = now.getDay() === 0;
-    return isSunday || quizOverride || isAdmin; 
+    const day = now.getDay();
+    // Unlocked from Saturday (6) to Thursday (4). Locked on Friday (5).
+    return day !== 5 || quizOverride || isAdmin; 
   }, [quizOverride, isAdmin]);
 
-  const hasPlayedToday = (category: 'Desbravadores' | 'Bíblia') => {
+  const hasPlayedThisWeek = (category: 'Desbravadores' | 'Bíblia') => {
     if (isAdmin) return false; // Admins podem jogar sempre
     if (!currentMember) return false;
+    
     const now = new Date();
-    const todayStr = now.toLocaleDateString('pt-BR');
-    return currentMember.scores.some(s => 
-      s.date === todayStr && 
-      s.quiz !== undefined && 
-      s.quizCategory === category
-    );
+    const day = now.getDay();
+    const diff = (day + 1) % 7;
+    const cycleStart = new Date(now);
+    cycleStart.setDate(now.getDate() - diff);
+    cycleStart.setHours(0, 0, 0, 0);
+
+    return currentMember.scores.some(s => {
+      const scoreDate = new Date(s.date.split('/').reverse().join('-'));
+      return scoreDate >= cycleStart && 
+             s.quiz !== undefined && 
+             s.quizCategory === category;
+    });
   };
 
   const getBestScore = (category: 'Desbravadores' | 'Bíblia') => {
@@ -106,7 +114,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
                <span className="text-[8px] font-black text-green-600 uppercase">Concluído</span>
              ) : !isAvailable ? (
                <span className="text-[8px] font-black text-slate-400 uppercase flex items-center gap-1">
-                 <Calendar size={10} /> Abre Domingo
+                 <Calendar size={10} /> Indisponível
                </span>
              ) : (
                <span className="text-[8px] font-black text-blue-500 uppercase">Liberado</span>
@@ -128,8 +136,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
         instructions={[
           "Escolha uma das categorias: Desbravadores ou Bíblia.",
           "Cada categoria tem 10 perguntas aleatórias.",
-          "Você tem uma tentativa por categoria a cada domingo.",
-          "Admins têm acesso liberado para testes.",
+          "Você tem uma tentativa por categoria a cada semana.",
+          "O ciclo reinicia aos sábados.",
           "Boa sorte!"
         ]}
         icon={<Brain size={32} className="text-white" />}
@@ -142,8 +150,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
           <h3 className="text-amber-800 text-[10px] font-black uppercase tracking-tight">Regras de Acesso</h3>
           <p className="text-amber-600 text-[9px] font-bold leading-tight opacity-80">
             {isAvailable 
-              ? "Você tem uma tentativa em cada categoria hoje. O botão ficará bloqueado após o término." 
-              : "Os desafios abrem automaticamente aos domingos (00:00). Hoje o acesso está bloqueado."}
+              ? "Você tem uma tentativa em cada categoria esta semana. O botão ficará bloqueado após o término." 
+              : "Os desafios estão bloqueados hoje. Volte amanhã!"}
           </p>
         </div>
       </div>
@@ -151,8 +159,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
       <h2 className="text-[#001f3f] text-lg font-black mb-6 tracking-widest uppercase">Categorias do Quiz</h2>
 
       <div className="grid grid-cols-1 gap-4 w-full">
-        <CategoryButton category="Desbravadores" played={hasPlayedToday('Desbravadores')} />
-        <CategoryButton category="Bíblia" played={hasPlayedToday('Bíblia')} />
+        <CategoryButton category="Desbravadores" played={hasPlayedThisWeek('Desbravadores')} />
+        <CategoryButton category="Bíblia" played={hasPlayedThisWeek('Bíblia')} />
       </div>
     </div>
   );
