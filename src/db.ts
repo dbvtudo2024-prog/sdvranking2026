@@ -397,34 +397,42 @@ export const DatabaseService = {
   },
 
   async seedQuizQuestions(questions: Omit<QuizQuestion, 'id'>[]) {
-    for (const q of questions) {
-      let dbCategory = q.category;
-      let dbQuestion = q.question;
+    try {
+      // 1. Buscar todas as questões existentes para evitar duplicatas em uma única consulta
+      const { data: existing, error: fetchError } = await supabase.from('quiz_questions').select('category, question');
+      if (fetchError) throw fetchError;
 
-      if (['Natureza', 'Primeiros Socorros', 'Especialidades'].includes(q.category)) {
-        dbCategory = 'Desbravadores';
-        dbQuestion = `[${q.category}] ${q.question}`;
+      const existingSet = new Set((existing || []).map(e => `${e.category}|${e.question.trim()}`));
+
+      const toInsert = [];
+      for (const q of questions) {
+        let dbCategory = q.category;
+        let dbQuestion = q.question.trim();
+
+        if (['Natureza', 'Primeiros Socorros', 'Especialidades'].includes(q.category)) {
+          dbCategory = 'Desbravadores';
+          dbQuestion = `[${q.category}] ${dbQuestion}`;
+        }
+
+        if (!existingSet.has(`${dbCategory}|${dbQuestion}`)) {
+          toInsert.push({
+            category: dbCategory,
+            question: dbQuestion,
+            options: q.options,
+            correct_answer: q.correct_answer,
+            image_url: q.image_url,
+            tip: q.tip
+          });
+        }
       }
 
-      // Check for duplicate
-      const { data } = await supabase
-        .from('quiz_questions')
-        .select('id')
-        .eq('category', dbCategory)
-        .eq('question', dbQuestion)
-        .limit(1);
-
-      if (!data || data.length === 0) {
-        const payload = {
-          category: dbCategory,
-          question: dbQuestion,
-          options: q.options,
-          correct_answer: q.correct_answer,
-          image_url: q.image_url,
-          tip: q.tip
-        };
-        await supabase.from('quiz_questions').insert([payload]);
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('quiz_questions').insert(toInsert);
+        if (insertError) throw insertError;
       }
+    } catch (error) {
+      console.error("Erro no seedQuizQuestions:", error);
+      throw error;
     }
   },
 
@@ -843,17 +851,21 @@ export const DatabaseService = {
   },
 
   async seedThreeCluesQuestions(questions: Omit<ThreeCluesQuestion, 'id'>[]) {
-    for (const q of questions) {
-      const { data } = await supabase
-        .from('three_clues_questions')
-        .select('id')
-        .eq('answer', q.answer)
-        .limit(1);
+    try {
+      const { data: existing, error: fetchError } = await supabase.from('three_clues_questions').select('answer');
+      if (fetchError) throw fetchError;
 
-      if (!data || data.length === 0) {
-        const { error } = await supabase.from('three_clues_questions').insert([q]);
-        if (error) console.error("Erro ao inserir questão de 3 dicas:", error);
+      const existingSet = new Set((existing || []).map(e => e.answer.trim().toLowerCase()));
+
+      const toInsert = questions.filter(q => !existingSet.has(q.answer.trim().toLowerCase()));
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('three_clues_questions').insert(toInsert);
+        if (insertError) throw insertError;
       }
+    } catch (error) {
+      console.error("Erro no seedThreeCluesQuestions:", error);
+      throw error;
     }
   },
 
@@ -1142,18 +1154,21 @@ export const DatabaseService = {
   },
 
   async seedGameAssets(assets: { game_type: string, name: string, url: string }[]) {
-    for (const asset of assets) {
-      const { data } = await supabase
-        .from('game_assets')
-        .select('id')
-        .eq('game_type', asset.game_type)
-        .eq('name', asset.name)
-        .limit(1);
+    try {
+      const { data: existing, error: fetchError } = await supabase.from('game_assets').select('game_type, name');
+      if (fetchError) throw fetchError;
 
-      if (!data || data.length === 0) {
-        const { error } = await supabase.from('game_assets').insert([asset]);
-        if (error) console.error("Erro ao inserir asset de jogo:", error);
+      const existingSet = new Set((existing || []).map(e => `${e.game_type}|${e.name.trim().toLowerCase()}`));
+
+      const toInsert = assets.filter(a => !existingSet.has(`${a.game_type}|${a.name.trim().toLowerCase()}`));
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('game_assets').insert(toInsert);
+        if (insertError) throw insertError;
       }
+    } catch (error) {
+      console.error("Erro no seedGameAssets:", error);
+      throw error;
     }
   },
 
@@ -1205,11 +1220,26 @@ export const DatabaseService = {
   },
 
   async seedWhoAmIQuestions(questions: any[]) {
-    for (const q of questions) {
-      const { data } = await supabase.from('who_am_i_questions').select('id').eq('answer', q.answer);
-      if (!data || data.length === 0) {
-        await this.addWhoAmIQuestion(q);
+    try {
+      const { data: existing, error: fetchError } = await supabase.from('who_am_i_questions').select('answer');
+      if (fetchError) throw fetchError;
+
+      const existingSet = new Set((existing || []).map(e => e.answer.trim().toLowerCase()));
+
+      const toInsert = questions
+        .filter(q => !existingSet.has(q.answer.trim().toLowerCase()))
+        .map(q => {
+          const { category, ...rest } = q;
+          return rest;
+        });
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('who_am_i_questions').insert(toInsert);
+        if (insertError) throw insertError;
       }
+    } catch (error) {
+      console.error("Erro no seedWhoAmIQuestions:", error);
+      throw error;
     }
   },
 
@@ -1263,11 +1293,21 @@ export const DatabaseService = {
   },
 
   async seedScrambledVerses(verses: any[]) {
-    for (const v of verses) {
-      const { data } = await supabase.from('scrambled_verses').select('id').eq('title', v.title);
-      if (!data || data.length === 0) {
-        await this.addScrambledVerse(v);
+    try {
+      const { data: existing, error: fetchError } = await supabase.from('scrambled_verses').select('title');
+      if (fetchError) throw fetchError;
+
+      const existingSet = new Set((existing || []).map(e => e.title.trim().toLowerCase()));
+
+      const toInsert = verses.filter(v => !existingSet.has(v.title.trim().toLowerCase()));
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('scrambled_verses').insert(toInsert);
+        if (insertError) throw insertError;
       }
+    } catch (error) {
+      console.error("Erro no seedScrambledVerses:", error);
+      throw error;
     }
   },
 

@@ -228,15 +228,22 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     if (!window.confirm("Deseja adicionar 20 novas questões inéditas para todos os jogos? (Duplicatas serão ignoradas)")) return;
     setIsSeeding(true);
     try {
+      console.log("Iniciando semeadura de dados...");
       await DatabaseService.seedQuizQuestions(NEW_QUIZ_QUESTIONS);
+      console.log("Quiz semeado.");
       await DatabaseService.seedThreeCluesQuestions(NEW_THREE_CLUES_QUESTIONS);
+      console.log("3 Dicas semeado.");
       await DatabaseService.seedWhoAmIQuestions(NEW_WHO_AM_I_QUESTIONS);
+      console.log("Quem Sou Eu semeado.");
       await DatabaseService.seedScrambledVerses(NEW_SCRAMBLED_VERSES);
+      console.log("Versículos semeados.");
       await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);
+      console.log("Assets semeados.");
       alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");
-    } catch (error) {
-      console.error("Erro ao semear dados:", error);
-      alert("❌ ERRO: Falha ao adicionar novas questões.");
+    } catch (error: any) {
+      console.error("Erro detalhado ao semear dados:", error);
+      const errorMsg = error?.message || error?.details || "Erro desconhecido";
+      alert(`❌ ERRO: Falha ao adicionar novas questões. Detalhes: ${errorMsg}`);
     } finally {
       setIsSeeding(false);
     }
