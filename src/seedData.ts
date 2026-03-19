@@ -80,26 +80,26 @@ export const NEW_WHO_AM_I_QUESTIONS = [
 ];
 
 export const NEW_SCRAMBLED_VERSES = [
-  { title: 'Salmos 46:10', verse: 'Aquietai-vos e sabei que eu sou Deus' },
-  { title: 'Mateus 11:28', verse: 'Vinde a mim todos os que estais cansados e oprimidos' },
-  { title: 'Isaías 41:10', verse: 'Não temas porque eu sou contigo não te assombres' },
-  { title: 'Jeremias 29:11', verse: 'Porque eu bem sei os pensamentos que tenho sobre vós' },
-  { title: 'Salmos 37:4', verse: 'Deleita-te também no Senhor e ele te concederá os desejos do teu coração' },
-  { title: 'Provérbios 16:3', verse: 'Consagra ao Senhor as tuas obras e teus pensamentos serão estabelecidos' },
-  { title: 'Filipenses 4:19', verse: 'O meu Deus segundo as suas riquezas suprirá todas as vossas necessidades' },
-  { title: 'Salmos 121:1', verse: 'Elevo os meus olhos para os montes de onde virá o meu socorro' },
-  { title: 'Mateus 28:20', verse: 'E eis que eu estou convosco todos os dias até a consumação dos séculos' },
-  { title: 'Romanos 12:21', verse: 'Não te deixes vencer do mal mas vence o mal com o bem' },
-  { title: 'Salmos 1:1', verse: 'Bem-aventurado o homem que não anda segundo o conselho dos ímpios' },
-  { title: '1 João 4:8', verse: 'Aquele que não ama não conhece a Deus porque Deus é amor' },
-  { title: 'Salmos 100:1', verse: 'Celebrai com júbilo ao Senhor todas as terras' },
-  { title: 'Mateus 7:7', verse: 'Pedi e dar-se-vos-á buscai e encontrareis batei e abrir-se-vos-á' },
-  { title: 'Salmos 119:11', verse: 'Escondi a tua palavra no meu coração para não pecar contra ti' },
-  { title: 'Provérbios 22:6', verse: 'Instrui a criança no caminho em que deve andar' },
-  { title: 'Hebreus 13:8', verse: 'Jesus Cristo é o mesmo ontem e hoje e eternamente' },
-  { title: 'Salmos 19:1', verse: 'Os céus declaram a glória de Deus e o firmamento anuncia a obra das suas mãos' },
-  { title: 'João 14:6', verse: 'Eu sou o caminho e a verdade e a vida ninguém vem ao Pai senão por mim' },
-  { title: 'Salmos 34:7', verse: 'O anjo do Senhor acampa-se ao redor dos que o temem e os livra' }
+  { title: 'Salmos 46:10', text: 'Aquietai-vos e sabei que eu sou Deus' },
+  { title: 'Mateus 11:28', text: 'Vinde a mim todos os que estais cansados e oprimidos' },
+  { title: 'Isaías 41:10', text: 'Não temas porque eu sou contigo não te assombres' },
+  { title: 'Jeremias 29:11', text: 'Porque eu bem sei os pensamentos que tenho sobre vós' },
+  { title: 'Salmos 37:4', text: 'Deleita-te também no Senhor e ele te concederá os desejos do teu coração' },
+  { title: 'Provérbios 16:3', text: 'Consagra ao Senhor as tuas obras e teus pensamentos serão estabelecidos' },
+  { title: 'Filipenses 4:19', text: 'O meu Deus segundo as suas riquezas suprirá todas as vossas necessidades' },
+  { title: 'Salmos 121:1', text: 'Elevo os meus olhos para os montes de onde virá o meu socorro' },
+  { title: 'Mateus 28:20', text: 'E eis que eu estou convosco todos os dias até a consumação dos séculos' },
+  { title: 'Romanos 12:21', text: 'Não te deixes vencer do mal mas vence o mal com o bem' },
+  { title: 'Salmos 1:1', text: 'Bem-aventurado o homem que não anda segundo o conselho dos ímpios' },
+  { title: '1 João 4:8', text: 'Aquele que não ama não conhece a Deus porque Deus é amor' },
+  { title: 'Salmos 100:1', text: 'Celebrai com júbilo ao Senhor todas as terras' },
+  { title: 'Mateus 7:7', text: 'Pedi e dar-se-vos-á buscai e encontrareis batei e abrir-se-vos-á' },
+  { title: 'Salmos 119:11', text: 'Escondi a tua palavra no meu coração para não pecar contra ti' },
+  { title: 'Provérbios 22:6', text: 'Instrui a criança no caminho em que deve andar' },
+  { title: 'Hebreus 13:8', text: 'Jesus Cristo é o mesmo ontem e hoje e eternamente' },
+  { title: 'Salmos 19:1', text: 'Os céus declaram a glória de Deus e o firmamento anuncia a obra das suas mãos' },
+  { title: 'João 14:6', text: 'Eu sou o caminho e a verdade e a vida ninguém vem ao Pai senão por mim' },
+  { title: 'Salmos 34:7', text: 'O anjo do Senhor acampa-se ao redor dos que o temem e os livra' }
 ];
 
 export const NEW_KNOTS_ASSETS = [
