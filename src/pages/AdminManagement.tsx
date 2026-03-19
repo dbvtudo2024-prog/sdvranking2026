@@ -4,7 +4,7 @@ import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, T
 import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
 import { DatabaseService } from '@/db';
 
-import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_SPECIALTY_STUDY_QUESTIONS, NEW_KNOTS_ASSETS } from '@/seedData';
+import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS } from '@/seedData';
 
 interface AdminManagementProps {
   members: Member[];
@@ -232,7 +232,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       await DatabaseService.seedThreeCluesQuestions(NEW_THREE_CLUES_QUESTIONS);
       await DatabaseService.seedWhoAmIQuestions(NEW_WHO_AM_I_QUESTIONS);
       await DatabaseService.seedScrambledVerses(NEW_SCRAMBLED_VERSES);
-      await DatabaseService.seedSpecialtyStudies(NEW_SPECIALTY_STUDY_QUESTIONS);
       await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);
       alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");
     } catch (error) {
