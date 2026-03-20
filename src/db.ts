@@ -103,9 +103,7 @@ export const DatabaseService = {
       counselor: member.counselor,
       unit: member.unit,
       scores: member.scores,
-      photoUrl: member.photoUrl,
-      mahjongLevel: member.mahjongLevel,
-      mahjongAccumulatedScore: member.mahjongAccumulatedScore
+      photoUrl: member.photoUrl
     };
     const { error } = await supabase.from('members').insert([payload]);
     if (error) {
@@ -125,9 +123,7 @@ export const DatabaseService = {
       counselor: updates.counselor,
       unit: updates.unit,
       scores: updates.scores,
-      photoUrl: updates.photoUrl,
-      mahjongLevel: updates.mahjongLevel,
-      mahjongAccumulatedScore: updates.mahjongAccumulatedScore
+      photoUrl: updates.photoUrl
     };
     const { error } = await supabase.from('members').update(payload).eq('id', id);
     if (error) {
