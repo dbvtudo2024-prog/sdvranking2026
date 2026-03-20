@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
-import { AuthUser, Member, SpecialtyStudy, Score } from '@/types';
+import { AuthUser, Member, SpecialtyStudy, Score, UserRole } from '@/types';
 import { DatabaseService } from '@/db';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info } from 'lucide-react';
+import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info, Clock } from 'lucide-react';
 
 interface SpecialtyStudyAreaProps {
   user: AuthUser;
@@ -35,6 +35,13 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
   const [score, setScore] = useState(0);
 
+  // Study Timer State
+  const STUDY_TIME_SECONDS = 300; // 5 minutes
+  const [studyTimer, setStudyTimer] = useState(STUDY_TIME_SECONDS);
+  const [studyTimeCompleted, setStudyTimeCompleted] = useState(false);
+
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldoSonic@gmail.com';
+
   useImperativeHandle(ref, () => ({
     goBack: () => {
       if (mode === 'result') {
@@ -56,6 +63,27 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       return false; // Let App handle it
     }
   }));
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (mode === 'study' && !studyTimeCompleted && studyTimer > 0) {
+      if (isAdmin) {
+        setStudyTimeCompleted(true);
+        setStudyTimer(0);
+        return;
+      }
+      interval = setInterval(() => {
+        setStudyTimer(prev => {
+          if (prev <= 1) {
+            setStudyTimeCompleted(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [mode, studyTimeCompleted, studyTimer]);
 
   useEffect(() => {
     if (onStudyStateChange) {
@@ -161,6 +189,8 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const handleStartStudy = (study: SpecialtyStudy) => {
     setSelectedStudy(study);
     setMode('study');
+    setStudyTimer(STUDY_TIME_SECONDS);
+    setStudyTimeCompleted(false);
   };
 
   const handleStartQuiz = () => {
@@ -353,28 +383,41 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             title="Material de Estudo"
             allow="autoplay"
           />
-          <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-900/80 to-transparent flex flex-col items-center gap-4">
-            {lockoutStatus.isLocked ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="bg-red-500/20 backdrop-blur-md border border-red-500/30 px-6 py-4 rounded-2xl text-center max-w-xs">
-                  <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{lockoutStatus.message}</p>
-                  <p className="text-[#FFD700] text-xl font-black">{lockoutStatus.remainingTime}</p>
+          
+          {/* Temporizador Flutuante Compacto */}
+          {!studyTimeCompleted && !lockoutStatus.isLocked && (
+            <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-right-4 duration-500">
+              <div className="bg-slate-900/80 backdrop-blur-md border border-blue-500/30 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-2xl">
+                <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                  <Clock size={16} className="text-[#FFD700] animate-pulse" />
                 </div>
-                <button 
-                  disabled
-                  className="bg-slate-700 text-slate-400 px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl opacity-50 cursor-not-allowed flex items-center gap-3"
-                >
-                  <HelpCircle size={18} /> TESTE BLOQUEADO
-                </button>
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Estudo</span>
+                  <span className="text-[#FFD700] text-sm font-black leading-none">
+                    {Math.floor(studyTimer / 60)}:{(studyTimer % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <button 
-                onClick={handleStartQuiz}
-                className="bg-[#FFD700] text-[#003366] px-10 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center gap-3"
-              >
-                <HelpCircle size={18} /> INICIAR TESTE FINAL
-              </button>
-            )}
+            </div>
+          )}
+
+          {/* Botão de Ação Compacto */}
+          <div className="absolute bottom-8 inset-x-0 flex justify-center px-6 pointer-events-none">
+            <div className="pointer-events-auto w-full max-w-xs">
+              {lockoutStatus.isLocked ? (
+                <div className="bg-slate-900/90 backdrop-blur-xl border border-red-500/30 p-4 rounded-[2rem] text-center shadow-2xl">
+                  <p className="text-white text-[8px] font-black uppercase tracking-widest mb-1 opacity-70">{lockoutStatus.message}</p>
+                  <p className="text-red-500 text-lg font-black">{lockoutStatus.remainingTime}</p>
+                </div>
+              ) : studyTimeCompleted && (
+                <button 
+                  onClick={handleStartQuiz}
+                  className="w-full bg-[#FFD700] text-[#003366] py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 border-4 border-white animate-in zoom-in-95"
+                >
+                  <HelpCircle size={18} /> INICIAR TESTE FINAL
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
