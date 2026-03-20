@@ -19,21 +19,46 @@ const Leadership: React.FC<LeadershipProps> = ({ members, isDarkMode }) => {
 
   const calculateSpecific = (member: Member, key: string) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => acc + (Number((curr as any)[key]) || 0), 0);
+    return member.scores.reduce((acc, curr) => {
+      const s = curr as any;
+      let points = 0;
+      if (s.gameId === key) {
+        points = Number(s.points) || 0;
+      } else if (s[key] !== undefined) {
+        points = Number(s[key]) || 0;
+      }
+      return acc + points;
+    }, 0);
   };
 
   const calculateGamesTotal = (member: Member) => {
-    return calculateSpecific(member, 'quiz') + 
-           calculateSpecific(member, 'memoryGame') + 
-           calculateSpecific(member, 'specialtyGame') + 
-           calculateSpecific(member, 'threeCluesGame') +
-           calculateSpecific(member, 'puzzleGame') +
-           calculateSpecific(member, 'knotsGame') +
-           calculateSpecific(member, 'whoAmIGame') +
-           calculateSpecific(member, 'specialtyTrailGame') +
-           calculateSpecific(member, 'scrambledVerseGame') +
-           calculateSpecific(member, 'natureIdGame') +
-           calculateSpecific(member, 'firstAidGame');
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      const s = curr as any;
+      let gamePoints = 0;
+      
+      // 1. Check for explicit gameId/points
+      if (s.gameId && s.points) {
+        gamePoints += Number(s.points) || 0;
+      }
+      
+      // 2. Check for individual game properties
+      const gameKeys = [
+        'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
+        'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+        'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
+        'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+      ];
+      
+      gameKeys.forEach(key => {
+        // Only add if not already counted via gameId/points to avoid double counting
+        if (s[key] !== undefined && s.gameId !== key) {
+          gamePoints += Number(s[key]) || 0;
+        }
+      });
+      
+      return acc + gamePoints;
+    }, 0);
   };
 
   const getCompletedSpecialties = (member: Member) => {

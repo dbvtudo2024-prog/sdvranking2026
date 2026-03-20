@@ -10,7 +10,7 @@ interface RankingProps {
 }
 
 type TabType = 'members' | 'units' | 'games';
-type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid';
+type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'ballsort' | 'brickbreaker' | 'mahjong' | 'pianotiles';
 
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
@@ -23,21 +23,46 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
 
   const calculateSpecific = (member: Member, key: string) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => acc + (Number((curr as any)[key]) || 0), 0);
+    return member.scores.reduce((acc, curr) => {
+      const s = curr as any;
+      let points = 0;
+      if (s.gameId === key) {
+        points = Number(s.points) || 0;
+      } else if (s[key] !== undefined) {
+        points = Number(s[key]) || 0;
+      }
+      return acc + points;
+    }, 0);
   };
 
   const calculateGamesTotal = (member: Member) => {
-    return calculateSpecific(member, 'quiz') + 
-           calculateSpecific(member, 'memoryGame') + 
-           calculateSpecific(member, 'specialtyGame') + 
-           calculateSpecific(member, 'threeCluesGame') +
-           calculateSpecific(member, 'puzzleGame') +
-           calculateSpecific(member, 'knotsGame') +
-           calculateSpecific(member, 'whoAmIGame') +
-           calculateSpecific(member, 'specialtyTrailGame') +
-           calculateSpecific(member, 'scrambledVerseGame') +
-           calculateSpecific(member, 'natureIdGame') +
-           calculateSpecific(member, 'firstAidGame');
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      const s = curr as any;
+      let gamePoints = 0;
+      
+      // 1. Check for explicit gameId/points
+      if (s.gameId && s.points) {
+        gamePoints += Number(s.points) || 0;
+      }
+      
+      // 2. Check for individual game properties
+      const gameKeys = [
+        'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
+        'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+        'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
+        'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+      ];
+      
+      gameKeys.forEach(key => {
+        // Only add if not already counted via gameId/points to avoid double counting
+        if (s[key] !== undefined && s.gameId !== key) {
+          gamePoints += Number(s[key]) || 0;
+        }
+      });
+      
+      return acc + gamePoints;
+    }, 0);
   };
 
   const getSortedData = () => {
@@ -54,6 +79,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return data.sort((a, b) => calculateSpecific(b, 'scrambledVerseGame') - calculateSpecific(a, 'scrambledVerseGame'));
       if (gameTab === 'natureid') return data.sort((a, b) => calculateSpecific(b, 'natureIdGame') - calculateSpecific(a, 'natureIdGame'));
       if (gameTab === 'firstaid') return data.sort((a, b) => calculateSpecific(b, 'firstAidGame') - calculateSpecific(a, 'firstAidGame'));
+      if (gameTab === 'ballsort') return data.sort((a, b) => calculateSpecific(b, 'ballSortGame') - calculateSpecific(a, 'ballSortGame'));
+      if (gameTab === 'brickbreaker') return data.sort((a, b) => calculateSpecific(b, 'brickBreakerGame') - calculateSpecific(a, 'brickBreakerGame'));
+      if (gameTab === 'mahjong') return data.sort((a, b) => calculateSpecific(b, 'mahjongGame') - calculateSpecific(a, 'mahjongGame'));
+      if (gameTab === 'pianotiles') return data.sort((a, b) => calculateSpecific(b, 'pianoTilesGame') - calculateSpecific(a, 'pianoTilesGame'));
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
@@ -77,6 +106,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return calculateSpecific(m, 'scrambledVerseGame');
       if (gameTab === 'natureid') return calculateSpecific(m, 'natureIdGame');
       if (gameTab === 'firstaid') return calculateSpecific(m, 'firstAidGame');
+      if (gameTab === 'ballsort') return calculateSpecific(m, 'ballSortGame');
+      if (gameTab === 'brickbreaker') return calculateSpecific(m, 'brickBreakerGame');
+      if (gameTab === 'mahjong') return calculateSpecific(m, 'mahjongGame');
+      if (gameTab === 'pianotiles') return calculateSpecific(m, 'pianoTilesGame');
       return calculateGamesTotal(m);
     }
     return calculateWeeklyTotal(m);
@@ -131,6 +164,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           <GameTabButton type="scrambledverse" label="Versículo" />
           <GameTabButton type="natureid" label="Natureza" />
           <GameTabButton type="firstaid" label="Socorros" />
+          <GameTabButton type="ballsort" label="Bolas" />
+          <GameTabButton type="brickbreaker" label="Blocos" />
+          <GameTabButton type="mahjong" label="Mahjong" />
+          <GameTabButton type="pianotiles" label="Piano" />
         </div>
       )}
       
@@ -164,6 +201,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-slate-400 uppercase">V:{calculateSpecific(podiumSlots[1], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">Nat:{calculateSpecific(podiumSlots[1], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">Soc:{calculateSpecific(podiumSlots[1], 'firstAidGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">BS:{calculateSpecific(podiumSlots[1], 'ballSortGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">BB:{calculateSpecific(podiumSlots[1], 'brickBreakerGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">MJ:{calculateSpecific(podiumSlots[1], 'mahjongGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">PT:{calculateSpecific(podiumSlots[1], 'pianoTilesGame')}</span>
                   </div>
                 )}
               </div>
@@ -197,6 +238,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-blue-400 uppercase">V:{calculateSpecific(podiumSlots[0], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">Nat:{calculateSpecific(podiumSlots[0], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">Soc:{calculateSpecific(podiumSlots[0], 'firstAidGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">BS:{calculateSpecific(podiumSlots[0], 'ballSortGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">BB:{calculateSpecific(podiumSlots[0], 'brickBreakerGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">MJ:{calculateSpecific(podiumSlots[0], 'mahjongGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">PT:{calculateSpecific(podiumSlots[0], 'pianoTilesGame')}</span>
                   </div>
                 )}
               </div>
@@ -231,6 +276,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-amber-400 uppercase">V:{calculateSpecific(podiumSlots[2], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">Nat:{calculateSpecific(podiumSlots[2], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">Soc:{calculateSpecific(podiumSlots[2], 'firstAidGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">BS:{calculateSpecific(podiumSlots[2], 'ballSortGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">BB:{calculateSpecific(podiumSlots[2], 'brickBreakerGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">MJ:{calculateSpecific(podiumSlots[2], 'mahjongGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">PT:{calculateSpecific(podiumSlots[2], 'pianoTilesGame')}</span>
                   </div>
                 )}
               </div>
@@ -264,6 +313,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                       <span className="text-[7px] font-bold text-slate-400 uppercase">V: {calculateSpecific(m, 'scrambledVerseGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Nat: {calculateSpecific(m, 'natureIdGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Soc: {calculateSpecific(m, 'firstAidGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">BS: {calculateSpecific(m, 'ballSortGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">BB: {calculateSpecific(m, 'brickBreakerGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">MJ: {calculateSpecific(m, 'mahjongGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">PT: {calculateSpecific(m, 'pianoTilesGame')}</span>
                     </div>
                   )}
                 </div>
