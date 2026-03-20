@@ -80,28 +80,45 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Unlocked from Saturday (6) to Thursday (4). Locked on Friday (5).
-    const available = day !== 5 || specialtyOverride;
     
-    // Calculate start of current cycle (Saturday)
+    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
+    const available = day !== 5 || specialtyOverride || isAdmin;
+    
+    // Calculate start of current week (Saturday)
     const diff = (day + 1) % 7;
-    const cycleStart = new Date(now);
-    cycleStart.setDate(now.getDate() - diff);
-    cycleStart.setHours(0, 0, 0, 0);
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
 
     let played = false;
-    if (currentMember) {
+    if (currentMember && !isAdmin) {
       played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date.split('/').reverse().join('-'));
-        return scoreDate >= cycleStart && s.specialtyGame !== undefined;
+        const scoreDate = new Date(s.date);
+        
+        // Handle ISO and DD/MM/YYYY formats
+        let d: Date;
+        if (isNaN(scoreDate.getTime())) {
+          const parts = s.date.split('/');
+          if (parts.length === 3) {
+            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          } else {
+            return false;
+          }
+        } else {
+          d = scoreDate;
+        }
+        
+        return d >= saturday && (s.gameId === 'specialtyGame' || s.specialtyGame !== undefined);
       });
     }
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [specialtyOverride, currentMember]);
+  }, [specialtyOverride, currentMember, isAdmin]);
 
   const startTimer = (limit?: number) => {
     stopTimer();
@@ -153,16 +170,20 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   const handleFinish = () => {
     try {
-      if (currentMember) {
+      // Find member again to ensure we have latest data
+      const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+      
+      if (memberToUpdate) {
+        const points = score;
         const newScore: Score = {
-          date: new Date().toLocaleDateString('pt-BR'),
+          gameId: 'specialtyGame',
+          date: new Date().toISOString(),
           punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-          specialtyGame: score
+          specialtyGame: points
         };
         
-        // Garante que scores seja um array antes de espalhar
-        const currentScores = Array.isArray(currentMember.scores) ? currentMember.scores : [];
-        onUpdateMember({ ...currentMember, scores: [...currentScores, newScore] });
+        const currentScores = Array.isArray(memberToUpdate.scores) ? memberToUpdate.scores : [];
+        onUpdateMember({ ...memberToUpdate, scores: [...currentScores, newScore] });
       }
     } catch (err) {
       console.error("Erro ao salvar pontuação:", err);
@@ -178,7 +199,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     </div>
   );
 
-  if (hasPlayedThisWeek && user.role === UserRole.PATHFINDER) {
+  if (hasPlayedThisWeek && !isAdmin && !specialtyOverride) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6">
@@ -190,7 +211,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     );
   }
 
-  if (!isAvailable && user.role === UserRole.PATHFINDER) {
+  if (!isAvailable && !isAdmin && !specialtyOverride) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6">

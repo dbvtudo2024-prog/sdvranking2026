@@ -70,26 +70,23 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
   };
 
   const saveScore = () => {
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-    if (!currentMember) return;
+    // Find member again to ensure we have latest data
+    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    if (!memberToUpdate) return;
 
-    const todayStr = new Date().toLocaleDateString('pt-BR');
-    const updatedScores = [...(currentMember.scores || [])];
-    const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
+    const todayStr = new Date().toISOString();
+    const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
 
-    if (todayScoreIndex >= 0) {
-      (updatedScores[todayScoreIndex] as any).specialtyTrailGame = finalScore;
-    } else {
-      updatedScores.push({
-        date: todayStr,
-        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-        specialtyTrailGame: finalScore
-      } as any);
-    }
+    updatedScores.push({
+      gameId: 'specialtyTrailGame',
+      date: todayStr,
+      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      specialtyTrailGame: finalScore
+    } as any);
 
-    onUpdateMember({ ...currentMember, scores: updatedScores });
+    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
   };
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
@@ -97,15 +94,15 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Aberto de Sábado (6) até Quinta (4). Bloqueado na Sexta (5).
-    const isGameDay = day !== 5;
-    const available = isGameDay || override || isAdmin;
     
-    // O ciclo começa no sábado (6).
+    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
+    const available = day !== 5 || override || isAdmin;
+    
+    // Calculate start of current week (Saturday)
     const diff = (day + 1) % 7;
-    const cycleStart = new Date(now);
-    cycleStart.setDate(now.getDate() - diff);
-    cycleStart.setHours(0, 0, 0, 0);
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
 
     let played = false;
     const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
@@ -113,22 +110,28 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     if (currentMember && !isAdmin) {
       played = (currentMember.scores || []).some(s => {
         const scoreDate = new Date(s.date);
+        
+        // Handle ISO and DD/MM/YYYY formats
+        let d: Date;
         if (isNaN(scoreDate.getTime())) {
           const parts = s.date.split('/');
           if (parts.length === 3) {
-            const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            return d >= cycleStart && ((s as any).specialtyTrailGame !== undefined || s.gameId === 'specialtyTrailGame');
+            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          } else {
+            return false;
           }
-          return false;
+        } else {
+          d = scoreDate;
         }
-        return scoreDate >= cycleStart && ((s as any).specialtyTrailGame !== undefined || s.gameId === 'specialtyTrailGame');
+        
+        return d >= saturday && ((s as any).specialtyTrailGame !== undefined || s.gameId === 'specialtyTrailGame');
       });
     }
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, isAdmin, members, user.id, user.name]);
 
-  if (!isAvailable && !isAdmin) {
+  if (!isAvailable && !isAdmin && !override) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
         <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
@@ -143,7 +146,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin) {
+  if (hasPlayedThisWeek && !isAdmin && !override) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
         <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">

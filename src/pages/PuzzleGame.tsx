@@ -39,11 +39,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Open from Saturday (6) to Thursday (4). Locked on Friday (5).
-    const available = day !== 5 || puzzleOverride;
+    
+    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
+    const available = day !== 5 || puzzleOverride || isAdmin;
     
     // Calculate start of current week (Saturday)
     const diff = (day + 1) % 7;
@@ -52,15 +55,29 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     saturday.setHours(0, 0, 0, 0);
 
     let played = false;
-    if (currentMember) {
+    if (currentMember && !isAdmin) {
       played = (currentMember.scores || []).some(s => {
         const scoreDate = new Date(s.date);
-        return scoreDate >= saturday && s.gameId === 'puzzleGame';
+        
+        // Handle ISO and DD/MM/YYYY formats
+        let d: Date;
+        if (isNaN(scoreDate.getTime())) {
+          const parts = s.date.split('/');
+          if (parts.length === 3) {
+            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          } else {
+            return false;
+          }
+        } else {
+          d = scoreDate;
+        }
+        
+        return d >= saturday && s.gameId === 'puzzleGame';
       });
     }
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [puzzleOverride, currentMember]);
+  }, [puzzleOverride, currentMember, isAdmin]);
 
   useEffect(() => {
     const sub = DatabaseService.subscribePuzzleImages(setImages);
@@ -186,7 +203,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   };
 
   const handleFinish = () => {
-    if (currentMember) {
+    // Find member again to ensure we have latest data
+    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    
+    if (memberToUpdate) {
       const points = calculatePoints();
       const newScore = {
         gameId: 'puzzleGame',
@@ -194,17 +214,17 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         date: new Date().toISOString()
       };
       
-      const updatedScores = [...(currentMember.scores || []), newScore];
+      const updatedScores = [...(memberToUpdate.scores || []), newScore];
 
       onUpdateMember({
-        ...currentMember,
+        ...memberToUpdate,
         scores: updatedScores
       });
     }
     onBack();
   };
 
-  if (hasPlayedThisWeek && user.role === UserRole.PATHFINDER) {
+  if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
@@ -214,7 +234,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
-  if (!isAvailable && user.role === UserRole.PATHFINDER) {
+  if (!isAvailable && !isAdmin && !puzzleOverride) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
         <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>

@@ -73,9 +73,7 @@ const Games: React.FC<GamesProps> = ({
   const cycleStart = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // O ciclo começa no sábado (6).
-    // Dias desde o último sábado:
-    // Sáb: 0, Dom: 1, Seg: 2, Ter: 3, Qua: 4, Qui: 5, Sex: 6
+    // Cycle starts on Saturday (6).
     const diff = (day + 1) % 7;
     const start = new Date(now);
     start.setDate(now.getDate() - diff);
@@ -83,39 +81,43 @@ const Games: React.FC<GamesProps> = ({
     return start;
   }, []);
 
+  const parseScoreDate = (dateStr: string): Date | null => {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    
+    // Fallback for DD/MM/YYYY
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    }
+    return null;
+  };
+
   const checkPlayedThisWeek = (gameId: string) => {
     if (!currentMember || isAdmin) return false;
     return (currentMember.scores || []).some(s => {
-      const scoreDate = new Date(s.date);
-      if (isNaN(scoreDate.getTime())) {
-        // Fallback for old date format DD/MM/YYYY
-        const parts = s.date.split('/');
-        if (parts.length === 3) {
-          const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          return d >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
-        }
-        return false;
-      }
-      return scoreDate >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
+      const d = parseScoreDate(s.date);
+      if (!d) return false;
+      return d >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
     });
   };
 
   const quizStatus = useMemo(() => {
     const unlocked = isGameDay || quizOverride || isAdmin;
-    if (!currentMember) return { unlocked, alreadyPlayed: false };
+    if (!currentMember || isAdmin) return { unlocked, alreadyPlayed: false };
     
     const playedDesb = (currentMember.scores || []).some(s => {
-      const scoreDate = new Date(s.date);
-      const d = isNaN(scoreDate.getTime()) ? new Date(s.date.split('/').reverse().join('-')) : scoreDate;
+      const d = parseScoreDate(s.date);
+      if (!d) return false;
       return d >= cycleStart && (s.quizCategory === 'Desbravadores' || (s as any).quizCategory === 'Desbravadores');
     });
     const playedBiblia = (currentMember.scores || []).some(s => {
-      const scoreDate = new Date(s.date);
-      const d = isNaN(scoreDate.getTime()) ? new Date(s.date.split('/').reverse().join('-')) : scoreDate;
+      const d = parseScoreDate(s.date);
+      if (!d) return false;
       return d >= cycleStart && (s.quizCategory === 'Bíblia' || (s as any).quizCategory === 'Bíblia');
     });
     
-    return { unlocked, alreadyPlayed: playedDesb && playedBiblia && !isAdmin };
+    return { unlocked, alreadyPlayed: playedDesb && playedBiblia };
   }, [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
 
   const memoryStatus = useMemo(() => {

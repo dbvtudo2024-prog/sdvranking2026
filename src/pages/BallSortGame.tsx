@@ -36,11 +36,13 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
   const [isFinished, setIsFinished] = useState(false);
 
   const currentMember = useMemo(() => 
-    members.find(m => m.email === user?.email),
+    members.find(m => m.id === user?.id || m.name.toLowerCase().trim() === user?.name.toLowerCase().trim()),
   [members, user]);
 
+  const isAdmin = user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldosonic@gmail.com';
+
   const hasPlayedThisWeek = useMemo(() => {
-    if (override) return false;
+    if (override || isAdmin) return false;
     if (!currentMember?.scores) return false;
     
     const now = new Date();
@@ -51,10 +53,25 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
     saturday.setDate(now.getDate() - diff);
     saturday.setHours(0, 0, 0, 0);
 
-    return (currentMember.scores || []).some(s => 
-      s.gameId === 'ballSortGame' && new Date(s.date) >= saturday
-    );
-  }, [currentMember, override]);
+    return (currentMember.scores || []).some(s => {
+      const scoreDate = new Date(s.date);
+      
+      // Handle ISO and DD/MM/YYYY formats
+      let d: Date;
+      if (isNaN(scoreDate.getTime())) {
+        const parts = s.date.split('/');
+        if (parts.length === 3) {
+          d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        } else {
+          return false;
+        }
+      } else {
+        d = scoreDate;
+      }
+      
+      return d >= saturday && (s.gameId === 'ballSortGame' || (s as any).ballSortGame !== undefined);
+    });
+  }, [currentMember, override, isAdmin]);
 
   const initGame = useCallback((lvl: number) => {
     const numColors = Math.min(lvl + 2, COLORS.length);
@@ -146,21 +163,21 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
   };
 
   const handleFinish = () => {
-    if (!currentMember) return;
+    const memberToUpdate = members.find(m => m.id === user?.id || m.name.toLowerCase().trim() === user?.name.toLowerCase().trim());
+    if (!memberToUpdate) return;
 
     const points = 50; // Pontos fixos por completar o desafio semanal
-    const newScore = {
+    const todayStr = new Date().toISOString();
+    const updatedScores = [...(memberToUpdate.scores || [])];
+
+    updatedScores.push({
       gameId: 'ballSortGame',
-      points,
-      date: new Date().toISOString()
-    };
+      date: todayStr,
+      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      ballSortGame: points
+    } as any);
 
-    const updatedMember = {
-      ...currentMember,
-      scores: [...(currentMember.scores || []), newScore]
-    };
-
-    onUpdateMember(updatedMember);
+    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
     setIsFinished(true);
     setIsWon(false);
   };

@@ -52,35 +52,47 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
 
-  const isAvailable = useMemo(() => {
-    if (override || isAdmin) return true;
-    const day = new Date().getDay();
-    return day !== 5; // Bloqueado na Sexta
-  }, [override, isAdmin]);
-
-  const cycleStart = useMemo(() => {
+  const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
+    
+    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
+    const available = day !== 5 || override || isAdmin;
+    
+    // Calculate start of current week (Saturday)
     const diff = (day + 1) % 7;
-    const start = new Date(now);
-    start.setDate(now.getDate() - diff);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }, []);
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
 
-  const hasPlayedThisWeek = useMemo(() => {
-    if (isAdmin) return false;
-    const currentMember = members.find(m => m.id === user.id);
-    if (!currentMember) return false;
-    return currentMember.scores.some(s => {
-      const [day, month, year] = s.date.split('/').map(Number);
-      const scoreDate = new Date(year, month - 1, day);
-      scoreDate.setHours(0, 0, 0, 0);
-      return scoreDate >= cycleStart && (s as any).threeCluesGame !== undefined;
-    });
-  }, [members, user.id, cycleStart, isAdmin]);
+    let played = false;
+    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    
+    if (currentMember && !isAdmin) {
+      played = (currentMember.scores || []).some(s => {
+        const scoreDate = new Date(s.date);
+        
+        // Handle ISO and DD/MM/YYYY formats
+        let d: Date;
+        if (isNaN(scoreDate.getTime())) {
+          const parts = s.date.split('/');
+          if (parts.length === 3) {
+            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          } else {
+            return false;
+          }
+        } else {
+          d = scoreDate;
+        }
+        
+        return d >= saturday && ((s as any).threeCluesGame !== undefined || s.gameId === 'threeCluesGame');
+      });
+    }
+    
+    return { isAvailable: available, hasPlayedThisWeek: played };
+  }, [override, isAdmin, members, user.id, user.name]);
 
-  if (!isAvailable && !isAdmin) {
+  if (!isAvailable && !isAdmin && !override) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
         <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
@@ -95,7 +107,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin) {
+  if (hasPlayedThisWeek && !isAdmin && !override) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
         <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
@@ -171,26 +183,22 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   };
 
   const handleFinish = () => {
-    const currentMember = members.find(m => m.id === user.id);
-    if (!currentMember) return;
+    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    if (!memberToUpdate) return;
 
-    const todayStr = new Date().toLocaleDateString('pt-BR');
-    const updatedScores = [...(currentMember.scores || [])];
-    const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
+    const todayStr = new Date().toISOString();
+    const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
 
-    if (todayScoreIndex >= 0) {
-      (updatedScores[todayScoreIndex] as any).threeCluesGame = finalScore;
-    } else {
-      updatedScores.push({
-        date: todayStr,
-        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-        threeCluesGame: finalScore
-      } as any);
-    }
+    updatedScores.push({
+      gameId: 'threeCluesGame',
+      date: todayStr,
+      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      threeCluesGame: finalScore
+    } as any);
 
-    onUpdateMember({ ...currentMember, scores: updatedScores });
+    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
     onBack();
   };
 

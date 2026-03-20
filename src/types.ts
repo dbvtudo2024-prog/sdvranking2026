@@ -44,6 +44,10 @@ export interface Score {
   firstAidGame?: number;
   pianoTilesGame?: number;
   mahjongGame?: number;
+  ballSortGame?: number;
+  brickBreakerGame?: number;
+  gameId?: string;
+  points?: number;
   specialtyStudyScore?: number;
   specialtyStudyId?: string;
   specialtyStudyName?: string;

@@ -18,7 +18,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   const [showInstructions, setShowInstructions] = useState(true);
 
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase() === user.name.toLowerCase());
+    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
   }, [members, user.id, user.name]);
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
@@ -37,14 +37,28 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
     const now = new Date();
     const day = now.getDay();
     const diff = (day + 1) % 7;
-    const cycleStart = new Date(now);
-    cycleStart.setDate(now.getDate() - diff);
-    cycleStart.setHours(0, 0, 0, 0);
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() - diff);
+    saturday.setHours(0, 0, 0, 0);
 
-    return currentMember.scores.some(s => {
-      const scoreDate = new Date(s.date.split('/').reverse().join('-'));
-      return scoreDate >= cycleStart && 
-             s.quiz !== undefined && 
+    return (currentMember.scores || []).some(s => {
+      const scoreDate = new Date(s.date);
+      
+      // Handle ISO and DD/MM/YYYY formats
+      let d: Date;
+      if (isNaN(scoreDate.getTime())) {
+        const parts = s.date.split('/');
+        if (parts.length === 3) {
+          d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        } else {
+          return false;
+        }
+      } else {
+        d = scoreDate;
+      }
+      
+      return d >= saturday && 
+             (s.quiz !== undefined || (s as any).quizCategory !== undefined) && 
              s.quizCategory === category;
     });
   };

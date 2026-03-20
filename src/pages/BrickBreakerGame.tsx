@@ -36,25 +36,41 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   const [level, setLevel] = useState(1);
 
   const currentMember = useMemo(() => 
-    members.find(m => m.email === user?.email),
+    members.find(m => m.id === user?.id || (m.name.trim().toLowerCase() === user?.name?.trim().toLowerCase())),
   [members, user]);
 
+  const isAdmin = useMemo(() => 
+    user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldoSonic@gmail.com',
+  [user]);
+
   const hasPlayedThisWeek = useMemo(() => {
-    if (override) return false;
+    if (override || isAdmin) return false;
     if (!currentMember?.scores) return false;
     
     const now = new Date();
     const day = now.getDay();
-    // Saturday (6) is the start of the week
     const diff = (day + 1) % 7;
     const saturday = new Date(now);
     saturday.setDate(now.getDate() - diff);
     saturday.setHours(0, 0, 0, 0);
 
+    const parseScoreDate = (dateStr: string) => {
+      if (dateStr.includes('T')) return new Date(dateStr);
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     return (currentMember.scores || []).some(s => 
-      s.gameId === 'brickBreakerGame' && new Date(s.date) >= saturday
+      s.gameId === 'brickBreakerGame' && parseScoreDate(s.date) >= saturday
     );
-  }, [currentMember, override]);
+  }, [currentMember, override, isAdmin]);
+
+  const isAvailable = useMemo(() => {
+    if (override || isAdmin) return true;
+    const now = new Date();
+    const day = now.getDay();
+    return day >= 1 && day <= 4; // Monday to Thursday
+  }, [override, isAdmin]);
 
   // Game constants
   const PADDLE_HEIGHT = 10;
@@ -313,7 +329,28 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     }
   };
 
-  if (hasPlayedThisWeek) {
+  if (!isAvailable && !override && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
+        <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+          <Play size={48} className="text-slate-600" />
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase mb-2">Indisponível</h2>
+        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+          Este jogo só está disponível de segunda a quinta-feira.
+        </p>
+        <button 
+          onClick={onBack}
+          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Home size={20} />
+          Voltar ao Início
+        </button>
+      </div>
+    );
+  }
+
+  if (hasPlayedThisWeek && !override && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
         <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
