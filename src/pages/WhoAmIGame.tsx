@@ -98,19 +98,14 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
 
     const todayStr = new Date().toLocaleDateString('pt-BR');
     const updatedScores = [...(currentMember.scores || [])];
-    const todayScoreIndex = updatedScores.findIndex(s => s.date === todayStr);
-
     const finalScore = score;
 
-    if (todayScoreIndex >= 0) {
-      (updatedScores[todayScoreIndex] as any).whoAmIGame = finalScore;
-    } else {
-      updatedScores.push({
-        date: todayStr,
-        punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
-        whoAmIGame: finalScore
-      } as any);
-    }
+    updatedScores.push({
+      type: 'game',
+      gameId: 'whoAmIGame',
+      date: new Date().toLocaleDateString('pt-BR'),
+      whoAmIGame: finalScore
+    });
 
     onUpdateMember({ ...currentMember, scores: updatedScores });
   };

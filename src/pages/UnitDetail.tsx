@@ -124,13 +124,16 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     let finalDate = newScore.date || new Date().toLocaleDateString('pt-BR');
     if (finalDate.includes('-')) finalDate = finalDate.split('-').reverse().join('/');
     
-    // Bloqueio de data duplicada (Exceto se estiver editando a mesma entrada)
+    // Bloqueio de data duplicada (Apenas para pontuações semanais)
     const dateAlreadyExists = selectedMemberForPoints.scores.some((s, idx) => 
-      s.date === finalDate && (editingScoreIndex === null || idx !== editingScoreIndex)
+      (s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)) && 
+      s.date === finalDate && 
+      (editingScoreIndex === null || idx !== editingScoreIndex)
     );
-    if (dateAlreadyExists) return alert(`Já existe pontuação lançada na data ${finalDate}.`);
+    if (dateAlreadyExists) return alert(`Já existe pontuação semanal lançada na data ${finalDate}.`);
 
     const scoreEntry: Score = {
+      type: 'weekly',
       date: finalDate,
       punctuality: Number(newScore.punctuality) || 0,
       uniform: Number(newScore.uniform) || 0,
@@ -175,6 +178,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const calculateWeeklyTotal = (member: Member) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
     return member.scores.reduce((acc, curr) => {
+      // Considera pontuação semanal se tiver o tipo 'weekly' ou se tiver campos de pontuação semanal e não for jogo
+      const isWeekly = curr.type === 'weekly' || (!curr.type && !curr.gameId && !curr.quizCategory);
+      if (!isWeekly) return acc;
+      
       return acc + 
         (Number(curr.punctuality) || 0) + 
         (Number(curr.uniform) || 0) + 
@@ -288,10 +295,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Histórico de Pontuações</p>
-              {historyMember.scores.filter(s => calculateScoreTotal(s) > 0).length > 0 ? (
+              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Histórico de Pontuações Semanais</p>
+              {historyMember.scores.filter(s => (s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)) && calculateScoreTotal(s) > 0).length > 0 ? (
                 [...historyMember.scores]
-                  .filter(s => calculateScoreTotal(s) > 0)
+                  .filter(s => (s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)) && calculateScoreTotal(s) > 0)
                   .reverse()
                   .map((s, idx) => {
                     // Encontra o índice original para edição/exclusão correta

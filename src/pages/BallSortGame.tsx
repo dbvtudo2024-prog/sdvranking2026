@@ -171,11 +171,11 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
     const updatedScores = [...(memberToUpdate.scores || [])];
 
     updatedScores.push({
+      type: 'game',
       gameId: 'ballSortGame',
-      date: todayStr,
-      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      date: new Date().toLocaleDateString('pt-BR'),
       ballSortGame: points
-    } as any);
+    });
 
     onUpdateMember({ ...memberToUpdate, scores: updatedScores });
     setIsFinished(true);

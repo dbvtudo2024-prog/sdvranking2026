@@ -176,9 +176,9 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
       if (memberToUpdate) {
         const points = score;
         const newScore: Score = {
+          type: 'game',
           gameId: 'specialtyGame',
-          date: new Date().toISOString(),
-          punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+          date: new Date().toLocaleDateString('pt-BR'),
           specialtyGame: points
         };
         

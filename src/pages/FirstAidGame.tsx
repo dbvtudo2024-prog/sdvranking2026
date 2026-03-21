@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, HeartPulse, Trophy, AlertCircle, RefreshCcw, Activity, Home, Lock, RefreshCw } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member, QuizQuestion, UserRole } from '@/types';
+import { AuthUser, Member, QuizQuestion, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -111,10 +111,11 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
     const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!currentMember) return;
 
-    const newScore = {
+    const newScore: Score = {
+      type: 'game',
       gameId: 'firstAidGame',
       points: score,
-      date: new Date().toISOString()
+      date: new Date().toLocaleDateString('pt-BR')
     };
 
     const updatedMember = {

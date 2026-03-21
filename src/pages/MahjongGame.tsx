@@ -455,10 +455,11 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const handleFinish = () => {
     if (currentMember) {
       const points = Math.max(10, Math.floor(score * 2 - seconds / 10));
-      const newScore = {
+      const newScore: Score = {
+        type: 'game',
         gameId: 'mahjongGame',
         points: points,
-        date: new Date().toISOString()
+        date: new Date().toLocaleDateString('pt-BR')
       };
       onUpdateMember({
         ...currentMember,

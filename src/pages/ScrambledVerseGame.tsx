@@ -107,11 +107,11 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const finalScore = score;
 
     updatedScores.push({
+      type: 'game',
       gameId: 'scrambledVerseGame',
-      date: todayStr,
-      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      date: new Date().toLocaleDateString('pt-BR'),
       scrambledVerseGame: finalScore
-    } as any);
+    });
 
     onUpdateMember({ ...memberToUpdate, scores: updatedScores });
   };

@@ -64,14 +64,8 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
   const handleFinish = () => {
     if (member) {
       const newScoreEntry: Score = {
+        type: 'game',
         date: new Date().toLocaleDateString('pt-BR'),
-        punctuality: 0,
-        uniform: 0,
-        material: 0,
-        bible: 0,
-        voluntariness: 0,
-        activities: 0,
-        treasury: 0,
         quiz: score,
         quizCategory: category
       };

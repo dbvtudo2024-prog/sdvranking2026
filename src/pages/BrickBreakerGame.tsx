@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AuthUser, Member, UserRole } from '@/types';
+import { AuthUser, Member, Score, UserRole } from '@/types';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -149,10 +149,12 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     if (!currentMember) return;
 
     const points = 50; 
-    const newScore = {
+    const newScore: Score = {
+      type: 'game',
       gameId: 'brickBreakerGame',
       points,
-      date: new Date().toISOString()
+      brickBreakerGame: points,
+      date: new Date().toLocaleDateString('pt-BR')
     };
 
     const updatedMember = {

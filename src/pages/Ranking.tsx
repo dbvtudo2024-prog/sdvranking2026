@@ -63,6 +63,10 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const calculateWeeklyTotal = (member: Member) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
     return member.scores.reduce((acc, curr) => {
+      // Considera pontuação semanal se tiver o tipo 'weekly' ou se tiver campos de pontuação semanal e não for jogo
+      const isWeekly = curr.type === 'weekly' || (!curr.type && !curr.gameId && !curr.quizCategory);
+      if (!isWeekly) return acc;
+
       return acc + 
         (Number(curr.punctuality) || 0) + 
         (Number(curr.uniform) || 0) + 

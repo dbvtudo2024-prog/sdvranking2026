@@ -80,11 +80,11 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     const finalScore = score;
 
     updatedScores.push({
+      type: 'game',
       gameId: 'specialtyTrailGame',
-      date: todayStr,
-      punctuality: 0, uniform: 0, material: 0, bible: 0, voluntariness: 0, activities: 0, treasury: 0,
+      date: new Date().toLocaleDateString('pt-BR'),
       specialtyTrailGame: finalScore
-    } as any);
+    });
 
     onUpdateMember({ ...memberToUpdate, scores: updatedScores });
   };

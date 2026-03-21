@@ -207,10 +207,11 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     
     if (memberToUpdate) {
       const points = calculatePoints();
-      const newScore = {
+      const newScore: Score = {
+        type: 'game',
         gameId: 'memoryGame',
         points: points,
-        date: new Date().toISOString()
+        date: new Date().toLocaleDateString('pt-BR')
       };
       
       const updatedScores = [...(memberToUpdate.scores || []), newScore];

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, RotateCcw, Trophy, Music, Settings, List, CheckCircle2, Home } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member, PianoSong, UserRole } from '@/types';
+import { AuthUser, Member, PianoSong, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import GameInstructions from '@/components/GameInstructions';
 import { DatabaseService } from '@/db';
@@ -245,10 +245,12 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
   const saveScore = useCallback(() => {
     if (hasSavedScore.current || !currentMember) return;
     
-    const newScore = {
+    const newScore: Score = {
+      type: 'game',
       gameId: 'pianoTilesGame',
       points: score,
-      date: new Date().toISOString()
+      pianoTilesGame: score,
+      date: new Date().toLocaleDateString('pt-BR')
     };
 
     const updatedMember = {

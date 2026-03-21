@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw, Hash, Lock, RefreshCw } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
-import { AuthUser, Member, UserRole } from '@/types';
+import { AuthUser, Member, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -96,10 +96,11 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!currentMember) return;
 
-    const newScore = {
+    const newScore: Score = {
+      type: 'game',
       gameId: 'knotsGame',
       points: score,
-      date: new Date().toISOString()
+      date: new Date().toLocaleDateString('pt-BR')
     };
 
     const updatedScores = [...(currentMember.scores || []), newScore];

@@ -21,14 +21,15 @@ export interface ChatMessage {
 }
 
 export interface Score {
+  type?: 'weekly' | 'game';
   date: string;
-  punctuality: number;
-  uniform: number;
-  material: number;
-  bible: number;
-  voluntariness: number;
-  activities: number;
-  treasury: number;
+  punctuality?: number;
+  uniform?: number;
+  material?: number;
+  bible?: number;
+  voluntariness?: number;
+  activities?: number;
+  treasury?: number;
   quiz?: number;
   quizCategory?: 'Desbravadores' | 'Bíblia';
   memoryGame?: number;
