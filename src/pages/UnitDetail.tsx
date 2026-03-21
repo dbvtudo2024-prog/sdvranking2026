@@ -172,6 +172,20 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     setSelectedMemberIdForHistory(null); // Fecha o histórico
   };
 
+  const calculateWeeklyTotal = (member: Member) => {
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      return acc + 
+        (Number(curr.punctuality) || 0) + 
+        (Number(curr.uniform) || 0) + 
+        (Number(curr.material) || 0) + 
+        (Number(curr.bible) || 0) + 
+        (Number(curr.voluntariness) || 0) + 
+        (Number(curr.activities) || 0) + 
+        (Number(curr.treasury) || 0);
+    }, 0);
+  };
+
   const calculateScoreTotal = (s: Score) => (Number(s.punctuality) || 0) + (Number(s.uniform) || 0) + (Number(s.material) || 0) + (Number(s.bible) || 0) + (Number(s.voluntariness) || 0) + (Number(s.activities) || 0) + (Number(s.treasury) || 0);
 
   const labelClasses = "text-[12px] font-bold text-[#1e293b] dark:text-slate-300 mb-1.5 block ml-1";
@@ -207,7 +221,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   </p>
                 </div>
                 <div className="absolute top-6 right-6 font-black text-[#0061f2] text-lg">
-                   {member.scores.reduce((a, b) => a + calculateScoreTotal(b), 0)} pts
+                   {calculateWeeklyTotal(member)} pts
                 </div>
                 <div className="absolute bottom-5 right-6 flex gap-1">
                    <button onClick={(e) => { e.stopPropagation(); setSelectedMemberIdForHistory(member.id); }} className="p-2 text-slate-300 hover:text-blue-600 transition-all"><History size={18} /></button>

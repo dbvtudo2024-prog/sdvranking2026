@@ -122,14 +122,14 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const now = new Date();
     const day = now.getDay();
     
-    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
-    const available = day !== 5 || override || isAdmin;
+    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
+    const available = (day >= 0 && day <= 4) || override || isAdmin;
     
-    // Calculate start of current week (Saturday)
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Calculate start of current week (Sunday)
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     let played = false;
     const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
@@ -151,7 +151,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
           d = scoreDate;
         }
         
-        return d >= saturday && ((s as any).scrambledVerseGame !== undefined || s.gameId === 'scrambledVerseGame');
+        return d >= sunday && ((s as any).scrambledVerseGame !== undefined || s.gameId === 'scrambledVerseGame');
       });
     }
     

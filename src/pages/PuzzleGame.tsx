@@ -45,14 +45,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     const now = new Date();
     const day = now.getDay();
     
-    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
-    const available = day !== 5 || puzzleOverride || isAdmin;
+    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
+    const available = (day >= 0 && day <= 4) || puzzleOverride || isAdmin;
     
-    // Calculate start of current week (Saturday)
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Calculate start of current week (Sunday)
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     let played = false;
     if (currentMember && !isAdmin) {
@@ -72,7 +72,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           d = scoreDate;
         }
         
-        return d >= saturday && s.gameId === 'puzzleGame';
+        return d >= sunday && s.gameId === 'puzzleGame';
       });
     }
     
@@ -279,10 +279,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           ]}
           icon={<Puzzle size={32} className="text-white" />}
         />
-        <div className="flex items-center mb-6">
-          <h2 className="text-xl font-black text-slate-800 uppercase">Quebra-Cabeça</h2>
-        </div>
-        
         <div className="flex-1 flex flex-col gap-6 pb-10">
           <div className="text-center mb-4">
             <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-[#0061f2] mx-auto mb-4">
@@ -326,20 +322,31 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden">
-      <GameHeader 
-        stats={[
-          { label: 'Tempo', value: formatTime(seconds) },
-          { label: 'Movimentos', value: moves }
-        ]}
-        onRefresh={() => initializeGame(selectedImage!)}
-      />
+      <div className="bg-white dark:bg-slate-800 p-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex gap-6">
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tempo</span>
+            <span className="text-sm font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{formatTime(seconds)}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Movimentos</span>
+            <span className="text-sm font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{moves}</span>
+          </div>
+        </div>
+        <button 
+          onClick={() => initializeGame(selectedImage!)}
+          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
+        >
+          <RefreshCw size={20} />
+        </button>
+      </div>
       
       <div className="flex-1 flex items-center justify-center p-4">
         <div 
           className="relative bg-slate-200 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
           style={{ 
-            width: 'min(90vw, 400px)', 
-            height: 'min(90vw, 400px)',
+            width: 'min(80vw, 260px)', 
+            height: 'min(80vw, 260px)',
             display: 'grid',
             gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
             gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,

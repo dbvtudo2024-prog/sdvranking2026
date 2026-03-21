@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw, Hash, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Anchor, Trophy, RefreshCcw, Hash, Lock, RefreshCw } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import { AuthUser, Member, UserRole } from '@/types';
@@ -65,6 +65,14 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     return [...shuffledOthers, currentKnot].sort(() => Math.random() - 0.5);
   }, [currentKnot, knots]);
 
+  const resetGame = () => {
+    setCurrentStep(0);
+    setScore(0);
+    setSelectedOption(null);
+    setIsCorrect(null);
+    setGameState('playing');
+  };
+
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null) return;
     setSelectedOption(index);
@@ -104,12 +112,13 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Aberto de Sábado (6) até Quinta (4). Bloqueado na Sexta (5).
-    const isGameDay = day !== 5;
+    // Aberto de Domingo (0) até Quinta (4).
+    // Bloqueado na Sexta (5) e Sábado (6).
+    const isGameDay = day >= 0 && day <= 4;
     const available = isGameDay || override || isAdmin;
     
-    // O ciclo começa no sábado (6).
-    const diff = (day + 1) % 7;
+    // O ciclo começa no Domingo (0).
+    const diff = day;
     const cycleStart = new Date(now);
     cycleStart.setDate(now.getDate() - diff);
     cycleStart.setHours(0, 0, 0, 0);
@@ -167,12 +176,24 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <GameHeader 
-        stats={[
-          { label: 'Questão', value: `${currentStep + 1}/${questions.length}` },
-          { label: 'Pontos', value: score }
-        ]}
-      />
+      <div className="bg-white dark:bg-slate-800 p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex gap-4">
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Questão</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{currentStep + 1}/{questions.length}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pontos</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{score}</span>
+          </div>
+        </div>
+        <button 
+          onClick={resetGame}
+          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </div>
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -186,7 +207,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
         icon={<Hash size={32} className="text-white" />}
       />
 
-      <main className="flex-1 p-6 flex flex-col items-center gap-6">
+      <main className="flex-1 p-4 flex flex-col items-center gap-4">
         <AnimatePresence mode="wait">
           {gameState === 'playing' ? (
             <motion.div 
@@ -194,22 +215,22 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-md flex flex-col gap-6"
+              className="w-full max-w-5xl flex flex-col md:flex-row gap-4 items-start justify-center"
             >
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center gap-4">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Qual é este nó?</p>
-                <div className="w-full aspect-square bg-slate-50 dark:bg-slate-900 rounded-3xl overflow-hidden flex items-center justify-center p-4">
+              <div className="w-full md:w-1/2 bg-white dark:bg-slate-800 p-3 rounded-[2rem] shadow-xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center gap-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Qual é este nó?</p>
+                <div className="w-full max-w-[180px] aspect-square bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center p-2">
                   <img src={currentKnot.image} alt="Nó" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="w-full md:w-1/2 grid grid-cols-1 gap-3">
                 {options.map((opt, idx) => (
                   <button
                     key={idx}
                     disabled={selectedOption !== null}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`w-full p-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between
+                    className={`w-full p-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between text-left
                       ${selectedOption === null 
                         ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50' 
                         : selectedOption === idx
@@ -221,9 +242,9 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
                             : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 opacity-50'
                       }`}
                   >
-                    {opt.name}
+                    <span className="flex-1">{opt.name}</span>
                     {selectedOption === idx && (
-                      isCorrect ? <CheckCircle2 size={20} /> : <XCircle size={20} />
+                      isCorrect ? <CheckCircle2 size={20} className="shrink-0 ml-2" /> : <XCircle size={20} className="shrink-0 ml-2" />
                     )}
                   </button>
                 ))}

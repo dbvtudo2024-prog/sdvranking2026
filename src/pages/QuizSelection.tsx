@@ -26,8 +26,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   const isAvailable = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Unlocked from Saturday (6) to Thursday (4). Locked on Friday (5).
-    return day !== 5 || quizOverride || isAdmin; 
+    // Aberto de Domingo (0) até Quinta (4). Bloqueado na Sexta (5) e Sábado (6).
+    return (day >= 0 && day <= 4) || quizOverride || isAdmin; 
   }, [quizOverride, isAdmin]);
 
   const hasPlayedThisWeek = (category: 'Desbravadores' | 'Bíblia') => {
@@ -36,10 +36,11 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
     
     const now = new Date();
     const day = now.getDay();
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // O ciclo começa no Domingo (0).
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     return (currentMember.scores || []).some(s => {
       const scoreDate = new Date(s.date);
@@ -57,7 +58,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
         d = scoreDate;
       }
       
-      return d >= saturday && 
+      return d >= sunday && 
              (s.quiz !== undefined || (s as any).quizCategory !== undefined) && 
              s.quizCategory === category;
     });

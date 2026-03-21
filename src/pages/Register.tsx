@@ -67,10 +67,9 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
     setIsLoading(true);
     try {
       // Verificar se o e-mail já existe
-      const users = await DatabaseService.getUsers();
-      const emailExists = users.some(u => u.email?.toLowerCase() === formData.email.trim().toLowerCase());
+      const existingUser = await DatabaseService.getUserByEmail(formData.email.trim());
       
-      if (emailExists) {
+      if (existingUser) {
         setErrorMsg('Este e-mail já está cadastrado. Tente fazer login.');
         setIsLoading(false);
         return;

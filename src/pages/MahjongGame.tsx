@@ -73,19 +73,20 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     
     const now = new Date();
     const day = now.getDay();
-    // Saturday (6) is the start of the week
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Sunday (0) is the start of the week
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     return (currentMember.scores || []).some(s => 
-      s.gameId === 'mahjongGame' && new Date(s.date) >= saturday
+      s.gameId === 'mahjongGame' && new Date(s.date) >= sunday
     );
   }, [currentMember, override]);
 
   const scoreRef = useRef(score);
   const levelRef = useRef(level);
+  const memberRef = useRef(currentMember);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -93,27 +94,32 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   }, [score, level]);
 
   useEffect(() => {
-    const member = members.find(m => m.id === user.id);
-    if (member && member.mahjongLevel) {
-      setLevel(member.mahjongLevel);
-      setScore(member.mahjongAccumulatedScore || 0);
-    }
+    memberRef.current = currentMember;
+  }, [currentMember]);
+
+  useEffect(() => {
+    const savedLevel = localStorage.getItem(`mahjong_level_${user.id}`);
+    const savedScore = localStorage.getItem(`mahjong_score_${user.id}`);
+    
+    if (savedLevel) setLevel(parseInt(savedLevel));
+    if (savedScore) setScore(parseInt(savedScore));
+    
+    const handleBeforeUnload = () => {
+      saveProgress(levelRef.current, scoreRef.current);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
     
     // Auto-save on unmount
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       saveProgress(levelRef.current, scoreRef.current);
     };
   }, []);
 
   const saveProgress = (currentLevel: number, currentScore: number) => {
-    const member = members.find(m => m.id === user.id);
-    if (member) {
-      onUpdateMember({
-        ...member,
-        mahjongLevel: currentLevel,
-        mahjongAccumulatedScore: currentScore
-      });
-    }
+    localStorage.setItem(`mahjong_level_${user.id}`, String(currentLevel));
+    localStorage.setItem(`mahjong_score_${user.id}`, String(currentScore));
   };
 
   const globalProgress = useMemo(() => {
@@ -424,6 +430,9 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
         
         if (newTiles.every(t => t.removed)) {
           if (level < 100) {
+            // Save progress on level completion
+            saveProgress(level + 1, score + 10);
+            
             setTimeout(() => {
               initGame(level + 1);
             }, 1000);
@@ -453,10 +462,10 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       };
       onUpdateMember({
         ...currentMember,
-        scores: [...(currentMember.scores || []), newScore],
-        mahjongLevel: 1, // Reset level on full completion
-        mahjongAccumulatedScore: 0
+        scores: [...(currentMember.scores || []), newScore]
       });
+      localStorage.setItem(`mahjong_level_${user.id}`, '1');
+      localStorage.setItem(`mahjong_score_${user.id}`, '0');
     }
     onBack();
   };

@@ -64,8 +64,6 @@ export interface Member {
   unit: UnitName;
   scores: Score[];
   photoUrl?: string;
-  mahjongLevel?: number;
-  mahjongAccumulatedScore?: number;
 }
 
 export interface Announcement {

@@ -29,13 +29,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
 
     setIsLoggingIn(true);
     try {
-      const users = await DatabaseService.getUsers();
+      const user = await DatabaseService.getUserByEmail(cleanEmail);
       
-      const user = users.find((u: AuthUser) => 
-        u.email?.toLowerCase() === cleanEmail && u.password === cleanPass
-      );
-
-      if (user) {
+      if (user && user.password === cleanPass) {
         onLogin(user);
       } else {
         alert('E-mail ou senha incorretos.');
@@ -49,7 +45,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0061f2] flex items-center justify-center p-4 relative overflow-hidden text-center">
+    <div className="min-h-screen bg-[#0061f2] flex items-center justify-center p-4 relative overflow-y-auto text-center">
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
       

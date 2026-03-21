@@ -16,11 +16,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
   const [gameTab, setGameTab] = useState<GameTabType>('total');
 
-  const calculateWeeklyTotal = (member: Member) => {
-    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => acc + (Number(curr.punctuality) || 0) + (Number(curr.uniform) || 0) + (Number(curr.material) || 0) + (Number(curr.bible) || 0) + (Number(curr.voluntariness) || 0) + (Number(curr.activities) || 0) + (Number(curr.treasury) || 0), 0);
-  };
-
   const calculateSpecific = (member: Member, key: string) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
     return member.scores.reduce((acc, curr) => {
@@ -65,6 +60,24 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
     }, 0);
   };
 
+  const calculateWeeklyTotal = (member: Member) => {
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      return acc + 
+        (Number(curr.punctuality) || 0) + 
+        (Number(curr.uniform) || 0) + 
+        (Number(curr.material) || 0) + 
+        (Number(curr.bible) || 0) + 
+        (Number(curr.voluntariness) || 0) + 
+        (Number(curr.activities) || 0) + 
+        (Number(curr.treasury) || 0);
+    }, 0);
+  };
+
+  const calculateGrandTotal = (member: Member) => {
+    return calculateWeeklyTotal(member);
+  };
+
   const getSortedData = () => {
     const data = Array.isArray(members) ? [...members] : [];
     if (tab === 'games') {
@@ -85,7 +98,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'pianotiles') return data.sort((a, b) => calculateSpecific(b, 'pianoTilesGame') - calculateSpecific(a, 'pianoTilesGame'));
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
-    return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
+    return data.sort((a, b) => calculateGrandTotal(b) - calculateGrandTotal(a));
   };
 
   const sortedData = getSortedData();
@@ -112,7 +125,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'pianotiles') return calculateSpecific(m, 'pianoTilesGame');
       return calculateGamesTotal(m);
     }
-    return calculateWeeklyTotal(m);
+    return calculateGrandTotal(m);
   };
 
   const TabButton = ({ type, label, icon: Icon }: { type: TabType, label: string, icon: any }) => (
@@ -332,7 +345,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           {[UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA]
             .map(unit => {
               const unitMembers = members.filter(m => m.unit === unit);
-              const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
+              const total = unitMembers.reduce((acc, m) => acc + calculateGrandTotal(m), 0);
               return { unit, total, memberCount: unitMembers.length };
             })
             .sort((a, b) => b.total - a.total)

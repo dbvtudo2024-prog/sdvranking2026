@@ -45,10 +45,10 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
   return (
     <div className={`flex flex-col h-full overflow-y-auto pb-24 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
       {/* BRASÃO DO CLUBE AO TOPO */}
-      <div className={`flex flex-col items-center justify-center pt-12 pb-8 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
+      <div className={`flex flex-col items-center justify-center pt-12 pb-8 landscape:pt-4 landscape:pb-4 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 
           onClick={() => onNavigate('profile')}
-          className={`absolute top-8 right-8 w-12 h-12 rounded-2xl active:scale-90 transition-all border shadow-sm overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+          className={`absolute top-8 right-8 landscape:top-4 landscape:right-4 w-12 h-12 landscape:w-10 landscape:h-10 rounded-2xl active:scale-90 transition-all border shadow-sm overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
         >
           {user.photoUrl ? (
             <img 
@@ -64,11 +64,11 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         <img 
           src={LOGO_APP} 
           alt="Brasão do Clube" 
-          className="w-32 h-32 object-contain drop-shadow-2xl" 
+          className="w-32 h-32 landscape:w-16 landscape:h-16 object-contain drop-shadow-2xl" 
           referrerPolicy="no-referrer"
         />
-        <h1 className={`mt-4 text-xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
-        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
+        <h1 className={`mt-4 landscape:mt-1 text-xl landscape:text-sm font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
+        <p className="text-[10px] landscape:hidden font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
       </div>
 
       {/* MURAL DE AVISOS */}

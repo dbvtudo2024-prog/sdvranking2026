@@ -100,7 +100,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const membersSub = DatabaseService.subscribeMembers(setMembers);
     const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
     const counselorsSub = DatabaseService.subscribeCounselors(setCounselorsData);
     const gameConfigsSub = DatabaseService.subscribeGameConfigs((config: GameConfig) => {
@@ -118,12 +117,22 @@ const App: React.FC = () => {
     });
 
     return () => {
-      membersSub.unsubscribe();
       announcementsSub.unsubscribe();
       counselorsSub.unsubscribe();
       gameConfigsSub.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setMembers([]);
+      return;
+    }
+    const membersSub = DatabaseService.subscribeMembers(setMembers);
+    return () => {
+      membersSub.unsubscribe();
+    };
+  }, [user?.id]);
 
   // LÓGICA DE NOTIFICAÇÃO DE DESAFIOS
   useEffect(() => {
@@ -392,7 +401,17 @@ const App: React.FC = () => {
   const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`flex flex-col h-screen h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-height: 500px) and (orientation: landscape) {
+          header { height: 3.5rem !important; }
+          header h1 { font-size: 0.875rem !important; }
+          header p { display: none !important; }
+          nav { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+          nav button { height: 2.5rem !important; }
+          nav span { display: none !important; }
+        }
+      `}} />
       {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
       {lastNotification && (
         <div 

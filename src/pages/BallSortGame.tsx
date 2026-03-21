@@ -47,11 +47,11 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
     
     const now = new Date();
     const day = now.getDay();
-    // Saturday (6) is the start of the week
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Sunday (0) is the start of the week
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     return (currentMember.scores || []).some(s => {
       const scoreDate = new Date(s.date);
@@ -69,7 +69,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
         d = scoreDate;
       }
       
-      return d >= saturday && (s.gameId === 'ballSortGame' || (s as any).ballSortGame !== undefined);
+      return d >= sunday && (s.gameId === 'ballSortGame' || (s as any).ballSortGame !== undefined);
     });
   }, [currentMember, override, isAdmin]);
 
@@ -192,13 +192,6 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
         <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você já completou este desafio esta semana. Volte na próxima segunda!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -217,23 +210,13 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
         <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você completou todos os níveis e ganhou 50 pontos!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-        >
-          Finalizar
-        </button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] p-4">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Organizar Cores</h1>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nível {level}/{LEVELS_TO_COMPLETE} • {moves} Movimentos</p>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <div className="flex gap-2">
           <button 
             onClick={() => initGame(level)}
@@ -241,22 +224,16 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
           >
             <RotateCcw size={20} className="text-blue-600 dark:text-blue-400" />
           </button>
-          <button 
-            onClick={onBack}
-            className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all"
-          >
-            <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400" />
-          </button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-wrap justify-center items-center gap-6 content-center">
+      <div className="flex-1 flex flex-col justify-center items-center gap-6 content-center">
         {tubes.map((tube, idx) => (
           <div 
             key={idx}
             onClick={() => handleTubeClick(idx)}
             className={`
-              relative w-16 h-48 rounded-b-3xl border-4 cursor-pointer transition-all flex flex-col-reverse items-center p-1
+              relative w-14 h-40 rounded-b-3xl border-4 cursor-pointer transition-all flex flex-col-reverse items-center p-1
               ${selectedTubeIndex === idx 
                 ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/20 scale-105 shadow-lg' 
                 : 'border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50'}
@@ -268,7 +245,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
                 layoutId={`ball-${idx}-${bIdx}`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="w-12 h-12 rounded-full mb-1 shadow-inner border-2 border-black/10"
+                className="w-10 h-10 rounded-full mb-1 shadow-inner border-2 border-black/10"
                 style={{ backgroundColor: color }}
               />
             ))}
@@ -277,8 +254,8 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
             {selectedTubeIndex === idx && (
               <motion.div 
                 initial={{ y: 0 }}
-                animate={{ y: -60 }}
-                className="absolute top-0 w-12 h-12 rounded-full shadow-lg border-2 border-black/20"
+                animate={{ y: -50 }}
+                className="absolute top-0 w-10 h-10 rounded-full shadow-lg border-2 border-black/20"
                 style={{ backgroundColor: tube[tube.length - 1] }}
               />
             )}

@@ -39,14 +39,14 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
     
     const now = new Date();
     const day = now.getDay();
-    // Saturday (6) is the start of the week
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Sunday (0) is the start of the week
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     return (currentMember.scores || []).some(s => 
-      s.gameId === 'pianoTilesGame' && new Date(s.date) >= saturday
+      s.gameId === 'pianoTilesGame' && new Date(s.date) >= sunday
     );
   }, [currentMember, override]);
 

@@ -313,19 +313,18 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
 
     return (
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-        <div className="p-4 bg-blue-600 text-white flex justify-between items-center shadow-lg">
+        <div className="p-2 bg-white border-b border-slate-100 text-slate-800 flex justify-between items-center shadow-sm shrink-0">
           <div className="flex flex-col items-center flex-1">
-             <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: VOCÊ</span>
+             <span className="text-[7px] font-black uppercase text-slate-400 mb-0.5">VOCÊ</span>
              {renderHearts(oppHitsDone)}
           </div>
           
-          <div className="flex flex-col items-center px-4">
-             <Sword size={24} className="text-yellow-400 mb-1" />
-             <span className="text-[10px] font-black">{activeChallenge.currentQuestion + 1}/10</span>
+          <div className="flex flex-col items-center px-3 border-x border-slate-100">
+             <span className="text-[10px] font-black text-slate-800">{activeChallenge.currentQuestion + 1}/10</span>
           </div>
 
           <div className="flex flex-col items-center flex-1">
-             <span className="text-[8px] font-black uppercase opacity-60 mb-1">VIDAS: {isMachineMode ? 'ROBÔ' : 'OPONENTE'}</span>
+             <span className="text-[7px] font-black uppercase text-slate-400 mb-0.5">{isMachineMode ? 'ROBÔ' : 'OPONENTE'}</span>
              {renderHearts(myHitsDone)}
           </div>
         </div>
@@ -379,12 +378,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         ]}
         icon={<Swords size={32} className="text-white" />}
       />
-      <div className="bg-blue-600 p-6 flex items-center justify-between shadow-lg text-white">
-        <div className="flex items-center gap-3">
-          <Sword size={24} className="text-yellow-400" />
-          <h2 className="text-xl font-black uppercase tracking-tight">Arena 1x1</h2>
-        </div>
-      </div>
 
       <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-24">
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">

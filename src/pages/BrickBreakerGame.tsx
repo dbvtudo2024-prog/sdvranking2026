@@ -49,10 +49,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     
     const now = new Date();
     const day = now.getDay();
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     const parseScoreDate = (dateStr: string) => {
       if (dateStr.includes('T')) return new Date(dateStr);
@@ -61,7 +61,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     };
 
     return (currentMember.scores || []).some(s => 
-      s.gameId === 'brickBreakerGame' && parseScoreDate(s.date) >= saturday
+      s.gameId === 'brickBreakerGame' && parseScoreDate(s.date) >= sunday
     );
   }, [currentMember, override, isAdmin]);
 
@@ -69,7 +69,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     if (override || isAdmin) return true;
     const now = new Date();
     const day = now.getDay();
-    return day >= 1 && day <= 4; // Monday to Thursday
+    return day >= 0 && day <= 4; // Sunday to Thursday
   }, [override, isAdmin]);
 
   // Game constants
@@ -339,13 +339,6 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Este jogo só está disponível de segunda a quinta-feira.
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -360,13 +353,6 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você já completou este desafio esta semana. Volte na próxima segunda!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -385,46 +371,19 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você destruiu todos os blocos e ganhou 50 pontos!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-        >
-          Finalizar
-        </button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full bg-slate-900 p-4 text-white overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex flex-col">
-          <h1 className="text-lg font-black uppercase tracking-tight">Destruir Blocos</h1>
-          <div className="flex items-center gap-4 mt-1">
-            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Score: {score}</span>
-            <div className="flex items-center gap-1">
-              {[...Array(3)].map((_, i) => (
-                <Heart 
-                  key={i} 
-                  size={12} 
-                  className={i < lives ? "text-red-500 fill-red-500" : "text-slate-700"} 
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-end mb-2">
         <div className="flex gap-2">
           <button 
             onClick={restartGame}
             className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
           >
             <RotateCcw size={18} />
-          </button>
-          <button 
-            onClick={onBack}
-            className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
-          >
-            <ArrowLeft size={18} />
           </button>
         </div>
       </div>

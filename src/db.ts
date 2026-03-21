@@ -5,6 +5,16 @@ import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
 
+const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return withRetry(fn, retries - 1, delay * 2);
+  }
+};
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const DatabaseService = {
@@ -62,12 +72,17 @@ export const DatabaseService = {
 
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
-    const { data, error } = await supabase.from('members').select('*');
-    if (error) {
-      console.error("Erro ao buscar membros:", error);
-      throw error;
-    }
-    return (data || []) as Member[];
+    return withRetry(async () => {
+      const { data, error } = await supabase
+        .from('members')
+        .select('id, name, role, age, className, joinedAt, counselor, unit, photoUrl, scores');
+      
+      if (error) {
+        console.error("Erro ao buscar membros:", error);
+        throw error;
+      }
+      return (data || []) as Member[];
+    });
   },
 
   subscribeMembers(callback: (members: Member[]) => void) {
@@ -525,12 +540,30 @@ export const DatabaseService = {
 
   // --- USUÁRIOS ---
   async getUsers(): Promise<AuthUser[]> {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) {
-      console.error("Erro ao buscar usuários:", error);
-      throw error;
-    }
-    return (data || []) as AuthUser[];
+    return withRetry(async () => {
+      const { data, error } = await supabase.from('users').select('*');
+      if (error) {
+        console.error("Erro ao buscar usuários:", error);
+        throw error;
+      }
+      return (data || []) as AuthUser[];
+    });
+  },
+
+  async getUserByEmail(email: string): Promise<AuthUser | null> {
+    return withRetry(async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', email)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Erro ao buscar usuário por e-mail:", error);
+        throw error;
+      }
+      return data as AuthUser | null;
+    });
   },
 
   async addUser(user: AuthUser) {

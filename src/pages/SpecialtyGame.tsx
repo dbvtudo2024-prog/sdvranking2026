@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { DatabaseService } from '@/db';
 import { AuthUser, Member, Score, UserRole, SpecialtyDBV } from '@/types';
-import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image } from 'lucide-react';
+import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image, RefreshCw, Check } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 
@@ -86,14 +86,14 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     const now = new Date();
     const day = now.getDay();
     
-    // Standard availability: Open Saturday (6) to Thursday (4). Locked Friday (5).
-    const available = day !== 5 || specialtyOverride || isAdmin;
+    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
+    const available = (day >= 0 && day <= 4) || specialtyOverride || isAdmin;
     
-    // Calculate start of current week (Saturday)
-    const diff = (day + 1) % 7;
-    const saturday = new Date(now);
-    saturday.setDate(now.getDate() - diff);
-    saturday.setHours(0, 0, 0, 0);
+    // Calculate start of current week (Sunday)
+    const diff = day;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - diff);
+    sunday.setHours(0, 0, 0, 0);
 
     let played = false;
     if (currentMember && !isAdmin) {
@@ -113,7 +113,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           d = scoreDate;
         }
         
-        return d >= saturday && (s.gameId === 'specialtyGame' || s.specialtyGame !== undefined);
+        return d >= sunday && (s.gameId === 'specialtyGame' || s.specialtyGame !== undefined);
       });
     }
     
@@ -305,22 +305,33 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   return (
     <div className="flex flex-col h-full animate-in fade-in">
-      <GameHeader 
-        stats={[
-          { label: 'Tempo', value: `${timeLeft}s` },
-          { label: 'Pontos', value: score }
-        ]}
-        onRefresh={() => {
-          setScore(0);
-          setCurrentIdx(0);
-          setTimeLeft(10);
-          setGameState('playing');
-        }}
-      />
+      <div className="bg-white dark:bg-slate-800 p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex gap-4">
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Tempo</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{timeLeft}s</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pontos</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{score}</span>
+          </div>
+        </div>
+        <button 
+          onClick={() => {
+            setScore(0);
+            setCurrentIdx(0);
+            setTimeLeft(10);
+            setGameState('playing');
+          }}
+          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center space-y-8 p-6">
-        <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-6 relative overflow-hidden">
-          <div className="w-36 h-36 mx-auto bg-slate-50 dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 p-4 max-w-5xl mx-auto w-full">
+        <div className="w-full md:w-1/2 bg-white dark:bg-slate-800 p-4 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-3 relative overflow-hidden">
+          <div className="w-32 h-32 mx-auto bg-slate-50 dark:bg-slate-900 p-3 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                 <Loader2 className="animate-spin text-slate-200 dark:text-slate-700" size={24} />
@@ -339,11 +350,12 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight px-2 uppercase tracking-tight">{currentQ.question}</h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 w-full">
+        <div className="grid grid-cols-1 gap-3 w-full md:w-1/2">
           {(currentQ.options || []).map((opt, idx) => {
             let style = "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300";
             if (feedback) {
               if (idx === currentQ.correct) style = "bg-green-500 border-green-600 text-white scale-105 shadow-lg";
+              else if (idx === (feedback === 'wrong' ? -1 : -2)) { /* dummy */ }
               else style = "bg-slate-50 dark:bg-slate-900 border-slate-50 dark:border-slate-800 text-slate-300 dark:text-slate-600 opacity-50";
             }
             return (
@@ -351,16 +363,17 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
                 key={`${currentIdx}-${idx}`} 
                 disabled={!!feedback} 
                 onClick={() => handleAnswer(idx)} 
-                className={`w-full p-5 rounded-2xl border-2 font-black text-sm uppercase tracking-tight transition-all active:scale-95 shadow-sm ${style}`}
+                className={`w-full p-4 rounded-2xl border-2 font-black text-sm uppercase tracking-tight transition-all active:scale-95 shadow-sm flex items-center justify-between text-left ${style}`}
               >
-                {opt}
+                <span className="flex-1">{opt}</span>
+                {feedback && idx === currentQ.correct && <Check size={18} className="shrink-0 ml-2" />}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-8 text-center">
+      <div className="mt-4 text-center">
          <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Desafio {currentIdx + 1} de {gameQuestions.length}</p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, User, Trophy, HelpCircle, ChevronRight, Search, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, User, Trophy, HelpCircle, ChevronRight, Search, Lock, RefreshCw } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import { AuthUser, Member, UserRole } from '@/types';
@@ -59,6 +59,14 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
     if (revealedClues < 3) setRevealedClues(prev => prev + 1);
   };
 
+  const resetGame = () => {
+    setCurrentStep(0);
+    setScore(0);
+    setSelectedOption(null);
+    setIsCorrect(null);
+    setGameState('playing');
+  };
+
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null) return;
     setSelectedOption(index);
@@ -112,12 +120,13 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Aberto de Sábado (6) até Quinta (4). Bloqueado na Sexta (5).
-    const isGameDay = day !== 5;
+    // Aberto de Domingo (0) até Quinta (4).
+    // Bloqueado na Sexta (5) e Sábado (6).
+    const isGameDay = day >= 0 && day <= 4;
     const available = isGameDay || override || isAdmin;
     
-    // O ciclo começa no sábado (6).
-    const diff = (day + 1) % 7;
+    // O ciclo começa no Domingo (0).
+    const diff = day;
     const cycleStart = new Date(now);
     cycleStart.setDate(now.getDate() - diff);
     cycleStart.setHours(0, 0, 0, 0);
@@ -175,12 +184,24 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <GameHeader 
-        stats={[
-          { label: 'Personagem', value: `${currentStep + 1}/${questions.length}` },
-          { label: 'Pontos', value: score }
-        ]}
-      />
+      <div className="bg-white dark:bg-slate-800 p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex gap-4">
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Personagem</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{currentStep + 1}/{questions.length}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pontos</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{score}</span>
+          </div>
+        </div>
+        <button 
+          onClick={resetGame}
+          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </div>
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -237,13 +258,13 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {options.map((opt, idx) => (
                     <button
                       key={idx}
                       disabled={selectedOption !== null}
                       onClick={() => handleOptionSelect(idx)}
-                      className={`p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border-2 border-b-4 active:scale-95 flex flex-col items-center gap-2
+                      className={`p-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between text-left
                         ${selectedOption === null 
                           ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50' 
                           : selectedOption === idx
@@ -255,8 +276,13 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
                               : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 opacity-50'
                         }`}
                     >
-                      <User size={20} />
-                      {opt.answer}
+                      <div className="flex items-center gap-3">
+                        <User size={18} className="shrink-0" />
+                        <span>{opt.answer}</span>
+                      </div>
+                      {selectedOption === idx && (
+                        isCorrect ? <CheckCircle2 size={20} className="shrink-0" /> : <XCircle size={20} className="shrink-0" />
+                      )}
                     </button>
                 ))}
               </div>
