@@ -255,6 +255,16 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
               return (
                 <div key={`study-item-${s.id}`} className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
+                  {s.specialty_image_url && (
+                    <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center p-2 mr-4 shrink-0 shadow-inner border border-slate-100 dark:border-slate-700/50">
+                      <img 
+                        src={formatImageUrl(s.specialty_image_url)} 
+                        alt={s.name}
+                        className="w-full h-full object-contain drop-shadow-md"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 dark:bg-blue-900/30 text-blue-600">{s.category || 'Geral'}</span>

@@ -213,7 +213,17 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredStudies.map(s => (
-              <div key={`admin-study-${s.id}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
+              <div key={`admin-study-${s.id}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex items-center justify-between gap-4`}>
+                {s.specialty_image_url && (
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center p-2 shrink-0 shadow-inner border border-slate-100 dark:border-slate-700/50">
+                    <img 
+                      src={formatImageUrl(s.specialty_image_url)} 
+                      alt={s.name}
+                      className="w-full h-full object-contain drop-shadow-md"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>{s.category}</span>
