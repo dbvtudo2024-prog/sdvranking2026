@@ -93,26 +93,26 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               )}
             </div>
 
-            <div className="relative h-28">
+            <div className="relative h-48">
               {announcements.length > 0 ? (
                 announcements.map((aviso, idx) => (
                   <div 
                     key={aviso.id} 
                     className={`absolute inset-0 transition-all duration-700 ease-in-out ${idx === currentAvisoIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
                   >
-                    <div className={`rounded-2xl p-4 h-full flex flex-col justify-center shadow-sm relative group ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
+                    <div className={`rounded-2xl p-5 h-full flex flex-col justify-start shadow-sm relative group overflow-y-auto ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
                       <button 
                         onClick={() => handleShare(aviso)}
-                        className={`absolute right-2 bottom-2 p-2 transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-100 hover:text-blue-600'}`}
+                        className={`absolute right-3 top-3 p-2 transition-colors z-20 ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-100 hover:text-blue-600'}`}
                         title="Compartilhar no WhatsApp"
                       >
-                        <Share2 size={14} />
+                        <Share2 size={16} />
                       </button>
-                      <div className="flex justify-between items-center mb-1">
-                        <p className={`text-xs font-black uppercase truncate pr-8 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{aviso.title}</p>
-                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-md ${isDarkMode ? 'text-blue-400 bg-blue-900/30' : 'text-blue-600 bg-blue-50'}`}>{aviso.date}</span>
+                      <div className="flex flex-col mb-2 pr-8">
+                        <p className={`text-sm font-black uppercase leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{aviso.title}</p>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-md w-fit ${isDarkMode ? 'text-blue-400 bg-blue-900/30' : 'text-blue-600 bg-blue-50'}`}>{aviso.date}</span>
                       </div>
-                      <p className={`text-[10px] leading-tight font-medium line-clamp-2 pr-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{aviso.content}</p>
+                      <p className={`text-xs leading-relaxed font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{aviso.content}</p>
                     </div>
                   </div>
                 ))
