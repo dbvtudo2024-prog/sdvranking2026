@@ -40,6 +40,34 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldoSonic@gmail.com';
 
+  useEffect(() => {
+    const handleOrientation = async () => {
+      try {
+        // Tenta forçar paisagem no vídeo ou estudo
+        if (showVideoModal || mode === 'study') {
+          if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+            await window.screen.orientation.lock('landscape').catch(e => console.log("Lock landscape failed:", e));
+          }
+        } else {
+          // Volta ao normal (desbloqueado) nas outras telas
+          if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+            await window.screen.orientation.unlock().catch(e => console.log("Unlock failed:", e));
+          }
+        }
+      } catch (err) {
+        console.log("Orientation API error:", err);
+      }
+    };
+    handleOrientation();
+    
+    // Cleanup ao sair do componente
+    return () => {
+      if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+        window.screen.orientation.unlock().catch(() => {});
+      }
+    };
+  }, [showVideoModal, mode]);
+
   useImperativeHandle(ref, () => ({
     goBack: () => {
       if (mode === 'result') {
@@ -505,11 +533,11 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
         {/* Modal de Vídeo */}
         {showVideoModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 animate-in fade-in duration-300">
-            <div className="w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden relative shadow-2xl">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-black animate-in fade-in duration-300">
+            <div className="w-full h-full sm:max-w-4xl sm:max-h-[90vh] sm:aspect-video bg-black sm:rounded-3xl overflow-hidden relative shadow-2xl">
               <button 
                 onClick={() => setShowVideoModal(false)}
-                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all"
+                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-all border border-white/20"
               >
                 <XCircle size={24} />
               </button>
@@ -538,6 +566,12 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
         <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex flex-col">
           <div className="flex-1 relative">
+            <button 
+              onClick={() => setMode('menu')}
+              className="absolute top-4 left-4 z-50 w-10 h-10 rounded-full bg-slate-900/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-slate-900/60 transition-all border border-white/20"
+            >
+              <ArrowLeft size={20} strokeWidth={3} />
+            </button>
             <iframe 
               src={formatPdfUrl(selectedStudy.pdfurl)} 
               className="w-full h-full border-none"

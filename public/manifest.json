@@ -5,6 +5,7 @@
   "theme_color": "#0061f2",
   "background_color": "#0061f2",
   "display": "minimal-ui",
+  "orientation": "any",
   "start_url": "/",
   "icons": [
     {
