@@ -93,7 +93,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               )}
             </div>
 
-            <div className="relative h-48">
+            <div className="relative h-36">
               {announcements.length > 0 ? (
                 announcements.map((aviso, idx) => (
                   <div 
