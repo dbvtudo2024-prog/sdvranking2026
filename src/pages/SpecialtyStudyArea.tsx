@@ -22,14 +22,8 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<SpecialtyStudy | null>(null);
-  const [mode, setMode] = useState<'list' | 'study' | 'puzzle' | 'quiz' | 'result'>('list');
+  const [mode, setMode] = useState<'list' | 'study' | 'quiz' | 'result'>('list');
   
-  // Puzzle State
-  const [puzzleTiles, setPuzzleTiles] = useState<{id: number, currentPos: number, correctPos: number}[]>([]);
-  const [puzzleSolved, setPuzzleSolved] = useState(false);
-  const GRID_SIZE = 3;
-  const TILE_COUNT = GRID_SIZE * GRID_SIZE;
-
   // Quiz State
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
@@ -49,10 +43,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
         return true;
       }
       if (mode === 'quiz') {
-        setMode('study');
-        return true;
-      }
-      if (mode === 'puzzle') {
         setMode('study');
         return true;
       }
@@ -194,79 +184,9 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   };
 
   const handleStartQuiz = () => {
-    if (selectedStudy?.puzzle_image_url && !puzzleSolved) {
-      initializePuzzle();
-      setMode('puzzle');
-    } else {
-      setMode('quiz');
-      setCurrentQuestionIdx(0);
-      setUserAnswers([]);
-    }
-  };
-
-  const initializePuzzle = () => {
-    const initialTiles = [];
-    for (let i = 0; i < TILE_COUNT; i++) {
-      initialTiles.push({ id: i, currentPos: i, correctPos: i });
-    }
-    
-    let currentTiles = [...initialTiles];
-    let emptyPos = TILE_COUNT - 1;
-    
-    // Shuffle by making random valid moves
-    for (let i = 0; i < 50; i++) {
-      const neighbors = [];
-      const row = Math.floor(emptyPos / GRID_SIZE);
-      const col = emptyPos % GRID_SIZE;
-      if (row > 0) neighbors.push(emptyPos - GRID_SIZE);
-      if (row < GRID_SIZE - 1) neighbors.push(emptyPos + GRID_SIZE);
-      if (col > 0) neighbors.push(emptyPos - 1);
-      if (col < GRID_SIZE - 1) neighbors.push(emptyPos + 1);
-      
-      const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-      const tileIdx = currentTiles.findIndex(t => t.currentPos === randomNeighbor);
-      currentTiles[tileIdx].currentPos = emptyPos;
-      emptyPos = randomNeighbor;
-    }
-
-    setPuzzleTiles(currentTiles);
-    setPuzzleSolved(false);
-  };
-
-  const handlePuzzleTileClick = (tileId: number) => {
-    if (puzzleSolved) return;
-
-    const tileIdx = puzzleTiles.findIndex(t => t.id === tileId);
-    const tile = puzzleTiles[tileIdx];
-    
-    const occupiedPositions = puzzleTiles.map(t => t.currentPos);
-    let emptyPos = -1;
-    for (let i = 0; i < TILE_COUNT; i++) {
-      if (!occupiedPositions.includes(i)) {
-        emptyPos = i;
-        break;
-      }
-    }
-
-    const r1 = Math.floor(tile.currentPos / GRID_SIZE);
-    const c1 = tile.currentPos % GRID_SIZE;
-    const r2 = Math.floor(emptyPos / GRID_SIZE);
-    const c2 = emptyPos % GRID_SIZE;
-
-    if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
-      const newTiles = [...puzzleTiles];
-      newTiles[tileIdx].currentPos = emptyPos;
-      setPuzzleTiles(newTiles);
-      
-      if (newTiles.every(t => t.currentPos === t.correctPos)) {
-        setPuzzleSolved(true);
-        setTimeout(() => {
-          setMode('quiz');
-          setCurrentQuestionIdx(0);
-          setUserAnswers([]);
-        }, 1500);
-      }
-    }
+    setMode('quiz');
+    setCurrentQuestionIdx(0);
+    setUserAnswers([]);
   };
 
   const handleAnswer = (optionIdx: number) => {
@@ -372,33 +292,50 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   if (mode === 'study' && selectedStudy) {
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
-        <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
-          <iframe 
-            src={formatPdfUrl(selectedStudy.pdfurl)} 
-            className="w-full h-full border-none"
-            title="Material de Estudo"
-            allow="autoplay"
-          />
-          
-          {/* Temporizador Flutuante Compacto */}
-          {!studyTimeCompleted && !lockoutStatus.isLocked && (
-            <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-right-4 duration-500">
-              <div className="bg-slate-900/80 backdrop-blur-md border border-blue-500/30 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-2xl">
-                <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
-                  <Clock size={16} className="text-[#FFD700] animate-pulse" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Estudo</span>
-                  <span className="text-[#FFD700] text-sm font-black leading-none">
-                    {Math.floor(studyTimer / 60)}:{(studyTimer % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
+        <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex flex-col md:flex-row">
+          {/* Imagem da Especialidade no Lado Esquerdo */}
+          {selectedStudy.specialty_image_url && (
+            <div className="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-slate-900 flex items-center justify-center p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 shrink-0 max-h-[30vh] md:max-h-none overflow-hidden">
+              <div className="relative group scale-75 md:scale-100">
+                <div className="absolute -inset-4 bg-blue-600/20 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <img 
+                  src={formatImageUrl(selectedStudy.specialty_image_url)} 
+                  alt={selectedStudy.name}
+                  className="w-32 h-32 md:w-full md:h-auto object-contain relative z-10 drop-shadow-2xl animate-in zoom-in-95 duration-700"
+                  referrerPolicy="no-referrer"
+                />
               </div>
             </div>
           )}
+          
+          <div className="flex-1 relative">
+            <iframe 
+              src={formatPdfUrl(selectedStudy.pdfurl)} 
+              className="w-full h-full border-none"
+              title="Material de Estudo"
+              allow="autoplay"
+            />
+            
+            {/* Temporizador Flutuante Compacto */}
+            {!studyTimeCompleted && !lockoutStatus.isLocked && (
+              <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-slate-900/80 backdrop-blur-md border border-blue-500/30 px-3 py-2 rounded-2xl flex items-center gap-3 shadow-2xl">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                    <Clock size={16} className="text-[#FFD700] animate-pulse" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Estudo</span>
+                    <span className="text-[#FFD700] text-sm font-black leading-none">
+                      {Math.floor(studyTimer / 60)}:{(studyTimer % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Botão de Ação Compacto */}
-          <div className="absolute bottom-8 inset-x-0 flex justify-center px-6 pointer-events-none">
+          <div className="absolute bottom-8 inset-x-0 flex justify-center px-6 pointer-events-none z-50">
             <div className="pointer-events-auto w-full max-w-xs">
               {lockoutStatus.isLocked ? (
                 <div className="bg-slate-900/90 backdrop-blur-xl border border-red-500/30 p-4 rounded-[2rem] text-center shadow-2xl">
@@ -416,64 +353,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (mode === 'puzzle' && selectedStudy) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in p-6">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mx-auto mb-4">
-            <Trophy size={32} />
-          </div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Desafio de Quebra-Cabeça</h3>
-          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">Resolva para liberar o teste final</p>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center">
-          <div 
-            className="relative bg-slate-200 dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-700"
-            style={{ 
-              width: 'min(80vw, 320px)', 
-              height: 'min(80vw, 320px)',
-              display: 'grid',
-              gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-              gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
-              gap: '2px'
-            }}
-          >
-            {Array.from({ length: TILE_COUNT }).map((_, pos) => {
-              const tile = puzzleTiles.find(t => t.currentPos === pos);
-              if (!tile || (tile.id === TILE_COUNT - 1 && !puzzleSolved)) {
-                return <div key={`empty-${pos}`} className="bg-slate-100/50" />;
-              }
-
-              const row = Math.floor(tile.id / GRID_SIZE);
-              const col = tile.id % GRID_SIZE;
-
-              return (
-                <div 
-                  key={`tile-${tile.id}`}
-                  onClick={() => handlePuzzleTileClick(tile.id)}
-                  className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden rounded-lg border border-white/20"
-                  style={{
-                    backgroundImage: `url(${formatImageUrl(selectedStudy.puzzle_image_url || '')})`,
-                    backgroundSize: `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`,
-                    backgroundPosition: `${(col / (GRID_SIZE - 1)) * 100}% ${(row / (GRID_SIZE - 1)) * 100}%`,
-                    backgroundRepeat: 'no-repeat'
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {puzzleSolved && (
-          <div className="mt-8 text-center animate-bounce">
-            <p className="text-emerald-500 font-black uppercase tracking-widest text-xs">✨ Excelente! Iniciando Quiz...</p>
-          </div>
-        )}
       </div>
     );
   }

@@ -126,7 +126,7 @@ export interface SpecialtyStudy {
   id: string;
   name: string;
   pdfurl: string;
-  puzzle_image_url?: string;
+  specialty_image_url?: string;
   category: string;
   questions: SpecialtyStudyQuestion[];
   created_at?: string;

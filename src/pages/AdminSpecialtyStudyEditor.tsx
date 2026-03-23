@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SpecialtyStudy, SpecialtyStudyQuestion } from '@/types';
 import { DatabaseService } from '@/db';
-import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud, Check } from 'lucide-react';
+import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud, Check, Camera, Image as ImageIcon } from 'lucide-react';
 import { SpecialtyDBV } from '@/types';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 
 interface AdminSpecialtyStudyEditorProps {
   onBack: () => void;
@@ -21,6 +22,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   const [availableSpecialties, setAvailableSpecialties] = useState<SpecialtyDBV[]>([]);
   const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
   const [specialtySearch, setSpecialtySearch] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const emptyQuestion: SpecialtyStudyQuestion = {
     question: '',
@@ -31,7 +33,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   const [newStudy, setNewStudy] = useState<Omit<SpecialtyStudy, 'id'>>({
     name: '',
     pdfurl: '',
-    puzzle_image_url: '',
+    specialty_image_url: '',
     category: 'Geral',
     questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
   });
@@ -65,7 +67,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         setNewStudy({
           name: '',
           pdfurl: '',
-          puzzle_image_url: '',
+          specialty_image_url: '',
           category: 'Geral',
           questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
         });
@@ -120,18 +122,38 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
         ...editForm,
         name: spec.Nome,
         category: spec.Categoria,
-        puzzle_image_url: spec.Imagem || editForm.puzzle_image_url
+        specialty_image_url: spec.Imagem || editForm.specialty_image_url
       });
     } else {
       setNewStudy({
         ...newStudy,
         name: spec.Nome,
         category: spec.Categoria,
-        puzzle_image_url: spec.Imagem || newStudy.puzzle_image_url
+        specialty_image_url: spec.Imagem || newStudy.specialty_image_url
       });
     }
     setShowSpecialtyPicker(false);
     setSpecialtySearch('');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for base64 in Firestore/Supabase
+        alert('A imagem é muito grande. Por favor, escolha uma imagem com menos de 1MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (editForm) {
+          setEditForm({ ...editForm, specialty_image_url: base64String });
+        } else {
+          setNewStudy({ ...newStudy, specialty_image_url: base64String });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const filteredStudies = studies.filter(s => 
@@ -292,9 +314,47 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
               </div>
 
               <div>
-                <label className={labelClasses}>URL da Imagem para Quebra-Cabeça (Opcional)</label>
-                <input className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://exemplo.com/imagem.jpg" value={editForm ? editForm.puzzle_image_url || '' : newStudy.puzzle_image_url || ''} onChange={e => editForm ? setEditForm({...editForm, puzzle_image_url: e.target.value}) : setNewStudy({...newStudy, puzzle_image_url: e.target.value})} />
-                <p className={`text-[9px] mt-2 ml-2 font-bold uppercase tracking-widest italic ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* Se fornecida, o desbravador terá um desafio extra de quebra-cabeça</p>
+                <label className={labelClasses}>Imagem da Especialidade</label>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-32 h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:border-blue-500' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
+                  >
+                    {(editForm ? editForm.specialty_image_url : newStudy.specialty_image_url) ? (
+                      <img 
+                        src={formatImageUrl(editForm ? editForm.specialty_image_url! : newStudy.specialty_image_url!)} 
+                        className="w-full h-full object-contain p-2" 
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <Camera size={24} />
+                        <span className="text-[8px] font-black uppercase tracking-widest">Upload</span>
+                      </div>
+                    )}
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      hidden 
+                      accept="image/*" 
+                      onChange={handleImageUpload} 
+                    />
+                    <div className="absolute inset-0 bg-blue-600/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Plus className="text-white" size={24} />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 w-full">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Ou cole o link da imagem:</p>
+                    <input 
+                      className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} 
+                      placeholder="https://exemplo.com/imagem.jpg" 
+                      value={editForm ? editForm.specialty_image_url || '' : newStudy.specialty_image_url || ''} 
+                      onChange={e => editForm ? setEditForm({...editForm, specialty_image_url: e.target.value}) : setNewStudy({...newStudy, specialty_image_url: e.target.value})} 
+                    />
+                  </div>
+                </div>
+                <p className={`text-[9px] mt-2 ml-2 font-bold uppercase tracking-widest italic ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* Recomendado: Imagem quadrada com fundo transparente (PNG)</p>
               </div>
 
               <div className={`border-t pt-6 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>

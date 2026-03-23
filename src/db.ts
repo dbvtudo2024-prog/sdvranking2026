@@ -902,7 +902,6 @@ export const DatabaseService = {
     const study: Omit<SpecialtyStudy, 'id'> = {
       name: "História do Velho Testamento",
       pdfurl: "https://drive.google.com/file/d/1c5LZ2VHm5mPY_LjszYVA1QsuwBTSSvtX/view",
-      puzzle_image_url: "https://picsum.photos/seed/bible-history/800/800",
       category: "Bíblia",
       questions: [
         {
@@ -973,7 +972,6 @@ export const DatabaseService = {
     const study: Omit<SpecialtyStudy, 'id'> = {
       name: "Estudo da Natureza",
       pdfurl: "https://desbravadores.org.br/assets/especialidades/estudo-da-natureza/estudo-da-natureza.pdf",
-      puzzle_image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000",
       category: "Natureza",
       questions: [
         {
