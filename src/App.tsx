@@ -538,7 +538,7 @@ const App: React.FC = () => {
         </header>
       )}
       
-      {currentPage !== 'specialty_study' && <TickerBanner announcements={announcements} />}
+      {currentPage !== 'specialty_study' && currentPage !== 'home' && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
