@@ -3,7 +3,15 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script>
+        // Tenta desbloquear a orientação da tela o mais cedo possível
+        if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+            window.screen.orientation.unlock().catch(function(err) {
+                console.log("Orientation unlock error:", err);
+            });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sentinelas da Verdade</title>
     
     <!-- PWA Meta Tags -->
@@ -50,12 +58,22 @@
             height: 100%;
             margin: 0;
             padding: 0;
+            overflow: hidden;
             background-color: #0061f2 !important; /* Força o azul desde o milissegundo zero */
         }
         #root {
             height: 100%;
         }
     </style>
+    <script>
+        window.addEventListener('orientationchange', function() {
+            console.log("Orientation changed to: " + window.orientation);
+            // Força o navegador a recalcular o layout
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // trigger a reflow
+            document.body.style.display = 'block';
+        });
+    </script>
 </head>
 <body>
     <div id="root"></div>

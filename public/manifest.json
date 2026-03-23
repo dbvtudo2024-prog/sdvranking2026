@@ -4,8 +4,7 @@
   "description": "App oficial para gestão do Clube de Desbravadores Sentinelas da Verdade",
   "theme_color": "#0061f2",
   "background_color": "#0061f2",
-  "display": "standalone",
-  "orientation": "any",
+  "display": "minimal-ui",
   "start_url": "/",
   "icons": [
     {

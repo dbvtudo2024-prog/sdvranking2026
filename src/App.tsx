@@ -102,6 +102,29 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const checkOrientation = () => {
+      console.log("Current orientation:", window.screen?.orientation?.type || "unknown");
+    };
+    checkOrientation();
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => window.removeEventListener('orientationchange', checkOrientation);
+  }, []);
+
+  useEffect(() => {
+    const unlockOrientation = async () => {
+      try {
+        if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+          await window.screen.orientation.unlock();
+          console.log("Orientation unlocked in App.tsx");
+        }
+      } catch (err) {
+        console.log("Failed to unlock orientation in App.tsx:", err);
+      }
+    };
+    unlockOrientation();
+  }, []);
+
+  useEffect(() => {
     const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
     const counselorsSub = DatabaseService.subscribeCounselors(setCounselorsData);
     const gameConfigsSub = DatabaseService.subscribeGameConfigs((config: GameConfig) => {
@@ -403,7 +426,7 @@ const App: React.FC = () => {
   const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
 
   return (
-    <div className={`flex flex-col h-screen h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`flex flex-col h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <style dangerouslySetInnerHTML={{ __html: `
         @media (max-height: 500px) and (orientation: landscape) {
           header { height: 3.5rem !important; }
