@@ -98,7 +98,10 @@ const Games: React.FC<GamesProps> = ({
     return (currentMember.scores || []).some(s => {
       const d = parseScoreDate(s.date);
       if (!d) return false;
-      return d >= cycleStart && (s.gameId === gameId || (s as any)[gameId] !== undefined);
+      // Se o score tem gameId, ele DEVE ser igual ao gameId procurado.
+      // Se não tem gameId (scores antigos), verificamos se a chave específica existe.
+      const matchesGame = s.gameId ? s.gameId === gameId : (s as any)[gameId] !== undefined;
+      return d >= cycleStart && matchesGame;
     });
   };
 

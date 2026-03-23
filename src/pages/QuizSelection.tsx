@@ -58,8 +58,9 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
         d = scoreDate;
       }
       
+      const matchesGame = s.gameId ? s.gameId === 'quiz' : (s.quiz !== undefined || (s as any).quizCategory !== undefined);
       return d >= sunday && 
-             (s.quiz !== undefined || (s as any).quizCategory !== undefined) && 
+             matchesGame && 
              s.quizCategory === category;
     });
   };

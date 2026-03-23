@@ -249,6 +249,62 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
+  const handleFixGameStatus = async () => {
+    if (!window.confirm("⚠️ AÇÃO DE LIMPEZA: Deseja corrigir o status de jogos dos desbravadores? Isso removerá marcações duplicadas de jogos que foram salvos incorretamente no passado, sem apagar seus pontos totais.")) return;
+    
+    setIsProcessing(true);
+    try {
+      let fixedCount = 0;
+      const updatedMembers = members.map(member => {
+        if (!member.scores || !Array.isArray(member.scores)) return member;
+        
+        let hasChanges = false;
+        const cleanedScores = member.scores.map(score => {
+          if (score.type === 'game' && score.gameId) {
+            const gameKeys = [
+              'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
+              'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+              'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'ballSortGame', 'brickBreakerGame'
+            ];
+            
+            const newScore = { ...score };
+            gameKeys.forEach(key => {
+              if (key !== score.gameId && (newScore as any)[key] !== undefined) {
+                delete (newScore as any)[key];
+                hasChanges = true;
+              }
+            });
+            return newScore;
+          }
+          return score;
+        });
+        
+        if (hasChanges) {
+          fixedCount++;
+          return { ...member, scores: cleanedScores };
+        }
+        return member;
+      });
+
+      if (fixedCount > 0) {
+        for (const m of updatedMembers) {
+          const original = members.find(orig => orig.id === m.id);
+          if (JSON.stringify(original?.scores) !== JSON.stringify(m.scores)) {
+             await DatabaseService.updateMember(m);
+          }
+        }
+        alert(`✅ SUCESSO: O status de jogos de ${fixedCount} desbravadores foi corrigido!`);
+      } else {
+        alert("ℹ️ Nenhuma inconsistência encontrada para corrigir.");
+      }
+    } catch (error) {
+      console.error("Erro ao corrigir status:", error);
+      alert("❌ ERRO: Falha ao processar a correção.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const GameLockButton = ({ label, active, onToggle, icon: Icon }: any) => (
     <button 
       onClick={onToggle}
@@ -369,6 +425,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               >
                 {isSeeding ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
                 ADICIONAR 20 NOVAS QUESTÕES (TODOS OS JOGOS)
+              </button>
+              <button 
+                onClick={handleFixGameStatus} 
+                disabled={isProcessing}
+                className={`w-full ${isDarkMode ? 'bg-amber-900/20 text-amber-400 border-amber-900/30' : 'bg-amber-50 text-amber-600 border-amber-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
+              >
+                {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
+                CORRIGIR STATUS DE JOGOS
               </button>
            </div>
         </div>
