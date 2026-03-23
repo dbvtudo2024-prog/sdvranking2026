@@ -298,14 +298,10 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const handleFinish = () => {
     if (currentMember && selectedStudy) {
       const newScore: Score = {
-        date: new Date().toISOString(),
-        punctuality: 0,
-        uniform: 0,
-        material: 0,
-        bible: 0,
-        voluntariness: 0,
-        activities: 0,
-        treasury: 0,
+        type: 'game',
+        gameId: 'specialtyStudy',
+        date: new Date().toLocaleDateString('pt-BR'),
+        points: score,
         specialtyStudyScore: score,
         specialtyStudyId: selectedStudy.id,
         specialtyStudyName: selectedStudy.name

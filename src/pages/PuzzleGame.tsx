@@ -212,6 +212,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         type: 'game',
         gameId: 'puzzleGame',
         points: points,
+        puzzleGame: points,
         date: new Date().toLocaleDateString('pt-BR')
       };
       

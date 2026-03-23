@@ -104,6 +104,7 @@ const WhoAmIGame: React.FC<WhoAmIGameProps> = ({ user, members, onUpdateMember, 
       type: 'game',
       gameId: 'whoAmIGame',
       date: new Date().toLocaleDateString('pt-BR'),
+      points: finalScore,
       whoAmIGame: finalScore
     });
 

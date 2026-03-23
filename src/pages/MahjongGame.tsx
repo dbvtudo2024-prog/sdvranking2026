@@ -459,6 +459,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
         type: 'game',
         gameId: 'mahjongGame',
         points: points,
+        mahjongGame: points,
         date: new Date().toLocaleDateString('pt-BR')
       };
       onUpdateMember({

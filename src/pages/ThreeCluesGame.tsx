@@ -195,6 +195,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
       type: 'game',
       gameId: 'threeCluesGame',
       date: new Date().toLocaleDateString('pt-BR'),
+      points: finalScore,
       threeCluesGame: finalScore
     });
 

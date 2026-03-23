@@ -211,6 +211,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         type: 'game',
         gameId: 'memoryGame',
         points: points,
+        memoryGame: points,
         date: new Date().toLocaleDateString('pt-BR')
       };
       

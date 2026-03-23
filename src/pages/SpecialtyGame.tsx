@@ -179,6 +179,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           type: 'game',
           gameId: 'specialtyGame',
           date: new Date().toLocaleDateString('pt-BR'),
+          points: points,
           specialtyGame: points
         };
         

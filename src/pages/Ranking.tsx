@@ -10,7 +10,7 @@ interface RankingProps {
 }
 
 type TabType = 'members' | 'units' | 'games';
-type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'ballsort' | 'brickbreaker' | 'mahjong' | 'pianotiles';
+type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'specialtystudy' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'ballsort' | 'brickbreaker' | 'mahjong' | 'pianotiles';
 
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
@@ -22,7 +22,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       const s = curr as any;
       let points = 0;
       if (s.gameId === key) {
-        points = Number(s.points) || 0;
+        points = Number(s.points) || Number(s[key]) || 0;
       } else if (s[key] !== undefined) {
         points = Number(s[key]) || 0;
       }
@@ -34,14 +34,30 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
     return member.scores.reduce((acc, curr) => {
       const s = curr as any;
-      let gamePoints = 0;
       
-      // 1. Check for explicit gameId/points
+      // Se for do tipo 'game', usamos o campo 'points' ou o campo específico do jogo
+      if (s.type === 'game') {
+        if (s.points !== undefined) return acc + (Number(s.points) || 0);
+        
+        // Se não tem 'points', procuramos pelo campo específico
+        const gameKeys = [
+          'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
+          'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+          'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
+          'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+        ];
+        for (const key of gameKeys) {
+          if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+        }
+        return acc;
+      }
+
+      // Fallback para registros antigos sem 'type'
+      let gamePoints = 0;
       if (s.gameId && s.points) {
         gamePoints += Number(s.points) || 0;
       }
       
-      // 2. Check for individual game properties
       const gameKeys = [
         'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
         'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
@@ -50,7 +66,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       ];
       
       gameKeys.forEach(key => {
-        // Only add if not already counted via gameId/points to avoid double counting
         if (s[key] !== undefined && s.gameId !== key) {
           gamePoints += Number(s[key]) || 0;
         }
@@ -88,6 +103,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'quiz') return data.sort((a, b) => calculateSpecific(b, 'quiz') - calculateSpecific(a, 'quiz'));
       if (gameTab === 'memory') return data.sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
       if (gameTab === 'specialty') return data.sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
+      if (gameTab === 'specialtystudy') return data.sort((a, b) => calculateSpecific(b, 'specialtyStudy') - calculateSpecific(a, 'specialtyStudy'));
       if (gameTab === 'threeclues') return data.sort((a, b) => calculateSpecific(b, 'threeCluesGame') - calculateSpecific(a, 'threeCluesGame'));
       if (gameTab === 'puzzle') return data.sort((a, b) => calculateSpecific(b, 'puzzleGame') - calculateSpecific(a, 'puzzleGame'));
       if (gameTab === 'knots') return data.sort((a, b) => calculateSpecific(b, 'knotsGame') - calculateSpecific(a, 'knotsGame'));
@@ -115,6 +131,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'quiz') return calculateSpecific(m, 'quiz');
       if (gameTab === 'memory') return calculateSpecific(m, 'memoryGame');
       if (gameTab === 'specialty') return calculateSpecific(m, 'specialtyGame');
+      if (gameTab === 'specialtystudy') return calculateSpecific(m, 'specialtyStudy');
       if (gameTab === 'threeclues') return calculateSpecific(m, 'threeCluesGame');
       if (gameTab === 'puzzle') return calculateSpecific(m, 'puzzleGame');
       if (gameTab === 'knots') return calculateSpecific(m, 'knotsGame');
@@ -172,7 +189,8 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           <GameTabButton type="total" label="Total" />
           <GameTabButton type="quiz" label="Quiz" />
           <GameTabButton type="memory" label="Memória" />
-          <GameTabButton type="specialty" label="Especialid." />
+          <GameTabButton type="specialty" label="Brasões" />
+          <GameTabButton type="specialtystudy" label="Estudo" />
           <GameTabButton type="threeclues" label="3 Dicas" />
           <GameTabButton type="puzzle" label="Puzzle" />
           <GameTabButton type="knots" label="Nós" />
@@ -210,6 +228,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-slate-400 uppercase">Q:{calculateSpecific(podiumSlots[1], 'quiz')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">M:{calculateSpecific(podiumSlots[1], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">E:{calculateSpecific(podiumSlots[1], 'specialtyGame')}</span>
+                    <span className="text-[6px] font-bold text-slate-400 uppercase">Est:{calculateSpecific(podiumSlots[1], 'specialtyStudy')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">3D:{calculateSpecific(podiumSlots[1], 'threeCluesGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">P:{calculateSpecific(podiumSlots[1], 'puzzleGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">N:{calculateSpecific(podiumSlots[1], 'knotsGame')}</span>
@@ -247,6 +266,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-blue-400 uppercase">Q:{calculateSpecific(podiumSlots[0], 'quiz')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">M:{calculateSpecific(podiumSlots[0], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">E:{calculateSpecific(podiumSlots[0], 'specialtyGame')}</span>
+                    <span className="text-[6px] font-bold text-blue-400 uppercase">Est:{calculateSpecific(podiumSlots[0], 'specialtyStudy')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">3D:{calculateSpecific(podiumSlots[0], 'threeCluesGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">P:{calculateSpecific(podiumSlots[0], 'puzzleGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">N:{calculateSpecific(podiumSlots[0], 'knotsGame')}</span>
@@ -285,6 +305,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-amber-400 uppercase">Q:{calculateSpecific(podiumSlots[2], 'quiz')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">M:{calculateSpecific(podiumSlots[2], 'memoryGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">E:{calculateSpecific(podiumSlots[2], 'specialtyGame')}</span>
+                    <span className="text-[6px] font-bold text-amber-400 uppercase">Est:{calculateSpecific(podiumSlots[2], 'specialtyStudy')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">3D:{calculateSpecific(podiumSlots[2], 'threeCluesGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">P:{calculateSpecific(podiumSlots[2], 'puzzleGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">N:{calculateSpecific(podiumSlots[2], 'knotsGame')}</span>
@@ -322,6 +343,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Q: {calculateSpecific(m, 'quiz')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">M: {calculateSpecific(m, 'memoryGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">E: {calculateSpecific(m, 'specialtyGame')}</span>
+                      <span className="text-[7px] font-bold text-slate-400 uppercase">Est: {calculateSpecific(m, 'specialtyStudy')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">3D: {calculateSpecific(m, 'threeCluesGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">P: {calculateSpecific(m, 'puzzleGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">N: {calculateSpecific(m, 'knotsGame')}</span>

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { UnitName, Member, UserRole, Score } from '@/types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES } from '@/constants';
-import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar } from 'lucide-react';
+import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2 } from 'lucide-react';
 
 interface UnitDetailProps {
   unitName: UnitName;
@@ -193,6 +193,42 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     }, 0);
   };
 
+  const calculateGamesTotal = (member: Member) => {
+    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+    return member.scores.reduce((acc, curr) => {
+      const s = curr as any;
+      if (s.type === 'game') {
+        if (s.points !== undefined) return acc + (Number(s.points) || 0);
+        const gameKeys = [
+          'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
+          'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+          'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
+          'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+        ];
+        for (const key of gameKeys) {
+          if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+        }
+        return acc;
+      }
+      let gamePoints = 0;
+      if (s.gameId && s.points) gamePoints += Number(s.points) || 0;
+      const gameKeys = [
+        'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
+        'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
+        'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
+        'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+      ];
+      gameKeys.forEach(key => {
+        if (s[key] !== undefined && s.gameId !== key) gamePoints += Number(s[key]) || 0;
+      });
+      return acc + gamePoints;
+    }, 0);
+  };
+
+  const calculateGrandTotal = (member: Member) => {
+    return calculateWeeklyTotal(member);
+  };
+
   const calculateScoreTotal = (s: Score) => (Number(s.punctuality) || 0) + (Number(s.uniform) || 0) + (Number(s.material) || 0) + (Number(s.bible) || 0) + (Number(s.voluntariness) || 0) + (Number(s.activities) || 0) + (Number(s.treasury) || 0);
 
   const labelClasses = "text-[12px] font-bold text-[#1e293b] dark:text-slate-300 mb-1.5 block ml-1";
@@ -228,7 +264,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   </p>
                 </div>
                 <div className="absolute top-6 right-6 font-black text-[#0061f2] text-lg">
-                   {calculateWeeklyTotal(member)} pts
+                   {calculateGrandTotal(member)} pts
                 </div>
                 <div className="absolute bottom-5 right-6 flex gap-1">
                    <button onClick={(e) => { e.stopPropagation(); setSelectedMemberIdForHistory(member.id); }} className="p-2 text-slate-300 hover:text-blue-600 transition-all"><History size={18} /></button>
@@ -301,10 +337,9 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   .filter(s => (s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)) && calculateScoreTotal(s) > 0)
                   .reverse()
                   .map((s, idx) => {
-                    // Encontra o índice original para edição/exclusão correta
                     const originalIndex = historyMember.scores.findIndex(os => os === s);
                     return (
-                      <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
+                      <div key={`weekly-${idx}`} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black text-[#0061f2] uppercase">{s.date}</span>
                           <span className="text-xl font-black text-slate-800 dark:text-slate-100">{calculateScoreTotal(s)} pts</span>

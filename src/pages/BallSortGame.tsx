@@ -174,6 +174,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
       type: 'game',
       gameId: 'ballSortGame',
       date: new Date().toLocaleDateString('pt-BR'),
+      points: points,
       ballSortGame: points
     });
 
