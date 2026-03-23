@@ -625,12 +625,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
         <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex flex-col">
           <div className="flex-1 relative">
-            <button 
-              onClick={() => setMode('menu')}
-              className="absolute top-4 left-4 z-50 w-10 h-10 rounded-full bg-slate-900/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-slate-900/60 transition-all border border-white/20"
-            >
-              <ArrowLeft size={20} strokeWidth={3} />
-            </button>
             <iframe 
               src={formatPdfUrl(selectedStudy.pdfurl)} 
               className="w-full h-full border-none"
