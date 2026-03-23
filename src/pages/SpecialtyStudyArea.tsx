@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useImperativeHandle, forwardRef } 
 import { AuthUser, Member, SpecialtyStudy, Score, UserRole } from '@/types';
 import { DatabaseService } from '@/db';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info, Clock, Maximize, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info, Clock, Maximize, X } from 'lucide-react';
 
 interface SpecialtyStudyAreaProps {
   user: AuthUser;
@@ -339,29 +339,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     };
   }, [showVideoModal, selectedStudy]);
 
-  const [showRotateWarning, setShowRotateWarning] = useState(false);
-
-  // Monitora orientação para mostrar aviso
-  useEffect(() => {
-    const checkOrientation = () => {
-      // Se estiver no modo de estudo ou vídeo e a altura for maior que a largura (portrait)
-      if ((showVideoModal || mode === 'study') && window.innerHeight > window.innerWidth) {
-        setShowRotateWarning(true);
-      } else {
-        setShowRotateWarning(false);
-      }
-    };
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    checkOrientation();
-
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
-  }, [showVideoModal, mode]);
-
   const toggleFullscreen = async () => {
     try {
       const elem = document.getElementById('video-container');
@@ -637,23 +614,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Aviso de Rotação */}
-        {showRotateWarning && (
-          <div className="fixed inset-0 z-[2000] bg-slate-900/95 flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
-            <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 animate-bounce">
-              <RefreshCw size={40} className="text-blue-400 rotate-90" />
-            </div>
-            <h2 className="text-xl font-black text-white uppercase mb-2">Gire seu aparelho</h2>
-            <p className="text-slate-400 text-sm">Para uma melhor experiência de estudo e vídeo, use o celular na horizontal.</p>
-            <button 
-              onClick={() => setShowRotateWarning(false)}
-              className="mt-8 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
-            >
-              Continuar assim mesmo
-            </button>
           </div>
         )}
       </div>
