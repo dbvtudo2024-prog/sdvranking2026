@@ -25,6 +25,8 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const [mode, setMode] = useState<'list' | 'menu' | 'study' | 'quiz' | 'result'>('list');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoWatched, setVideoWatched] = useState(false);
+  const [showCompleteButton, setShowCompleteButton] = useState(false);
+  const playerRef = React.useRef<any>(null);
   
   // Quiz State
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -208,12 +210,88 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   const handleOpenVideo = () => {
     setShowVideoModal(true);
+    setShowCompleteButton(false);
   };
 
   const handleCompleteVideo = () => {
     setVideoWatched(true);
     setShowVideoModal(false);
+    setShowCompleteButton(false);
   };
+
+  // YouTube API initialization
+  useEffect(() => {
+    let checkInterval: NodeJS.Timeout;
+
+    if (showVideoModal && selectedStudy?.video_url) {
+      // Load script if not already loaded
+      if (!(window as any).YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
+
+      const videoId = selectedStudy.video_url.includes('watch?v=') 
+        ? selectedStudy.video_url.split('v=')[1]?.split('&')[0]
+        : selectedStudy.video_url.split('youtu.be/')[1]?.split('?')[0];
+
+      const initPlayer = () => {
+        if (playerRef.current) {
+          playerRef.current.destroy();
+        }
+
+        playerRef.current = new (window as any).YT.Player('youtube-player', {
+          height: '100%',
+          width: '100%',
+          videoId: videoId,
+          playerVars: {
+            'autoplay': 1,
+            'modestbranding': 1,
+            'rel': 0,
+          },
+          events: {
+            'onStateChange': (event: any) => {
+              // YT.PlayerState.ENDED is 0
+              if (event.data === 0) {
+                setShowCompleteButton(true);
+              }
+            }
+          }
+        });
+
+        // Check time periodically to show button in final seconds
+        checkInterval = setInterval(() => {
+          if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
+            try {
+              const currentTime = playerRef.current.getCurrentTime();
+              const duration = playerRef.current.getDuration();
+              if (duration > 0 && duration - currentTime <= 10) { // Show in last 10 seconds
+                setShowCompleteButton(true);
+                clearInterval(checkInterval);
+              }
+            } catch (e) {
+              // Player might not be ready yet
+            }
+          }
+        }, 1000);
+      };
+
+      if ((window as any).YT && (window as any).YT.Player) {
+        initPlayer();
+      } else {
+        (window as any).onYouTubeIframeAPIReady = initPlayer;
+      }
+    }
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [showVideoModal, selectedStudy]);
 
   const handleOpenFile = () => {
     setMode('study');
@@ -436,22 +514,18 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 <XCircle size={24} />
               </button>
               
-              <iframe 
-                src={formatVideoUrl(selectedStudy.video_url || '')} 
-                className="w-full h-full border-none"
-                title="Vídeo de Estudo"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              <div id="youtube-player" className="w-full h-full" />
 
-              <div className="absolute bottom-6 inset-x-0 flex justify-center px-6">
-                <button 
-                  onClick={handleCompleteVideo}
-                  className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-green-500 transition-all flex items-center gap-3"
-                >
-                  <CheckCircle2 size={18} /> CONCLUIR VÍDEO
-                </button>
-              </div>
+              {showCompleteButton && (
+                <div className="absolute bottom-6 inset-x-0 flex justify-center px-6 animate-in slide-in-from-bottom-4 duration-500">
+                  <button 
+                    onClick={handleCompleteVideo}
+                    className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-green-500 transition-all flex items-center gap-3 border-4 border-white"
+                  >
+                    <CheckCircle2 size={18} /> CONCLUIR VÍDEO
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
