@@ -251,6 +251,11 @@ const App: React.FC = () => {
     setCurrentPage('home');
   }, []);
 
+  const handleStudyStateChange = useCallback((name: string | null, img: string | null) => {
+    setActiveSpecialtyName(name);
+    setActiveSpecialtyImage(img);
+  }, []);
+
   const handleLogout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('sentinelas_user');
@@ -380,7 +385,7 @@ const App: React.FC = () => {
       case 'admin_who_am_i': return <AdminWhoAmIEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_piano': return <AdminPianoEditor onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
-      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={(name, img) => { setActiveSpecialtyName(name); setActiveSpecialtyImage(img || null); }} isDarkMode={isDarkMode} />;
+      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
       onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
@@ -565,8 +570,8 @@ const App: React.FC = () => {
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
-        <footer className="shrink-0">
+      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
+        <footer className="shrink-0 fixed bottom-0 left-0 right-0 z-[100]">
           <AppNavbar 
             currentPage={currentPage as any} 
             setCurrentPage={setCurrentPage as any} 

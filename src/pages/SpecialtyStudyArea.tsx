@@ -43,15 +43,18 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   useEffect(() => {
     const handleOrientation = async () => {
       try {
+        const orientation = (window.screen as any)?.orientation;
+        if (!orientation) return;
+
         // Tenta forçar paisagem no vídeo ou estudo
         if (showVideoModal || mode === 'study') {
-          if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
-            await window.screen.orientation.lock('landscape').catch(e => console.log("Lock landscape failed:", e));
+          if (typeof orientation.lock === 'function') {
+            await orientation.lock('landscape').catch((e: any) => console.log("Lock landscape failed:", e));
           }
         } else {
           // Volta ao normal (desbloqueado) nas outras telas
-          if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
-            await window.screen.orientation.unlock().catch(e => console.log("Unlock failed:", e));
+          if (typeof orientation.unlock === 'function') {
+            orientation.unlock();
           }
         }
       } catch (err) {
@@ -62,8 +65,11 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     
     // Cleanup ao sair do componente
     return () => {
-      if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
-        window.screen.orientation.unlock().catch(() => {});
+      const orientation = (window.screen as any)?.orientation;
+      if (orientation && typeof orientation.unlock === 'function') {
+        try {
+          orientation.unlock();
+        } catch (e) {}
       }
     };
   }, [showVideoModal, mode]);
@@ -393,7 +399,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
           <div className="grid grid-cols-1 gap-4">
             {studies.map(s => {
               const alreadyDone = currentMember?.scores?.some(score => score.specialtyStudyId === s.id);
-              const bestScore = currentMember?.scores?.filter(score => score.specialtyStudyId === s.id).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
+              const bestScore = (currentMember?.scores?.filter(score => score.specialtyStudyId === s.id) || []).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
 
               return (
                 <div key={`study-item-${s.id}`} className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
