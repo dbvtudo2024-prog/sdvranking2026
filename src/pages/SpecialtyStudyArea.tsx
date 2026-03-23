@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useImperativeHandle, forwardRef } 
 import { AuthUser, Member, SpecialtyStudy, Score, UserRole } from '@/types';
 import { DatabaseService } from '@/db';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, HelpCircle, Trophy, BookOpen, CheckCircle2, XCircle, ChevronRight, Loader2, Play, Info, Clock, Maximize, X, RefreshCw } from 'lucide-react';
 
 interface SpecialtyStudyAreaProps {
   user: AuthUser;
@@ -234,17 +234,29 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     return { isLocked: false, message: '', remainingTime: '' };
   }, [currentMember, selectedStudy]);
 
-  const handleStartStudy = (study: SpecialtyStudy) => {
+  const handleStartStudyMenu = async (study: SpecialtyStudy) => {
     setSelectedStudy(study);
     setMode('menu');
     setStudyTimer(STUDY_TIME_SECONDS);
     setStudyTimeCompleted(false);
     setVideoWatched(false);
+    
+    // Tenta travar orientação no clique (gesto do usuário)
+    const orientation = (window.screen as any)?.orientation;
+    if (orientation && typeof orientation.lock === 'function') {
+      orientation.lock('landscape').catch(() => {});
+    }
   };
 
   const handleOpenVideo = () => {
     setShowVideoModal(true);
     setShowCompleteButton(false);
+    
+    // Tenta travar orientação no clique
+    const orientation = (window.screen as any)?.orientation;
+    if (orientation && typeof orientation.lock === 'function') {
+      orientation.lock('landscape').catch(() => {});
+    }
   };
 
   const handleCompleteVideo = () => {
@@ -327,8 +339,60 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     };
   }, [showVideoModal, selectedStudy]);
 
-  const handleOpenFile = () => {
+  const [showRotateWarning, setShowRotateWarning] = useState(false);
+
+  // Monitora orientação para mostrar aviso
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Se estiver no modo de estudo ou vídeo e a altura for maior que a largura (portrait)
+      if ((showVideoModal || mode === 'study') && window.innerHeight > window.innerWidth) {
+        setShowRotateWarning(true);
+      } else {
+        setShowRotateWarning(false);
+      }
+    };
+
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    checkOrientation();
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, [showVideoModal, mode]);
+
+  const toggleFullscreen = async () => {
+    try {
+      const elem = document.getElementById('video-container');
+      if (!elem) return;
+
+      if (!document.fullscreenElement) {
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        }
+        const orientation = (window.screen as any)?.orientation;
+        if (orientation && typeof orientation.lock === 'function') {
+          await orientation.lock('landscape').catch(() => {});
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.log("Fullscreen/Orientation error:", err);
+    }
+  };
+
+  const handleStartStudy = () => {
     setMode('study');
+    
+    // Tenta travar orientação no clique (gesto do usuário)
+    const orientation = (window.screen as any)?.orientation;
+    if (orientation && typeof orientation.lock === 'function') {
+      orientation.lock('landscape').catch(() => {});
+    }
   };
 
   const handleStartQuiz = () => {
@@ -427,7 +491,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                     )}
                   </div>
                   <button 
-                    onClick={() => handleStartStudy(s)}
+                    onClick={() => handleStartStudyMenu(s)}
                     className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner"
                   >
                     <Play size={20} fill="currentColor" />
@@ -492,7 +556,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
             {/* Botão Ler Arquivo */}
             <button 
-              onClick={handleOpenFile}
+              onClick={handleStartStudy}
               className={`w-full p-6 rounded-[2rem] border-2 flex items-center gap-4 transition-all active:scale-95 ${
                 studyTimeCompleted 
                   ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800' 
@@ -540,27 +604,56 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
         {/* Modal de Vídeo */}
         {showVideoModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-black animate-in fade-in duration-300">
-            <div className="w-full h-full sm:max-w-4xl sm:max-h-[90vh] sm:aspect-video bg-black sm:rounded-3xl overflow-hidden relative shadow-2xl">
-              <button 
-                onClick={() => setShowVideoModal(false)}
-                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-all border border-white/20"
-              >
-                <XCircle size={24} />
-              </button>
-              
-              <div id="youtube-player" className="w-full h-full" />
-
-              {showCompleteButton && (
-                <div className="absolute bottom-6 inset-x-0 flex justify-center px-6 animate-in slide-in-from-bottom-4 duration-500">
+            <div id="video-container" className="w-full h-full sm:max-w-4xl sm:max-h-[90vh] sm:aspect-video bg-black sm:rounded-3xl overflow-hidden relative shadow-2xl">
+              <div className="relative w-full h-full bg-black flex items-center justify-center">
+                <div id="youtube-player" className="w-full h-full"></div>
+                
+                {/* Overlay Controls */}
+                <div className="absolute top-4 right-4 flex gap-2 z-50">
                   <button 
-                    onClick={handleCompleteVideo}
-                    className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-green-500 transition-all flex items-center gap-3 border-4 border-white"
+                    onClick={toggleFullscreen}
+                    className="p-3 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-all active:scale-90 border border-white/10"
+                    title="Tela Cheia"
                   >
-                    <CheckCircle2 size={18} /> CONCLUIR VÍDEO
+                    <Maximize size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setShowVideoModal(false)}
+                    className="p-3 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-all active:scale-90 border border-white/10"
+                  >
+                    <X size={20} />
                   </button>
                 </div>
-              )}
+
+                {showCompleteButton && (
+                  <div className="absolute bottom-6 inset-x-0 flex justify-center px-6 animate-in slide-in-from-bottom-4 duration-500 z-50">
+                    <button 
+                      onClick={handleCompleteVideo}
+                      className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-green-500 transition-all flex items-center gap-3 border-4 border-white"
+                    >
+                      <CheckCircle2 size={18} /> CONCLUIR VÍDEO
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Aviso de Rotação */}
+        {showRotateWarning && (
+          <div className="fixed inset-0 z-[2000] bg-slate-900/95 flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
+            <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 animate-bounce">
+              <RefreshCw size={40} className="text-blue-400 rotate-90" />
+            </div>
+            <h2 className="text-xl font-black text-white uppercase mb-2">Gire seu aparelho</h2>
+            <p className="text-slate-400 text-sm">Para uma melhor experiência de estudo e vídeo, use o celular na horizontal.</p>
+            <button 
+              onClick={() => setShowRotateWarning(false)}
+              className="mt-8 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+            >
+              Continuar assim mesmo
+            </button>
           </div>
         )}
       </div>
