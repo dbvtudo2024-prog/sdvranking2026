@@ -317,11 +317,17 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                 </div>
               </div>
 
-              <div>
-                <label className={labelClasses}>URL do PDF (Estudo)</label>
-                <input required className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdfurl : newStudy.pdfurl} onChange={e => editForm ? setEditForm({...editForm, pdfurl: e.target.value}) : setNewStudy({...newStudy, pdfurl: e.target.value})} />
-                <p className={`text-[9px] mt-2 ml-2 font-bold uppercase tracking-widest italic ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* O PDF deve estar hospedado em um link público (Google Drive, Dropbox, etc)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className={labelClasses}>URL do PDF (Estudo)</label>
+                  <input required className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdfurl : newStudy.pdfurl} onChange={e => editForm ? setEditForm({...editForm, pdfurl: e.target.value}) : setNewStudy({...newStudy, pdfurl: e.target.value})} />
+                </div>
+                <div>
+                  <label className={labelClasses}>URL do Vídeo (Opcional)</label>
+                  <input className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://youtube.com/watch?v=..." value={editForm ? editForm.video_url || '' : newStudy.video_url || ''} onChange={e => editForm ? setEditForm({...editForm, video_url: e.target.value}) : setNewStudy({...newStudy, video_url: e.target.value})} />
+                </div>
               </div>
+              <p className={`text-[9px] mt-2 ml-2 font-bold uppercase tracking-widest italic ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* O PDF e o Vídeo devem estar hospedados em links públicos</p>
 
               <div>
                 <label className={labelClasses}>Imagem da Especialidade</label>

@@ -902,6 +902,7 @@ export const DatabaseService = {
     const study: Omit<SpecialtyStudy, 'id'> = {
       name: "História do Velho Testamento",
       pdfurl: "https://drive.google.com/file/d/1c5LZ2VHm5mPY_LjszYVA1QsuwBTSSvtX/view",
+      video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       category: "Bíblia",
       questions: [
         {
@@ -972,6 +973,7 @@ export const DatabaseService = {
     const study: Omit<SpecialtyStudy, 'id'> = {
       name: "Estudo da Natureza",
       pdfurl: "https://desbravadores.org.br/assets/especialidades/estudo-da-natureza/estudo-da-natureza.pdf",
+      video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       category: "Natureza",
       questions: [
         {

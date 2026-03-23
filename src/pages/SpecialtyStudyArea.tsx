@@ -22,7 +22,9 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<SpecialtyStudy | null>(null);
-  const [mode, setMode] = useState<'list' | 'study' | 'quiz' | 'result'>('list');
+  const [mode, setMode] = useState<'list' | 'menu' | 'study' | 'quiz' | 'result'>('list');
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoWatched, setVideoWatched] = useState(false);
   
   // Quiz State
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -43,10 +45,14 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
         return true;
       }
       if (mode === 'quiz') {
-        setMode('study');
+        setMode('menu');
         return true;
       }
       if (mode === 'study') {
+        setMode('menu');
+        return true;
+      }
+      if (mode === 'menu') {
         setMode('list');
         return true;
       }
@@ -117,6 +123,18 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     return url;
   };
 
+  const formatVideoUrl = (url: string) => {
+    if (!url) return '';
+    if (url.includes('youtube.com/watch?v=')) {
+      return url.replace('watch?v=', 'embed/');
+    }
+    if (url.includes('youtu.be/')) {
+      const id = url.split('youtu.be/')[1]?.split('?')[0];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    return url;
+  };
+
   const currentMember = useMemo(() => {
     return members.find(m => m.id === user.id);
   }, [members, user.id]);
@@ -182,9 +200,23 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   const handleStartStudy = (study: SpecialtyStudy) => {
     setSelectedStudy(study);
-    setMode('study');
+    setMode('menu');
     setStudyTimer(STUDY_TIME_SECONDS);
     setStudyTimeCompleted(false);
+    setVideoWatched(false);
+  };
+
+  const handleOpenVideo = () => {
+    setShowVideoModal(true);
+  };
+
+  const handleCompleteVideo = () => {
+    setVideoWatched(true);
+    setShowVideoModal(false);
+  };
+
+  const handleOpenFile = () => {
+    setMode('study');
   };
 
   const handleStartQuiz = () => {
@@ -303,6 +335,130 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     );
   }
 
+  if (mode === 'menu' && selectedStudy) {
+    const isQuizUnlocked = (!selectedStudy.video_url || videoWatched) && studyTimeCompleted;
+
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in p-6">
+        <div className="max-w-md mx-auto w-full space-y-8 pt-10">
+          <div className="text-center space-y-4">
+            {selectedStudy.specialty_image_url && (
+              <div className="w-32 h-32 mx-auto rounded-[2.5rem] bg-white dark:bg-slate-800 p-4 shadow-xl border border-slate-100 dark:border-slate-700">
+                <img 
+                  src={formatImageUrl(selectedStudy.specialty_image_url)} 
+                  alt={selectedStudy.name}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
+            <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase leading-tight">{selectedStudy.name}</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Escolha uma etapa para começar</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {/* Botão Assistir Vídeo */}
+            {selectedStudy.video_url && (
+              <button 
+                onClick={handleOpenVideo}
+                className={`w-full p-6 rounded-[2rem] border-2 flex items-center gap-4 transition-all active:scale-95 ${
+                  videoWatched 
+                    ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800' 
+                    : 'bg-white border-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${videoWatched ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                  <Play size={24} fill="currentColor" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-black uppercase tracking-tight text-sm">Assistir Vídeo</h4>
+                  <p className="text-[10px] font-bold opacity-60 uppercase">{videoWatched ? 'Concluído' : 'Assista para liberar o teste'}</p>
+                </div>
+                {videoWatched && <CheckCircle2 className="ml-auto text-green-500" size={24} />}
+              </button>
+            )}
+
+            {/* Botão Ler Arquivo */}
+            <button 
+              onClick={handleOpenFile}
+              className={`w-full p-6 rounded-[2rem] border-2 flex items-center gap-4 transition-all active:scale-95 ${
+                studyTimeCompleted 
+                  ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800' 
+                  : 'bg-white border-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${studyTimeCompleted ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>
+                <FileText size={24} />
+              </div>
+              <div className="text-left">
+                <h4 className="font-black uppercase tracking-tight text-sm">Ler Arquivo</h4>
+                <p className="text-[10px] font-bold opacity-60 uppercase">
+                  {studyTimeCompleted ? 'Leitura Concluída' : studyTimer > 0 ? `Aguarde ${Math.floor(studyTimer / 60)}:${(studyTimer % 60).toString().padStart(2, '0')}` : 'Leia o material'}
+                </p>
+              </div>
+              {studyTimeCompleted && <CheckCircle2 className="ml-auto text-green-500" size={24} />}
+            </button>
+
+            {/* Botão Fazer Questionário (Oculto até liberar) */}
+            {isQuizUnlocked && !lockoutStatus.isLocked && (
+              <button 
+                onClick={handleStartQuiz}
+                className="w-full p-6 rounded-[2rem] bg-[#FFD700] text-[#003366] border-4 border-white shadow-xl flex items-center gap-4 transition-all active:scale-95 animate-in zoom-in-95"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-[#003366] text-[#FFD700] flex items-center justify-center">
+                  <HelpCircle size={24} />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-black uppercase tracking-tight text-sm">Fazer Questionário</h4>
+                  <p className="text-[10px] font-bold opacity-60 uppercase">Teste seus conhecimentos</p>
+                </div>
+                <ChevronRight className="ml-auto" size={24} />
+              </button>
+            )}
+
+            {lockoutStatus.isLocked && (
+              <div className="bg-slate-900/90 backdrop-blur-xl border border-red-500/30 p-6 rounded-[2rem] text-center shadow-2xl">
+                <p className="text-white text-[8px] font-black uppercase tracking-widest mb-1 opacity-70">{lockoutStatus.message}</p>
+                <p className="text-red-500 text-lg font-black">{lockoutStatus.remainingTime}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modal de Vídeo */}
+        {showVideoModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 animate-in fade-in duration-300">
+            <div className="w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden relative shadow-2xl">
+              <button 
+                onClick={() => setShowVideoModal(false)}
+                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all"
+              >
+                <XCircle size={24} />
+              </button>
+              
+              <iframe 
+                src={formatVideoUrl(selectedStudy.video_url || '')} 
+                className="w-full h-full border-none"
+                title="Vídeo de Estudo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+
+              <div className="absolute bottom-6 inset-x-0 flex justify-center px-6">
+                <button 
+                  onClick={handleCompleteVideo}
+                  className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-green-500 transition-all flex items-center gap-3"
+                >
+                  <CheckCircle2 size={18} /> CONCLUIR VÍDEO
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (mode === 'study' && selectedStudy) {
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
@@ -331,25 +487,6 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Botão de Ação Compacto */}
-          <div className="absolute bottom-8 inset-x-0 flex justify-center px-6 pointer-events-none z-50">
-            <div className="pointer-events-auto w-full max-w-xs">
-              {lockoutStatus.isLocked ? (
-                <div className="bg-slate-900/90 backdrop-blur-xl border border-red-500/30 p-4 rounded-[2rem] text-center shadow-2xl">
-                  <p className="text-white text-[8px] font-black uppercase tracking-widest mb-1 opacity-70">{lockoutStatus.message}</p>
-                  <p className="text-red-500 text-lg font-black">{lockoutStatus.remainingTime}</p>
-                </div>
-              ) : studyTimeCompleted && (
-                <button 
-                  onClick={handleStartQuiz}
-                  className="w-full bg-[#FFD700] text-[#003366] py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 border-4 border-white animate-in zoom-in-95"
-                >
-                  <HelpCircle size={18} /> INICIAR TESTE FINAL
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>
