@@ -30,6 +30,7 @@ import Pathfinders from '@/pages/Pathfinders';
 import Chat from '@/pages/Chat';
 import AppNavbar from '@/components/AppNavbar';
 import TickerBanner from '@/components/TickerBanner';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, Bell, X, Sword, Moon, Sun } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -53,6 +54,7 @@ const App: React.FC = () => {
   
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
+  const [activeSpecialtyImage, setActiveSpecialtyImage] = useState<string | null>(null);
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
   const [showUpdateNotice, setShowUpdateNotice] = useState(false);
@@ -355,7 +357,7 @@ const App: React.FC = () => {
       case 'admin_who_am_i': return <AdminWhoAmIEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_piano': return <AdminPianoEditor onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
-      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={setActiveSpecialtyName} isDarkMode={isDarkMode} />;
+      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={(name, img) => { setActiveSpecialtyName(name); setActiveSpecialtyImage(img || null); }} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
       onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
@@ -522,6 +524,17 @@ const App: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {activeSpecialtyImage && currentPage === 'specialty_study' && (
+            <div className="w-12 h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center animate-in zoom-in duration-300">
+              <img 
+                src={formatImageUrl(activeSpecialtyImage)} 
+                alt="Especialidade" 
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
         </header>
       )}
       

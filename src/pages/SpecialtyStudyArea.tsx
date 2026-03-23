@@ -10,7 +10,7 @@ interface SpecialtyStudyAreaProps {
   members: Member[];
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
-  onStudyStateChange?: (studyName: string | null) => void;
+  onStudyStateChange?: (studyName: string | null, imageUrl?: string | null) => void;
   isDarkMode?: boolean;
 }
 
@@ -77,7 +77,11 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
 
   useEffect(() => {
     if (onStudyStateChange) {
-      onStudyStateChange(mode !== 'list' && selectedStudy ? selectedStudy.name : null);
+      if (mode !== 'list' && selectedStudy) {
+        onStudyStateChange(selectedStudy.name, selectedStudy.specialty_image_url);
+      } else {
+        onStudyStateChange(null, null);
+      }
     }
   }, [mode, selectedStudy, onStudyStateChange]);
 
@@ -302,22 +306,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   if (mode === 'study' && selectedStudy) {
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in">
-        <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex flex-col md:flex-row">
-          {/* Imagem da Especialidade no Lado Esquerdo */}
-          {selectedStudy.specialty_image_url && (
-            <div className="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-slate-900 flex items-center justify-center p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 shrink-0 max-h-[30vh] md:max-h-none overflow-hidden">
-              <div className="relative group scale-75 md:scale-100">
-                <div className="absolute -inset-4 bg-blue-600/20 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <img 
-                  src={formatImageUrl(selectedStudy.specialty_image_url)} 
-                  alt={selectedStudy.name}
-                  className="w-32 h-32 md:w-full md:h-auto object-contain relative z-10 drop-shadow-2xl animate-in zoom-in-95 duration-700"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-            </div>
-          )}
-          
+        <div className="flex-1 bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex flex-col">
           <div className="flex-1 relative">
             <iframe 
               src={formatPdfUrl(selectedStudy.pdfurl)} 
