@@ -61,6 +61,7 @@ export interface Member {
   age: number;
   className: string;
   joinedAt: string;
+  birthday?: string;
   counselor: string;
   unit: UnitName;
   scores: Score[];
@@ -81,6 +82,7 @@ export interface AuthUser {
   funcao?: string;
   unit?: UnitName;
   age?: number;
+  birthday?: string;
   className?: string;
   email?: string;
   password?: string;

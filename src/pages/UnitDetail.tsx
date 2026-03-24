@@ -46,7 +46,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     name: '',
     age: isLiderancaUnit ? 16 : 10,
     className: '',
-    joinedAt: new Date().toISOString().split('T')[0],
+    birthday: new Date().toISOString().split('T')[0],
     counselor: '',
     photoUrl: ''
   });
@@ -84,7 +84,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       role: isLiderancaUnit ? UserRole.LEADERSHIP : UserRole.PATHFINDER,
       age: formData.age,
       className: formData.className, 
-      joinedAt: formData.joinedAt,
+      birthday: formData.birthday,
+      joinedAt: new Date().toISOString().split('T')[0],
       counselor: formData.counselor,
       unit: unitName,
       scores: [],
@@ -96,7 +97,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       name: '', 
       age: isLiderancaUnit ? 16 : 10, 
       className: '', 
-      joinedAt: new Date().toISOString().split('T')[0], 
+      birthday: new Date().toISOString().split('T')[0], 
       counselor: '', 
       photoUrl: '' 
     });
@@ -445,13 +446,13 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               </div>
 
               <div>
-                <label className={labelClasses}>Data de Entrada</label>
+                <label className={labelClasses}>Data de Aniversário</label>
                 <div className="relative">
                   <input 
                     type="date" 
                     className={inputClasses} 
-                    value={isEditing ? editingMember?.joinedAt : formData.joinedAt} 
-                    onChange={e => isEditing ? setEditingMember({...editingMember!, joinedAt: e.target.value}) : setFormData({...formData, joinedAt: e.target.value})} 
+                    value={isEditing ? editingMember?.birthday : formData.birthday} 
+                    onChange={e => isEditing ? setEditingMember({...editingMember!, birthday: e.target.value}) : setFormData({...formData, birthday: e.target.value})} 
                   />
                 </div>
               </div>

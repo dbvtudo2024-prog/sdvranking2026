@@ -20,6 +20,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
     funcao: '',
     unit: '' as any,
     age: '',
+    birthday: '',
     className: '',
     email: '',
     password: '',
@@ -88,6 +89,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
         funcao: formData.funcao,
         unit: finalUnit,
         age: parseInt(formData.age),
+        birthday: formData.birthday,
         className: formData.className,
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
@@ -99,6 +101,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
         name: newUser.name,
         role: newUser.role,
         age: newUser.age || 0,
+        birthday: newUser.birthday,
         className: newUser.className,
         joinedAt: new Date().toISOString().split('T')[0],
         counselor: isLeadership ? formData.funcao : (formData.counselor || 'A definir'),
@@ -229,27 +232,37 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
               />
             </div>
             <div className="relative">
-              <label className={labelClasses}>Classe</label>
-              {isLeadership ? (
-                <div className="relative">
-                  <select 
-                    className={inputClasses}
-                    value={formData.className}
-                    onChange={e => setFormData({...formData, className: e.target.value})}
-                  >
-                    <option value="">Selecionar Classe</option>
-                    {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-3 bottom-3 text-gray-400 pointer-events-none" size={18} />
-                </div>
-              ) : (
-                <input 
-                  readOnly 
-                  className={`${inputClasses} bg-white/80 opacity-70`} 
-                  value={formData.className || 'Recruta'} 
-                />
-              )}
+              <label className={labelClasses}>Nascimento</label>
+              <input 
+                type="date"
+                className={inputClasses}
+                value={formData.birthday}
+                onChange={e => setFormData({...formData, birthday: e.target.value})}
+              />
             </div>
+          </div>
+
+          <div className="relative">
+            <label className={labelClasses}>Classe</label>
+            {isLeadership ? (
+              <div className="relative">
+                <select 
+                  className={inputClasses}
+                  value={formData.className}
+                  onChange={e => setFormData({...formData, className: e.target.value})}
+                >
+                  <option value="">Selecionar Classe</option>
+                  {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                </select>
+                <ChevronDown className="absolute right-3 bottom-3 text-gray-400 pointer-events-none" size={18} />
+              </div>
+            ) : (
+              <input 
+                readOnly 
+                className={`${inputClasses} bg-white/80 opacity-70`} 
+                value={formData.className || 'Recruta'} 
+              />
+            )}
           </div>
 
           <div>

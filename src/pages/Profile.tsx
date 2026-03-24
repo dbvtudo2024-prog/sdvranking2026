@@ -130,6 +130,7 @@ const Profile: React.FC<ProfileProps> = ({
         ...currentMember,
         name: updatedFormData.name,
         age: updatedFormData.age || 0,
+        birthday: updatedFormData.birthday,
         className: updatedFormData.className || '',
         unit: updatedFormData.unit || currentMember.unit,
         counselor: formData.role === UserRole.LEADERSHIP ? updatedFormData.funcao || currentMember.counselor : (updatedFormData.counselor || currentMember.counselor),
@@ -450,20 +451,24 @@ const Profile: React.FC<ProfileProps> = ({
                         setFormData({...formData, age: newAge, className: newClass});
                       }} />
                     </div>
-                    <div className="relative">
-                      <label className={labelClasses}>Classe</label>
-                      {isLeadership ? (
-                        <>
-                          <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.className || ''} onChange={e => setFormData({...formData, className: e.target.value})}>
-                            <option value="">Nenhuma</option>
-                            {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={16} />
-                        </>
-                      ) : (
-                        <div className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} flex items-center`}><span className="truncate">{getClassByAge(formData.age || 0)}</span></div>
-                      )}
+                    <div>
+                      <label className={labelClasses}>Nascimento</label>
+                      <input type="date" className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'}`} value={formData.birthday || ''} onChange={e => setFormData({...formData, birthday: e.target.value})} />
                     </div>
+                  </div>
+                  <div className="relative">
+                    <label className={labelClasses}>Classe</label>
+                    {isLeadership ? (
+                      <>
+                        <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.className || ''} onChange={e => setFormData({...formData, className: e.target.value})}>
+                          <option value="">Nenhuma</option>
+                          {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={16} />
+                      </>
+                    ) : (
+                      <div className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} flex items-center`}><span className="truncate">{getClassByAge(formData.age || 0)}</span></div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
