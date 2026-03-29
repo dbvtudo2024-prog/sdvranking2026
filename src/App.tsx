@@ -127,15 +127,25 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    console.log("[App] useEffect de assinaturas disparado. User:", user?.id);
     if (!user) {
+      console.log("[App] Nenhum usuário logado. Limpando membros.");
       setMembers([]);
       return;
     }
 
+    console.log("[App] Iniciando DatabaseService.subscribeGlobalData...");
     const globalSub = DatabaseService.subscribeGlobalData({
-      onAnnouncements: setAnnouncements,
-      onCounselors: setCounselorsData,
+      onAnnouncements: (data) => {
+        console.log("[App] Avisos recebidos:", data.length);
+        setAnnouncements(data);
+      },
+      onCounselors: (data) => {
+        console.log("[App] Conselheiros recebidos:", data.length);
+        setCounselorsData(data);
+      },
       onGameConfigs: (config: GameConfig) => {
+        console.log("[App] Configs de jogo recebidas");
         setQuizOverride(config.quiz_override);
         setMemoryOverride(config.memory_override);
         setSpecialtyOverride(config.specialty_override);
@@ -148,8 +158,12 @@ const App: React.FC = () => {
         setNatureIdOverride(config.nature_id_override);
         setFirstAidOverride(config.first_aid_override);
       },
-      onMembers: setMembers,
+      onMembers: (data) => {
+        console.log("[App] Membros recebidos:", data.length);
+        setMembers(data);
+      },
       onChallenges: (challenge) => {
+        console.log("[App] Novo desafio recebido!");
         if (String(challenge.challengedId) === String(user.id) && challenge.status === 'pending') {
           setChallengeNotification(challenge);
           if (navigator.vibrate) navigator.vibrate([200, 100, 200]);

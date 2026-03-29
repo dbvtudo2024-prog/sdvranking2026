@@ -97,55 +97,95 @@ export const DatabaseService = {
     onChallenges?: (challenge: Challenge1x1) => void
   }) {
     const channelId = `global_updates_${Math.random().toString(36).substring(7)}`;
+    console.log(`[Realtime] Iniciando canal global: ${channelId}`);
     const channel = supabase.channel(channelId);
 
+    // Fetch initial data
     if (callbacks.onMembers) {
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, async () => {
+      console.log("[Realtime] Buscando membros iniciais...");
+      this.getMembers().then(data => {
+        console.log(`[Realtime] ${data.length} membros carregados.`);
+        callbacks.onMembers!(data);
+      }).catch(err => console.error("[Realtime] Erro membros iniciais:", err));
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, async (payload) => {
+        console.log("[Realtime] Mudança em members:", payload.eventType);
         const members = await this.getMembers();
         callbacks.onMembers!(members);
       });
     }
 
     if (callbacks.onAnnouncements) {
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async () => {
+      console.log("[Realtime] Buscando avisos iniciais...");
+      this.getAnnouncements().then(data => {
+        console.log(`[Realtime] ${data.length} avisos carregados.`);
+        callbacks.onAnnouncements!(data);
+      }).catch(err => console.error("[Realtime] Erro avisos iniciais:", err));
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async (payload) => {
+        console.log("[Realtime] Mudança em announcements:", payload.eventType);
         const announcements = await this.getAnnouncements();
         callbacks.onAnnouncements!(announcements);
       });
     }
 
     if (callbacks.onCounselors) {
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, async () => {
+      console.log("[Realtime] Buscando conselheiros iniciais...");
+      this.getCounselors().then(data => {
+        console.log(`[Realtime] ${data.length} conselheiros carregados.`);
+        callbacks.onCounselors!(data);
+      }).catch(err => console.error("[Realtime] Erro conselheiros iniciais:", err));
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, async (payload) => {
+        console.log("[Realtime] Mudança em conselheiros:", payload.eventType);
         const counselors = await this.getCounselors();
         callbacks.onCounselors!(counselors);
       });
     }
 
     if (callbacks.onGameConfigs) {
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, async () => {
+      console.log("[Realtime] Buscando configs iniciais...");
+      this.getGameConfigs().then(config => {
+        if (config) {
+          console.log("[Realtime] Configs carregadas.");
+          callbacks.onGameConfigs!(config);
+        }
+      }).catch(err => console.error("[Realtime] Erro configs iniciais:", err));
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, async (payload) => {
+        console.log("[Realtime] Mudança em game_configs:", payload.eventType);
         const config = await this.getGameConfigs();
-        callbacks.onGameConfigs!(config);
+        if (config) callbacks.onGameConfigs!(config);
       });
     }
 
     if (callbacks.onChallenges) {
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'challenges' }, payload => {
+        console.log("[Realtime] Novo desafio recebido!");
         callbacks.onChallenges!(payload.new as Challenge1x1);
       });
     }
 
-    return channel.subscribe();
+    return channel.subscribe((status) => {
+      console.log(`[Realtime] Status do canal ${channelId}:`, status);
+    });
   },
 
   // --- MEMBROS ---
   async getMembers(): Promise<Member[]> {
     return withRetry(async () => {
+      console.log("[DB] Buscando membros...");
       const { data, error } = await supabase
         .from('members')
-        .select('id, name, role, age, className, joinedAt, birthday, counselor, unit, photoUrl, scores');
+        .select('*');
       
       if (error) {
-        console.error("Erro ao buscar membros:", error);
+        console.error("[DB] Erro ao buscar membros:", error);
         throw error;
+      }
+      console.log(`[DB] ${data?.length || 0} membros encontrados.`);
+      if (data && data.length > 0) {
+        console.log("[DB] Colunas em members:", Object.keys(data[0]));
       }
       return (data || []) as Member[];
     });
@@ -289,7 +329,13 @@ export const DatabaseService = {
 
   // --- AVISOS ---
   async getAnnouncements(): Promise<Announcement[]> {
+    console.log("[DB] Buscando avisos...");
     const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
+    if (error) {
+      console.error("[DB] Erro ao buscar avisos:", error);
+      return [];
+    }
+    console.log(`[DB] ${data?.length || 0} avisos encontrados.`);
     return (data || []) as Announcement[];
   },
 
@@ -1138,11 +1184,13 @@ export const DatabaseService = {
 
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
   async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
+    console.log("[DB] Buscando estudos...");
     const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
     if (error) {
-      console.error("Erro ao buscar estudos:", error);
+      console.error("[DB] Erro ao buscar estudos:", error);
       return [];
     }
+    console.log(`[DB] ${data?.length || 0} estudos encontrados.`);
     return (data || []) as SpecialtyStudy[];
   },
 
@@ -1173,14 +1221,17 @@ export const DatabaseService = {
 
   subscribeSpecialtyStudies(callback: (studies: SpecialtyStudy[]) => void) {
     let localStudies: SpecialtyStudy[] = [];
+    console.log("[Realtime] Iniciando assinatura de estudos...");
     this.getSpecialtyStudies().then(data => {
+      console.log(`[Realtime] ${data.length} estudos carregados inicialmente.`);
       localStudies = data;
       callback(localStudies);
-    });
+    }).catch(err => console.error("[Realtime] Erro estudos iniciais:", err));
 
     return supabase
       .channel('specialty_studies_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, payload => {
+        console.log("[Realtime] Mudança em specialty_studies:", payload.eventType);
         if (payload.eventType === 'INSERT') {
           localStudies = [payload.new as SpecialtyStudy, ...localStudies];
         } else if (payload.eventType === 'UPDATE') {
@@ -1190,7 +1241,9 @@ export const DatabaseService = {
         }
         callback([...localStudies]);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Realtime] Status do canal de estudos:", status);
+      });
   },
 
   subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {

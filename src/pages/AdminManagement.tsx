@@ -101,6 +101,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [editCounselor, setEditCounselor] = useState<CounselorDB | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isDiagnosticRunning, setIsDiagnosticRunning] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState<{table: string, count: number, status: string, columns: string[]}[]>([]);
+
+  const runDiagnostic = async () => {
+    setIsDiagnosticRunning(true);
+    const results = [];
+    const tables = ['members', 'announcements', 'conselheiros', 'specialty_studies', 'game_configs'];
+    
+    for (const table of tables) {
+      try {
+        const { data, error } = await DatabaseService.supabase.from(table).select('*').limit(1);
+        if (error) {
+          results.push({ table, count: -1, status: `Erro: ${error.message}`, columns: [] });
+        } else {
+          // Count total
+          const { count } = await DatabaseService.supabase.from(table).select('*', { count: 'exact', head: true });
+          results.push({ 
+            table, 
+            count: count || 0, 
+            status: 'OK', 
+            columns: data && data.length > 0 ? Object.keys(data[0]) : [] 
+          });
+        }
+      } catch (e: any) {
+        results.push({ table, count: -1, status: `Exceção: ${e.message}`, columns: [] });
+      }
+    }
+    setDiagnosticResults(results);
+    setIsDiagnosticRunning(false);
+  };
   const [newCounselorName, setNewCounselorName] = useState('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -438,6 +468,45 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </button>
            </div>
         </div>
+        {/* 5. ZERAR RANKING (PAINEL MASTER) */}
+        <div className={`${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'} p-10 rounded-[3.5rem] border shadow-xl space-y-6 mt-6`}>
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldAlert size={24} className="text-blue-600" />
+            <h4 className={`text-[12px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Diagnóstico do Banco</h4>
+          </div>
+          <button 
+            onClick={runDiagnostic}
+            disabled={isDiagnosticRunning}
+            className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border border-blue-900/30' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}
+          >
+            {isDiagnosticRunning ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+            EXECUTAR DIAGNÓSTICO DE DADOS
+          </button>
+
+          {diagnosticResults.length > 0 && (
+            <div className="space-y-3 mt-4">
+              {diagnosticResults.map(res => (
+                <div key={res.table} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">{res.table}</span>
+                    <span className={`font-black text-[10px] uppercase ${res.status === 'OK' ? 'text-emerald-500' : 'text-red-500'}`}>{res.status}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Registros: {res.count}</span>
+                  </div>
+                  {res.columns.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {res.columns.map(col => (
+                        <span key={col} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* 5. ZERAR RANKING (PAINEL MASTER) */}
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className={`${isDarkMode ? 'bg-red-950/20 border-red-900/30' : 'bg-[#fff1f1] border-red-100'} p-10 rounded-[3.5rem] border shadow-xl shadow-red-900/5 space-y-6 mt-6`}>
