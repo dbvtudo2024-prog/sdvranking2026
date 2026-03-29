@@ -1,5 +1,5 @@
 
-import { QuizQuestion, ThreeCluesQuestion } from './types';
+import { QuizQuestion, ThreeCluesQuestion, UserRole, UnitName } from './types';
 
 export const NEW_QUIZ_QUESTIONS: Omit<QuizQuestion, 'id'>[] = [
   // Desbravadores
@@ -109,4 +109,41 @@ export const NEW_KNOTS_ASSETS = [
   { game_type: 'knots', name: 'Nó de Cadeira de Bombeiro', url: 'https://www.animatedknots.com/assets/images/firemans-chair-knot.jpg' },
   { game_type: 'knots', name: 'Volta da Ribeira', url: 'https://www.animatedknots.com/assets/images/timber-hitch.jpg' },
   { game_type: 'knots', name: 'Nó Prusik', url: 'https://www.animatedknots.com/assets/images/prusik-knot.jpg' }
+];
+
+export const DEFAULT_ANNOUNCEMENTS = [
+  { title: 'Reunião Regular', date: '29/03/2026', content: 'Nossa reunião regular acontecerá no local de costume às 09:00. Não esqueça seu uniforme!' },
+  { title: 'Campori de Unidade', date: '05/04/2026', content: 'Preparem seus equipamentos! Teremos um acampamento de unidade no próximo final de semana.' },
+  { title: 'Classe Bíblica', date: '01/04/2026', content: 'Início da nova classe bíblica para todos os desbravadores interessados no batismo.' }
+];
+
+export const DEFAULT_SPECIALTY_STUDIES = [
+  {
+    name: 'Especialidade de Gatos',
+    pdfurl: 'https://www.adventistas.org/pt/desbravadores/especialidades/gatos/',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    specialty_image_url: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/especialidades/gatos.png',
+    category: 'Natureza',
+    questions: [
+      { question: 'Qual o nome científico do gato doméstico?', options: ['Felis catus', 'Panthera leo', 'Felis silvestris', 'Lynx lynx'], correct_answer: 0 },
+      { question: 'Quantos dentes tem um gato adulto?', options: ['20', '30', '40', '50'], correct_answer: 1 }
+    ]
+  },
+  {
+    name: 'Especialidade de Nós e Amarras',
+    pdfurl: 'https://www.adventistas.org/pt/desbravadores/especialidades/nos-e-amarras/',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    specialty_image_url: 'https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/especialidades/nos.png',
+    category: 'Atividades Recreativas',
+    questions: [
+      { question: 'Qual nó é usado para unir cordas de diâmetros diferentes?', options: ['Nó de Escota', 'Nó de Direito', 'Lais de Guia', 'Catau'], correct_answer: 0 },
+      { question: 'Qual amarra é usada para unir dois troncos em ângulo reto?', options: ['Amarra Quadrada', 'Amarra Diagonal', 'Amarra Circular', 'Amarra de Tripé'], correct_answer: 0 }
+    ]
+  }
+];
+
+export const DEFAULT_MEMBERS = [
+  { name: 'Ronaldo Sonic', unit: UnitName.LIDERANCA, role: UserRole.LEADERSHIP, scores: [], photoUrl: '', birthday: '1990-03-29', age: 35, className: 'Líder', joinedAt: '2020-01-01', counselor: 'N/A' },
+  { name: 'João Silva', unit: UnitName.AGUIA_DOURADA, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2010-05-15', age: 15, className: 'Amigo', joinedAt: '2023-01-01', counselor: 'Carlos' },
+  { name: 'Maria Oliveira', unit: UnitName.GUERREIROS, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2011-08-20', age: 14, className: 'Companheiro', joinedAt: '2023-01-01', counselor: 'Ana' }
 ];

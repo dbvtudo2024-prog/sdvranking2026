@@ -32,7 +32,9 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
   useEffect(() => {
     DatabaseService.getScrambledVerses().then(data => {
       if (data && data.length > 0) {
-        setVerses(data);
+        // Shuffle and take only 5 verses
+        const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 5);
+        setVerses(shuffled);
         setGameState('playing');
       } else {
         // Fallback or empty state
@@ -205,7 +207,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
           "As palavras de um versículo bíblico estão fora de ordem.",
           "Toque nas palavras na sequência correta para montá-lo.",
           "Se errar, use o botão de desfazer para tentar novamente.",
-          "O jogo termina após 3 versículos."
+          "O jogo termina após 5 versículos."
         ]}
         icon={<Book size={32} className="text-white" />}
       />

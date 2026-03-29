@@ -94,7 +94,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   };
 
   const calculateGrandTotal = (member: Member) => {
-    return calculateWeeklyTotal(member);
+    return calculateWeeklyTotal(member) + calculateGamesTotal(member);
   };
 
   const sortedData = useMemo(() => {
