@@ -75,7 +75,7 @@ export const DatabaseService = {
     return withRetry(async () => {
       const { data, error } = await supabase
         .from('members')
-        .select('id, name, role, age, className, joinedAt, counselor, unit, photoUrl, scores');
+        .select('id, name, role, age, className, joinedAt, birthday, counselor, unit, photoUrl, scores');
       
       if (error) {
         console.error("Erro ao buscar membros:", error);
@@ -115,6 +115,7 @@ export const DatabaseService = {
       age: member.age,
       className: member.className,
       joinedAt: member.joinedAt,
+      birthday: member.birthday,
       counselor: member.counselor,
       unit: member.unit,
       scores: member.scores,
@@ -135,6 +136,7 @@ export const DatabaseService = {
       age: updates.age,
       className: updates.className,
       joinedAt: updates.joinedAt,
+      birthday: updates.birthday,
       counselor: updates.counselor,
       unit: updates.unit,
       scores: updates.scores,
@@ -577,6 +579,7 @@ export const DatabaseService = {
       unit: userPayload.unit,
       age: userPayload.age,
       className: userPayload.className,
+      birthday: userPayload.birthday,
       email: userPayload.email,
       photoUrl: userPayload.photoUrl
     };
