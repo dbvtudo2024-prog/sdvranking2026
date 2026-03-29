@@ -194,8 +194,10 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
       <GameHeader 
+        onBack={onBack}
         stats={[
-          { label: 'Versículo', value: currentVerse.title },
+          { label: 'Progresso', value: `${currentStep + 1}/${verses.length}` },
+          { label: 'Referência', value: currentVerse.title },
           { label: 'Pontos', value: score }
         ]}
       />
@@ -213,6 +215,17 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
       />
 
       <main className="flex-1 p-6 flex flex-col items-center gap-6">
+        {/* Progress Bar */}
+        {gameState === 'playing' && (
+          <div className="w-full max-w-md h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${((currentStep + 1) / verses.length) * 100}%` }}
+              className="h-full bg-blue-500"
+            />
+          </div>
+        )}
+        
         <AnimatePresence mode="wait">
           {gameState === 'loading' ? (
             <div className="flex flex-col items-center py-20 gap-4">

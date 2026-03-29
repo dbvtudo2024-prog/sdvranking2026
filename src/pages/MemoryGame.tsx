@@ -287,6 +287,12 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
           icon={<Brain size={32} className="text-white" />}
         />
         <div className="flex items-center mb-6">
+          <button 
+            onClick={onBack}
+            className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-90 mr-2"
+          >
+            <ArrowLeft size={24} />
+          </button>
           <h2 className="text-xl font-black text-slate-800 uppercase">Jogo da Memória</h2>
         </div>
         
@@ -353,6 +359,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
           { label: 'Movimentos', value: moves }
         ]}
         onRefresh={() => initializeGame(difficulty)}
+        onBack={onBack}
       />
       <div className="flex-1 overflow-y-auto px-2 pb-10 pt-4">
         <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 max-w-[280px] mx-auto' : 'grid-cols-4'} gap-2 sm:gap-3`}>

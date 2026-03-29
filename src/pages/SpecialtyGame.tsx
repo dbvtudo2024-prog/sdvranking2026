@@ -208,6 +208,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Concluído</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+        <button onClick={onBack} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -220,6 +221,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Indisponível</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+        <button onClick={onBack} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -232,6 +234,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Erro de Carga</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Não foi possível carregar as especialidades. Verifique sua conexão.</p>
+        <button onClick={onBack} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -239,6 +242,12 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (gameState === 'lobby') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6 animate-in fade-in">
+        <button 
+          onClick={onBack}
+          className="absolute top-6 left-6 p-3 bg-white dark:bg-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700 active:scale-90 transition-all"
+        >
+          <ArrowLeft size={20} />
+        </button>
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}

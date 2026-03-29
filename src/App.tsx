@@ -54,6 +54,7 @@ const App: React.FC = () => {
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   const birthdaysRef = useRef<BirthdaysRef>(null);
   
+  const [isGameActive, setIsGameActive] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
   const [activeSpecialtyImage, setActiveSpecialtyImage] = useState<string | null>(null);
@@ -75,6 +76,10 @@ const App: React.FC = () => {
   const [scrambledVerseOverride, setScrambledVerseOverride] = useState(false);
   const [natureIdOverride, setNatureIdOverride] = useState(false);
   const [firstAidOverride, setFirstAidOverride] = useState(false);
+
+  useEffect(() => {
+    setIsGameActive(false);
+  }, [currentPage]);
 
   useEffect(() => {
     // Remove o splash screen do HTML após o React carregar
@@ -396,7 +401,7 @@ const App: React.FC = () => {
       case 'leadership': return <Leadership members={members} isDarkMode={isDarkMode} />;
       case 'pathfinders': return <Pathfinders members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} whoAmIOverride={whoAmIOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} whoAmIOverride={whoAmIOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
@@ -593,7 +598,7 @@ const App: React.FC = () => {
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && (
+      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
         <footer className="shrink-0 fixed bottom-0 left-0 right-0 z-[100]">
           <AppNavbar 
             currentPage={currentPage as any} 
