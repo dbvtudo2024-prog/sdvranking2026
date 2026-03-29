@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tent, Compass, Flame, Map, Anchor, HeartPulse, Shield, Sword, 
@@ -121,6 +121,30 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     localStorage.setItem(`mahjong_level_${user.id}`, String(currentLevel));
     localStorage.setItem(`mahjong_score_${user.id}`, String(currentScore));
   };
+
+  const saveScoreToProfile = useCallback(() => {
+    if (!currentMember) return;
+    const points = Math.max(10, Math.floor(score * 2 - seconds / 10));
+    const newScore: Score = {
+      type: 'game',
+      gameId: 'mahjongGame',
+      points: points,
+      mahjongGame: points,
+      date: new Date().toLocaleDateString('pt-BR')
+    };
+    onUpdateMember({
+      ...currentMember,
+      scores: [...(currentMember.scores || []), newScore]
+    });
+    localStorage.setItem(`mahjong_level_${user.id}`, '1');
+    localStorage.setItem(`mahjong_score_${user.id}`, '0');
+  }, [score, seconds, currentMember, onUpdateMember, user.id]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      saveScoreToProfile();
+    }
+  }, [isGameOver, saveScoreToProfile]);
 
   const globalProgress = useMemo(() => {
     const levelProgress = tiles.length > 0 ? (tiles.filter(t => t.removed).length / tiles.length) : 0;
@@ -528,13 +552,6 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
         <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você já completou este desafio esta semana. Volte na próxima segunda!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -543,12 +560,15 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
       {isStarted && (
         <GameHeader 
+          title="Mahjong Desbravador"
+          user={user}
           stats={[
             { label: 'Nível', value: `${level}/100` },
             { label: 'Tempo', value: formatTime(seconds) },
             { label: 'Pontos', value: score }
           ]}
           onRefresh={() => initGame(level)}
+          onBack={onBack}
         />
       )}
 
@@ -640,12 +660,9 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pontos Conquistados</p>
               <div className="mt-4 text-xs font-bold text-slate-500">Tempo Total: {formatTime(seconds)}</div>
             </div>
-            <button 
-              onClick={handleFinish}
-              className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
-            >
-              Salvar e Sair
-            </button>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+              Seu progresso foi salvo automaticamente!
+            </p>
           </div>
         ) : (
           <div className="relative w-full max-w-4xl h-[80vh] flex items-center justify-center">

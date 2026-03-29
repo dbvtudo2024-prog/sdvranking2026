@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { AuthUser, Member, Score, UserRole, PuzzleImage } from '@/types';
 import { DatabaseService } from '@/db';
 import { formatImageUrl } from '@/helpers/imageHelpers';
@@ -226,22 +226,57 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     onBack();
   };
 
+  const saveScoreToProfile = useCallback(() => {
+    // Find member again to ensure we have latest data
+    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    
+    if (memberToUpdate) {
+      const points = calculatePoints();
+      const newScore: Score = {
+        type: 'game',
+        gameId: 'puzzleGame',
+        points: points,
+        puzzleGame: points,
+        date: new Date().toLocaleDateString('pt-BR')
+      };
+      
+      const updatedScores = [...(memberToUpdate.scores || []), newScore];
+
+      onUpdateMember({
+        ...memberToUpdate,
+        scores: updatedScores
+      });
+    }
+  }, [calculatePoints, members, user.id, user.name, onUpdateMember]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      saveScoreToProfile();
+    }
+  }, [isGameOver, saveScoreToProfile]);
+
   if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
-        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Concluído</h2>
-        <p className="text-slate-500 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
+          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Concluído</h2>
+          <p className="text-slate-500 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+        </div>
       </div>
     );
   }
 
   if (!isAvailable && !isAdmin && !puzzleOverride) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
-        <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Indisponível</h2>
-        <p className="text-slate-500 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
+          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Indisponível</h2>
+          <p className="text-slate-500 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+        </div>
       </div>
     );
   }
@@ -249,38 +284,54 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   if (isGameOver) {
     const points = calculatePoints();
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="w-24 h-24 bg-[#FFD700] rounded-[2.5rem] flex items-center justify-center text-[#003366] shadow-xl mb-8"><Trophy size={48} /></div>
-        <h2 className="text-3xl font-black text-slate-800 mb-10 uppercase">Incrível!</h2>
-        <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full">
-           <p className="text-6xl font-black text-[#0061f2]">{points} <span className="text-xl">pts</span></p>
-           <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-2">Quebra-Cabeça Concluído</p>
-           <div className="mt-4 flex justify-center gap-4 text-[10px] font-bold text-slate-500 uppercase">
-             <span>Tempo: {formatTime(seconds)}</span>
-             <span>Movimentos: {moves}</span>
-           </div>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-24 h-24 bg-[#FFD700] rounded-[2.5rem] flex items-center justify-center text-[#003366] shadow-xl mb-8"><Trophy size={48} /></div>
+          <h2 className="text-3xl font-black text-slate-800 mb-10 uppercase">Incrível!</h2>
+          <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 mb-10 w-full">
+             <p className="text-6xl font-black text-[#0061f2]">{points} <span className="text-xl">pts</span></p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-2">Quebra-Cabeça Concluído</p>
+             <div className="mt-4 flex justify-center gap-4 text-[10px] font-bold text-slate-500 uppercase">
+               <span>Tempo: {formatTime(seconds)}</span>
+               <span>Movimentos: {moves}</span>
+             </div>
+          </div>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+            Sua pontuação foi salva automaticamente!
+          </p>
         </div>
-        <button onClick={handleFinish} className="w-full bg-[#0061f2] text-white py-6 rounded-[2rem] font-black uppercase shadow-xl">SALVAR PONTOS</button>
       </div>
     );
   }
 
   if (!isStarted) {
     return (
-      <div className="flex flex-col h-full animate-in fade-in duration-500 p-6 overflow-y-auto">
-        <GameInstructions
-          isOpen={showInstructions}
-          onStart={() => setShowInstructions(false)}
+      <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden">
+        <GameHeader 
           title="Quebra-Cabeça"
-          instructions={[
-            "Escolha uma imagem para começar o desafio.",
-            "Deslize as peças para os espaços vazios.",
-            "Organize todas as peças na posição correta.",
-            "Quanto menos movimentos e tempo, mais pontos!",
-            "O jogo termina quando a imagem estiver completa."
+          user={user}
+          stats={[
+            { label: 'Tempo', value: formatTime(seconds) },
+            { label: 'Movimentos', value: moves }
           ]}
-          icon={<Puzzle size={32} className="text-white" />}
+          onBack={onBack}
         />
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          <GameInstructions
+            isOpen={showInstructions}
+            onStart={() => setShowInstructions(false)}
+            title="Quebra-Cabeça"
+            instructions={[
+              "Escolha uma imagem para começar o desafio.",
+              "Deslize as peças para os espaços vazios.",
+              "Organize todas as peças na posição correta.",
+              "Quanto menos movimentos e tempo, mais pontos!",
+              "O jogo termina quando a imagem estiver completa."
+            ]}
+            icon={<Puzzle size={32} className="text-white" />}
+          />
         <div className="flex-1 flex flex-col gap-6 pb-10">
           <div className="text-center mb-4">
             <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-[#0061f2] mx-auto mb-4">
@@ -319,29 +370,22 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           </div>
         </div>
       </div>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden">
-      <div className="bg-white dark:bg-slate-800 p-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex gap-6">
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tempo</span>
-            <span className="text-sm font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{formatTime(seconds)}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Movimentos</span>
-            <span className="text-sm font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{moves}</span>
-          </div>
-        </div>
-        <button 
-          onClick={() => initializeGame(selectedImage!)}
-          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
-        >
-          <RefreshCw size={20} />
-        </button>
-      </div>
+      <GameHeader 
+        title="Quebra-Cabeça"
+        user={user}
+        stats={[
+          { label: 'Tempo', value: formatTime(seconds) },
+          { label: 'Movimentos', value: moves }
+        ]}
+        onRefresh={() => initializeGame(selectedImage!)}
+        onBack={onBack}
+      />
       
       <div className="flex-1 flex items-center justify-center p-4">
         <div 

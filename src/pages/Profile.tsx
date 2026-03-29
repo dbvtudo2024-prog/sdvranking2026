@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, UserRole, UnitName, Member } from '@/types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '@/constants';
-import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun } from 'lucide-react';
+import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileProps {
@@ -98,10 +98,22 @@ const Profile: React.FC<ProfileProps> = ({
       history: studyScores.slice().reverse()
     };
 
+    const weeklyPoints = scores.filter(s => s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)).reduce((acc, curr) => {
+      return acc + 
+        (Number(curr.punctuality) || 0) + 
+        (Number(curr.uniform) || 0) + 
+        (Number(curr.material) || 0) + 
+        (Number(curr.bible) || 0) + 
+        (Number(curr.voluntariness) || 0) + 
+        (Number(curr.activities) || 0) + 
+        (Number(curr.treasury) || 0);
+    }, 0);
+
     const totalPoints = quizStats.total + memoryStats.total + puzzleStats.total + threeCluesStats.total + specialtyGameStats.total;
 
     return {
       totalPoints,
+      weeklyPoints,
       quiz: quizStats,
       memory: memoryStats,
       puzzle: puzzleStats,
@@ -221,13 +233,25 @@ const Profile: React.FC<ProfileProps> = ({
         </div>
 
         {/* RESUMO DE PONTUAÇÃO GERAL */}
-        <div className="bg-gradient-to-br from-[#0061f2] to-[#0052cc] p-8 rounded-[3rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação Total em Jogos</p>
-            <h3 className="text-4xl font-black tracking-tight">{gameStats.totalPoints} <span className="text-sm opacity-60">pts</span></h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="bg-gradient-to-br from-[#0061f2] to-[#0052cc] p-8 rounded-[3rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação Total em Jogos</p>
+              <h3 className="text-4xl font-black tracking-tight">{gameStats.totalPoints} <span className="text-sm opacity-60">pts</span></h3>
+            </div>
+            <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
+              <Trophy size={32} className="text-yellow-400" />
+            </div>
           </div>
-          <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-            <Trophy size={32} className="text-yellow-400" />
+
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 rounded-[3rem] text-white shadow-2xl shadow-emerald-500/20 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação de Membro (Semanal)</p>
+              <h3 className="text-4xl font-black tracking-tight">{gameStats.weeklyPoints} <span className="text-sm opacity-60">pts</span></h3>
+            </div>
+            <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
+              <Star size={32} className="text-yellow-300" fill="currentColor" />
+            </div>
           </div>
         </div>
 

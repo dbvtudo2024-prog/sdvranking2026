@@ -113,9 +113,15 @@ const Pathfinders: React.FC<PathfindersProps> = ({ members, isDarkMode }) => {
               <div className="min-w-0 flex-1">
                 <h3 className="text-base font-black text-slate-800 dark:text-slate-100 truncate uppercase tracking-tight">{pathfinder.name}</h3>
                 <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">{pathfinder.unit}</p>
-                <div className="flex items-center gap-1.5 mt-1 text-slate-400 dark:text-slate-500">
-                  <Star size={10} className="text-amber-400" />
-                  <span className="text-[9px] font-bold uppercase truncate">{calculateWeeklyTotal(pathfinder) + calculateGamesTotal(pathfinder)} Pontos Totais</span>
+                <div className="flex flex-col gap-0.5 mt-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                    <Star size={10} className="text-amber-400" />
+                    <span className="text-[9px] font-bold uppercase truncate">{calculateWeeklyTotal(pathfinder)} Pontos Semanais</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                    <Gamepad2 size={10} className="text-pink-400" />
+                    <span className="text-[9px] font-bold uppercase truncate">{calculateGamesTotal(pathfinder)} Pontos Jogos</span>
+                  </div>
                 </div>
               </div>
             </div>

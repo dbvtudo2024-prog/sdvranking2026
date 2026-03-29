@@ -168,30 +168,30 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     }, 1200);
   };
 
-  const handleFinish = () => {
-    try {
-      // Find member again to ensure we have latest data
-      const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-      
-      if (memberToUpdate) {
-        const points = score;
-        const newScore: Score = {
-          type: 'game',
-          gameId: 'specialtyGame',
-          date: new Date().toLocaleDateString('pt-BR'),
-          points: points,
-          specialtyGame: points
-        };
+  useEffect(() => {
+    if (gameState === 'result') {
+      try {
+        // Find member again to ensure we have latest data
+        const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
         
-        const currentScores = Array.isArray(memberToUpdate.scores) ? memberToUpdate.scores : [];
-        onUpdateMember({ ...memberToUpdate, scores: [...currentScores, newScore] });
+        if (memberToUpdate) {
+          const points = score;
+          const newScore: Score = {
+            type: 'game',
+            gameId: 'specialtyGame',
+            date: new Date().toLocaleDateString('pt-BR'),
+            points: points,
+            specialtyGame: points
+          };
+          
+          const currentScores = Array.isArray(memberToUpdate.scores) ? memberToUpdate.scores : [];
+          onUpdateMember({ ...memberToUpdate, scores: [...currentScores, newScore] });
+        }
+      } catch (err) {
+        console.error("Erro ao salvar pontuação:", err);
       }
-    } catch (err) {
-      console.error("Erro ao salvar pontuação:", err);
-    } finally {
-      onBack();
     }
-  };
+  }, [gameState, score, members, user.id, user.name, onUpdateMember]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -295,7 +295,9 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
            <p className="text-6xl font-black text-[#0061f2] dark:text-blue-400">{score} <span className="text-xl">pts</span></p>
            <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
         </div>
-        <button onClick={handleFinish} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase shadow-xl">SALVAR E VOLTAR</button>
+        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+          Sua pontuação foi salva automaticamente!
+        </p>
       </div>
     );
   }

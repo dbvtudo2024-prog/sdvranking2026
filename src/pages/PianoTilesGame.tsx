@@ -280,13 +280,6 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
         <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você já completou este desafio esta semana. Volte na próxima segunda!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -455,12 +448,6 @@ const PianoTilesGame: React.FC<PianoTilesGameProps> = ({ user, members, onUpdate
                   className="w-full bg-white text-red-600 py-4 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
                   <RotateCcw size={20} /> TENTAR NOVAMENTE
-                </button>
-                <button 
-                  onClick={() => setGameState('menu')}
-                  className="w-full bg-black/20 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-3"
-                >
-                  <Settings size={20} /> MENU PRINCIPAL
                 </button>
               </div>
             </motion.div>

@@ -156,7 +156,6 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
           <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
         </div>
-        <button onClick={onBack} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -171,7 +170,6 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Concluído</h3>
           <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
         </div>
-        <button onClick={onBack} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -269,12 +267,6 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pontuação Final</p>
                 <p className="text-4xl font-black text-blue-600">{score} PTS</p>
               </div>
-              <button 
-                onClick={onBack}
-                className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                VOLTAR PARA A CENTRAL
-              </button>
             </motion.div>
           )}
         </AnimatePresence>

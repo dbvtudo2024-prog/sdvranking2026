@@ -94,7 +94,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   };
 
   const calculateGrandTotal = (member: Member) => {
-    return calculateWeeklyTotal(member);
+    return calculateWeeklyTotal(member) + calculateGamesTotal(member);
   };
 
   const sortedData = useMemo(() => {
@@ -117,7 +117,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'pianotiles') return data.sort((a, b) => calculateSpecific(b, 'pianoTilesGame') - calculateSpecific(a, 'pianoTilesGame'));
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
-    return data.sort((a, b) => calculateGrandTotal(b) - calculateGrandTotal(a));
+    return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
   }, [members, tab, gameTab]);
 
   const podiumSlots = [sortedData[0] || null, sortedData[1] || null, sortedData[2] || null];
@@ -143,7 +143,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'pianotiles') return calculateSpecific(m, 'pianoTilesGame');
       return calculateGamesTotal(m);
     }
-    return calculateGrandTotal(m);
+    return calculateWeeklyTotal(m);
   };
 
   const TabButton = ({ type, label, icon: Icon }: { type: TabType, label: string, icon: any }) => (
@@ -363,7 +363,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           {[UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA]
             .map(unit => {
               const unitMembers = members.filter(m => m.unit === unit);
-              const total = unitMembers.reduce((acc, m) => acc + calculateGrandTotal(m), 0);
+              const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
               return { unit, total, memberCount: unitMembers.length };
             })
             .sort((a, b) => b.total - a.total)

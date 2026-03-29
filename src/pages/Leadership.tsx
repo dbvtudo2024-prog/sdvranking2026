@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Member, UserRole, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
-import { X, Award, ShieldCheck, Shield, Calendar, Users, Star, Trophy, BookOpen } from 'lucide-react';
+import { X, Award, ShieldCheck, Shield, Calendar, Users, Star, Trophy, BookOpen, Gamepad2 } from 'lucide-react';
 
 interface LeadershipProps {
   members: Member[];
@@ -132,9 +132,15 @@ const Leadership: React.FC<LeadershipProps> = ({ members, isDarkMode }) => {
               <div className="min-w-0 flex-1">
                 <h3 className="text-base font-black text-slate-800 dark:text-slate-100 truncate uppercase tracking-tight">{leader.name}</h3>
                 <p className="text-[10px] font-black text-[#0061f2] uppercase tracking-widest">{leader.counselor || 'Membro Liderança'}</p>
-                <div className="flex items-center gap-1.5 mt-1 text-slate-400 dark:text-slate-500">
-                  <Star size={10} className="text-amber-400" />
-                  <span className="text-[9px] font-bold uppercase truncate">{calculateWeeklyTotal(leader) + calculateGamesTotal(leader)} Pontos Totais</span>
+                <div className="flex flex-col gap-0.5 mt-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                    <Star size={10} className="text-amber-400" />
+                    <span className="text-[9px] font-bold uppercase truncate">{calculateWeeklyTotal(leader)} Pontos Semanais</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                    <Gamepad2 size={10} className="text-pink-400" />
+                    <span className="text-[9px] font-bold uppercase truncate">{calculateGamesTotal(leader)} Pontos Jogos</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { QUIZ_QUESTIONS, UNIT_LOGOS } from '@/constants';
 import { DatabaseService, supabase } from '@/db';
 import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
+import GameHeader from '@/components/GameHeader';
 
 interface Challenge1x1PageProps {
   user: AuthUser;
@@ -35,6 +36,30 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       .sort((a, b) => b.totalPoints - a.totalPoints)
       .slice(0, 10);
   }, [members]);
+
+  useEffect(() => {
+    if (activeChallenge?.status === 'finished' && activeChallenge.winnerId === user.id && myMember) {
+      const alreadySaved = (myMember.scores || []).some(s => 
+        s.challenge1x1 === 10 && s.date === new Date().toLocaleDateString('pt-BR')
+      );
+      
+      if (!alreadySaved) {
+        const points = 10;
+        const newScore = { 
+          type: 'game',
+          gameId: 'challenge1x1',
+          date: new Date().toLocaleDateString('pt-BR'), 
+          challenge1x1: points,
+          points: points
+        };
+        const updated = {
+          ...myMember, 
+          scores: [...(myMember.scores || []), newScore]
+        };
+        onUpdateMember(updated);
+      }
+    }
+  }, [activeChallenge?.status, activeChallenge?.winnerId, user.id, myMember, onUpdateMember]);
 
   useEffect(() => {
     if (!user.id || isMachineMode) return;
@@ -251,76 +276,75 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       };
 
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95 duration-500">
-          <Trophy size={80} className="text-yellow-400 mb-6" />
-          <h2 className="text-3xl font-black text-slate-800 uppercase mb-2">Fim do Duelo!</h2>
-          <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 w-full max-w-sm space-y-4">
-            <div className="flex justify-between items-center px-4">
-              <div className="flex flex-col items-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase">Você</p>
-                <div className="flex gap-0.5 mt-1 mb-2">
-                   {Array.from({length: 5}).map((_, i) => (
-                     <Heart key={i} size={10} className={i < (5 - oppHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
-                   ))}
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+          <GameHeader title="Duelo 1x1" user={user} onBack={onBack} />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in-95 duration-500 overflow-y-auto">
+            <Trophy size={80} className="text-yellow-400 mb-6" />
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase mb-2">Fim do Duelo!</h2>
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-700 w-full max-w-sm space-y-4">
+              <div className="flex justify-between items-center px-4">
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Você</p>
+                  <div className="flex gap-0.5 mt-1 mb-2">
+                     {Array.from({length: 5}).map((_, i) => (
+                       <Heart key={i} size={10} className={i < (5 - oppHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                     ))}
+                  </div>
+                  <p className="text-3xl font-black text-blue-600">{5 - oppHitsDone}</p>
                 </div>
-                <p className="text-3xl font-black text-blue-600">{5 - oppHitsDone}</p>
+                <div className="text-slate-200 font-black text-xl">X</div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">{isMachineMode ? 'Robô' : 'Oponente'}</p>
+                  <div className="flex gap-0.5 mt-1 mb-2">
+                     {Array.from({length: 5}).map((_, i) => (
+                       <Heart key={i} size={10} className={i < (5 - myHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                     ))}
+                  </div>
+                  <p className="text-3xl font-black text-red-600">{5 - myHitsDone}</p>
+                </div>
               </div>
-              <div className="text-slate-200 font-black text-xl">X</div>
-              <div className="flex flex-col items-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase">{isMachineMode ? 'Robô' : 'Oponente'}</p>
-                <div className="flex gap-0.5 mt-1 mb-2">
-                   {Array.from({length: 5}).map((_, i) => (
-                     <Heart key={i} size={10} className={i < (5 - myHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
-                   ))}
-                </div>
-                <p className="text-3xl font-black text-red-600">{5 - myHitsDone}</p>
+              <div className="pt-4 border-t border-slate-50 dark:border-slate-700">
+                <p className="font-black text-slate-800 dark:text-white uppercase tracking-widest text-lg">
+                  {activeChallenge.winnerId === user.id ? 'VOCÊ VENCEU! 🏆' : activeChallenge.winnerId === 'draw' ? 'EMPATE! 🤝' : 'VOCÊ PERDEU! 💀'}
+                </p>
+                {activeChallenge.winnerId === user.id && (
+                  <p className="text-blue-600 font-black text-[10px] uppercase mt-1 tracking-widest">+10 PONTOS DE BÔNUS!</p>
+                )}
               </div>
             </div>
-            <div className="pt-4 border-t border-slate-50">
-              <p className="font-black text-slate-800 uppercase tracking-widest text-lg">
-                {activeChallenge.winnerId === user.id ? 'VOCÊ VENCEU! 🏆' : activeChallenge.winnerId === 'draw' ? 'EMPATE! 🤝' : 'VOCÊ PERDEU! 💀'}
-              </p>
-              {activeChallenge.winnerId === user.id && (
-                <p className="text-blue-600 font-black text-[10px] uppercase mt-1 tracking-widest">+10 PONTOS DE BÔNUS!</p>
-              )}
+            
+            <div className="flex flex-col gap-3 w-full max-w-xs mt-8">
+              <button 
+                onClick={handleRematch}
+                className="w-full bg-yellow-400 text-slate-900 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <RotateCcw size={20} /> REVANCHE
+              </button>
             </div>
-          </div>
-          
-          <div className="flex flex-col gap-3 w-full max-w-xs mt-8">
-            <button 
-              onClick={handleRematch}
-              className="w-full bg-yellow-400 text-slate-900 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              <RotateCcw size={20} /> REVANCHE
-            </button>
-            <button 
-              onClick={() => { 
-                if (myMember && activeChallenge.winnerId === user.id) {
-                   const points = 10;
-                   const updated = {...myMember, scores: [...myMember.scores, { date: new Date().toLocaleDateString('pt-BR'), challenge1x1: points } as any]};
-                   onUpdateMember(updated);
-                }
-                onBack();
-              }} 
-              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-            >
-              VOLTAR AO MENU
-            </button>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-        <div className="p-2 bg-white border-b border-slate-100 text-slate-800 flex justify-between items-center shadow-sm shrink-0">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader 
+          title="Duelo 1x1"
+          user={user}
+          stats={[
+            { label: 'Pergunta', value: `${activeChallenge.currentQuestion + 1}/10` }
+          ]}
+          onBack={onBack}
+        />
+        
+        <div className="p-2 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 text-slate-800 flex justify-between items-center shadow-sm shrink-0">
           <div className="flex flex-col items-center flex-1">
              <span className="text-[7px] font-black uppercase text-slate-400 mb-0.5">VOCÊ</span>
              {renderHearts(oppHitsDone)}
           </div>
           
-          <div className="flex flex-col items-center px-3 border-x border-slate-100">
-             <span className="text-[10px] font-black text-slate-800">{activeChallenge.currentQuestion + 1}/10</span>
+          <div className="flex flex-col items-center px-3 border-x border-slate-100 dark:border-slate-700">
+             <span className="text-[10px] font-black text-slate-800 dark:text-white">PLACAR</span>
           </div>
 
           <div className="flex flex-col items-center flex-1">
@@ -354,7 +378,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           </div>
         </div>
 
-        <div className="p-6 bg-white border-t border-slate-100 text-center">
+        <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 text-center">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
              <Zap size={14} className="text-yellow-500" /> {isMachineMode ? 'O ROBÔ ESTÁ ANALISANDO...' : 'ACERTE PARA TIRAR VIDA DO ADVERSÁRIO'}
            </p>
@@ -364,22 +388,32 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in relative">
-      <GameInstructions
-        isOpen={showInstructions}
-        onStart={() => setShowInstructions(false)}
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+      <GameHeader 
         title="Duelo 1x1"
-        instructions={[
-          "Cada duelista começa com 5 corações (vidas).",
-          "Sempre que você acertar uma pergunta, retira 1 vida do oponente.",
-          "Ganha quem zerar a vida do outro.",
-          "O vencedor recebe +10 pontos extras no ranking.",
-          "Responda o mais rápido possível!"
-        ]}
-        icon={<Swords size={32} className="text-white" />}
+        user={user}
+        stats={activeChallenge ? [
+          { label: 'Status', value: activeChallenge.status === 'playing' ? 'Em Combate' : 'Aguardando' }
+        ] : []}
+        onBack={onBack}
       />
+      
+      <div className="flex-1 overflow-y-auto p-6 pb-24">
+        <GameInstructions
+          isOpen={showInstructions}
+          onStart={() => setShowInstructions(false)}
+          title="Duelo 1x1"
+          instructions={[
+            "Cada duelista começa com 5 corações (vidas).",
+            "Sempre que você acertar uma pergunta, retira 1 vida do oponente.",
+            "Ganha quem zerar a vida do outro.",
+            "O vencedor recebe +10 pontos extras no ranking.",
+            "Responda o mais rápido possível!"
+          ]}
+          icon={<Swords size={32} className="text-white" />}
+        />
 
-      <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-24">
+        <div className="space-y-6">
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
            <Cpu size={120} className="absolute -right-10 -bottom-10 text-white/5 group-hover:scale-110 transition-transform duration-700" />
            <div className="relative z-10">
@@ -478,6 +512,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

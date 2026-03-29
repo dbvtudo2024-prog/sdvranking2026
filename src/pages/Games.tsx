@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music } from 'lucide-react';
+import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music, ArrowLeft } from 'lucide-react';
 import { AuthUser, Member, UserRole, Score } from '@/types';
 import QuizSelection from '@/pages/QuizSelection';
 import MemoryGame from '@/pages/MemoryGame';
@@ -35,6 +35,7 @@ interface GamesProps {
   natureIdOverride: boolean;
   firstAidOverride: boolean;
   isDarkMode?: boolean;
+  onGameActiveChange?: (active: boolean) => void;
 }
 
 const Games: React.FC<GamesProps> = ({ 
@@ -52,9 +53,15 @@ const Games: React.FC<GamesProps> = ({
   scrambledVerseOverride,
   natureIdOverride,
   firstAidOverride,
-  isDarkMode
+  isDarkMode,
+  onGameActiveChange
 }) => {
   const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong' | 'ballsort' | 'brickbreaker'>('hub');
+
+  React.useEffect(() => {
+    onGameActiveChange?.(activeGame !== 'hub');
+    return () => onGameActiveChange?.(false);
+  }, [activeGame, onGameActiveChange]);
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
   const isMaster = user.email === 'ronaldosonic@gmail.com';
@@ -64,20 +71,30 @@ const Games: React.FC<GamesProps> = ({
   }, [members, user.id, user.name]);
 
   const isGameDay = useMemo(() => {
-    const day = new Date().getDay();
-    // Aberto de Domingo (0) até Quinta (4).
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    
+    // Aberto de Domingo (0) a partir das 12h até Quinta (4).
     // Bloqueado na Sexta (5) e Sábado (6).
-    return day >= 0 && day <= 4;
+    if (day === 0) return hour >= 12;
+    return day >= 1 && day <= 4;
   }, []);
 
   const cycleStart = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // O ciclo começa no Domingo (0).
-    const diff = day;
+    const hour = now.getHours();
+    
     const start = new Date(now);
-    start.setDate(now.getDate() - diff);
-    start.setHours(0, 0, 0, 0);
+    // Se for domingo e ainda não for meio-dia, o ciclo começou no domingo passado às 12h.
+    // Caso contrário, o ciclo começou no domingo mais recente às 12h.
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
     return start;
   }, []);
 
@@ -197,9 +214,13 @@ const Games: React.FC<GamesProps> = ({
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
-    const day = new Date().getDay();
-    if (day === 5) return "Abre em 2 dias (Domingo)";
-    if (day === 6) return "Abre Amanhã (Domingo)";
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+
+    if (day === 0 && hour < 12) return "Abre hoje ao meio-dia";
+    if (day === 5) return "Abre Domingo ao meio-dia";
+    if (day === 6) return "Abre Amanhã ao meio-dia";
     return "Bloqueado";
   };
 
@@ -251,18 +272,6 @@ const Games: React.FC<GamesProps> = ({
 
     return (
       <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">
-        <div className="h-16 shrink-0 bg-[#0061f2] text-white flex items-center justify-between px-6 shadow-lg z-10">
-          <div className="flex items-center gap-3">
-            <Gamepad2 size={24} className="text-yellow-400" />
-            <h2 className="font-black uppercase tracking-tight text-sm">{getGameName(activeGame)}</h2>
-          </div>
-          <button 
-            onClick={() => setActiveGame('hub')}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90 flex items-center justify-center"
-          >
-            <X size={20} strokeWidth={3} />
-          </button>
-        </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar flex justify-center bg-slate-100 dark:bg-slate-950">
           <div className="w-full max-w-4xl h-full bg-white dark:bg-[#0f172a] shadow-2xl relative">
             {gameComponent}

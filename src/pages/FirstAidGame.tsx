@@ -137,7 +137,6 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
           <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
         </div>
-        <button onClick={onBack} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
       </div>
     );
   }
@@ -152,13 +151,6 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
         <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
           Você já completou este desafio esta semana. Volte na próxima segunda!
         </p>
-        <button 
-          onClick={onBack}
-          className="w-full max-w-xs py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Home size={20} />
-          Voltar ao Início
-        </button>
       </div>
     );
   }
@@ -272,12 +264,6 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pontuação Final</p>
                 <p className="text-4xl font-black text-red-600">{score} PTS</p>
               </div>
-              <button 
-                onClick={onBack}
-                className="w-full bg-red-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                VOLTAR PARA A CENTRAL
-              </button>
             </motion.div>
           )}
         </AnimatePresence>

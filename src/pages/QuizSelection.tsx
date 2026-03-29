@@ -145,6 +145,10 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   return (
     <div className="flex flex-col items-center h-full animate-in fade-in duration-500 max-w-sm mx-auto px-2 pt-4">
+      <div className="w-full flex items-center mb-6">
+        <h2 className="text-[#001f3f] text-lg font-black tracking-widest uppercase">Categorias do Quiz</h2>
+      </div>
+
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -171,8 +175,6 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
           </p>
         </div>
       </div>
-
-      <h2 className="text-[#001f3f] text-lg font-black mb-6 tracking-widest uppercase">Categorias do Quiz</h2>
 
       <div className="grid grid-cols-1 gap-4 w-full">
         <CategoryButton category="Desbravadores" played={hasPlayedThisWeek('Desbravadores')} />

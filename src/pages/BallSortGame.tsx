@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, RotateCcw, Trophy, Info, CheckCircle2, Home } from 'lucide-react';
+import { Undo2, RotateCcw, Trophy, Info, CheckCircle2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthUser, Member, UserRole } from '@/types';
+import GameHeader from '@/components/GameHeader';
 
 interface BallSortGameProps {
   onBack: () => void;
@@ -29,6 +30,7 @@ const LEVELS_TO_COMPLETE = 3;
 
 const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, override }) => {
   const [tubes, setTubes] = useState<string[][]>([]);
+  const [history, setHistory] = useState<string[][][]>([]);
   const [selectedTubeIndex, setSelectedTubeIndex] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   const [isWon, setIsWon] = useState(false);
@@ -75,7 +77,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
 
   const initGame = useCallback((lvl: number) => {
     const numColors = Math.min(lvl + 2, COLORS.length);
-    const numEmptyTubes = 2;
+    const numEmptyTubes = 1;
     const totalTubes = numColors + numEmptyTubes;
     
     let allBalls: string[] = [];
@@ -100,6 +102,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
     }
 
     setTubes(newTubes);
+    setHistory([]);
     setSelectedTubeIndex(null);
     setMoves(0);
     setIsWon(false);
@@ -132,9 +135,11 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
                      (targetTube.length === 0 || targetTube[targetTube.length - 1] === ballToMove);
 
       if (canMove) {
-        const newTubes = [...tubes];
+        const newTubes = tubes.map(t => [...t]);
         newTubes[selectedTubeIndex] = sourceTube.slice(0, -1);
         newTubes[index] = [...targetTube, ballToMove];
+        
+        setHistory(prev => [...prev, tubes.map(t => [...t])]);
         setTubes(newTubes);
         setSelectedTubeIndex(null);
         setMoves(m => m + 1);
@@ -143,6 +148,15 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
         setSelectedTubeIndex(index);
       }
     }
+  };
+
+  const undo = () => {
+    if (history.length === 0 || isWon || isFinished) return;
+    const previousState = history[history.length - 1];
+    setTubes(previousState);
+    setHistory(prev => prev.slice(0, -1));
+    setMoves(m => m + 1);
+    setSelectedTubeIndex(null);
   };
 
   const checkWin = (currentTubes: string[][]) => {
@@ -185,78 +199,97 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
 
   if (hasPlayedThisWeek) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle2 size={48} className="text-green-600 dark:text-green-400" />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Organizador de Cores" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 size={48} className="text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase mb-2">Missão Cumprida!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+            Você já completou este desafio esta semana. Volte na próxima segunda!
+          </p>
         </div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase mb-2">Missão Cumprida!</h2>
-        <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Você já completou este desafio esta semana. Volte na próxima segunda!
-        </p>
       </div>
     );
   }
 
   if (isFinished) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50 dark:bg-[#0f172a]">
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
-        >
-          <Trophy size={48} className="text-white" />
-        </motion.div>
-        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase mb-2">Parabéns!</h2>
-        <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Você completou todos os níveis e ganhou 50 pontos!
-        </p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Organizador de Cores" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
+          >
+            <Trophy size={48} className="text-white" />
+          </motion.div>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase mb-2">Parabéns!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+            Você completou todos os níveis e ganhou 50 pontos!
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] p-4">
-      <div className="flex items-center justify-end mb-6">
-        <div className="flex gap-2">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+      <GameHeader 
+        title="Organizador de Cores"
+        user={user}
+        stats={[
+          { label: 'Nível', value: `${level} / ${LEVELS_TO_COMPLETE}` },
+          { label: 'Movimentos', value: moves }
+        ]}
+        onRefresh={() => initGame(level)}
+        onBack={onBack}
+      />
+      
+      <div className="flex-1 flex flex-col p-4 overflow-y-auto">
+        <div className="flex justify-end gap-2 mb-4">
           <button 
-            onClick={() => initGame(level)}
-            className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all"
+            onClick={undo}
+            disabled={history.length === 0}
+            className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 active:scale-90 transition-all disabled:opacity-30 disabled:grayscale"
+            title="Desfazer"
           >
-            <RotateCcw size={20} className="text-blue-600 dark:text-blue-400" />
+            <Undo2 size={20} className="text-slate-600 dark:text-slate-400" />
           </button>
         </div>
-      </div>
 
-      <div className="flex-1 flex flex-col justify-center items-center gap-6 content-center">
+      <div className="flex-1 flex flex-nowrap justify-start sm:justify-center items-center gap-6 sm:gap-10 content-center max-w-full mx-auto px-4 py-12 overflow-x-auto custom-scrollbar">
         {tubes.map((tube, idx) => (
           <div 
             key={idx}
             onClick={() => handleTubeClick(idx)}
             className={`
-              relative w-14 h-40 rounded-b-3xl border-4 cursor-pointer transition-all flex flex-col-reverse items-center p-1
+              relative w-16 sm:w-20 h-44 sm:h-56 rounded-b-[2rem] border-4 cursor-pointer transition-all flex flex-col-reverse items-center p-1.5
               ${selectedTubeIndex === idx 
-                ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/20 scale-105 shadow-lg' 
-                : 'border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50'}
+                ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/20 scale-105 shadow-xl -translate-y-4' 
+                : 'border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 hover:border-slate-400'}
             `}
           >
             {tube.map((color, bIdx) => (
               <motion.div
                 key={bIdx}
-                layoutId={`ball-${idx}-${bIdx}`}
+                layout
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="w-10 h-10 rounded-full mb-1 shadow-inner border-2 border-black/10"
+                className="w-12 sm:w-14 h-12 sm:h-14 rounded-full mb-1 shadow-inner border-2 border-black/10"
                 style={{ backgroundColor: color }}
               />
             ))}
             
             {/* Selected ball preview floating above */}
-            {selectedTubeIndex === idx && (
+            {selectedTubeIndex === idx && tube.length > 0 && (
               <motion.div 
-                initial={{ y: 0 }}
-                animate={{ y: -50 }}
-                className="absolute top-0 w-10 h-10 rounded-full shadow-lg border-2 border-black/20"
+                layoutId={`selected-ball-${idx}`}
+                initial={{ y: 0, opacity: 0 }}
+                animate={{ y: -70, opacity: 1 }}
+                className="absolute top-0 w-12 sm:w-14 h-12 sm:h-14 rounded-full shadow-2xl border-2 border-black/20 z-10"
                 style={{ backgroundColor: tube[tube.length - 1] }}
               />
             )}
@@ -269,6 +302,7 @@ const BallSortGame: React.FC<BallSortGameProps> = ({ onBack, isDarkMode, user, m
         <p className="text-xs font-medium text-blue-800 dark:text-blue-300 leading-relaxed">
           Organize todas as bolas da mesma cor no mesmo tubo. Toque em um tubo para selecionar a bola do topo e em outro para movê-la.
         </p>
+      </div>
       </div>
 
       <AnimatePresence>
