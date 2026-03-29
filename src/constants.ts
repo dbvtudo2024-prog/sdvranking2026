@@ -15,12 +15,12 @@ export const PATHFINDER_CLASSES = [
 ];
 
 export const LEADERSHIP_CLASSES = [
-  'Classes Agrupadas', 'Líder', 'Líder Master', 'Líder Master Avançado'
+  'Sem classe', 'Classes Agrupadas', 'Líder', 'Líder Master', 'Líder Master Avançado'
 ];
 
 export const LEADERSHIP_ROLES = [
   'Diretor (a)', 'Diretor (a) Associado (a)', 'Secretário (a)', 'Tesoureiro (a)', 
-  'Capelão (ã)', 'Instrutor (a)', 'Conselheiro (a)', 'Conselheiro (a) Associado (a)', 'Apoio'
+  'Capelão (ã)', 'Instrutor (a)', 'Conselheiro (a)', 'Conselheiro (a) Associado (a)', 'Ancião', 'Apoio', 'Pastor'
 ];
 
 export const PATHFINDER_ROLES = [
