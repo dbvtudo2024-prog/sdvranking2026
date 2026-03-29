@@ -22,6 +22,7 @@ import AdminPuzzleEditor from '@/pages/AdminPuzzleEditor';
 import AdminWhoAmIEditor from '@/pages/AdminWhoAmIEditor';
 import AdminScrambledVerseEditor from '@/pages/AdminScrambledVerseEditor';
 import AdminPianoEditor from '@/pages/AdminPianoEditor';
+import Birthdays, { BirthdaysRef } from '@/pages/Birthdays';
 import SpecialtyStudyArea, { SpecialtyStudyHandle } from '@/pages/SpecialtyStudyArea';
 import AdminManagement from '@/pages/AdminManagement';
 import Games from '@/pages/Games';
@@ -46,11 +47,12 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_who_am_i' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'admin_piano'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_who_am_i' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'admin_piano' | 'birthdays'>('home');
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
+  const birthdaysRef = useRef<BirthdaysRef>(null);
   
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeSpecialtyName, setActiveSpecialtyName] = useState<string | null>(null);
@@ -307,6 +309,7 @@ const App: React.FC = () => {
       case 'ranking': return 'Ranking Geral';
       case 'leadership': return 'Corpo Diretivo';
       case 'pathfinders': return 'Desbravadores';
+      case 'birthdays': return 'Aniversariantes';
       case 'profile': return 'Meu Perfil';
       case 'games': return 'Central de Jogos';
       case 'chat': return 'Chat do Clube';
@@ -338,6 +341,10 @@ const App: React.FC = () => {
     }
     else if (currentPage === 'bible_reading') setCurrentPage('bible');
     else if (currentPage === 'devotional') setCurrentPage('bible');
+    else if (currentPage === 'birthdays') {
+      const handled = birthdaysRef.current?.goBack();
+      if (!handled) setCurrentPage('home');
+    }
     else if (currentPage === 'admin_management') setCurrentPage('profile');
     else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse'].includes(currentPage)) setCurrentPage('admin_management');
     else if (currentPage !== 'home') setCurrentPage('home');
@@ -364,8 +371,9 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
-      case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} isDarkMode={isDarkMode} />;
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} />;
+      case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
+      case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
@@ -428,7 +436,7 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 
-  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'bible_reading', 'bible', 'devotional'].includes(currentPage);
+  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'bible_reading', 'bible', 'devotional', 'birthdays'].includes(currentPage);
 
   return (
     <div className={`flex flex-col h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
