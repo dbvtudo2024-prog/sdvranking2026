@@ -118,9 +118,10 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
           {view === 'list' && (
             <button 
               onClick={() => setView('calendar')}
-              className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-md text-[#0061f2] active:scale-90 transition-all border border-slate-100 dark:border-slate-700"
+              className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-md text-[#0061f2] active:scale-90 transition-all border border-slate-100 dark:border-slate-700 flex items-center gap-2"
             >
-              <Grid size={20} />
+              <ChevronLeft size={20} />
+              <span className="text-xs font-black uppercase">Voltar</span>
             </button>
           )}
         </div>

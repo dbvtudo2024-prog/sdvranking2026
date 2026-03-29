@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Member, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
@@ -97,7 +97,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
     return calculateWeeklyTotal(member);
   };
 
-  const getSortedData = () => {
+  const sortedData = useMemo(() => {
     const data = Array.isArray(members) ? [...members] : [];
     if (tab === 'games') {
       if (gameTab === 'quiz') return data.sort((a, b) => calculateSpecific(b, 'quiz') - calculateSpecific(a, 'quiz'));
@@ -118,9 +118,8 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
     return data.sort((a, b) => calculateGrandTotal(b) - calculateGrandTotal(a));
-  };
+  }, [members, tab, gameTab]);
 
-  const sortedData = getSortedData();
   const podiumSlots = [sortedData[0] || null, sortedData[1] || null, sortedData[2] || null];
   const remaining = sortedData.slice(3);
 

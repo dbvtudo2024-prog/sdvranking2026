@@ -49,6 +49,23 @@ export const DatabaseService = {
     }
   },
 
+  // Escuta mensagens filtradas por unidade ou todas
+  subscribeMessages(unit: string | null, callback: (msg: ChatMessage) => void) {
+    const channelId = `chat_${unit || 'all'}_${Math.random().toString(36).substring(7)}`;
+    const filter = unit ? { table: 'messages', filter: `unit=eq.${unit}` } : { table: 'messages' };
+    
+    return supabase
+      .channel(channelId)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        ...filter
+      }, payload => {
+        callback(payload.new as ChatMessage);
+      })
+      .subscribe();
+  },
+
   // Escuta TODAS as mensagens e deixa o App filtrar
   subscribeAllMessages(callback: (msg: ChatMessage) => void, onStatus?: (status: string) => void) {
     const channelId = `chat_${Math.random().toString(36).substring(7)}`;
@@ -68,6 +85,55 @@ export const DatabaseService = {
       });
       
     return channel;
+  },
+
+  // --- REALTIME CONSOLIDADO ---
+  // Reduz a carga no banco usando um único canal para múltiplas tabelas
+  subscribeGlobalData(callbacks: {
+    onMembers?: (members: Member[]) => void,
+    onAnnouncements?: (announcements: Announcement[]) => void,
+    onCounselors?: (counselors: CounselorDB[]) => void,
+    onGameConfigs?: (config: GameConfig) => void,
+    onChallenges?: (challenge: Challenge1x1) => void
+  }) {
+    const channelId = `global_updates_${Math.random().toString(36).substring(7)}`;
+    const channel = supabase.channel(channelId);
+
+    if (callbacks.onMembers) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, async () => {
+        const members = await this.getMembers();
+        callbacks.onMembers!(members);
+      });
+    }
+
+    if (callbacks.onAnnouncements) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async () => {
+        const announcements = await this.getAnnouncements();
+        callbacks.onAnnouncements!(announcements);
+      });
+    }
+
+    if (callbacks.onCounselors) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, async () => {
+        const counselors = await this.getCounselors();
+        callbacks.onCounselors!(counselors);
+      });
+    }
+
+    if (callbacks.onGameConfigs) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, async () => {
+        const config = await this.getGameConfigs();
+        callbacks.onGameConfigs!(config);
+      });
+    }
+
+    if (callbacks.onChallenges) {
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'challenges' }, payload => {
+        callbacks.onChallenges!(payload.new as Challenge1x1);
+      });
+    }
+
+    return channel.subscribe();
   },
 
   // --- MEMBROS ---
@@ -145,6 +211,27 @@ export const DatabaseService = {
     const { error } = await supabase.from('members').update(payload).eq('id', id);
     if (error) {
       console.error("Erro ao atualizar membro no Supabase:", error);
+      throw error;
+    }
+  },
+
+  async updateMembers(members: Member[]) {
+    const payloads = members.map(m => ({
+      id: m.id,
+      name: m.name,
+      role: m.role,
+      age: m.age,
+      className: m.className,
+      joinedAt: m.joinedAt,
+      birthday: m.birthday,
+      counselor: m.counselor,
+      unit: m.unit,
+      scores: m.scores,
+      photoUrl: m.photoUrl
+    }));
+    const { error } = await supabase.from('members').upsert(payloads);
+    if (error) {
+      console.error("Erro ao atualizar múltiplos membros:", error);
       throw error;
     }
   },

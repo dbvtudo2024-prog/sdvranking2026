@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Member, UserRole, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { X, Award, ShieldCheck, Shield, Calendar, Users, Star, Trophy, BookOpen } from 'lucide-react';
@@ -99,17 +99,19 @@ const Leadership: React.FC<LeadershipProps> = ({ members, isDarkMode }) => {
     return 0;
   };
 
-  const leaders = (members || [])
-    .filter(m => {
-      const role = normalize(String(m.role || ''));
-      const unit = normalize(String(m.unit || ''));
-      const counselor = normalize(String(m.counselor || ''));
-      const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
-      const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
-      const hasKeywords = role.includes('diret') || counselor.includes('diret') || counselor.includes('secret') || counselor.includes('tesour') || counselor.includes('capel');
-      return isUnitLider || isRoleLider || hasKeywords;
-    })
-    .sort((a, b) => getPriority(b.counselor) - getPriority(a.counselor));
+  const leaders = useMemo(() => {
+    return (members || [])
+      .filter(m => {
+        const role = normalize(String(m.role || ''));
+        const unit = normalize(String(m.unit || ''));
+        const counselor = normalize(String(m.counselor || ''));
+        const isUnitLider = m.unit === UnitName.LIDERANCA || unit.includes('lideranca');
+        const isRoleLider = m.role === UserRole.LEADERSHIP || role.includes('lider');
+        const hasKeywords = role.includes('diret') || counselor.includes('diret') || counselor.includes('secret') || counselor.includes('tesour') || counselor.includes('capel');
+        return isUnitLider || isRoleLider || hasKeywords;
+      })
+      .sort((a, b) => getPriority(b.counselor) - getPriority(a.counselor));
+  }, [members]);
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto">

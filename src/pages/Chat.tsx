@@ -38,35 +38,33 @@ const Chat: React.FC<ChatProps> = ({ user, isDarkMode }) => {
         setLoading(false);
       });
 
-    // Fix: Using subscribeAllMessages instead of subscribeMessages and filtering by activeTab
-    const sub = DatabaseService.subscribeAllMessages((newMsg) => {
+    // Fix: Using subscribeMessages with unit filter to reduce database load
+    const sub = DatabaseService.subscribeMessages(activeTab, (newMsg) => {
       console.log("Chat received new message:", newMsg);
-      if (newMsg.unit === activeTab) {
-        setMessages(prev => {
-          // Check if message already exists by ID
-          if (newMsg.id && prev.some(m => m.id === newMsg.id)) return prev;
-          
-          // Try to find a matching optimistic message to replace
-          const optimisticIdx = prev.findIndex(m => 
-            String(m.id).startsWith('temp-') && 
-            m.text === newMsg.text && 
-            String(m.sender_id) === String(newMsg.sender_id)
-          );
+      setMessages(prev => {
+        // Check if message already exists by ID
+        if (newMsg.id && prev.some(m => m.id === newMsg.id)) return prev;
+        
+        // Try to find a matching optimistic message to replace
+        const optimisticIdx = prev.findIndex(m => 
+          String(m.id).startsWith('temp-') && 
+          m.text === newMsg.text && 
+          String(m.sender_id) === String(newMsg.sender_id)
+        );
 
-          let newMessages;
-          if (optimisticIdx !== -1) {
-            newMessages = [...prev];
-            newMessages[optimisticIdx] = newMsg;
-          } else {
-            newMessages = [...prev, newMsg];
-          }
+        let newMessages;
+        if (optimisticIdx !== -1) {
+          newMessages = [...prev];
+          newMessages[optimisticIdx] = newMsg;
+        } else {
+          newMessages = [...prev, newMsg];
+        }
 
-          // Always sort after adding/updating to ensure order
-          return newMessages.sort((a, b) => 
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        });
-      }
+        // Always sort after adding/updating to ensure order
+        return newMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
     });
 
     // Typing indicator subscription

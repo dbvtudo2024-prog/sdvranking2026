@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Member, UserRole, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { X, Award, Shield, Calendar, Users, Star, Trophy, Gamepad2, BookOpen } from 'lucide-react';
@@ -12,9 +12,11 @@ interface PathfindersProps {
 const Pathfinders: React.FC<PathfindersProps> = ({ members, isDarkMode }) => {
   const [selectedPathfinder, setSelectedPathfinder] = useState<Member | null>(null);
 
-  const pathfinders = (members || [])
-    .filter(m => m.role === UserRole.PATHFINDER)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const pathfinders = useMemo(() => {
+    return (members || [])
+      .filter(m => m.role === UserRole.PATHFINDER)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [members]);
 
   const calculateWeeklyTotal = (member: Member) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;

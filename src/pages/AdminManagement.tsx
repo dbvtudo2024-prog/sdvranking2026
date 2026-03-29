@@ -287,11 +287,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       });
 
       if (fixedCount > 0) {
-        for (const m of updatedMembers) {
+        const toUpdate = updatedMembers.filter(m => {
           const original = members.find(orig => orig.id === m.id);
-          if (JSON.stringify(original?.scores) !== JSON.stringify(m.scores)) {
-             await DatabaseService.updateMember(m);
-          }
+          return JSON.stringify(original?.scores) !== JSON.stringify(m.scores);
+        });
+
+        if (toUpdate.length > 0) {
+          await DatabaseService.updateMembers(toUpdate);
         }
         alert(`✅ SUCESSO: O status de jogos de ${fixedCount} desbravadores foi corrigido!`);
       } else {

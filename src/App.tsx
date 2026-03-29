@@ -127,75 +127,63 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const announcementsSub = DatabaseService.subscribeAnnouncements(setAnnouncements);
-    const counselorsSub = DatabaseService.subscribeCounselors(setCounselorsData);
-    const gameConfigsSub = DatabaseService.subscribeGameConfigs((config: GameConfig) => {
-      setQuizOverride(config.quiz_override);
-      setMemoryOverride(config.memory_override);
-      setSpecialtyOverride(config.specialty_override);
-      setThreeCluesOverride(config.three_clues_override);
-      setPuzzleOverride(config.puzzle_override);
-      setKnotsOverride(config.knots_override);
-      setWhoAmIOverride(config.who_am_i_override);
-      setSpecialtyTrailOverride(config.specialty_trail_override);
-      setScrambledVerseOverride(config.scrambled_verse_override);
-      setNatureIdOverride(config.nature_id_override);
-      setFirstAidOverride(config.first_aid_override);
-    });
-
-    return () => {
-      announcementsSub.unsubscribe();
-      counselorsSub.unsubscribe();
-      gameConfigsSub.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
     if (!user) {
       setMembers([]);
       return;
     }
-    const membersSub = DatabaseService.subscribeMembers(setMembers);
-    return () => {
-      membersSub.unsubscribe();
-    };
-  }, [user?.id]);
 
-  // LÓGICA DE NOTIFICAÇÃO DE DESAFIOS
-  useEffect(() => {
-    if (!user) return;
-
-    const subChallenges = DatabaseService.subscribeChallenges((challenge) => {
-      console.log("Desafio recebido no Realtime:", challenge);
-      if (String(challenge.challengedId) === String(user.id) && challenge.status === 'pending') {
-        console.log("Desafio é para mim!");
-        setChallengeNotification(challenge);
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    const globalSub = DatabaseService.subscribeGlobalData({
+      onAnnouncements: setAnnouncements,
+      onCounselors: setCounselorsData,
+      onGameConfigs: (config: GameConfig) => {
+        setQuizOverride(config.quiz_override);
+        setMemoryOverride(config.memory_override);
+        setSpecialtyOverride(config.specialty_override);
+        setThreeCluesOverride(config.three_clues_override);
+        setPuzzleOverride(config.puzzle_override);
+        setKnotsOverride(config.knots_override);
+        setWhoAmIOverride(config.who_am_i_override);
+        setSpecialtyTrailOverride(config.specialty_trail_override);
+        setScrambledVerseOverride(config.scrambled_verse_override);
+        setNatureIdOverride(config.nature_id_override);
+        setFirstAidOverride(config.first_aid_override);
+      },
+      onMembers: setMembers,
+      onChallenges: (challenge) => {
+        if (String(challenge.challengedId) === String(user.id) && challenge.status === 'pending') {
+          setChallengeNotification(challenge);
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
       }
     });
 
     return () => {
-      subChallenges.unsubscribe();
+      globalSub.unsubscribe();
     };
   }, [user?.id]);
+
+  const currentPageRef = useRef(currentPage);
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   // LÓGICA DE NOTIFICAÇÃO SUPER RESILIENTE
   useEffect(() => {
     if (!user) return;
 
-    const subMessages = DatabaseService.subscribeAllMessages((msg) => {
+    const handleNewMessage = (msg: ChatMessage) => {
       console.log("Chegou mensagem no Realtime:", msg);
       
       // Se eu sou o autor, ignora
       if (String(msg.sender_id) === String(user.id)) return;
 
       // Se estou na tela de chat, não mostra banner, apenas zera
-      if (currentPage === 'chat') {
+      if (currentPageRef.current === 'chat') {
         setUnreadCount(0);
         return;
       }
 
-      // Verifica se a mensagem é relevante para mim
+      // Verifica se a mensagem é relevante para mim (já filtrado pelo Supabase, mas por segurança)
       const isRelevant = msg.unit === 'Geral' || msg.unit === user.unit || !user.unit;
 
       if (isRelevant) {
@@ -208,12 +196,21 @@ const App: React.FC = () => {
         // Remove o banner após 10 segundos
         setTimeout(() => setLastNotification(null), 10000);
       }
-    });
+    };
+
+    // Subscreve apenas ao 'Geral' e à unidade do usuário (se houver)
+    const subGeral = DatabaseService.subscribeMessages('Geral', handleNewMessage);
+    let subUnit: any = null;
+    
+    if (user.unit && user.unit !== 'Geral') {
+      subUnit = DatabaseService.subscribeMessages(user.unit, handleNewMessage);
+    }
 
     return () => {
-      subMessages.unsubscribe();
+      subGeral.unsubscribe();
+      if (subUnit) subUnit.unsubscribe();
     };
-  }, [user?.id, user?.unit, currentPage]);
+  }, [user?.id, user?.unit]); // Removido currentPage para evitar churn de conexões
 
   useEffect(() => {
     if (currentPage === 'chat') {
@@ -297,7 +294,11 @@ const App: React.FC = () => {
       return { ...m, scores: newScores };
     });
     setMembers(updatedMembers);
-    for (const m of updatedMembers) await DatabaseService.updateMember(m);
+    try {
+      await DatabaseService.updateMembers(updatedMembers);
+    } catch (e) {
+      console.error("Erro ao resetar ranking:", e);
+    }
   }, [members]);
 
   const getPageTitle = () => {
