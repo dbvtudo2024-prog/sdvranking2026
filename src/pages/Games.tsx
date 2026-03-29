@@ -35,7 +35,6 @@ interface GamesProps {
   natureIdOverride: boolean;
   firstAidOverride: boolean;
   isDarkMode?: boolean;
-  onGameActiveChange?: (active: boolean) => void;
 }
 
 const Games: React.FC<GamesProps> = ({ 
@@ -53,15 +52,9 @@ const Games: React.FC<GamesProps> = ({
   scrambledVerseOverride,
   natureIdOverride,
   firstAidOverride,
-  isDarkMode,
-  onGameActiveChange
+  isDarkMode
 }) => {
   const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong' | 'ballsort' | 'brickbreaker'>('hub');
-
-  React.useEffect(() => {
-    onGameActiveChange?.(activeGame !== 'hub');
-    return () => onGameActiveChange?.(false);
-  }, [activeGame, onGameActiveChange]);
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
   const isMaster = user.email === 'ronaldosonic@gmail.com';
@@ -258,6 +251,18 @@ const Games: React.FC<GamesProps> = ({
 
     return (
       <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">
+        <div className="h-16 shrink-0 bg-[#0061f2] text-white flex items-center justify-between px-6 shadow-lg z-10">
+          <div className="flex items-center gap-3">
+            <Gamepad2 size={24} className="text-yellow-400" />
+            <h2 className="font-black uppercase tracking-tight text-sm">{getGameName(activeGame)}</h2>
+          </div>
+          <button 
+            onClick={() => setActiveGame('hub')}
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90 flex items-center justify-center"
+          >
+            <X size={20} strokeWidth={3} />
+          </button>
+        </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar flex justify-center bg-slate-100 dark:bg-slate-950">
           <div className="w-full max-w-4xl h-full bg-white dark:bg-[#0f172a] shadow-2xl relative">
             {gameComponent}

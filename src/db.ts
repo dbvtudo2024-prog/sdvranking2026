@@ -369,18 +369,6 @@ export const DatabaseService = {
     await supabase.from('announcements').delete().eq('id', id);
   },
 
-  async seedAnnouncements(announcements: Omit<Announcement, 'id'>[]) {
-    for (const ann of announcements) {
-      const { data } = await supabase.from('announcements').select('id').eq('title', ann.title).eq('date', ann.date);
-      if (!data || data.length === 0) {
-        await this.addAnnouncement({
-          ...ann,
-          id: Math.random().toString(36).substr(2, 9)
-        } as Announcement);
-      }
-    }
-  },
-
   // --- ESPECIALIDADES ---
   async getSpecialties(): Promise<SpecialtyDBV[]> {
     const { data, error } = await supabase.from('EspecialidadesDBV').select('*').order('Nome', { ascending: true });
@@ -1190,18 +1178,6 @@ export const DatabaseService = {
       if (!data || data.length === 0) {
         const { error } = await supabase.from('specialty_studies').insert([study]);
         if (error) console.error("Erro ao inserir estudo de especialidade:", error);
-      }
-    }
-  },
-
-  async seedMembers(members: Omit<Member, 'id'>[]) {
-    for (const m of members) {
-      const { data } = await supabase.from('members').select('id').eq('name', m.name);
-      if (!data || data.length === 0) {
-        await this.addMember({
-          ...m,
-          id: Math.random().toString(36).substr(2, 9)
-        } as Member);
       }
     }
   },

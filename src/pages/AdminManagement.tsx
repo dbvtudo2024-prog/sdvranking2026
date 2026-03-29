@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
-import { DatabaseService, supabase } from '@/db';
+import { DatabaseService } from '@/db';
 
-import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
+import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS } from '@/seedData';
 
 interface AdminManagementProps {
   members: Member[];
@@ -111,12 +111,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     
     for (const table of tables) {
       try {
-        const { data, error } = await supabase.from(table).select('*').limit(1);
+        const { data, error } = await DatabaseService.supabase.from(table).select('*').limit(1);
         if (error) {
           results.push({ table, count: -1, status: `Erro: ${error.message}`, columns: [] });
         } else {
           // Count total
-          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+          const { count } = await DatabaseService.supabase.from(table).select('*', { count: 'exact', head: true });
           results.push({ 
             table, 
             count: count || 0, 
@@ -268,11 +268,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       await DatabaseService.seedScrambledVerses(NEW_SCRAMBLED_VERSES);
       console.log("Versículos semeados.");
       await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);
-      
-      // Novos seeds para Avisos, Estudos e Membros
-      await DatabaseService.seedAnnouncements(DEFAULT_ANNOUNCEMENTS);
-      await DatabaseService.seedSpecialtyStudies(DEFAULT_SPECIALTY_STUDIES);
-      await DatabaseService.seedMembers(DEFAULT_MEMBERS);
       console.log("Assets semeados.");
       alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");
     } catch (error: any) {
