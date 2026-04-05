@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DatabaseService } from '@/db';
 import { AuthUser, Member, Score, QuizQuestion } from '@/types';
-import { Check, X, Trophy, Loader2, HelpCircle } from 'lucide-react';
+import { Check, X, Trophy, Loader2, HelpCircle, CheckCircle2 } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 
@@ -85,6 +85,39 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     }
   }, [showResult, saveScoreToProfile]);
 
+  const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
+
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const start = new Date(now);
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }, []);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (isAdmin) return false;
+    if (!member?.scores) return false;
+    
+    const parseScoreDate = (dateStr: string) => {
+      if (dateStr.includes('T')) return new Date(dateStr);
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    return (member.scores || []).some(s => {
+      const d = parseScoreDate(s.date);
+      const matchesGame = s.gameId === 'quiz' || (s as any).quiz !== undefined;
+      return d >= cycleStart && matchesGame;
+    });
+  }, [member, isAdmin, cycleStart]);
+
   if (loading) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
@@ -92,6 +125,21 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <Loader2 className="animate-spin text-[#0061f2]" size={40} />
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Carregando Desafio do Banco...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasPlayedThisWeek && !isAdmin) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title={`Quiz: ${category}`} user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Missão Cumprida!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
         </div>
       </div>
     );

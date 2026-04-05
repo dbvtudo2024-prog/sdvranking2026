@@ -16,17 +16,15 @@ interface AdminManagementProps {
   onGoToAdminThreeClues: () => void;
   onGoToAdminSpecialtyStudy: () => void;
   onGoToAdminPuzzle: () => void;
-  onGoToAdminWhoAmI: () => void;
   onGoToAdminScrambledVerse: () => void;
   onGoToAdminNatureId: () => void;
   onGoToAdminFirstAid: () => void;
   onGoToAdminSpecialtyTrail: () => void;
-  onGoToAdminPiano: () => void;
   counselors: CounselorDB[];
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
   onDeleteCounselor: (id: string | number) => Promise<void>;
-  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues') => Promise<void>;
+  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'brickbreaker') => Promise<void>;
   quizOverride: boolean;
   onToggleQuizOverride: () => void;
   memoryOverride: boolean;
@@ -39,8 +37,6 @@ interface AdminManagementProps {
   onTogglePuzzleOverride: () => void;
   knotsOverride: boolean;
   onToggleKnotsOverride: () => void;
-  whoAmIOverride: boolean;
-  onToggleWhoAmIOverride: () => void;
   specialtyTrailOverride: boolean;
   onToggleSpecialtyTrailOverride: () => void;
   scrambledVerseOverride: boolean;
@@ -49,6 +45,10 @@ interface AdminManagementProps {
   onToggleNatureIdOverride: () => void;
   firstAidOverride: boolean;
   onToggleFirstAidOverride: () => void;
+  brickBreakerOverride: boolean;
+  onToggleBrickBreakerOverride: () => void;
+  mahjongOverride: boolean;
+  onToggleMahjongOverride: () => void;
   isDarkMode?: boolean;
 }
 
@@ -62,12 +62,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onGoToAdminThreeClues,
   onGoToAdminSpecialtyStudy,
   onGoToAdminPuzzle,
-  onGoToAdminWhoAmI,
   onGoToAdminScrambledVerse,
   onGoToAdminNatureId,
   onGoToAdminFirstAid,
   onGoToAdminSpecialtyTrail,
-  onGoToAdminPiano,
   counselors = [],
   onAddCounselor,
   onUpdateCounselor,
@@ -85,8 +83,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onTogglePuzzleOverride,
   knotsOverride,
   onToggleKnotsOverride,
-  whoAmIOverride,
-  onToggleWhoAmIOverride,
   specialtyTrailOverride,
   onToggleSpecialtyTrailOverride,
   scrambledVerseOverride,
@@ -95,6 +91,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onToggleNatureIdOverride,
   firstAidOverride,
   onToggleFirstAidOverride,
+  brickBreakerOverride,
+  onToggleBrickBreakerOverride,
+  mahjongOverride,
+  onToggleMahjongOverride,
   isDarkMode
 }) => {
   const [showCounselorModal, setShowCounselorModal] = useState(false);
@@ -226,7 +226,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
-  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid', label: string) => {
+  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'brickbreaker', label: string) => {
     if (!confirm(`CONFIRMAÇÃO 1: Deseja zerar todos os pontos de ${label.toUpperCase()}?`)) return;
     if (!confirm(`⚠️ CONFIRMAÇÃO FINAL: Esta ação vai apagar permanentemente os pontos de ${label} de TODOS os membros. Podemos prosseguir?`)) return;
 
@@ -298,8 +298,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           if (score.type === 'game' && score.gameId) {
             const gameKeys = [
               'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
-              'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
-              'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'ballSortGame', 'brickBreakerGame'
+              'puzzleGame', 'knotsGame', 'specialtyTrailGame',
+              'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'brickBreakerGame'
             ];
             
             const newScore = { ...score };
@@ -374,11 +374,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
             <GameLockButton label="Quebra-C" active={puzzleOverride} onToggle={onTogglePuzzleOverride} icon={Shuffle} />
             <GameLockButton label="Nós" active={knotsOverride} onToggle={onToggleKnotsOverride} icon={Anchor} />
-            <GameLockButton label="Quem Sou" active={whoAmIOverride} onToggle={onToggleWhoAmIOverride} icon={User} />
             <GameLockButton label="Trilha" active={specialtyTrailOverride} onToggle={onToggleSpecialtyTrailOverride} icon={Map} />
             <GameLockButton label="Versículo" active={scrambledVerseOverride} onToggle={onToggleScrambledVerseOverride} icon={Type} />
             <GameLockButton label="Natureza" active={natureIdOverride} onToggle={onToggleNatureIdOverride} icon={Leaf} />
             <GameLockButton label="Socorro" active={firstAidOverride} onToggle={onToggleFirstAidOverride} icon={HeartPulse} />
+            <GameLockButton label="Bloco" active={brickBreakerOverride} onToggle={onToggleBrickBreakerOverride} icon={Gamepad2} />
+            <GameLockButton label="Mahjong" active={mahjongOverride} onToggle={onToggleMahjongOverride} icon={Gamepad2} />
           </div>
         </div>
 
@@ -430,9 +431,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 <button onClick={onGoToAdminPuzzle} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <Shuffle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> QUEBRA-CABEÇA
                 </button>
-                <button onClick={onGoToAdminWhoAmI} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <User size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> QUEM SOU EU?
-                </button>
                 <button onClick={onGoToAdminScrambledVerse} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <Shuffle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> VERSÍCULO
                 </button>
@@ -444,9 +442,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 </button>
                 <button onClick={onGoToAdminSpecialtyTrail} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <Map size={22} className={isDarkMode ? 'text-blue-500' : 'text-blue-600'} /> TRILHA ESPECIAL.
-                </button>
-                <button onClick={onGoToAdminPiano} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Music size={22} className={isDarkMode ? 'text-indigo-500' : 'text-indigo-600'} /> MÚSICAS PIANO
                 </button>
               </div>
               <button 
@@ -576,6 +571,30 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                     {isResetting === 'specialtytrail' ? <Loader2 className="animate-spin" size={20} /> : <Map size={20} />} 
                   </div>
                   Zerar Trilha
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('puzzle', 'Quebra-Cabeça')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'puzzle' ? <Loader2 className="animate-spin" size={20} /> : <Shuffle size={20} />} 
+                  </div>
+                  Zerar Quebra-Cabeça
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('knots', 'Nós')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'knots' ? <Loader2 className="animate-spin" size={20} /> : <Anchor size={20} />} 
+                  </div>
+                  Zerar Nós
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('scrambledverse', 'Versículo')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'scrambledverse' ? <Loader2 className="animate-spin" size={20} /> : <Type size={20} />} 
+                  </div>
+                  Zerar Versículo
+                </button>
+                <button disabled={!!isResetting} onClick={() => handleResetClick('brickbreaker', 'Bloco')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
+                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
+                    {isResetting === 'brickbreaker' ? <Loader2 className="animate-spin" size={20} /> : <Gamepad2 size={20} />} 
+                  </div>
+                  Zerar Bloco
                 </button>
               </div>
             </div>

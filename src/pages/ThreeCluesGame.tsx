@@ -3,7 +3,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AuthUser, Member, Score, ThreeCluesQuestion } from '@/types';
 import { THREE_CLUES_DATA } from '@/constants';
 import { DatabaseService } from '@/db';
-import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2, MessageSquare, Lock } from 'lucide-react';
+import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
 
 interface ThreeCluesGameProps {
@@ -94,13 +95,14 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   if (!isAvailable && !isAdmin && !override) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
-          <Lock size={40} />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="3 Dicas" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-[2rem] flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6">
+            <Lock size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Indisponível</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte no domingo ao meio-dia!</p>
         </div>
       </div>
     );
@@ -108,13 +110,14 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   if (hasPlayedThisWeek && !isAdmin && !override) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
-          <CheckCircle2 size={40} />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Concluído</h3>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="3 Dicas" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Concluído</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
         </div>
       </div>
     );
@@ -122,9 +125,12 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carregando Desafio...</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="3 Dicas" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <Loader2 className="animate-spin text-blue-600" size={40} />
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carregando Desafio...</p>
+        </div>
       </div>
     );
   }
@@ -235,13 +241,16 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         ]}
         icon={<MessageSquare size={32} className="text-white" />}
       />
-      <div className="bg-blue-600 p-4 text-white flex justify-between items-center shadow-lg">
-        <div className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Três Dicas</p>
-          <p className="font-black">Questão {currentQuestionIdx + 1}/{(questions || []).length}</p>
-        </div>
-        <div className="bg-white/20 px-4 py-1.5 rounded-full font-black text-sm">{score} pts</div>
-      </div>
+      <GameHeader 
+        title="3 Dicas"
+        user={user}
+        stats={[
+          { label: 'Questão', value: `${currentQuestionIdx + 1}/${(questions || []).length}` },
+          { label: 'pts', value: score }
+        ]}
+        onBack={onBack}
+      />
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
 
       <div className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
         <div className="w-full space-y-3">
@@ -293,6 +302,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
           {currentStep === 0 ? 'VALENDO 7 PONTOS' : currentStep === 1 ? 'VALENDO 5 PONTOS' : 'VALENDO 3 PONTOS'}
         </p>
+      </div>
       </div>
     </div>
   );

@@ -441,12 +441,21 @@ export const DatabaseService = {
     if (!data) return null;
     return {
       ...data,
-      knots_override: data.knots_override ?? false,
-      who_am_i_override: data.who_am_i_override ?? false,
-      specialty_trail_override: data.specialty_trail_override ?? false,
-      scrambled_verse_override: data.scrambled_verse_override ?? false,
-      nature_id_override: data.nature_id_override ?? false,
-      first_aid_override: data.first_aid_override ?? false,
+      quiz_override: data.quiz_override ?? true,
+      memory_override: data.memory_override ?? true,
+      specialty_override: data.specialty_override ?? true,
+      three_clues_override: data.three_clues_override ?? true,
+      puzzle_override: data.puzzle_override ?? true,
+      knots_override: data.knots_override ?? true,
+      who_am_i_override: data.who_am_i_override ?? true,
+      specialty_trail_override: data.specialty_trail_override ?? true,
+      scrambled_verse_override: data.scrambled_verse_override ?? true,
+      nature_id_override: data.nature_id_override ?? true,
+      first_aid_override: data.first_aid_override ?? true,
+      ball_sort_override: data.ball_sort_override ?? true,
+      brick_breaker_override: data.brick_breaker_override ?? true,
+      mahjong_override: data.mahjong_override ?? true,
+      piano_tiles_override: data.piano_tiles_override ?? true,
     } as GameConfig;
   },
 

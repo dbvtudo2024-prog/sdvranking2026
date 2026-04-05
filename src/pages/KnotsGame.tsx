@@ -56,6 +56,55 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     return [...knots].sort(() => Math.random() - 0.5).slice(0, 5);
   }, [knots]);
 
+  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const start = new Date(now);
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }, []);
+
+  const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    // Standard availability: Sunday (0) to Thursday (4)
+    const available = (day >= 0 && day <= 4) || override || isAdmin;
+
+    let played = false;
+    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    
+    if (currentMember && !isAdmin) {
+      played = (currentMember.scores || []).some(s => {
+        const scoreDate = new Date(s.date);
+        
+        let d: Date;
+        if (isNaN(scoreDate.getTime())) {
+          const parts = s.date.split('/');
+          if (parts.length === 3) {
+            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          } else {
+            return false;
+          }
+        } else {
+          d = scoreDate;
+        }
+        
+        const matchesGame = s.gameId === 'knotsGame' || (s as any).knotsGame !== undefined;
+        return d >= cycleStart && matchesGame;
+      });
+    }
+    
+    return { isAvailable: available, hasPlayedThisWeek: played };
+  }, [override, isAdmin, members, user.id, user.name, cycleStart]);
+
   const currentKnot = questions[currentStep];
 
   const options = useMemo(() => {
@@ -65,6 +114,35 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     return [...shuffledOthers, currentKnot].sort(() => Math.random() - 0.5);
   }, [currentKnot, knots]);
 
+  if (hasPlayedThisWeek && !isAdmin && !override) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Mestre dos Nós" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-[2rem] flex items-center justify-center text-green-600 dark:text-green-400 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase">Concluido!</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAvailable && !isAdmin && !override) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Mestre dos Nós" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-[2rem] flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6">
+            <Lock size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase">Indisponível</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Este jogo está bloqueado no momento. Volte no domingo ao meio-dia!</p>
+        </div>
+      </div>
+    );
+  }
   const resetGame = () => {
     setCurrentStep(0);
     setScore(0);
@@ -109,91 +187,20 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     onUpdateMember({ ...currentMember, scores: updatedScores });
   };
 
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-
-  const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    // Aberto de Domingo (0) até Quinta (4).
-    // Bloqueado na Sexta (5) e Sábado (6).
-    const isGameDay = day >= 0 && day <= 4;
-    const available = isGameDay || override || isAdmin;
-    
-    // O ciclo começa no Domingo (0).
-    const diff = day;
-    const cycleStart = new Date(now);
-    cycleStart.setDate(now.getDate() - diff);
-    cycleStart.setHours(0, 0, 0, 0);
-
-    let played = false;
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-    
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            return d >= cycleStart && s.gameId === 'knotsGame';
-          }
-          return false;
-        }
-        return scoreDate >= cycleStart && s.gameId === 'knotsGame';
-      });
-    }
-    
-    return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user.id, user.name]);
-
-  if (!isAvailable && !isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
-          <Lock size={40} />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Indisponível</h3>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (hasPlayedThisWeek && !isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500">
-          <CheckCircle2 size={40} />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Concluído</h3>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
-      <div className="bg-white dark:bg-slate-800 p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex gap-4">
-          <div className="flex flex-col">
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Questão</span>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{currentStep + 1}/{questions.length}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pontos</span>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{score}</span>
-          </div>
-        </div>
-        <button 
-          onClick={resetGame}
-          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
-        >
-          <RefreshCw size={18} />
-        </button>
-      </div>
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+      <GameHeader 
+        title="Mestre dos Nós"
+        user={user}
+        onBack={onBack}
+        stats={[
+          { label: 'Questão', value: `${currentStep + 1}/${questions.length}` },
+          { label: 'Pontos', value: score }
+        ]}
+        onRefresh={resetGame}
+      />
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -271,6 +278,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
           )}
         </AnimatePresence>
       </main>
+      </div>
     </div>
   );
 };

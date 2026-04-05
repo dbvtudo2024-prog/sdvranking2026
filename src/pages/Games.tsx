@@ -9,14 +9,11 @@ import Challenge1x1Page from '@/pages/Challenge1x1';
 import ThreeCluesGame from '@/pages/ThreeCluesGame';
 import PuzzleGame from '@/pages/PuzzleGame';
 import KnotsGame from '@/pages/KnotsGame';
-import WhoAmIGame from '@/pages/WhoAmIGame';
 import SpecialtyTrailGame from '@/pages/SpecialtyTrailGame';
 import ScrambledVerseGame from '@/pages/ScrambledVerseGame';
 import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
-import PianoTilesGame from '@/pages/PianoTilesGame';
 import MahjongGame from '@/pages/MahjongGame';
-import BallSortGame from '@/pages/BallSortGame';
 import BrickBreakerGame from '@/pages/BrickBreakerGame';
 
 interface GamesProps {
@@ -29,11 +26,12 @@ interface GamesProps {
   threeCluesOverride: boolean;
   puzzleOverride: boolean;
   knotsOverride: boolean;
-  whoAmIOverride: boolean;
   specialtyTrailOverride: boolean;
   scrambledVerseOverride: boolean;
   natureIdOverride: boolean;
   firstAidOverride: boolean;
+  brickBreakerOverride: boolean;
+  mahjongOverride: boolean;
   isDarkMode?: boolean;
   onGameActiveChange?: (active: boolean) => void;
 }
@@ -48,15 +46,16 @@ const Games: React.FC<GamesProps> = ({
   threeCluesOverride,
   puzzleOverride,
   knotsOverride,
-  whoAmIOverride,
   specialtyTrailOverride,
   scrambledVerseOverride,
   natureIdOverride,
   firstAidOverride,
+  brickBreakerOverride,
+  mahjongOverride,
   isDarkMode,
   onGameActiveChange
 }) => {
-  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'pianotiles' | 'mahjong' | 'ballsort' | 'brickbreaker'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'mahjong' | 'brickbreaker'>('hub');
 
   React.useEffect(() => {
     onGameActiveChange?.(activeGame !== 'hub');
@@ -123,7 +122,7 @@ const Games: React.FC<GamesProps> = ({
   };
 
   const quizStatus = useMemo(() => {
-    const unlocked = isGameDay || quizOverride || isAdmin;
+    const unlocked = (isGameDay && quizOverride) || isAdmin;
     if (!currentMember || isAdmin) return { unlocked, alreadyPlayed: false };
     
     const playedDesb = (currentMember.scores || []).some(s => {
@@ -141,76 +140,64 @@ const Games: React.FC<GamesProps> = ({
   }, [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
 
   const memoryStatus = useMemo(() => {
-    const unlocked = isGameDay || memoryOverride || isAdmin;
+    const unlocked = (isGameDay && memoryOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('memoryGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, memoryOverride, isAdmin]);
 
   const specialtyStatus = useMemo(() => {
-    const unlocked = isGameDay || specialtyOverride || isAdmin;
+    const unlocked = (isGameDay && specialtyOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('specialtyGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, specialtyOverride, isAdmin]);
 
   const threeCluesStatus = useMemo(() => {
-    const unlocked = isGameDay || threeCluesOverride || isAdmin;
+    const unlocked = (isGameDay && threeCluesOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('threeCluesGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, threeCluesOverride, isAdmin]);
 
   const puzzleStatus = useMemo(() => {
-    const unlocked = isGameDay || puzzleOverride || isAdmin;
+    const unlocked = (isGameDay && puzzleOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('puzzleGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, puzzleOverride, isAdmin]);
 
   const knotsStatus = useMemo(() => {
-    const unlocked = isGameDay || knotsOverride || isAdmin;
+    const unlocked = (isGameDay && knotsOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('knotsGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, knotsOverride, isAdmin]);
 
-  const whoAmIStatus = useMemo(() => {
-    const unlocked = isGameDay || whoAmIOverride || isAdmin;
-    const alreadyPlayed = checkPlayedThisWeek('whoAmIGame');
-    return { unlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, whoAmIOverride, isAdmin]);
-
   const specialtyTrailStatus = useMemo(() => {
-    const unlocked = isGameDay || specialtyTrailOverride || isAdmin;
+    const unlocked = (isGameDay && specialtyTrailOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('specialtyTrailGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, specialtyTrailOverride, isAdmin]);
 
   const scrambledVerseStatus = useMemo(() => {
-    const unlocked = isGameDay || scrambledVerseOverride || isAdmin;
+    const unlocked = (isGameDay && scrambledVerseOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('scrambledVerseGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, scrambledVerseOverride, isAdmin]);
 
   const natureIdStatus = useMemo(() => {
-    const unlocked = isGameDay || natureIdOverride || isAdmin;
+    const unlocked = (isGameDay && natureIdOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('natureIdGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, natureIdOverride, isAdmin]);
 
   const firstAidStatus = useMemo(() => {
-    const unlocked = isGameDay || firstAidOverride || isAdmin;
+    const unlocked = (isGameDay && firstAidOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('firstAidGame');
     return { unlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
 
-  const ballSortStatus = useMemo(() => {
-    const unlocked = isGameDay || isAdmin;
-    const alreadyPlayed = checkPlayedThisWeek('ballSortGame');
-    return { unlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, isAdmin]);
-
   const brickBreakerStatus = useMemo(() => {
-    const unlocked = isGameDay || isAdmin;
+    const unlocked = (isGameDay && brickBreakerOverride) || isAdmin;
     const alreadyPlayed = checkPlayedThisWeek('brickBreakerGame');
     return { unlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, isAdmin]);
+  }, [currentMember, cycleStart, isGameDay, brickBreakerOverride, isAdmin]);
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
@@ -236,15 +223,12 @@ const Games: React.FC<GamesProps> = ({
       case 'threeclues': gameComponent = <ThreeCluesGame {...gameProps} override={threeCluesOverride} />; break;
       case 'puzzle': gameComponent = <PuzzleGame {...gameProps} puzzleOverride={puzzleOverride} />; break;
       case 'knots': gameComponent = <KnotsGame {...gameProps} override={knotsOverride} />; break;
-      case 'whoami': gameComponent = <WhoAmIGame {...gameProps} override={whoAmIOverride} />; break;
       case 'specialtytrail': gameComponent = <SpecialtyTrailGame {...gameProps} override={specialtyTrailOverride} />; break;
       case 'scrambledverse': gameComponent = <ScrambledVerseGame {...gameProps} override={scrambledVerseOverride} />; break;
       case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} />; break;
       case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
-      case 'pianotiles': gameComponent = <PianoTilesGame {...gameProps} />; break;
-      case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
-      case 'ballsort': gameComponent = <BallSortGame {...gameProps} override={isAdmin} isDarkMode={isDarkMode} />; break;
-      case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} override={isAdmin} isDarkMode={isDarkMode} />; break;
+      case 'mahjong': gameComponent = <MahjongGame {...gameProps} override={mahjongOverride} isDarkMode={isDarkMode} />; break;
+      case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} override={brickBreakerOverride} isDarkMode={isDarkMode} />; break;
       default: return null;
     }
 
@@ -257,14 +241,11 @@ const Games: React.FC<GamesProps> = ({
         case 'threeclues': return 'Três Pistas';
         case 'puzzle': return 'Quebra-Cabeça';
         case 'knots': return 'Mestre dos Nós';
-        case 'whoami': return 'Quem Sou Eu?';
         case 'specialtytrail': return 'Trilha de Especialidades';
         case 'scrambledverse': return 'Versículo Embaralhado';
         case 'natureid': return 'Identificação de Natureza';
         case 'firstaid': return 'Primeiros Socorros';
-        case 'pianotiles': return 'Piano Tiles';
         case 'mahjong': return 'Mahjong Desbravador';
-        case 'ballsort': return 'Organizar Cores';
         case 'brickbreaker': return 'Destruir Blocos';
         default: return 'Jogo';
       }
@@ -318,20 +299,6 @@ const Games: React.FC<GamesProps> = ({
               <span className="text-[10px] sm:text-xs font-bold opacity-80 lowercase mt-2 bg-black/20 px-3 py-1 rounded-full">Sempre disponível para duelar</span>
             </div>
           </button>
-
-          {/* PIANO TILES - MASTER ONLY */}
-          {isMaster && (
-            <button 
-              onClick={() => setActiveGame('pianotiles')} 
-              className="col-span-1 row-span-1 sm:row-span-2 h-full rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-4 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:scale-110 transition-transform">
-                <Music size={80} />
-              </div>
-              <Music size={32} className="text-blue-400 animate-pulse" />
-              <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Piano Tiles</span>
-            </button>
-          )}
 
           {/* MAHJONG - MASTER ONLY */}
           {isMaster && (
@@ -429,16 +396,6 @@ const Games: React.FC<GamesProps> = ({
             <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Nós</span>
           </button>
 
-          {/* QUEM SOU EU */}
-          <button 
-            disabled={!whoAmIStatus.unlocked || whoAmIStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('whoami')} 
-            className={`${getButtonStyles(whoAmIStatus.unlocked, whoAmIStatus.alreadyPlayed)} row-span-1`}
-          >
-            {whoAmIStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <User size={24} />}
-            <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Quem Sou Eu?</span>
-          </button>
-
           {/* TRILHA */}
           <button 
             disabled={!specialtyTrailStatus.unlocked || specialtyTrailStatus.alreadyPlayed} 
@@ -469,7 +426,7 @@ const Games: React.FC<GamesProps> = ({
             <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Natureza</span>
           </button>
 
-          {/* PRIMEIROS SOCORROS */}
+          {/* SOCORROS */}
           <button 
             disabled={!firstAidStatus.unlocked || firstAidStatus.alreadyPlayed} 
             onClick={() => setActiveGame('firstaid')} 
@@ -479,17 +436,7 @@ const Games: React.FC<GamesProps> = ({
             <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Socorros</span>
           </button>
 
-          {/* BALL SORT */}
-          <button 
-            disabled={!ballSortStatus.unlocked || ballSortStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('ballsort')} 
-            className={`${getButtonStyles(ballSortStatus.unlocked, ballSortStatus.alreadyPlayed)} row-span-1`}
-          >
-            {ballSortStatus.alreadyPlayed ? <CheckCircle2 size={24} className="text-green-500" /> : <Shuffle size={24} className="rotate-90" />}
-            <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Cores</span>
-          </button>
-
-          {/* BRICK BREAKER */}
+          {/* BLOCOS */}
           <button 
             disabled={!brickBreakerStatus.unlocked || brickBreakerStatus.alreadyPlayed} 
             onClick={() => setActiveGame('brickbreaker')} 

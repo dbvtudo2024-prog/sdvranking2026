@@ -63,26 +63,42 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const [showMilestone, setShowMilestone] = useState<{title: string, msg: string, reward: string} | null>(null);
   const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
 
+  const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
+
   const currentMember = useMemo(() => 
     members.find(m => m.id === user.id),
   [members, user]);
 
-  const hasPlayedThisWeek = useMemo(() => {
-    if (override) return false;
-    if (!currentMember?.scores) return false;
-    
+  const cycleStart = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    // Sunday (0) is the start of the week
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
+    const hour = now.getHours();
+    const start = new Date(now);
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }, []);
 
-    return (currentMember.scores || []).some(s => 
-      s.gameId === 'mahjongGame' && new Date(s.date) >= sunday
-    );
-  }, [currentMember, override]);
+  const hasPlayedThisWeek = useMemo(() => {
+    if (override || isAdmin) return false;
+    if (!currentMember?.scores) return false;
+    
+    const parseScoreDate = (dateStr: string) => {
+      if (dateStr.includes('T')) return new Date(dateStr);
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    return (currentMember.scores || []).some(s => {
+      const d = parseScoreDate(s.date);
+      const matchesGame = s.gameId === 'mahjongGame' || (s as any).mahjongGame !== undefined;
+      return d >= cycleStart && matchesGame;
+    });
+  }, [currentMember, override, isAdmin, cycleStart]);
 
   const scoreRef = useRef(score);
   const levelRef = useRef(level);
@@ -542,16 +558,17 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
 
   const noMovesLeft = isStarted && !isGameOver && tiles.some(t => !t.removed) && !checkPossibleMoves(tiles);
 
-  if (hasPlayedThisWeek) {
+  if (hasPlayedThisWeek && !isAdmin && !override) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-950">
-        <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle2 size={48} className="text-green-400" />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Mahjong" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Missão Cumprida!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
         </div>
-        <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
-        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Você já completou este desafio esta semana. Volte na próxima segunda!
-        </p>
       </div>
     );
   }

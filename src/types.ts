@@ -38,14 +38,11 @@ export interface Score {
   threeCluesGame?: number;
   puzzleGame?: number;
   knotsGame?: number;
-  whoAmIGame?: number;
   specialtyTrailGame?: number;
   scrambledVerseGame?: number;
   natureIdGame?: number;
   firstAidGame?: number;
-  pianoTilesGame?: number;
   mahjongGame?: number;
-  ballSortGame?: number;
   brickBreakerGame?: number;
   gameId?: string;
   points?: number;
@@ -201,12 +198,13 @@ export interface GameConfig {
   three_clues_override: boolean;
   puzzle_override: boolean;
   knots_override: boolean;
-  who_am_i_override: boolean;
   specialty_trail_override: boolean;
   specialty_study_override?: boolean;
   scrambled_verse_override: boolean;
   nature_id_override: boolean;
   first_aid_override: boolean;
+  brick_breaker_override: boolean;
+  mahjong_override: boolean;
 }
 
 declare global {

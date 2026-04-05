@@ -4,6 +4,7 @@ import { Brain, AlertTriangle, Lock, ArrowLeft, BookOpen, ChevronRight, Calendar
 import { AuthUser, Member, UserRole } from '@/types';
 import QuizGame from '@/pages/QuizGame';
 import GameInstructions from '@/components/GameInstructions';
+import GameHeader from '@/components/GameHeader';
 
 interface QuizSelectionProps {
   user: AuthUser;
@@ -144,10 +145,13 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   };
 
   return (
-    <div className="flex flex-col items-center h-full animate-in fade-in duration-500 max-w-sm mx-auto px-2 pt-4">
-      <div className="w-full flex items-center mb-6">
-        <h2 className="text-[#001f3f] text-lg font-black tracking-widest uppercase">Categorias do Quiz</h2>
-      </div>
+    <div className="flex flex-col h-full bg-white dark:bg-[#0f172a] animate-in fade-in duration-500">
+      <GameHeader title="Quiz" user={user} onBack={onBack} />
+      
+      <div className="flex-1 overflow-y-auto w-full max-w-sm mx-auto px-4 pt-4 pb-10">
+        <div className="w-full flex items-center mb-6">
+          <h2 className="text-[#001f3f] dark:text-slate-100 text-lg font-black tracking-widest uppercase">Categorias</h2>
+        </div>
 
       <GameInstructions
         isOpen={showInstructions}
@@ -179,6 +183,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
       <div className="grid grid-cols-1 gap-4 w-full">
         <CategoryButton category="Desbravadores" played={hasPlayedThisWeek('Desbravadores')} />
         <CategoryButton category="Bíblia" played={hasPlayedThisWeek('Bíblia')} />
+      </div>
       </div>
     </div>
   );

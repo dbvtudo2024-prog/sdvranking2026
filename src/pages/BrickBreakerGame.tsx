@@ -1,8 +1,9 @@
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home } from 'lucide-react';
+import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthUser, Member, Score, UserRole } from '@/types';
+import GameHeader from '@/components/GameHeader';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -40,19 +41,26 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   [members, user]);
 
   const isAdmin = useMemo(() => 
-    user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldoSonic@gmail.com',
+    user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldosonic@gmail.com',
   [user]);
+
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const start = new Date(now);
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }, []);
 
   const hasPlayedThisWeek = useMemo(() => {
     if (override || isAdmin) return false;
     if (!currentMember?.scores) return false;
-    
-    const now = new Date();
-    const day = now.getDay();
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
 
     const parseScoreDate = (dateStr: string) => {
       if (dateStr.includes('T')) return new Date(dateStr);
@@ -60,10 +68,12 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
       return new Date(year, month - 1, day);
     };
 
-    return (currentMember.scores || []).some(s => 
-      s.gameId === 'brickBreakerGame' && parseScoreDate(s.date) >= sunday
-    );
-  }, [currentMember, override, isAdmin]);
+    return (currentMember.scores || []).some(s => {
+      const d = parseScoreDate(s.date);
+      const matchesGame = s.gameId === 'brickBreakerGame' || (s as any).brickBreakerGame !== undefined;
+      return matchesGame && d >= cycleStart;
+    });
+  }, [currentMember, override, isAdmin, cycleStart]);
 
   const isAvailable = useMemo(() => {
     if (override || isAdmin) return true;
@@ -333,64 +343,73 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
   if (!isAvailable && !override && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
-        <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-          <Play size={48} className="text-slate-600" />
+      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
+        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+            <Play size={48} className="text-slate-600" />
+          </div>
+          <h2 className="text-2xl font-black text-white uppercase mb-2">Indisponível</h2>
+          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+            Este jogo só está disponível de domingo ao meio-dia até quinta-feira.
+          </p>
         </div>
-        <h2 className="text-2xl font-black text-white uppercase mb-2">Indisponível</h2>
-        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Este jogo só está disponível de segunda a quinta-feira.
-        </p>
       </div>
     );
   }
 
   if (hasPlayedThisWeek && !override && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
-        <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle2 size={48} className="text-green-400" />
+      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
+        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 size={48} className="text-green-400" />
+          </div>
+          <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
+          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+            Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!
+          </p>
         </div>
-        <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
-        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Você já completou este desafio esta semana. Volte na próxima segunda!
-        </p>
       </div>
     );
   }
 
   if (gameState === 'finished') {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-900">
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
-        >
-          <Trophy size={48} className="text-slate-900" />
-        </motion.div>
-        <h2 className="text-3xl font-black text-white uppercase mb-2">Parabéns!</h2>
-        <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-          Você destruiu todos os blocos e ganhou 50 pontos!
-        </p>
+      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
+        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
+          >
+            <Trophy size={48} className="text-slate-900" />
+          </motion.div>
+          <h2 className="text-3xl font-black text-white uppercase mb-2">Parabéns!</h2>
+          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
+            Você destruiu todos os blocos e ganhou 50 pontos!
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 p-4 text-white overflow-hidden">
-      <div className="flex items-center justify-end mb-2">
-        <div className="flex gap-2">
-          <button 
-            onClick={restartGame}
-            className="p-2 bg-slate-800 rounded-xl active:scale-90 transition-all"
-          >
-            <RotateCcw size={18} />
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-slate-900 text-white overflow-hidden">
+      <GameHeader 
+        title="Quebra-Tudo"
+        user={user}
+        stats={[
+          { label: 'Pontos', value: score },
+          { label: 'Vidas', value: lives }
+        ]}
+        onRefresh={restartGame}
+        onBack={onBack}
+      />
 
-      <div className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-3xl border-4 border-slate-800 overflow-hidden">
+      <div className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-b-3xl border-x-4 border-b-4 border-slate-800 overflow-hidden">
         <canvas 
           ref={canvasRef}
           width={350}

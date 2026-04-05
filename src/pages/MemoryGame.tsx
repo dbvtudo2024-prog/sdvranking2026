@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { AuthUser, Member, Score, UserRole } from '@/types';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Brain } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Brain, CheckCircle2 } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
 
@@ -58,25 +58,31 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
 
+  const cycleStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const start = new Date(now);
+    if (day === 0 && hour < 12) {
+      start.setDate(now.getDate() - 7);
+    } else {
+      start.setDate(now.getDate() - day);
+    }
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }, []);
+
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
-    
-    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
+    // Standard availability: Sunday (0) to Thursday (4)
     const available = (day >= 0 && day <= 4) || memoryOverride || isAdmin;
-    
-    // Calculate start of current week (Sunday)
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
 
     let played = false;
     if (currentMember && !isAdmin) {
       played = (currentMember.scores || []).some(s => {
         const scoreDate = new Date(s.date);
         
-        // Handle ISO and DD/MM/YYYY formats
         let d: Date;
         if (isNaN(scoreDate.getTime())) {
           const parts = s.date.split('/');
@@ -89,12 +95,43 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
           d = scoreDate;
         }
         
-        return d >= sunday && s.gameId === 'memoryGame';
+        const matchesGame = s.gameId === 'memoryGame' || (s as any).memoryGame !== undefined;
+        return d >= cycleStart && matchesGame;
       });
     }
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [memoryOverride, currentMember, isAdmin]);
+  }, [memoryOverride, currentMember, isAdmin, cycleStart]);
+
+  if (hasPlayedThisWeek && !isAdmin && !memoryOverride) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Missão Cumprida!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAvailable && !isAdmin && !memoryOverride) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-[2rem] flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6">
+            <Lock size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Indisponível</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Os jogos estão bloqueados hoje. Volte no domingo ao meio-dia!</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (isAvailable && (!hasPlayedThisWeek || isAdmin)) {
@@ -312,7 +349,9 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
 
   if (!difficulty) {
     return (
-      <div className="flex flex-col h-full animate-in fade-in duration-500 p-6 overflow-y-auto">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500">
+        <GameHeader title="Memória" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col justify-center gap-6 p-6 pb-10 overflow-y-auto">
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
@@ -380,6 +419,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
               <Zap size={20} />
             </div>
           </button>
+        </div>
         </div>
       </div>
     );

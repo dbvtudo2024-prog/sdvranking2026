@@ -19,9 +19,7 @@ import AdminSpecialtyEditor from '@/pages/AdminSpecialtyEditor';
 import AdminThreeCluesEditor from '@/pages/AdminThreeCluesEditor';
 import AdminSpecialtyStudyEditor from '@/pages/AdminSpecialtyStudyEditor';
 import AdminPuzzleEditor from '@/pages/AdminPuzzleEditor';
-import AdminWhoAmIEditor from '@/pages/AdminWhoAmIEditor';
 import AdminScrambledVerseEditor from '@/pages/AdminScrambledVerseEditor';
-import AdminPianoEditor from '@/pages/AdminPianoEditor';
 import Birthdays, { BirthdaysRef } from '@/pages/Birthdays';
 import SpecialtyStudyArea, { SpecialtyStudyHandle } from '@/pages/SpecialtyStudyArea';
 import AdminManagement from '@/pages/AdminManagement';
@@ -47,7 +45,7 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_who_am_i' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'admin_piano' | 'birthdays'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'birthdays'>('home');
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
@@ -71,11 +69,12 @@ const App: React.FC = () => {
   const [threeCluesOverride, setThreeCluesOverride] = useState(false);
   const [puzzleOverride, setPuzzleOverride] = useState(false);
   const [knotsOverride, setKnotsOverride] = useState(false);
-  const [whoAmIOverride, setWhoAmIOverride] = useState(false);
   const [specialtyTrailOverride, setSpecialtyTrailOverride] = useState(false);
   const [scrambledVerseOverride, setScrambledVerseOverride] = useState(false);
   const [natureIdOverride, setNatureIdOverride] = useState(false);
   const [firstAidOverride, setFirstAidOverride] = useState(false);
+  const [brickBreakerOverride, setBrickBreakerOverride] = useState(false);
+  const [mahjongOverride, setMahjongOverride] = useState(false);
 
   useEffect(() => {
     setIsGameActive(false);
@@ -157,11 +156,12 @@ const App: React.FC = () => {
         setThreeCluesOverride(config.three_clues_override);
         setPuzzleOverride(config.puzzle_override);
         setKnotsOverride(config.knots_override);
-        setWhoAmIOverride(config.who_am_i_override);
         setSpecialtyTrailOverride(config.specialty_trail_override);
         setScrambledVerseOverride(config.scrambled_verse_override);
         setNatureIdOverride(config.nature_id_override);
         setFirstAidOverride(config.first_aid_override);
+        setBrickBreakerOverride(config.brick_breaker_override);
+        setMahjongOverride(config.mahjong_override);
       },
       onMembers: (data) => {
         console.log("[App] Membros recebidos:", data.length);
@@ -288,7 +288,7 @@ const App: React.FC = () => {
     if (updatedMember) handleUpdateMember(updatedMember);
   }, [handleUpdateMember]);
 
-  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'whoami' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'mahjong') => {
+  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'mahjong' | 'brickbreaker') => {
     const updatedMembers = members.map(m => {
       const newScores = (m.scores || []).map(s => {
         const news = { ...s };
@@ -302,12 +302,12 @@ const App: React.FC = () => {
         else if (type === 'threeclues') news.threeCluesGame = 0;
         else if (type === 'puzzle') news.puzzleGame = 0;
         else if (type === 'knots') news.knotsGame = 0;
-        else if (type === 'whoami') news.whoAmIGame = 0;
         else if (type === 'specialtytrail') news.specialtyTrailGame = 0;
         else if (type === 'scrambledverse') news.scrambledVerseGame = 0;
         else if (type === 'natureid') news.natureIdGame = 0;
         else if (type === 'firstaid') news.firstAidGame = 0;
         else if (type === 'mahjong') news.mahjongGame = 0;
+        else if (type === 'brickbreaker') news.brickBreakerGame = 0;
         return news;
       });
       return { ...m, scores: newScores };
@@ -340,7 +340,6 @@ const App: React.FC = () => {
       case 'admin_three_clues': return 'Editor de 3 Dicas';
       case 'admin_specialty_study': return 'Editor de Estudo';
       case 'admin_puzzle': return 'Editor de Quebra-Cabeça';
-      case 'admin_who_am_i': return 'Editor de Quem Sou Eu?';
       case 'admin_scrambled_verse': return 'Editor de Versículo';
       case 'specialty_study': return 'Estudo de Especialidades';
       case 'admin_management': return 'Gestão Administrativa';
@@ -366,7 +365,7 @@ const App: React.FC = () => {
       if (!handled) setCurrentPage('home');
     }
     else if (currentPage === 'admin_management') setCurrentPage('profile');
-    else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse'].includes(currentPage)) setCurrentPage('admin_management');
+    else if (['admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_specialty_study', 'admin_puzzle', 'admin_scrambled_verse'].includes(currentPage)) setCurrentPage('admin_management');
     else if (currentPage !== 'home') setCurrentPage('home');
   };
 
@@ -401,7 +400,7 @@ const App: React.FC = () => {
       case 'leadership': return <Leadership members={members} isDarkMode={isDarkMode} />;
       case 'pathfinders': return <Pathfinders members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} whoAmIOverride={whoAmIOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} brickBreakerOverride={brickBreakerOverride} mahjongOverride={mahjongOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
@@ -410,9 +409,7 @@ const App: React.FC = () => {
       case 'admin_three_clues': return <AdminThreeCluesEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_specialty_study': return <AdminSpecialtyStudyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_puzzle': return <AdminPuzzleEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
-      case 'admin_who_am_i': return <AdminWhoAmIEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
-      case 'admin_piano': return <AdminPianoEditor onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
@@ -421,12 +418,10 @@ const App: React.FC = () => {
       onGoToAdminThreeClues={() => setCurrentPage('admin_three_clues')} 
       onGoToAdminSpecialtyStudy={() => setCurrentPage('admin_specialty_study')} 
       onGoToAdminPuzzle={() => setCurrentPage('admin_puzzle')} 
-      onGoToAdminWhoAmI={() => setCurrentPage('admin_who_am_i')} 
       onGoToAdminScrambledVerse={() => setCurrentPage('admin_scrambled_verse')} 
       onGoToAdminNatureId={() => { setAdminQuizCategory('Natureza'); setCurrentPage('admin_quiz'); }}
       onGoToAdminFirstAid={() => { setAdminQuizCategory('Primeiros Socorros'); setCurrentPage('admin_quiz'); }}
       onGoToAdminSpecialtyTrail={() => { setAdminQuizCategory('Especialidades'); setCurrentPage('admin_quiz'); }}
-      onGoToAdminPiano={() => setCurrentPage('admin_piano')}
       counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} 
       quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} 
       memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} 
@@ -434,11 +429,12 @@ const App: React.FC = () => {
       threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} 
       puzzleOverride={puzzleOverride} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} 
       knotsOverride={knotsOverride} onToggleKnotsOverride={async () => { const nv = !knotsOverride; setKnotsOverride(nv); await DatabaseService.updateGameConfig({ knots_override: nv }); }}
-      whoAmIOverride={whoAmIOverride} onToggleWhoAmIOverride={async () => { const nv = !whoAmIOverride; setWhoAmIOverride(nv); await DatabaseService.updateGameConfig({ who_am_i_override: nv }); }}
       specialtyTrailOverride={specialtyTrailOverride} onToggleSpecialtyTrailOverride={async () => { const nv = !specialtyTrailOverride; setSpecialtyTrailOverride(nv); await DatabaseService.updateGameConfig({ specialty_trail_override: nv }); }}
       scrambledVerseOverride={scrambledVerseOverride} onToggleScrambledVerseOverride={async () => { const nv = !scrambledVerseOverride; setScrambledVerseOverride(nv); await DatabaseService.updateGameConfig({ scrambled_verse_override: nv }); }}
       natureIdOverride={natureIdOverride} onToggleNatureIdOverride={async () => { const nv = !natureIdOverride; setNatureIdOverride(nv); await DatabaseService.updateGameConfig({ nature_id_override: nv }); }}
       firstAidOverride={firstAidOverride} onToggleFirstAidOverride={async () => { const nv = !firstAidOverride; setFirstAidOverride(nv); await DatabaseService.updateGameConfig({ first_aid_override: nv }); }}
+      brickBreakerOverride={brickBreakerOverride} onToggleBrickBreakerOverride={async () => { const nv = !brickBreakerOverride; setBrickBreakerOverride(nv); await DatabaseService.updateGameConfig({ brick_breaker_override: nv }); }}
+      mahjongOverride={mahjongOverride} onToggleMahjongOverride={async () => { const nv = !mahjongOverride; setMahjongOverride(nv); await DatabaseService.updateGameConfig({ mahjong_override: nv }); }} 
       isDarkMode={isDarkMode} />;
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
     }

@@ -238,7 +238,9 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   if (gameState === 'lobby') {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6 animate-in fade-in">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in">
+        <GameHeader title="Especialidade" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 overflow-y-auto">
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
@@ -281,6 +283,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         </div>
 
         <button onClick={() => { setGameState('playing'); startTimer(timeLimit); }} className="w-full bg-[#0061f2] text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">INICIAR DESAFIO</button>
+      </div>
       </div>
     );
   }
