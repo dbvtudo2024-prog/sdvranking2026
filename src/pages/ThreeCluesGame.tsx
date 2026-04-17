@@ -231,6 +231,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Três Dicas"
         instructions={[
           "Acertou na 1ª dica: 7 pontos",

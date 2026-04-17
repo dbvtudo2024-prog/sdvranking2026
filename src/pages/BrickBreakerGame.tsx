@@ -434,12 +434,20 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">
                 Destrua todos os blocos e pegue os bônus!
               </p>
-              <button 
-                onClick={startGame}
-                className="px-12 py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-              >
-                Começar
-              </button>
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={startGame}
+                  className="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                >
+                  Começar
+                </button>
+                <button 
+                  onClick={onBack}
+                  className="w-full py-3 bg-slate-800 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                >
+                  Voltar
+                </button>
+              </div>
             </motion.div>
           )}
 

@@ -197,6 +197,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Identificação da Natureza"
         instructions={[
           "Observe a imagem da planta, animal ou fenômeno natural.",

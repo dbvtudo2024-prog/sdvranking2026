@@ -194,44 +194,56 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   }, [gameState, score, members, user.id, user.name, onUpdateMember]);
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-full gap-4">
-      <Loader2 className="animate-spin text-[#0061f2]" size={40} />
-      <p className="text-xs font-black text-slate-400 uppercase">Sincronizando Especialidades...</p>
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
+      <GameHeader title="Especialidades" user={user} onBack={onBack} />
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-[#0061f2]" size={40} />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sincronizando Especialidades...</p>
+      </div>
     </div>
   );
 
   if (hasPlayedThisWeek && !isAdmin && !specialtyOverride) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6">
-          <Lock size={40} />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
+        <GameHeader title="Especialidades" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 mb-6">
+            <Check size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Concluído</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
         </div>
-        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Concluído</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
       </div>
     );
   }
 
   if (!isAvailable && !isAdmin && !specialtyOverride) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6">
-          <Calendar size={40} />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
+        <GameHeader title="Especialidades" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6">
+            <Calendar size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Indisponível</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Os desafios estão bloqueados hoje. Volte amanhã!</p>
         </div>
-        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Indisponível</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
       </div>
     );
   }
 
   if (gameQuestions.length === 0 && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-sm mx-auto">
-        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-[2rem] flex items-center justify-center text-red-500 mb-6">
-          <Lock size={40} />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
+        <GameHeader title="Especialidades" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-[2rem] flex items-center justify-center text-red-500 mb-6">
+            <Lock size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase tracking-tighter">Ops! Sem Dados</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-tight uppercase font-bold text-[10px]">Não encontramos especialidades cadastradas. Peça para um instrutor adicionar no painel administrativo.</p>
         </div>
-        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Erro de Carga</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Não foi possível carregar as especialidades. Verifique sua conexão.</p>
       </div>
     );
   }
@@ -244,6 +256,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
+          onBack={onBack}
           title="Qual a Especialidade?"
           instructions={[
             "Veja a imagem da especialidade.",
@@ -290,17 +303,20 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   if (gameState === 'result') {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95">
-        <Trophy size={80} className="text-yellow-400 mb-8" />
-        <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Desafio Concluído!</h2>
-        <div className="bg-white dark:bg-slate-800 p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 mb-10 w-full">
-           <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Pontuação conquistada</p>
-           <p className="text-6xl font-black text-[#0061f2] dark:text-blue-400">{score} <span className="text-xl">pts</span></p>
-           <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
+        <GameHeader title="Brasões" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in-95">
+          <Trophy size={80} className="text-yellow-400 mb-8" />
+          <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Desafio Concluído!</h2>
+          <div className="bg-white dark:bg-slate-800 p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 mb-10 w-full max-w-sm">
+             <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Pontuação conquistada</p>
+             <p className="text-6xl font-black text-[#0061f2] dark:text-blue-400">{score} <span className="text-xl">pts</span></p>
+             <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
+          </div>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+            Sua pontuação foi salva automaticamente!
+          </p>
         </div>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
-          Sua pontuação foi salva automaticamente!
-        </p>
       </div>
     );
   }
@@ -310,32 +326,25 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
   if (!currentQ) return null;
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in">
-      <div className="bg-white dark:bg-slate-800 p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex gap-4">
-          <div className="flex flex-col">
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Tempo</span>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{timeLeft}s</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pontos</span>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono leading-none">{score}</span>
-          </div>
-        </div>
-        <button 
-          onClick={() => {
-            setScore(0);
-            setCurrentIdx(0);
-            setTimeLeft(10);
-            setGameState('playing');
-          }}
-          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all active:scale-90"
-        >
-          <RefreshCw size={18} />
-        </button>
-      </div>
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in overflow-hidden">
+      <GameHeader 
+        title="Brasões" 
+        user={user} 
+        onBack={onBack}
+        stats={[
+          { label: 'Tempo', value: `${timeLeft}s` },
+          { label: 'Pontos', value: score },
+          { label: 'Desafio', value: `${currentIdx + 1}/10` }
+        ]}
+        onRefresh={() => {
+          setScore(0);
+          setCurrentIdx(0);
+          setTimeLeft(timeLimit);
+          setGameState('playing');
+        }}
+      />
 
-      <div className="flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 p-4 max-w-5xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 max-w-5xl mx-auto w-full overflow-y-auto custom-scrollbar">
         <div className="w-full md:w-1/2 bg-white dark:bg-slate-800 p-4 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-3 relative overflow-hidden">
           <div className="w-32 h-32 mx-auto bg-slate-50 dark:bg-slate-900 p-3 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">
             {!imageLoaded && (

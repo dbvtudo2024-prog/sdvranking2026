@@ -30,23 +30,32 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   
   useEffect(() => {
-    DatabaseService.getScrambledVerses().then(data => {
-      if (data && data.length > 0) {
-        // Shuffle and take only 5 verses
-        const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 5);
-        setVerses(shuffled);
-        setGameState('playing');
-      } else {
-        // Fallback or empty state
-        setGameState('finished');
-      }
-    });
+        DatabaseService.getScrambledVerses().then(data => {
+          if (data && data.length > 0) {
+            // Shuffle and take only 5 verses
+            const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 5);
+            setVerses(shuffled);
+            setGameState('playing');
+          } else {
+            // Fallback or empty state
+            setGameState('finished');
+          }
+        }).catch(err => {
+          console.error("Erro ao carregar versículos:", err);
+          setGameState('finished');
+        });
   }, []);
 
-  const currentVerse = useMemo(() => verses[currentStep] || { text: '', title: '' }, [verses, currentStep]);
+  const currentVerse = useMemo(() => {
+    const v = verses[currentStep];
+    return {
+      text: v?.text || '',
+      title: v?.title || ''
+    };
+  }, [verses, currentStep]);
   
   const originalWords = useMemo(() => {
-    return currentVerse.text.split(' ');
+    return currentVerse.text.split(/\s+/).filter(w => w.trim().length > 0);
   }, [currentVerse]);
 
   const scrambledWords = useMemo(() => {
@@ -69,8 +78,8 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     setAvailableWords(newAvailable);
 
     // Check if finished
-    if (newSelected.length === originalWords.length) {
-      const isCorrect = newSelected.join(' ') === currentVerse.text;
+    if (originalWords.length > 0 && newSelected.length === originalWords.length) {
+      const isCorrect = newSelected.join(' ') === originalWords.join(' ');
       if (isCorrect) {
         setScore(prev => prev + 20);
         setTimeout(() => {
@@ -201,6 +210,8 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-y-auto custom-scrollbar">
       <GameHeader 
+        title="Versículo"
+        user={user}
         onBack={onBack}
         stats={[
           { label: 'Progresso', value: `${currentStep + 1}/${verses.length}` },
@@ -211,6 +222,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Versículo Embaralhado"
         instructions={[
           "As palavras de um versículo bíblico estão fora de ordem.",
@@ -223,7 +235,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
 
       <main className="flex-1 p-6 flex flex-col items-center gap-6">
         {/* Progress Bar */}
-        {gameState === 'playing' && (
+        {gameState === 'playing' && verses.length > 0 && (
           <div className="w-full max-w-md h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}

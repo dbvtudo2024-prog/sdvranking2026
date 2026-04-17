@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig, PianoSong } from '@/types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig } from '@/types';
 
 const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
@@ -441,21 +441,18 @@ export const DatabaseService = {
     if (!data) return null;
     return {
       ...data,
-      quiz_override: data.quiz_override ?? true,
-      memory_override: data.memory_override ?? true,
-      specialty_override: data.specialty_override ?? true,
-      three_clues_override: data.three_clues_override ?? true,
-      puzzle_override: data.puzzle_override ?? true,
-      knots_override: data.knots_override ?? true,
-      who_am_i_override: data.who_am_i_override ?? true,
-      specialty_trail_override: data.specialty_trail_override ?? true,
-      scrambled_verse_override: data.scrambled_verse_override ?? true,
-      nature_id_override: data.nature_id_override ?? true,
-      first_aid_override: data.first_aid_override ?? true,
-      ball_sort_override: data.ball_sort_override ?? true,
-      brick_breaker_override: data.brick_breaker_override ?? true,
-      mahjong_override: data.mahjong_override ?? true,
-      piano_tiles_override: data.piano_tiles_override ?? true,
+      quiz_override: data.quiz_override ?? false,
+      memory_override: data.memory_override ?? false,
+      specialty_override: data.specialty_override ?? false,
+      three_clues_override: data.three_clues_override ?? false,
+      puzzle_override: data.puzzle_override ?? false,
+      knots_override: data.knots_override ?? false,
+      specialty_trail_override: data.specialty_trail_override ?? false,
+      scrambled_verse_override: data.scrambled_verse_override ?? false,
+      nature_id_override: data.nature_id_override ?? false,
+      first_aid_override: data.first_aid_override ?? false,
+      brick_breaker_override: data.brick_breaker_override ?? false,
+      mahjong_override: data.mahjong_override ?? false,
     } as GameConfig;
   },
 
@@ -652,47 +649,10 @@ export const DatabaseService = {
       .subscribe();
   },
 
-  // --- PIANO SONGS ---
-  async getPianoSongs(): Promise<PianoSong[]> {
-    const { data, error } = await supabase.from('piano_songs').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.error("Erro ao buscar músicas do piano:", error);
-      return [];
-    }
-    return (data || []) as PianoSong[];
-  },
+  // --- ARENA 1x1 ---
 
-  async addPianoSong(song: Omit<PianoSong, 'id'>) {
-    const { error } = await supabase.from('piano_songs').insert([song]);
-    if (error) throw error;
-  },
 
-  async deletePianoSong(id: string) {
-    const { error } = await supabase.from('piano_songs').delete().eq('id', id);
-    if (error) throw error;
-  },
 
-  subscribePianoSongs(callback: (songs: PianoSong[]) => void) {
-    let localSongs: PianoSong[] = [];
-    this.getPianoSongs().then(data => {
-      localSongs = data;
-      callback(localSongs);
-    });
-
-    return supabase
-      .channel('piano_songs_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piano_songs' }, payload => {
-        if (payload.eventType === 'INSERT') {
-          localSongs = [payload.new as PianoSong, ...localSongs];
-        } else if (payload.eventType === 'UPDATE') {
-          localSongs = localSongs.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
-        } else if (payload.eventType === 'DELETE') {
-          localSongs = localSongs.filter(s => s.id !== payload.old.id);
-        }
-        callback([...localSongs]);
-      })
-      .subscribe();
-  },
 
   // --- USUÁRIOS ---
   async getUsers(): Promise<AuthUser[]> {
@@ -1398,81 +1358,6 @@ export const DatabaseService = {
       .eq('id', id);
     
     if (error) throw error;
-  },
-
-  // --- QUEM SOU EU? ---
-  async getWhoAmIQuestions(): Promise<any[]> {
-    const { data } = await supabase.from('who_am_i_questions').select('*').order('created_at', { ascending: false });
-    return (data || []) as any[];
-  },
-
-  async addWhoAmIQuestion(q: any) {
-    // Omitting category if it causes issues with the schema
-    const { category, ...dataToInsert } = q;
-    const { error } = await supabase.from('who_am_i_questions').insert([dataToInsert]);
-    if (error) {
-      // If it's not a category error, throw it
-      if (!error.message.includes('category')) throw error;
-      // If it was a category error, it means the column is missing, but we already omitted it.
-      // If it still fails, it's something else.
-    }
-  },
-
-  async updateWhoAmIQuestion(q: any) {
-    const { id, created_at, category, ...updates } = q;
-    const { error } = await supabase.from('who_am_i_questions').update(updates).eq('id', id);
-    if (error) throw error;
-  },
-
-  async seedWhoAmIQuestions(questions: any[]) {
-    try {
-      const { data: existing, error: fetchError } = await supabase.from('who_am_i_questions').select('answer');
-      if (fetchError) throw fetchError;
-
-      const existingSet = new Set((existing || []).map(e => e.answer.trim().toLowerCase()));
-
-      const toInsert = questions
-        .filter(q => !existingSet.has(q.answer.trim().toLowerCase()))
-        .map(q => {
-          const { category, ...rest } = q;
-          return rest;
-        });
-
-      if (toInsert.length > 0) {
-        const { error: insertError } = await supabase.from('who_am_i_questions').insert(toInsert);
-        if (insertError) throw insertError;
-      }
-    } catch (error) {
-      console.error("Erro no seedWhoAmIQuestions:", error);
-      throw error;
-    }
-  },
-
-  async deleteWhoAmIQuestion(id: string) {
-    const { error } = await supabase.from('who_am_i_questions').delete().eq('id', id);
-    if (error) throw error;
-  },
-
-  subscribeWhoAmIQuestions(callback: (questions: any[]) => void) {
-    let localQuestions: any[] = [];
-    this.getWhoAmIQuestions().then(data => {
-      localQuestions = data;
-      callback(localQuestions);
-    });
-
-    return supabase
-      .channel('who_am_i_questions_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'who_am_i_questions' }, payload => {
-        if (payload.eventType === 'INSERT') {
-          localQuestions = [payload.new, ...localQuestions];
-        } else if (payload.eventType === 'UPDATE') {
-          localQuestions = localQuestions.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q);
-        } else if (payload.eventType === 'DELETE') {
-          localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
-        }
-        callback([...localQuestions]);
-      })
-      .subscribe();
   },
 
   // --- VERSÍCULO EMBARALHADO ---

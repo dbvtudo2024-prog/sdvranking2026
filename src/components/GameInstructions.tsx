@@ -1,17 +1,18 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Info } from 'lucide-react';
+import { Play, Info, ArrowLeft } from 'lucide-react';
 
 interface GameInstructionsProps {
   isOpen: boolean;
   onStart: () => void;
+  onBack?: () => void;
   title: string;
   instructions: string[];
   icon?: React.ReactNode;
 }
 
-const GameInstructions: React.FC<GameInstructionsProps> = ({ isOpen, onStart, title, instructions, icon }) => {
+const GameInstructions: React.FC<GameInstructionsProps> = ({ isOpen, onStart, onBack, title, instructions, icon }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -24,8 +25,18 @@ const GameInstructions: React.FC<GameInstructionsProps> = ({ isOpen, onStart, ti
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
-            className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl"
+            className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl relative"
           >
+            {onBack && (
+              <button 
+                onClick={onBack}
+                className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white transition-colors"
+                title="Sair do jogo"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
+
             <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-600/20">
               {icon || <Info size={32} className="text-white" />}
             </div>

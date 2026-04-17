@@ -402,6 +402,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
+          onBack={onBack}
           title="Duelo 1x1"
           instructions={[
             "Cada duelista começa com 5 corações (vidas).",

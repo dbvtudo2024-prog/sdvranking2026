@@ -191,6 +191,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
+          onBack={onBack}
           title={`Quiz: ${category}`}
           instructions={[
             "Responda 10 perguntas aleatórias.",

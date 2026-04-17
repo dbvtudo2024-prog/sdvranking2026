@@ -84,21 +84,8 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   }, []);
 
   const hasPlayedThisWeek = useMemo(() => {
-    if (override || isAdmin) return false;
-    if (!currentMember?.scores) return false;
-    
-    const parseScoreDate = (dateStr: string) => {
-      if (dateStr.includes('T')) return new Date(dateStr);
-      const [day, month, year] = dateStr.split('/').map(Number);
-      return new Date(year, month - 1, day);
-    };
-
-    return (currentMember.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      const matchesGame = s.gameId === 'mahjongGame' || (s as any).mahjongGame !== undefined;
-      return d >= cycleStart && matchesGame;
-    });
-  }, [currentMember, override, isAdmin, cycleStart]);
+    return false; // Liberado para todos jogarem todos os dias
+  }, []);
 
   const scoreRef = useRef(score);
   const levelRef = useRef(level);
@@ -656,12 +643,20 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mahjong 3D</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Combine os pares de símbolos. São 100 níveis de desafio crescente!</p>
             </div>
-            <button 
-              onClick={() => initGame(level)}
-              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
-            >
-              {level > 1 ? `Continuar Nível ${level}` : 'Começar Nível 1'}
-            </button>
+            <div className="flex flex-col gap-3 w-full">
+              <button 
+                onClick={() => initGame(level)}
+                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
+              >
+                {level > 1 ? `Continuar Nível ${level}` : 'Começar Nível 1'}
+              </button>
+              <button 
+                onClick={onBack}
+                className="w-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+              >
+                Voltar
+              </button>
+            </div>
           </div>
         ) : isGameOver ? (
           <div className="text-center space-y-8 animate-in zoom-in duration-500">

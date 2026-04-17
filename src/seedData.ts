@@ -56,29 +56,6 @@ export const NEW_THREE_CLUES_QUESTIONS: Omit<ThreeCluesQuestion, 'id'>[] = [
   { clues: ['Sou a estrela central', 'A mais próxima da Terra', 'Fonte de luz e calor'], answer: 'Sol', category: 'Natureza' }
 ];
 
-export const NEW_WHO_AM_I_QUESTIONS = [
-  { clues: ['Fui o sucessor de Moisés', 'Liderei a conquista de Canaã', 'Fiz o sol parar em Gibeão'], answer: 'Josué' },
-  { clues: ['Fui um profeta do fogo', 'Fui alimentado por corvos', 'Subi ao céu num redemoinho'], answer: 'Elias' },
-  { clues: ['Fui a esposa de Isaque', 'Mãe de Esaú e Jacó', 'Fui escolhida junto a um poço'], answer: 'Rebeca' },
-  { clues: ['Fui um dos doze espias', 'Tive um espírito diferente', 'Entrei na terra prometida com Josué'], answer: 'Calebe' },
-  { clues: ['Fui o sucessor de Elias', 'Curei a lepra de Naamã', 'Vi cavalos de fogo'], answer: 'Eliseu' },
-  { clues: ['Fui a irmã de Moisés', 'Liderei as mulheres com tamboris', 'Fiquei leprosa por murmurar'], answer: 'Miriã' },
-  { clues: ['Fui o primeiro rei de Israel', 'Era muito alto', 'Consultei uma feiticeira'], answer: 'Saul' },
-  { clues: ['Fui um profeta na Babilônia', 'Vi a glória de Deus em visões', 'Comi um rolo de pergaminho'], answer: 'Ezequiel' },
-  { clues: ['Fui o apóstolo amado', 'Escrevi três cartas e um evangelho', 'Fui exilado em Patmos'], answer: 'João' },
-  { clues: ['Fui a sogra de Rute', 'Perdi meu marido e filhos', 'Voltei para Belém com Rute'], answer: 'Noemi' },
-  { clues: ['Fui um rei temente a Deus', 'Orei quando estava doente', 'Deus acrescentou 15 anos à minha vida'], answer: 'Ezequias' },
-  { clues: ['Fui o filho da promessa', 'Quase fui oferecido em sacrifício', 'Pai de Esaú e Jacó'], answer: 'Isaque' },
-  { clues: ['Fui a esposa amada de Jacó', 'Trabalharam 14 anos por mim', 'Mãe de José e Benjamim'], answer: 'Raquel' },
-  { clues: ['Fui o profeta das lamentações', 'Fui jogado em uma cisterna', 'Vivi a queda de Jerusalém'], answer: 'Jeremias' },
-  { clues: ['Fui um centurião romano', 'Minha esmola e orações subiram a Deus', 'Pedro me visitou'], answer: 'Cornélio' },
-  { clues: ['Fui o pai de João Batista', 'Fiquei mudo por não crer no anjo', 'Era da ordem de Abias'], answer: 'Zacarias' },
-  { clues: ['Fui a mãe de João Batista', 'Era prima de Maria', 'Deus tirou minha vergonha na velhice'], answer: 'Isabel' },
-  { clues: ['Fui um publicano rico', 'Era de pequena estatura', 'Subi em um sicômoro para ver Jesus'], answer: 'Zaqueu' },
-  { clues: ['Fui o primeiro mártir da igreja', 'Tinha o rosto como de um anjo', 'Fui apedrejado'], answer: 'Estêvão' },
-  { clues: ['Fui um mestre da lei', 'Fui a Jesus de noite', 'Ajudei a sepultar o corpo de Cristo'], answer: 'Nicodemos' }
-];
-
 export const NEW_SCRAMBLED_VERSES = [
   { title: 'Salmos 46:10', text: 'Aquietai-vos e sabei que eu sou Deus' },
   { title: 'Mateus 11:28', text: 'Vinde a mim todos os que estais cansados e oprimidos' },

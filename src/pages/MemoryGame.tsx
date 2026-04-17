@@ -355,6 +355,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         <GameInstructions
           isOpen={showInstructions}
           onStart={() => setShowInstructions(false)}
+          onBack={onBack}
           title="Jogo da Memória"
           instructions={[
             "Escolha o nível de dificuldade (Fácil, Médio ou Difícil).",

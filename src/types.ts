@@ -183,13 +183,6 @@ export interface CounselorDB {
   created_at?: string;
 }
 
-export interface PianoSong {
-  id: string;
-  name: string;
-  url: string;
-  created_at?: string;
-}
-
 export interface GameConfig {
   id: number;
   quiz_override: boolean;

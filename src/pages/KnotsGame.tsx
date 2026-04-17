@@ -204,6 +204,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Desafio dos Nós"
         instructions={[
           "Observe a imagem do nó ou amarra.",

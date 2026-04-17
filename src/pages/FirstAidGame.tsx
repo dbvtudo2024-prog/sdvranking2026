@@ -185,6 +185,7 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
         <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Primeiros Socorros"
         instructions={[
           "Analise a situação de emergência apresentada.",

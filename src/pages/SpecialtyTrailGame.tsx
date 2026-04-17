@@ -184,6 +184,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Trilha das Especialidades"
         instructions={[
           "Percorra a trilha respondendo perguntas sobre especialidades.",

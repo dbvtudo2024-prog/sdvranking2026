@@ -359,6 +359,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           <GameInstructions
             isOpen={showInstructions}
             onStart={() => setShowInstructions(false)}
+            onBack={onBack}
             title="Quebra-Cabeça"
             instructions={[
               "Escolha uma imagem para começar o desafio.",

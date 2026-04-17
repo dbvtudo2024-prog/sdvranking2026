@@ -4,7 +4,7 @@ import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, T
 import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
 import { DatabaseService, supabase } from '@/db';
 
-import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_WHO_AM_I_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
+import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
 
 interface AdminManagementProps {
   members: Member[];
@@ -263,8 +263,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       console.log("Quiz semeado.");
       await DatabaseService.seedThreeCluesQuestions(NEW_THREE_CLUES_QUESTIONS);
       console.log("3 Dicas semeado.");
-      await DatabaseService.seedWhoAmIQuestions(NEW_WHO_AM_I_QUESTIONS);
-      console.log("Quem Sou Eu semeado.");
       await DatabaseService.seedScrambledVerses(NEW_SCRAMBLED_VERSES);
       console.log("Versículos semeados.");
       await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);

@@ -156,6 +156,7 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
+        onBack={onBack}
         title="Desafio do Quiz"
         instructions={[
           "Escolha uma das categorias: Desbravadores ou Bíblia.",
