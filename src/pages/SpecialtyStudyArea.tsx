@@ -473,7 +473,7 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                     <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1 truncate">{s.name}</h4>
                     {isFuture ? (
                       <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest leading-none">
-                        Disponível em: {new Date(s.scheduled_for!).toLocaleString('pt-BR')}
+                        Disponível em: {new Date(s.scheduled_for!).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' às')}
                       </p>
                     ) : alreadyDone ? (
                       <div className="flex items-center gap-1 text-amber-500">

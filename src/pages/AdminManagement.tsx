@@ -107,7 +107,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
     const results = [];
-    const tables = ['members', 'announcements', 'conselheiros', 'specialty_studies', 'game_configs'];
+    const tables = ['members', 'announcements', 'conselheiros', 'specialty_studies', 'game_configs', 'three_clues_questions', 'scrambled_verse_questions'];
     
     for (const table of tables) {
       try {
@@ -115,13 +115,19 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         if (error) {
           results.push({ table, count: -1, status: `Erro: ${error.message}`, columns: [] });
         } else {
-          // Count total
           const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+          const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
+          
+          let alertMsg = 'OK';
+          if (table === 'specialty_studies' && !columns.includes('scheduled_for')) {
+            alertMsg = 'Faltando coluna scheduled_for';
+          }
+
           results.push({ 
             table, 
             count: count || 0, 
-            status: 'OK', 
-            columns: data && data.length > 0 ? Object.keys(data[0]) : [] 
+            status: alertMsg, 
+            columns 
           });
         }
       } catch (e: any) {
@@ -483,6 +489,17 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
           {diagnosticResults.length > 0 && (
             <div className="space-y-3 mt-4">
+              {diagnosticResults.some(r => r.status.includes('Faltando')) && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4">
+                   <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                     <AlertTriangle size={14} /> Atualização Necessária
+                   </p>
+                   <p className="text-[9px] font-bold text-amber-600/70 mb-3">Execute este comando na aba SQL EDITOR do seu Supabase Dashboard para ativar o agendamento:</p>
+                   <code className="block p-3 bg-black/20 rounded-xl text-[8px] font-mono text-amber-500 break-all select-all">
+                     ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
+                   </code>
+                </div>
+              )}
               {diagnosticResults.map(res => (
                 <div key={res.table} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex justify-between items-center mb-1">

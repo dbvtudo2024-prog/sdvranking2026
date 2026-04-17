@@ -1190,6 +1190,13 @@ export const DatabaseService = {
   async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
     const { error } = await supabase.from('specialty_studies').insert([study]);
     if (error) {
+      // Se o erro for de coluna inexistente, tentamos salvar sem a data de agendamento
+      if (error.message.includes('scheduled_for')) {
+        const { scheduled_for, ...studyWithoutSchedule } = study;
+        const { error: retryError } = await supabase.from('specialty_studies').insert([studyWithoutSchedule]);
+        if (retryError) throw retryError;
+        return;
+      }
       console.error("Erro ao adicionar estudo:", error);
       throw error;
     }
@@ -1199,6 +1206,12 @@ export const DatabaseService = {
     const { id, created_at, ...updates } = study;
     const { error } = await supabase.from('specialty_studies').update(updates).eq('id', id);
     if (error) {
+      if (error.message.includes('scheduled_for')) {
+        const { scheduled_for, ...updatesWithoutSchedule } = updates;
+        const { error: retryError } = await supabase.from('specialty_studies').update(updatesWithoutSchedule).eq('id', id);
+        if (retryError) throw retryError;
+        return;
+      }
       console.error("Erro ao atualizar estudo:", error);
       throw error;
     }
