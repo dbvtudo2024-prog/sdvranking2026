@@ -35,6 +35,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
     pdfurl: '',
     specialty_image_url: '',
     category: 'Geral',
+    scheduled_for: new Date().toISOString().slice(0, 16),
     questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
   });
 
@@ -69,6 +70,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
           pdfurl: '',
           specialty_image_url: '',
           category: 'Geral',
+          scheduled_for: new Date().toISOString().slice(0, 16),
           questions: Array(10).fill(null).map(() => ({ ...emptyQuestion, options: ['', '', '', ''] }))
         });
       }
@@ -322,6 +324,22 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                   <label className={labelClasses}>URL do PDF (Estudo)</label>
                   <input required className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://exemplo.com/arquivo.pdf" value={editForm ? editForm.pdfurl : newStudy.pdfurl} onChange={e => editForm ? setEditForm({...editForm, pdfurl: e.target.value}) : setNewStudy({...newStudy, pdfurl: e.target.value})} />
                 </div>
+                <div>
+                  <label className={labelClasses}>Agendar Estudo (Data e Hora)</label>
+                  <input 
+                    type="datetime-local" 
+                    required 
+                    className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} 
+                    value={editForm ? (editForm.scheduled_for || '').slice(0, 16) : (newStudy.scheduled_for || '').slice(0, 16)} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      editForm ? setEditForm({...editForm, scheduled_for: val}) : setNewStudy({...newStudy, scheduled_for: val});
+                    }} 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClasses}>URL do Vídeo (Opcional)</label>
                   <input className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} placeholder="https://youtube.com/watch?v=..." value={editForm ? editForm.video_url || '' : newStudy.video_url || ''} onChange={e => editForm ? setEditForm({...editForm, video_url: e.target.value}) : setNewStudy({...newStudy, video_url: e.target.value})} />

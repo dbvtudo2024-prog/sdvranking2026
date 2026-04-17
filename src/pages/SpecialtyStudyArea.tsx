@@ -175,6 +175,15 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
     return members.find(m => m.id === user.id);
   }, [members, user.id]);
 
+  const filteredStudies = useMemo(() => {
+    if (isAdmin) return studies;
+    const now = new Date();
+    return studies.filter(s => {
+      if (!s.scheduled_for) return true;
+      return new Date(s.scheduled_for) <= now;
+    });
+  }, [studies, isAdmin]);
+
   const parseDate = (dateStr: string) => {
     if (!dateStr) return new Date(0);
     if (dateStr.includes('/')) {
@@ -438,12 +447,13 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in">
         <div className="p-6 space-y-4 overflow-y-auto pb-32">
           <div className="grid grid-cols-1 gap-4">
-            {studies.map(s => {
+            {filteredStudies.map(s => {
               const alreadyDone = currentMember?.scores?.some(score => score.specialtyStudyId === s.id);
               const bestScore = (currentMember?.scores?.filter(score => score.specialtyStudyId === s.id) || []).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
+              const isFuture = s.scheduled_for && new Date(s.scheduled_for) > new Date();
 
               return (
-                <div key={`study-item-${s.id}`} className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all">
+                <div key={`study-item-${s.id}`} className={`bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all ${isFuture ? 'opacity-70 grayscale' : ''}`}>
                   {s.specialty_image_url && (
                     <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center p-2 mr-4 shrink-0 shadow-inner border border-slate-100 dark:border-slate-700/50">
                       <img 
@@ -458,25 +468,33 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 dark:bg-blue-900/30 text-blue-600">{s.category || 'Geral'}</span>
                       {alreadyDone && <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-green-100 dark:bg-green-900/30 text-green-600">Concluído</span>}
+                      {isFuture && <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-amber-100 dark:bg-amber-900/30 text-amber-600">Agendado</span>}
                     </div>
-                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1">{s.name}</h4>
-                    {alreadyDone && (
+                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1 truncate">{s.name}</h4>
+                    {isFuture ? (
+                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest leading-none">
+                        Disponível em: {new Date(s.scheduled_for!).toLocaleString('pt-BR')}
+                      </p>
+                    ) : alreadyDone ? (
                       <div className="flex items-center gap-1 text-amber-500">
                         <Trophy size={10} />
                         <span className="text-[9px] font-black uppercase tracking-widest">Melhor Nota: {bestScore}/10</span>
                       </div>
+                    ) : (
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Toque para começar o estudo</p>
                     )}
                   </div>
                   <button 
                     onClick={() => handleStartStudyMenu(s)}
-                    className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner"
+                    disabled={isFuture && !isAdmin}
+                    className={`w-12 h-12 rounded-2xl bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner ${isFuture && !isAdmin ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
-                    <Play size={20} fill="currentColor" />
+                    {isFuture && !isAdmin ? <Clock size={20} /> : <Play size={20} fill="currentColor" />}
                   </button>
                 </div>
               );
             })}
-            {studies.length === 0 && (
+            {filteredStudies.length === 0 && (
               <div className="text-center py-20 opacity-30">
                 <HelpCircle size={48} className="mx-auto mb-2" />
                 <p className="text-[10px] font-black uppercase tracking-widest">Nenhum material disponível</p>

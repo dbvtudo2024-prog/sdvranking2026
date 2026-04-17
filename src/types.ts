@@ -130,6 +130,7 @@ export interface SpecialtyStudy {
   category: string;
   questions: SpecialtyStudyQuestion[];
   created_at?: string;
+  scheduled_for?: string;
 }
 
 export interface Challenge1x1 {
