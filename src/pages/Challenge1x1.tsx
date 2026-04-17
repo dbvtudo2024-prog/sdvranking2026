@@ -453,22 +453,22 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
             <Users size={14} /> Desafiar Membro
           </h3>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {members.filter(m => m.id !== user.id).map(member => (
-              <div key={member.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xl shadow-blue-900/5 flex items-center justify-between group hover:border-blue-200 transition-all">
+              <div key={member.id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 flex items-center justify-between group hover:border-blue-200 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden border border-slate-100">
-                    {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" /> : <Users size={20} className="text-slate-300" />}
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700">
+                    {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <Users size={20} className="text-slate-300" />}
                   </div>
                   <div>
-                    <p className="font-black text-slate-800 text-sm">{member.name}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{member.unit}</p>
+                    <p className="font-black text-slate-800 dark:text-white text-sm leading-tight">{member.name}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">{member.unit}</p>
                   </div>
                 </div>
                 <button 
                   disabled={isSearching}
                   onClick={() => handleChallenge(member)}
-                  className="bg-blue-50 text-blue-600 p-3 rounded-2xl hover:bg-blue-600 hover:text-white transition-all active:scale-95 group-hover:shadow-lg shadow-blue-500/20"
+                  className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-2xl hover:bg-blue-600 hover:text-white transition-all active:scale-95 group-hover:shadow-lg shadow-blue-500/20"
                 >
                   <Sword size={20} />
                 </button>
@@ -481,27 +481,27 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
            <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest ml-2 flex items-center gap-2 mb-4">
              <Trophy size={14} /> Top Duelistas da Arena
            </h3>
-           <div className="space-y-2">
+           <div className="max-h-[260px] sm:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
               {duelRanking.length > 0 ? duelRanking.map((ranked, index) => (
-                <div key={ranked.id} className="bg-white p-4 rounded-[1.5rem] border border-slate-50 shadow-sm flex items-center justify-between transition-all">
+                <div key={ranked.id} className="bg-white dark:bg-slate-800 p-4 rounded-[1.5rem] border border-slate-50 dark:border-slate-700 shadow-sm flex items-center justify-between transition-all">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${index === 0 ? 'bg-amber-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'bg-slate-50 text-slate-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${index === 0 ? 'bg-amber-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-400'}`}>
                       {index + 1}º
                     </div>
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                      {ranked.photoUrl ? <img src={ranked.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="text-slate-300 mx-auto mt-2.5" />}
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 shrink-0 border border-slate-50 dark:border-slate-700">
+                      {ranked.photoUrl ? <img src={ranked.photoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <User size={20} className="text-slate-300 dark:text-slate-600 mx-auto mt-2.5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-black text-slate-800 text-[10px] sm:text-xs uppercase leading-tight mb-0.5">{ranked.name}</p>
+                      <p className="font-black text-slate-800 dark:text-white text-[10px] sm:text-xs uppercase leading-tight mb-0.5 truncate">{ranked.name}</p>
                       <div className="flex items-center gap-1">
-                        <img src={UNIT_LOGOS[ranked.unit] || UNIT_LOGOS[user.unit!] || undefined} className="w-3 h-3 object-contain" />
-                        <p className="text-[8px] font-bold text-slate-400 uppercase">{ranked.unit}</p>
+                        {UNIT_LOGOS[ranked.unit] && <img src={UNIT_LOGOS[ranked.unit]} className="w-3 h-3 object-contain" referrerPolicy="no-referrer" />}
+                        <p className="text-[8px] font-bold text-slate-400 uppercase truncate">{ranked.unit}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0 ml-2">
                     <p className="text-lg font-black text-blue-600 leading-none">{ranked.totalPoints}</p>
-                    <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Duelo Pts</p>
+                    <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest leading-none mt-1">Duelo Pts</p>
                   </div>
                 </div>
               )) : (
