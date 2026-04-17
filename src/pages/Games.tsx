@@ -285,34 +285,38 @@ const Games: React.FC<GamesProps> = ({
       <div className="w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-2 landscape:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-[120px] sm:auto-rows-[160px] landscape:auto-rows-[140px]">
           
-          {/* DUELO ARENA 1x1 - DESTAQUE */}
-          <button 
-            onClick={() => setActiveGame('1x1')} 
-            className="col-span-2 row-span-1 sm:row-span-2 h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-800 border-b-8 text-white shadow-2xl shadow-blue-500/30 active:scale-95 px-8 relative overflow-hidden group"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-              <Sword size={120} />
-            </div>
-            <Sword size={48} className="text-yellow-400 drop-shadow-lg animate-bounce-slow" />
-            <div className="flex flex-col items-center text-center leading-tight">
-              <span className="uppercase tracking-[0.2em] text-base sm:text-xl">Duelo 1x1 Arena</span>
-              <span className="text-[10px] sm:text-xs font-bold opacity-80 lowercase mt-2 bg-black/20 px-3 py-1 rounded-full">Sempre disponível para duelar</span>
-            </div>
-          </button>
+          {/* JOGOS SEMPRE DISPONÍVEIS */}
+          <div className="col-span-2 row-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+            {/* DUELO ARENA 1x1 */}
+            <button 
+              onClick={() => setActiveGame('1x1')} 
+              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-800 border-b-8 text-white shadow-2xl shadow-blue-500/30 active:scale-95 px-8 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                <Sword size={100} />
+              </div>
+              <Sword size={48} className="text-yellow-400 drop-shadow-lg animate-bounce-slow" />
+              <div className="flex flex-col items-center text-center leading-tight">
+                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Duelo 1x1</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+              </div>
+            </button>
 
-          {/* MAHJONG - MASTER ONLY */}
-          {isMaster && (
+            {/* MAHJONG - AGORA PARA TODOS */}
             <button 
               onClick={() => setActiveGame('mahjong')} 
-              className="col-span-1 row-span-1 sm:row-span-2 h-full rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-4 relative overflow-hidden group"
+              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group"
             >
-              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:scale-110 transition-transform">
-                <Medal size={80} />
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                <Gamepad2 size={100} />
               </div>
-              <Medal size={32} className="text-amber-400 animate-pulse" />
-              <span className="uppercase tracking-widest text-[10px] sm:text-xs text-center">Mahjong</span>
+              <Medal size={48} className="text-amber-400 animate-pulse" />
+              <div className="flex flex-col items-center text-center leading-tight">
+                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Mahjong</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+              </div>
             </button>
-          )}
+          </div>
 
           {/* SEPARADOR E ÁREA DE DESAFIOS SEMANAIS */}
           <div className="col-span-full mt-4 mb-2 flex items-center gap-4">
