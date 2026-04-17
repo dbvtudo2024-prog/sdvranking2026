@@ -30,8 +30,6 @@ interface GamesProps {
   scrambledVerseOverride: boolean;
   natureIdOverride: boolean;
   firstAidOverride: boolean;
-  brickBreakerOverride: boolean;
-  mahjongOverride: boolean;
   isDarkMode?: boolean;
   onGameActiveChange?: (active: boolean) => void;
 }
@@ -50,8 +48,6 @@ const Games: React.FC<GamesProps> = ({
   scrambledVerseOverride,
   natureIdOverride,
   firstAidOverride,
-  brickBreakerOverride,
-  mahjongOverride,
   isDarkMode,
   onGameActiveChange
 }) => {
@@ -205,13 +201,6 @@ const Games: React.FC<GamesProps> = ({
     return { unlocked, clubUnlocked, alreadyPlayed };
   }, [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
 
-  const brickBreakerStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || brickBreakerOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('brickBreakerGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, brickBreakerOverride, isAdmin]);
-
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
     const now = new Date();
@@ -240,8 +229,8 @@ const Games: React.FC<GamesProps> = ({
       case 'scrambledverse': gameComponent = <ScrambledVerseGame {...gameProps} override={scrambledVerseOverride} />; break;
       case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} />; break;
       case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
-      case 'mahjong': gameComponent = <MahjongGame {...gameProps} override={mahjongOverride} isDarkMode={isDarkMode} />; break;
-      case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} override={brickBreakerOverride} isDarkMode={isDarkMode} />; break;
+      case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
+      case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} isDarkMode={isDarkMode} />; break;
       default: return null;
     }
 
@@ -299,7 +288,7 @@ const Games: React.FC<GamesProps> = ({
         <div className="grid grid-cols-2 landscape:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-[120px] sm:auto-rows-[160px] landscape:auto-rows-[140px]">
           
           {/* JOGOS SEMPRE DISPONÍVEIS */}
-          <div className="col-span-2 row-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+          <div className="col-span-2 row-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
             {/* DUELO ARENA 1x1 */}
             <button 
               onClick={() => setActiveGame('1x1')} 
@@ -326,6 +315,21 @@ const Games: React.FC<GamesProps> = ({
               <Medal size={48} className="text-amber-400 animate-pulse" />
               <div className="flex flex-col items-center text-center leading-tight">
                 <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Mahjong</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+              </div>
+            </button>
+
+            {/* BLOCOS - SEMPRE LIBERADO */}
+            <button 
+              onClick={() => setActiveGame('brickbreaker')} 
+              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                <Gamepad2 size={100} />
+              </div>
+              <Gamepad2 size={48} className="text-orange-200 animate-pulse" />
+              <div className="flex flex-col items-center text-center leading-tight">
+                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Blocos</span>
                 <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
               </div>
             </button>
@@ -471,17 +475,6 @@ const Games: React.FC<GamesProps> = ({
             <span className="uppercase tracking-widest text-[10px] font-black text-center">Socorros</span>
           </button>
 
-          {/* BLOCOS */}
-          <button 
-            disabled={!brickBreakerStatus.unlocked || brickBreakerStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('brickbreaker')} 
-            className={`${getButtonStyles(brickBreakerStatus.clubUnlocked, brickBreakerStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 group-hover:scale-110 transition-transform ${brickBreakerStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {brickBreakerStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!brickBreakerStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Gamepad2 size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Blocos</span>
-          </button>
 
             {/* EM BREVE */}
             <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center gap-1 row-span-1 opacity-50">

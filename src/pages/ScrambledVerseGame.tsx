@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Type, Trophy, RefreshCcw, Undo2, Book, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -219,6 +220,11 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
           { label: 'Pontos', value: score }
         ]}
       />
+      <GameStatsBar stats={[
+        { label: 'Referência', value: currentVerse.title },
+        { label: 'Progresso', value: `${currentStep + 1}/${verses.length}` },
+        { label: 'Pontos', value: score }
+      ]} />
       <GameInstructions
         isOpen={showInstructions}
         onStart={() => setShowInstructions(false)}
@@ -259,6 +265,15 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
               exit={{ opacity: 0, scale: 1.05 }}
               className="w-full max-w-md flex flex-col gap-8"
             >
+              {/* REFERENCE HINT */}
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em]">Referência de Estudo</p>
+                <div className="flex items-center gap-2 px-6 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-full border border-blue-100 dark:border-blue-800">
+                  <Book size={14} className="text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">{currentVerse.title}</span>
+                </div>
+              </div>
+
               {/* SELECTED WORDS AREA */}
               <div className="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-xl border-2 border-slate-100 dark:border-slate-700 min-h-[160px] flex flex-wrap gap-2 content-start relative">
                 {selectedWords.length === 0 && (

@@ -5,6 +5,7 @@ import { AuthUser, Member, Score, QuizQuestion } from '@/types';
 import { Check, X, Trophy, Loader2, HelpCircle, CheckCircle2 } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface QuizGameProps {
   category: 'Desbravadores' | 'Bíblia';
@@ -186,6 +187,10 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         ]}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Pergunta', value: `${currentQuestionIndex + 1}/${questions.length}` },
+        { label: 'Pontos', value: score }
+      ]} />
       
       <div className="flex-1 overflow-y-auto p-6">
         <GameInstructions

@@ -24,7 +24,7 @@ interface AdminManagementProps {
   onAddCounselor: (name: string) => Promise<void>;
   onUpdateCounselor: (id: string | number, name: string) => Promise<void>;
   onDeleteCounselor: (id: string | number) => Promise<void>;
-  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'brickbreaker') => Promise<void>;
+  onResetRanking: (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid') => Promise<void>;
   quizOverride: boolean;
   onToggleQuizOverride: () => void;
   memoryOverride: boolean;
@@ -232,7 +232,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
-  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'brickbreaker', label: string) => {
+  const handleResetClick = async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid', label: string) => {
     if (!confirm(`CONFIRMAÇÃO 1: Deseja zerar todos os pontos de ${label.toUpperCase()}?`)) return;
     if (!confirm(`⚠️ CONFIRMAÇÃO FINAL: Esta ação vai apagar permanentemente os pontos de ${label} de TODOS os membros. Podemos prosseguir?`)) return;
 
@@ -382,8 +382,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             <GameLockButton label="Versículo" active={scrambledVerseOverride} onToggle={onToggleScrambledVerseOverride} icon={Type} />
             <GameLockButton label="Natureza" active={natureIdOverride} onToggle={onToggleNatureIdOverride} icon={Leaf} />
             <GameLockButton label="Socorro" active={firstAidOverride} onToggle={onToggleFirstAidOverride} icon={HeartPulse} />
-            <GameLockButton label="Bloco" active={brickBreakerOverride} onToggle={onToggleBrickBreakerOverride} icon={Gamepad2} />
-            <GameLockButton label="Mahjong" active={mahjongOverride} onToggle={onToggleMahjongOverride} icon={Gamepad2} />
           </div>
         </div>
 
@@ -604,12 +602,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                     {isResetting === 'scrambledverse' ? <Loader2 className="animate-spin" size={20} /> : <Type size={20} />} 
                   </div>
                   Zerar Versículo
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('brickbreaker', 'Bloco')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'brickbreaker' ? <Loader2 className="animate-spin" size={20} /> : <Gamepad2 size={20} />} 
-                  </div>
-                  Zerar Bloco
                 </button>
               </div>
             </div>

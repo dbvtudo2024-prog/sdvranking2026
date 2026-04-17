@@ -6,6 +6,7 @@ import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Image as ImageIcon, Puzzle, CheckCircle2 } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface PuzzleGameProps {
   user: AuthUser;
@@ -424,6 +425,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         onRefresh={() => initializeGame(selectedImage!)}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Tempo', value: formatTime(seconds) },
+        { label: 'Movimentos', value: moves }
+      ]} />
       
       <div className="flex-1 flex items-center justify-center p-4">
         <div 

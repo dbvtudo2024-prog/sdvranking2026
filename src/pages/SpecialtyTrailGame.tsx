@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, RefreshCcw, Flag, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -180,6 +181,10 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
           { label: 'Pontos', value: score }
         ]}
       />
+      <GameStatsBar stats={[
+        { label: 'Progresso', value: `${Math.round((currentPos / totalSteps) * 100)}%` },
+        { label: 'Pontos', value: score }
+      ]} />
       <div className="flex-1 overflow-y-auto custom-scrollbar">
       <GameInstructions
         isOpen={showInstructions}

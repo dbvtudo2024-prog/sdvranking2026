@@ -5,6 +5,7 @@ import { AuthUser, Member, Score, UserRole, SpecialtyDBV } from '@/types';
 import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image, RefreshCw, Check } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -343,7 +344,11 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           setGameState('playing');
         }}
       />
-
+      <GameStatsBar stats={[
+        { label: 'Tempo', value: `${timeLeft}s` },
+        { label: 'Pontos', value: score },
+        { label: 'Desafio', value: `${currentIdx + 1}/10` }
+      ]} />
       <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 max-w-5xl mx-auto w-full overflow-y-auto custom-scrollbar">
         <div className="w-full md:w-1/2 bg-white dark:bg-slate-800 p-4 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl text-center space-y-3 relative overflow-hidden">
           <div className="w-32 h-32 mx-auto bg-slate-50 dark:bg-slate-900 p-3 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-center relative overflow-hidden">

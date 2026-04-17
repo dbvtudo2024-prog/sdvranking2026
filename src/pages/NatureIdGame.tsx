@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Leaf, Trophy, RefreshCcw, TreePine, Home, Lock, RefreshCw } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
+import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -193,6 +194,10 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
         onRefresh={resetGame}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Cenário', value: `${currentStep + 1}/${questions.length}` },
+        { label: 'Pontos', value: score }
+      ]} />
       <div className="flex-1 overflow-y-auto custom-scrollbar">
       <GameInstructions
         isOpen={showInstructions}

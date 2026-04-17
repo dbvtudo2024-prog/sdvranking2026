@@ -5,6 +5,7 @@ import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Brain, CheckCircle2 } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface MemoryGameProps {
   user: AuthUser;
@@ -438,6 +439,10 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         onRefresh={() => initializeGame(difficulty)}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Tempo', value: formatTime(seconds) },
+        { label: 'Movimentos', value: moves }
+      ]} />
       <div className="flex-1 overflow-y-auto px-2 pb-10 pt-4">
         <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 max-w-[280px] mx-auto' : 'grid-cols-4'} gap-2 sm:gap-3`}>
           {cards.map((card) => (

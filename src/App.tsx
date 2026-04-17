@@ -73,8 +73,6 @@ const App: React.FC = () => {
   const [scrambledVerseOverride, setScrambledVerseOverride] = useState(false);
   const [natureIdOverride, setNatureIdOverride] = useState(false);
   const [firstAidOverride, setFirstAidOverride] = useState(false);
-  const [brickBreakerOverride, setBrickBreakerOverride] = useState(false);
-  const [mahjongOverride, setMahjongOverride] = useState(false);
 
   useEffect(() => {
     setIsGameActive(false);
@@ -160,8 +158,6 @@ const App: React.FC = () => {
         setScrambledVerseOverride(config.scrambled_verse_override);
         setNatureIdOverride(config.nature_id_override);
         setFirstAidOverride(config.first_aid_override);
-        setBrickBreakerOverride(config.brick_breaker_override);
-        setMahjongOverride(config.mahjong_override);
       },
       onMembers: (data) => {
         console.log("[App] Membros recebidos:", data.length);
@@ -288,7 +284,7 @@ const App: React.FC = () => {
     if (updatedMember) handleUpdateMember(updatedMember);
   }, [handleUpdateMember]);
 
-  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'mahjong' | 'brickbreaker') => {
+  const handleResetRanking = useCallback(async (type: 'members' | 'quiz' | 'memory' | 'specialty' | '1x1' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid') => {
     const updatedMembers = members.map(m => {
       const newScores = (m.scores || []).map(s => {
         const news = { ...s };
@@ -306,8 +302,6 @@ const App: React.FC = () => {
         else if (type === 'scrambledverse') news.scrambledVerseGame = 0;
         else if (type === 'natureid') news.natureIdGame = 0;
         else if (type === 'firstaid') news.firstAidGame = 0;
-        else if (type === 'mahjong') news.mahjongGame = 0;
-        else if (type === 'brickbreaker') news.brickBreakerGame = 0;
         return news;
       });
       return { ...m, scores: newScores };
@@ -400,7 +394,7 @@ const App: React.FC = () => {
       case 'leadership': return <Leadership members={members} isDarkMode={isDarkMode} />;
       case 'pathfinders': return <Pathfinders members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} brickBreakerOverride={brickBreakerOverride} mahjongOverride={mahjongOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
@@ -433,8 +427,6 @@ const App: React.FC = () => {
       scrambledVerseOverride={scrambledVerseOverride} onToggleScrambledVerseOverride={async () => { const nv = !scrambledVerseOverride; setScrambledVerseOverride(nv); await DatabaseService.updateGameConfig({ scrambled_verse_override: nv }); }}
       natureIdOverride={natureIdOverride} onToggleNatureIdOverride={async () => { const nv = !natureIdOverride; setNatureIdOverride(nv); await DatabaseService.updateGameConfig({ nature_id_override: nv }); }}
       firstAidOverride={firstAidOverride} onToggleFirstAidOverride={async () => { const nv = !firstAidOverride; setFirstAidOverride(nv); await DatabaseService.updateGameConfig({ first_aid_override: nv }); }}
-      brickBreakerOverride={brickBreakerOverride} onToggleBrickBreakerOverride={async () => { const nv = !brickBreakerOverride; setBrickBreakerOverride(nv); await DatabaseService.updateGameConfig({ brick_breaker_override: nv }); }}
-      mahjongOverride={mahjongOverride} onToggleMahjongOverride={async () => { const nv = !mahjongOverride; setMahjongOverride(nv); await DatabaseService.updateGameConfig({ mahjong_override: nv }); }} 
       isDarkMode={isDarkMode} />;
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
     }

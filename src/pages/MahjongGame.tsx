@@ -50,10 +50,16 @@ const ICONS = [
 ];
 
 const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember, onBack, isDarkMode, override }) => {
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(() => {
+    const saved = localStorage.getItem(`mahjong_level_${user.id}`);
+    return saved ? parseInt(saved) : 1;
+  });
+  const [score, setScore] = useState(() => {
+    const saved = localStorage.getItem(`mahjong_score_${user.id}`);
+    return saved ? parseInt(saved) : 0;
+  });
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
@@ -94,31 +100,27 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   useEffect(() => {
     scoreRef.current = score;
     levelRef.current = level;
-  }, [score, level]);
+    // Always keep localStorage in sync
+    localStorage.setItem(`mahjong_level_${user.id}`, String(level));
+    localStorage.setItem(`mahjong_score_${user.id}`, String(score));
+  }, [score, level, user.id]);
 
   useEffect(() => {
     memberRef.current = currentMember;
   }, [currentMember]);
 
   useEffect(() => {
-    const savedLevel = localStorage.getItem(`mahjong_level_${user.id}`);
-    const savedScore = localStorage.getItem(`mahjong_score_${user.id}`);
-    
-    if (savedLevel) setLevel(parseInt(savedLevel));
-    if (savedScore) setScore(parseInt(savedScore));
-    
     const handleBeforeUnload = () => {
       saveProgress(levelRef.current, scoreRef.current);
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     
-    // Auto-save on unmount
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       saveProgress(levelRef.current, scoreRef.current);
     };
-  }, []);
+  }, [user.id]);
 
   const saveProgress = (currentLevel: number, currentScore: number) => {
     localStorage.setItem(`mahjong_level_${user.id}`, String(currentLevel));
@@ -135,13 +137,10 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       mahjongGame: points,
       date: new Date().toLocaleDateString('pt-BR')
     };
-    onUpdateMember({
-      ...currentMember,
-      scores: [...(currentMember.scores || []), newScore]
-    });
+    // Removido onUpdateMember para tirar o jogo do ranking de pontos semanal
     localStorage.setItem(`mahjong_level_${user.id}`, '1');
     localStorage.setItem(`mahjong_score_${user.id}`, '0');
-  }, [score, seconds, currentMember, onUpdateMember, user.id]);
+  }, [user.id]);
 
   useEffect(() => {
     if (isGameOver) {
@@ -479,26 +478,6 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleFinish = () => {
-    if (currentMember) {
-      const points = Math.max(10, Math.floor(score * 2 - seconds / 10));
-      const newScore: Score = {
-        type: 'game',
-        gameId: 'mahjongGame',
-        points: points,
-        mahjongGame: points,
-        date: new Date().toLocaleDateString('pt-BR')
-      };
-      onUpdateMember({
-        ...currentMember,
-        scores: [...(currentMember.scores || []), newScore]
-      });
-      localStorage.setItem(`mahjong_level_${user.id}`, '1');
-      localStorage.setItem(`mahjong_score_${user.id}`, '0');
-    }
-    onBack();
-  };
-
   const handleExit = () => {
     saveProgress(level, score);
     onBack();
@@ -672,9 +651,15 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pontos Conquistados</p>
               <div className="mt-4 text-xs font-bold text-slate-500">Tempo Total: {formatTime(seconds)}</div>
             </div>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse mb-6">
               Seu progresso foi salvo automaticamente!
             </p>
+            <button 
+              onClick={handleExit}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-sm"
+            >
+              SAIR DO JOGO
+            </button>
           </div>
         ) : (
           <div className="relative w-full max-w-4xl h-[80vh] flex items-center justify-center">

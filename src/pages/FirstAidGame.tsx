@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, HeartPulse, Trophy, AlertCircle, RefreshCcw, Activity, Home, Lock, RefreshCw } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
@@ -181,6 +182,10 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
         onRefresh={resetGame}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Cenário', value: `${currentStep + 1}/${questions.length}` },
+        { label: 'Pontos', value: score }
+      ]} />
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <GameInstructions
         isOpen={showInstructions}

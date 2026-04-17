@@ -10,7 +10,7 @@ interface RankingProps {
 }
 
 type TabType = 'members' | 'units' | 'games';
-type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'brickbreaker' | 'mahjong';
+type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid';
 
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
@@ -37,14 +37,16 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       
       // Se for do tipo 'game', usamos o campo 'points' ou o campo específico do jogo
       if (s.type === 'game') {
+        // Ignorar Mahjong e Brick Breaker do ranking
+        if (s.gameId === 'mahjongGame' || s.gameId === 'brickBreakerGame') return acc;
+
         if (s.points !== undefined) return acc + (Number(s.points) || 0);
         
         // Se não tem 'points', procuramos pelo campo específico
         const gameKeys = [
           'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
           'puzzleGame', 'knotsGame', 'specialtyTrailGame',
-          'scrambledVerseGame', 'natureIdGame', 'firstAidGame',
-          'mahjongGame', 'brickBreakerGame'
+          'scrambledVerseGame', 'natureIdGame', 'firstAidGame'
         ];
         for (const key of gameKeys) {
           if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
@@ -55,14 +57,15 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       // Fallback para registros antigos sem 'type'
       let gamePoints = 0;
       if (s.gameId && s.points) {
-        gamePoints += Number(s.points) || 0;
+        if (s.gameId !== 'mahjongGame' && s.gameId !== 'brickBreakerGame') {
+          gamePoints += Number(s.points) || 0;
+        }
       }
       
       const gameKeys = [
         'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
         'puzzleGame', 'knotsGame', 'specialtyTrailGame',
-        'scrambledVerseGame', 'natureIdGame', 'firstAidGame',
-        'mahjongGame', 'brickBreakerGame'
+        'scrambledVerseGame', 'natureIdGame', 'firstAidGame'
       ];
       
       gameKeys.forEach(key => {
@@ -110,8 +113,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return data.sort((a, b) => calculateSpecific(b, 'scrambledVerseGame') - calculateSpecific(a, 'scrambledVerseGame'));
       if (gameTab === 'natureid') return data.sort((a, b) => calculateSpecific(b, 'natureIdGame') - calculateSpecific(a, 'natureIdGame'));
       if (gameTab === 'firstaid') return data.sort((a, b) => calculateSpecific(b, 'firstAidGame') - calculateSpecific(a, 'firstAidGame'));
-      if (gameTab === 'brickbreaker') return data.sort((a, b) => calculateSpecific(b, 'brickBreakerGame') - calculateSpecific(a, 'brickBreakerGame'));
-      if (gameTab === 'mahjong') return data.sort((a, b) => calculateSpecific(b, 'mahjongGame') - calculateSpecific(a, 'mahjongGame'));
       return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
     }
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
@@ -133,8 +134,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return calculateSpecific(m, 'scrambledVerseGame');
       if (gameTab === 'natureid') return calculateSpecific(m, 'natureIdGame');
       if (gameTab === 'firstaid') return calculateSpecific(m, 'firstAidGame');
-      if (gameTab === 'brickbreaker') return calculateSpecific(m, 'brickBreakerGame');
-      if (gameTab === 'mahjong') return calculateSpecific(m, 'mahjongGame');
       return calculateGamesTotal(m);
     }
     return calculateWeeklyTotal(m);
@@ -188,8 +187,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           <GameTabButton type="scrambledverse" label="Versículo" />
           <GameTabButton type="natureid" label="Natureza" />
           <GameTabButton type="firstaid" label="Socorros" />
-          <GameTabButton type="brickbreaker" label="Blocos" />
-          <GameTabButton type="mahjong" label="Mahjong" />
         </div>
       )}
       
@@ -222,8 +219,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-slate-400 uppercase">V:{calculateSpecific(podiumSlots[1], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">Nat:{calculateSpecific(podiumSlots[1], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-slate-400 uppercase">Soc:{calculateSpecific(podiumSlots[1], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">BB:{calculateSpecific(podiumSlots[1], 'brickBreakerGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">MJ:{calculateSpecific(podiumSlots[1], 'mahjongGame')}</span>
                   </div>
                 )}
               </div>
@@ -256,8 +251,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-blue-400 uppercase">V:{calculateSpecific(podiumSlots[0], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">Nat:{calculateSpecific(podiumSlots[0], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-blue-400 uppercase">Soc:{calculateSpecific(podiumSlots[0], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">BB:{calculateSpecific(podiumSlots[0], 'brickBreakerGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">MJ:{calculateSpecific(podiumSlots[0], 'mahjongGame')}</span>
                   </div>
                 )}
               </div>
@@ -291,8 +284,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     <span className="text-[6px] font-bold text-amber-400 uppercase">V:{calculateSpecific(podiumSlots[2], 'scrambledVerseGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">Nat:{calculateSpecific(podiumSlots[2], 'natureIdGame')}</span>
                     <span className="text-[6px] font-bold text-amber-400 uppercase">Soc:{calculateSpecific(podiumSlots[2], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">BB:{calculateSpecific(podiumSlots[2], 'brickBreakerGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">MJ:{calculateSpecific(podiumSlots[2], 'mahjongGame')}</span>
                   </div>
                 )}
               </div>
@@ -325,8 +316,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                       <span className="text-[7px] font-bold text-slate-400 uppercase">V: {calculateSpecific(m, 'scrambledVerseGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Nat: {calculateSpecific(m, 'natureIdGame')}</span>
                       <span className="text-[7px] font-bold text-slate-400 uppercase">Soc: {calculateSpecific(m, 'firstAidGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">BB: {calculateSpecific(m, 'brickBreakerGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">MJ: {calculateSpecific(m, 'mahjongGame')}</span>
                     </div>
                   )}
                 </div>

@@ -4,6 +4,7 @@ import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home, Gamepad2
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthUser, Member, Score, UserRole } from '@/types';
 import GameHeader from '@/components/GameHeader';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -31,7 +32,7 @@ interface Brick {
 
 const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, override }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished' | 'won_level'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
@@ -44,97 +45,119 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldosonic@gmail.com',
   [user]);
 
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
-
-  const hasPlayedThisWeek = useMemo(() => {
-    if (override || isAdmin) return false;
-    if (!currentMember?.scores) return false;
-
-    const parseScoreDate = (dateStr: string) => {
-      if (dateStr.includes('T')) return new Date(dateStr);
-      const [day, month, year] = dateStr.split('/').map(Number);
-      return new Date(year, month - 1, day);
-    };
-
-    return (currentMember.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      const matchesGame = s.gameId === 'brickBreakerGame' || (s as any).brickBreakerGame !== undefined;
-      return matchesGame && d >= cycleStart;
-    });
-  }, [currentMember, override, isAdmin, cycleStart]);
-
-  const isAvailable = useMemo(() => {
-    if (override || isAdmin) return true;
-    const now = new Date();
-    const day = now.getDay();
-    return day >= 0 && day <= 4; // Sunday to Thursday
-  }, [override, isAdmin]);
-
   // Game constants
   const PADDLE_HEIGHT = 10;
   const INITIAL_PADDLE_WIDTH = 75;
   const BALL_RADIUS = 6;
-  const BRICK_ROW_COUNT = 5;
   const BRICK_COLUMN_COUNT = 8;
-  const BRICK_PADDING = 10;
+  const BRICK_PADDING = 8;
   const BRICK_OFFSET_TOP = 30;
-  const BRICK_OFFSET_LEFT = 20;
+  const BRICK_OFFSET_LEFT = 15;
+
+  const LEVEL_MAPS = [
+    // Nível 1: Coração (Vermelho/Azul)
+    [
+      [0, 1, 1, 0, 0, 1, 1, 0],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [0, 1, 1, 1, 1, 1, 1, 0],
+      [0, 0, 1, 1, 1, 1, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 0]
+    ],
+    // Nível 2: Escudo com Centro de Aço
+    [
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 2, 2, 2, 2, 1, 1],
+      [1, 2, -1, 1, 1, -1, 2, 1],
+      [1, 2, 1, 1, 1, 1, 2, 1],
+      [0, 1, 2, 2, 2, 2, 1, 0],
+      [0, 0, 1, 1, 1, 1, 0, 0]
+    ],
+    // Nível 3: O X de Obstáculos
+    [
+      [-1, 1, 0, 0, 0, 0, 1, -1],
+      [1, -1, 1, 1, 1, 1, -1, 1],
+      [0, 1, -1, 2, 2, -1, 1, 0],
+      [0, 1, 2, -1, -1, 2, 1, 0],
+      [1, -1, 1, 1, 1, 1, -1, 1],
+      [-1, 1, 0, 0, 0, 0, 1, -1]
+    ],
+    // Nível 4: Losangos de Ouro
+    [
+      [0, 0, 0, 1, 1, 0, 0, 0],
+      [0, 0, 1, 2, 2, 1, 0, 0],
+      [0, 1, 2, -1, -1, 2, 1, 0],
+      [1, 2, -1, 0, 0, -1, 2, 1],
+      [0, 1, 2, -1, -1, 2, 1, 0],
+      [0, 0, 1, 2, 2, 1, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 0]
+    ],
+    // Nível 5: Invasão Espacial (Robot face)
+    [
+      [1, 0, 0, 0, 0, 0, 0, 1],
+      [0, 1, 0, 0, 0, 0, 1, 0],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, -1, 1, -1, -1, 1, -1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [0, 1, 2, 2, 2, 2, 1, 0],
+      [0, 0, 1, 1, 1, 1, 0, 0]
+    ]
+  ];
 
   // Mutable game state for the loop
   const paddleRef = useRef({ x: 0, width: INITIAL_PADDLE_WIDTH });
   const ballsRef = useRef<Ball[]>([]);
   const bricksRef = useRef<Brick[][]>([]);
   const animationFrameRef = useRef<number>(0);
-  const bonusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bonusTimerRef = useRef<any>(null);
 
   const initBricks = useCallback(() => {
     if (!canvasRef.current) return;
+    const mapIndex = (level - 1) % LEVEL_MAPS.length;
+    const currentMap = LEVEL_MAPS[mapIndex];
     const bricks: Brick[][] = [];
     const brickWidth = (canvasRef.current.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-    const brickHeight = 20;
+    const brickHeight = 18;
 
     for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
       bricks[c] = [];
-      for (let r = 0; r < BRICK_ROW_COUNT; r++) {
+      for (let r = 0; r < currentMap.length; r++) {
+        const brickType = currentMap[r][c];
+        if (brickType === 0) {
+           bricks[c][r] = { x: 0, y: 0, status: 0 };
+           continue;
+        }
+
         const bonusRand = Math.random();
         let bonus: 'multiball' | 'expand' | undefined = undefined;
-        if (bonusRand < 0.05) bonus = 'multiball';
-        else if (bonusRand < 0.1) bonus = 'expand';
+        if (brickType > 0) { // Only destructive bricks have bonus
+          if (bonusRand < 0.08) bonus = 'multiball';
+          else if (bonusRand < 0.15) bonus = 'expand';
+        }
 
         bricks[c][r] = { 
           x: c * (brickWidth + BRICK_PADDING) + BRICK_OFFSET_LEFT, 
           y: r * (brickHeight + BRICK_PADDING) + BRICK_OFFSET_TOP, 
-          status: 1,
+          status: brickType,
           bonus
         };
       }
     }
     bricksRef.current = bricks;
-  }, []);
+  }, [level]);
 
   const resetBall = useCallback(() => {
     if (!canvasRef.current) return;
+    const speed = 3.5 + (level - 1) * 0.5; // Increasing speed more aggressively
     ballsRef.current = [{
       x: canvasRef.current.width / 2,
-      y: canvasRef.current.height - 30,
-      dx: 3 * (Math.random() > 0.5 ? 1 : -1),
-      dy: -3,
+      y: canvasRef.current.height - 35,
+      dx: (speed * 0.7) * (Math.random() > 0.5 ? 1 : -1),
+      dy: -speed,
       radius: BALL_RADIUS
     }];
     paddleRef.current.x = (canvasRef.current.width - paddleRef.current.width) / 2;
-  }, []);
+  }, [level]);
 
   const startGame = () => {
     setGameState('playing');
@@ -156,28 +179,11 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   };
 
   const handleFinish = useCallback(() => {
-    if (!currentMember) return;
-
-    const points = 50; 
-    const newScore: Score = {
-      type: 'game',
-      gameId: 'brickBreakerGame',
-      points,
-      brickBreakerGame: points,
-      date: new Date().toLocaleDateString('pt-BR')
-    };
-
-    const updatedMember = {
-      ...currentMember,
-      scores: [...(currentMember.scores || []), newScore]
-    };
-
-    onUpdateMember(updatedMember);
+    // Apenas encerra o jogo sem salvar no perfil do membro para não entrar no ranking
     setGameState('finished');
-  }, [currentMember, onUpdateMember]);
+  }, []);
 
   useEffect(() => {
-    if (hasPlayedThisWeek) return;
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d')!;
@@ -203,67 +209,97 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
     const drawBricks = () => {
       const brickWidth = (canvas.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-      const brickHeight = 20;
+      const brickHeight = 18;
+      const mapIndex = (level - 1) % LEVEL_MAPS.length;
+      const currentMapRows = LEVEL_MAPS[mapIndex].length;
 
       for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
-        for (let r = 0; r < BRICK_ROW_COUNT; r++) {
+        for (let r = 0; r < currentMapRows; r++) {
           const b = bricksRef.current[c][r];
-          if (b.status === 1) {
-            ctx.beginPath();
+          if (!b || b.status === 0) continue;
+          
+          ctx.beginPath();
+          // ctx.roundRect is supported in modern browsers
+          if (ctx.roundRect) {
+            ctx.roundRect(b.x, b.y, brickWidth, brickHeight, 4);
+          } else {
             ctx.rect(b.x, b.y, brickWidth, brickHeight);
-            
-            if (b.bonus === 'multiball') ctx.fillStyle = "#f59e0b"; // Amber
-            else if (b.bonus === 'expand') ctx.fillStyle = "#10b981"; // Emerald
-            else {
+          }
+          
+          if (b.status === -1) {
+            ctx.fillStyle = "#475569"; // Obstáculo 
+            ctx.strokeStyle = "#94a3b8";
+          } else if (b.bonus === 'multiball') {
+            ctx.fillStyle = "#f59e0b"; // Amber
+            ctx.strokeStyle = "#fbbf24";
+          } else if (b.bonus === 'expand') {
+            ctx.fillStyle = "#10b981"; // Emerald
+            ctx.strokeStyle = "#34d399";
+          } else {
+            if (b.status === 2) {
+              ctx.fillStyle = "#7c3aed"; // Violet
+              ctx.strokeStyle = "#a78bfa";
+            } else {
               const colors = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"];
               ctx.fillStyle = colors[r % colors.length];
+              ctx.strokeStyle = "rgba(255,255,255,0.2)";
             }
-            
-            ctx.fill();
-            ctx.strokeStyle = "rgba(0,0,0,0.1)";
-            ctx.stroke();
-            ctx.closePath();
           }
+          
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.closePath();
         }
       }
     };
 
     const collisionDetection = () => {
       const brickWidth = (canvas.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-      const brickHeight = 20;
+      const brickHeight = 18;
+      const mapIndex = (level - 1) % LEVEL_MAPS.length;
+      const currentMapRows = LEVEL_MAPS[mapIndex].length;
 
       for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
-        for (let r = 0; r < BRICK_ROW_COUNT; r++) {
+        for (let r = 0; r < currentMapRows; r++) {
           const b = bricksRef.current[c][r];
-          if (b.status === 1) {
-            ballsRef.current.forEach(ball => {
-              if (ball.x > b.x && ball.x < b.x + brickWidth && ball.y > b.y && ball.y < b.y + brickHeight) {
-                ball.dy = -ball.dy;
-                b.status = 0;
-                setScore(s => s + 10);
+          if (!b || b.status === 0) continue;
 
-                // Handle Bonus
-                if (b.bonus === 'multiball') {
-                  ballsRef.current.push(
-                    { ...ball, dx: ball.dx + 1, dy: -ball.dy },
-                    { ...ball, dx: ball.dx - 1, dy: -ball.dy }
-                  );
-                } else if (b.bonus === 'expand') {
-                  paddleRef.current.width = INITIAL_PADDLE_WIDTH * 1.5;
-                  if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current);
-                  bonusTimerRef.current = setTimeout(() => {
-                    paddleRef.current.width = INITIAL_PADDLE_WIDTH;
-                  }, 10000);
-                }
+          ballsRef.current.forEach(ball => {
+            if (ball.x + ball.radius > b.x && ball.x - ball.radius < b.x + brickWidth && 
+                ball.y + ball.radius > b.y && ball.y - ball.radius < b.y + brickHeight) {
+              
+              const fromTop = Math.abs(ball.y - b.y);
+              const fromBottom = Math.abs(ball.y - (b.y + brickHeight));
+              const fromLeft = Math.abs(ball.x - b.x);
+              const fromRight = Math.abs(ball.x - (b.x + brickWidth));
+              const min = Math.min(fromTop, fromBottom, fromLeft, fromRight);
 
-                // Check Win
-                const activeBricks = bricksRef.current.flat().filter(br => br.status === 1).length;
-                if (activeBricks === 0) {
-                  handleFinish();
+              if (min === fromTop || min === fromBottom) ball.dy = -ball.dy;
+              else ball.dx = -ball.dx;
+
+              if (b.status > 0) {
+                b.status--;
+                if (b.status === 0) {
+                  setScore(s => s + (b.bonus ? 25 : 10));
+                  if (b.bonus === 'multiball') {
+                    ballsRef.current.push(
+                      { ...ball, dx: ball.dx + 1.5, dy: -ball.dy },
+                      { ...ball, dx: ball.dx - 1.5, dy: -ball.dy }
+                    );
+                  } else if (b.bonus === 'expand') {
+                    paddleRef.current.width = INITIAL_PADDLE_WIDTH * 1.5;
+                    if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current);
+                    bonusTimerRef.current = setTimeout(() => {
+                      paddleRef.current.width = INITIAL_PADDLE_WIDTH;
+                    }, 10000);
+                  }
+                } else {
+                  setScore(s => s + 5);
                 }
               }
-            });
-          }
+            }
+          });
         }
       }
     };
@@ -279,7 +315,6 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
       const newBalls: Ball[] = [];
       ballsRef.current.forEach(ball => {
-        // Wall collisions
         if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
           ball.dx = -ball.dx;
         }
@@ -287,13 +322,11 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
           ball.dy = -ball.dy;
         } else if (ball.y + ball.dy > canvas.height - ball.radius - PADDLE_HEIGHT - 5) {
           if (ball.x > paddleRef.current.x && ball.x < paddleRef.current.x + paddleRef.current.width) {
-            // Hit paddle - change angle based on where it hit
             const hitPos = (ball.x - (paddleRef.current.x + paddleRef.current.width / 2)) / (paddleRef.current.width / 2);
             ball.dx = hitPos * 5;
             ball.dy = -ball.dy;
           } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-            // Ball lost
-            return; // Don't add to newBalls
+            return;
           }
         }
 
@@ -315,6 +348,11 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         });
       }
 
+      const activeBricks = bricksRef.current.flat().filter(br => br.status > 0).length;
+      if (activeBricks === 0) {
+        setGameState('won_level');
+      }
+
       animationFrameRef.current = requestAnimationFrame(draw);
     };
 
@@ -323,7 +361,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     }
 
     return () => cancelAnimationFrame(animationFrameRef.current);
-  }, [gameState, resetBall, initBricks, hasPlayedThisWeek, handleFinish]);
+  }, [gameState, resetBall, initBricks, handleFinish]);
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current) return;
@@ -341,60 +379,17 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     }
   };
 
-  if (!isAvailable && !override && !isAdmin) {
-    return (
-      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-            <Play size={48} className="text-slate-600" />
-          </div>
-          <h2 className="text-2xl font-black text-white uppercase mb-2">Indisponível</h2>
-          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-            Este jogo só está disponível de domingo ao meio-dia até quinta-feira.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const nextLevel = () => {
+    setLevel(l => l + 1);
+    setGameState('playing');
+  };
 
-  if (hasPlayedThisWeek && !override && !isAdmin) {
-    return (
-      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-24 h-24 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle2 size={48} className="text-green-400" />
-          </div>
-          <h2 className="text-2xl font-black text-white uppercase mb-2">Missão Cumprida!</h2>
-          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-            Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (gameState === 'finished') {
-    return (
-      <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-        <GameHeader title="Quebra-Tudo" user={user} onBack={onBack} />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mb-6 shadow-lg"
-          >
-            <Trophy size={48} className="text-slate-900" />
-          </motion.div>
-          <h2 className="text-3xl font-black text-white uppercase mb-2">Parabéns!</h2>
-          <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-            Você destruiu todos os blocos e ganhou 50 pontos!
-          </p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (gameState === 'playing') {
+      initBricks();
+      resetBall();
+    }
+  }, [level, initBricks, resetBall, gameState]);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-white overflow-hidden">
@@ -402,12 +397,18 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         title="Quebra-Tudo"
         user={user}
         stats={[
+          { label: 'Nível', value: level },
           { label: 'Pontos', value: score },
           { label: 'Vidas', value: lives }
         ]}
         onRefresh={restartGame}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Nível', value: level },
+        { label: 'Pontos', value: score },
+        { label: 'Vidas', value: lives }
+      ]} />
 
       <div className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-b-3xl border-x-4 border-b-4 border-slate-800 overflow-hidden">
         <canvas 
@@ -451,27 +452,38 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
             </motion.div>
           )}
 
-          {(gameState === 'won' || gameState === 'lost') && (
+          {(gameState === 'won' || gameState === 'lost' || gameState === 'won_level') && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-8 text-center"
             >
-              <div className={`w-20 h-20 ${gameState === 'won' ? 'bg-yellow-400' : 'bg-red-500'} rounded-full flex items-center justify-center mb-6 shadow-lg`}>
-                {gameState === 'won' ? <Trophy size={40} /> : <RotateCcw size={40} />}
+              <div className={`w-20 h-20 ${gameState === 'lost' ? 'bg-red-500' : 'bg-yellow-400'} rounded-full flex items-center justify-center mb-6 shadow-lg text-white font-black`}>
+                {gameState === 'lost' ? <RotateCcw size={40} /> : <Trophy size={40} />}
               </div>
               <h2 className="text-3xl font-black uppercase mb-2">
-                {gameState === 'won' ? 'Vitória!' : 'Fim de Jogo'}
+                {gameState === 'won_level' ? 'Nível Concluído!' : (gameState === 'won' ? 'Vitória!' : 'Fim de Jogo')}
               </h2>
               <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-                Pontuação Final: {score}
+                {gameState === 'won_level' ? `Prepare-se para o Nível ${level}` : `Pontuação Final: ${score}`}
               </p>
-              <button 
-                onClick={restartGame}
-                className="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-              >
-                Tentar Novamente
-              </button>
+              
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={gameState === 'won_level' ? nextLevel : restartGame}
+                  className="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm"
+                >
+                  {gameState === 'won_level' ? 'Próximo Nível' : 'Tentar Novamente'}
+                </button>
+                {(gameState === 'won' || gameState === 'won_level') && (
+                  <button 
+                    onClick={handleFinish}
+                    className="w-full py-3 bg-green-600 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                  >
+                    Salvar e Sair
+                  </button>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

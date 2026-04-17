@@ -6,6 +6,7 @@ import { DatabaseService } from '@/db';
 import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, Info, Loader2, MessageSquare, Lock } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
+import GameStatsBar from '@/components/GameStatsBar';
 
 interface ThreeCluesGameProps {
   user: AuthUser;
@@ -251,6 +252,10 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         ]}
         onBack={onBack}
       />
+      <GameStatsBar stats={[
+        { label: 'Questão', value: `${currentQuestionIdx + 1}/${(questions || []).length}` },
+        { label: 'pts', value: score }
+      ]} />
       <div className="flex-1 overflow-y-auto custom-scrollbar">
 
       <div className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
