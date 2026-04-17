@@ -32,7 +32,7 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode }) => {
     try {
       const current = await DatabaseService.getDevotional();
       setDevotional(current);
-      const past = await DatabaseService.getDevotionalHistory(10);
+      const past = await DatabaseService.getDevotionalHistory(1000);
       setHistory(past);
     } catch (err) {
       console.error("Erro ao carregar devocional:", err);
