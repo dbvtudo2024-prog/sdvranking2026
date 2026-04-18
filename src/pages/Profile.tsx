@@ -4,6 +4,7 @@ import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, Badge
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES, BADGE_DEFINITIONS } from '@/constants';
 import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { calculateWeeklyTotal, calculateGamesTotal, calculateSpecific } from '@/helpers/scoreHelpers';
 
 // ICON MAPPING FOR BADGES
 const BADGE_ICONS: { [key: string]: any } = {
@@ -82,6 +83,41 @@ const Profile: React.FC<ProfileProps> = ({
       best: Math.max(0, ...memoryScores)
     };
 
+    // Scrambled Verse Stats
+    const scrolledVerseScores = scores.filter(s => s.scrambledVerseGame !== undefined).map(s => s.scrambledVerseGame || 0);
+    const scrolledVerseStats = {
+      total: scrolledVerseScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...scrolledVerseScores)
+    };
+
+    // Knots Game Stats
+    const knotsScores = scores.filter(s => s.knotsGame !== undefined).map(s => s.knotsGame || 0);
+    const knotsStats = {
+      total: knotsScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...knotsScores)
+    };
+
+    // Nature ID Stats
+    const natureIdScores = scores.filter(s => s.natureIdGame !== undefined).map(s => s.natureIdGame || 0);
+    const natureIdStats = {
+      total: natureIdScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...natureIdScores)
+    };
+
+    // First Aid Stats
+    const firstAidScores = scores.filter(s => s.firstAidGame !== undefined).map(s => s.firstAidGame || 0);
+    const firstAidStats = {
+      total: firstAidScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...firstAidScores)
+    };
+
+    // Specialty Trail Stats
+    const specialtyTrailScores = scores.filter(s => s.specialtyTrailGame !== undefined).map(s => s.specialtyTrailGame || 0);
+    const specialtyTrailStats = {
+      total: specialtyTrailScores.reduce((acc, s) => acc + s, 0),
+      best: Math.max(0, ...specialtyTrailScores)
+    };
+
     // Puzzle Game Stats
     const puzzleScores = scores.filter(s => s.puzzleGame !== undefined).map(s => s.puzzleGame || 0);
     const puzzleStats = {
@@ -110,24 +146,19 @@ const Profile: React.FC<ProfileProps> = ({
       history: studyScores.slice().reverse()
     };
 
-    const weeklyPoints = scores.filter(s => s.type === 'weekly' || (!s.type && !s.gameId && !s.quizCategory)).reduce((acc, curr) => {
-      return acc + 
-        (Number(curr.punctuality) || 0) + 
-        (Number(curr.uniform) || 0) + 
-        (Number(curr.material) || 0) + 
-        (Number(curr.bible) || 0) + 
-        (Number(curr.voluntariness) || 0) + 
-        (Number(curr.activities) || 0) + 
-        (Number(curr.treasury) || 0);
-    }, 0);
-
-    const totalPoints = quizStats.total + memoryStats.total + puzzleStats.total + threeCluesStats.total + specialtyGameStats.total;
+    const totalPoints = calculateGamesTotal(currentMember);
+    const weeklyPoints = calculateWeeklyTotal(currentMember);
 
     return {
       totalPoints,
       weeklyPoints,
       quiz: quizStats,
       memory: memoryStats,
+      scrambledVerse: scrolledVerseStats,
+      knots: knotsStats,
+      natureId: natureIdStats,
+      firstAid: firstAidStats,
+      specialtyTrail: specialtyTrailStats,
       puzzle: puzzleStats,
       threeClues: threeCluesStats,
       specialty: specialtyGameStats,
@@ -245,48 +276,52 @@ const Profile: React.FC<ProfileProps> = ({
         </div>
 
         {/* RESUMO DE PONTUAÇÃO GERAL */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className="bg-gradient-to-br from-[#0061f2] to-[#0052cc] p-8 rounded-[3rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-[#0061f2] p-8 rounded-[3.5rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between border-b-8 border-blue-800">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação Total em Jogos</p>
-              <h3 className="text-4xl font-black tracking-tight">{gameStats.totalPoints} <span className="text-sm opacity-60">pts</span></h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100/60 mb-1">Jogos</p>
+              <h3 className="text-5xl font-black tracking-tighter tabular-nums">{gameStats.totalPoints}</h3>
+              <p className="text-[10px] font-bold text-blue-200/80 uppercase tracking-widest mt-1">Pontos Acumulados</p>
             </div>
-            <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <Trophy size={32} className="text-yellow-400" />
+            <div className="w-20 h-20 rounded-[2rem] bg-white/20 flex items-center justify-center backdrop-blur-md border-2 border-white/30 shrink-0">
+              <Trophy size={40} className="text-yellow-400" />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 rounded-[3rem] text-white shadow-2xl shadow-emerald-500/20 flex items-center justify-between">
+          <div className="bg-emerald-500 p-8 rounded-[3.5rem] text-white shadow-2xl shadow-emerald-500/20 flex items-center justify-between border-b-8 border-emerald-700">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pontuação de Membro (Semanal)</p>
-              <h3 className="text-4xl font-black tracking-tight">{gameStats.weeklyPoints} <span className="text-sm opacity-60">pts</span></h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100/60 mb-1">Membro Semanal</p>
+              <h3 className="text-5xl font-black tracking-tighter tabular-nums">{gameStats.weeklyPoints}</h3>
+              <p className="text-[10px] font-bold text-emerald-100/80 uppercase tracking-widest mt-1">Pontos da Semana</p>
             </div>
-            <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <Star size={32} className="text-yellow-300" fill="currentColor" />
+            <div className="w-20 h-20 rounded-[2rem] bg-white/20 flex items-center justify-center backdrop-blur-md border-2 border-white/30 shrink-0">
+              <Star size={40} className="text-yellow-300" fill="currentColor" />
             </div>
           </div>
         </div>
 
         {/* CONFIGURAÇÕES E PREFERÊNCIAS */}
-        <div className={`${isDarkMode ? 'bg-dark-card border-dark-border' : 'bg-white border-slate-50'} p-8 rounded-[3rem] border shadow-xl shadow-blue-900/5 space-y-6`}>
-          <div className="flex items-center gap-3">
-            <Settings className="text-slate-400" size={24} />
-            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Configurações</h3>
+        <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 space-y-6`}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+              <Settings size={20} />
+            </div>
+            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Configurações de Conta</h3>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-50 text-blue-600'}`}>
-                {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+          <div className={`flex items-center justify-between p-5 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'} rounded-[2rem] border-2`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-100 text-amber-600'}`}>
+                {isDarkMode ? <Moon size={24} /> : <Sun size={24} />}
               </div>
               <div>
-                <p className={`text-[11px] font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>Modo Escuro</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isDarkMode ? 'Ativado' : 'Desativado'}</p>
+                <p className={`text-xs font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>Modo de Exibição</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{isDarkMode ? 'Escuro Ativado' : 'Claro Ativado'}</p>
               </div>
             </div>
             <button 
               onClick={onToggleDarkMode}
-              className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${isDarkMode ? 'bg-amber-500' : 'bg-slate-200'}`}
+              className={`w-14 h-8 rounded-full p-1 transition-all duration-300 relative group ${isDarkMode ? 'bg-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-200'}`}
             >
               <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 transform ${isDarkMode ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
@@ -294,16 +329,25 @@ const Profile: React.FC<ProfileProps> = ({
         </div>
 
         {/* ESPECIALIDADES CONCLUÍDAS */}
-        <div className={`${isDarkMode ? 'bg-dark-card border-dark-border' : 'bg-white border-slate-50'} p-8 rounded-[3rem] border shadow-xl shadow-blue-900/5 space-y-8`}>
-          <div className="flex items-center gap-3">
-            <Medal className="text-amber-500" size={24} />
+        <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 space-y-8`}>
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+              <Medal size={20} />
+            </div>
             <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Especialidades Concluídas</h3>
           </div>
 
-          <div className={`${isDarkMode ? 'bg-amber-900/20 border-amber-800/30' : 'bg-amber-50 border-amber-100'} p-6 rounded-[2rem] border flex flex-col items-center justify-center text-center`}>
-            <p className={`text-[9px] font-black ${isDarkMode ? 'text-amber-400/60' : 'text-amber-300'} uppercase tracking-widest mb-2`}>Total de Especialidades</p>
-            <p className={`text-3xl font-black ${isDarkMode ? 'text-amber-400' : 'text-amber-600'} mb-2`}>{gameStats.study.completed}</p>
-            <ShieldCheck size={20} className={isDarkMode ? 'text-amber-500/40' : 'text-amber-200'} />
+          <div className={`grid grid-cols-2 gap-4`}>
+             <div className={`${isDarkMode ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-100'} p-6 rounded-[2.5rem] border-2 flex flex-col items-center justify-center text-center shadow-lg shadow-amber-500/5`}>
+                <p className={`text-[8px] font-black ${isDarkMode ? 'text-amber-500/60' : 'text-amber-500'} uppercase tracking-widest mb-1.5`}>Total Concluído</p>
+                <p className={`text-5xl font-black ${isDarkMode ? 'text-amber-500' : 'text-amber-600'} leading-none`}>{gameStats.study.completed}</p>
+             </div>
+             <div className={`${isDarkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-100'} p-6 rounded-[2.5rem] border-2 flex flex-col items-center justify-center text-center shadow-lg shadow-blue-500/5`}>
+                <p className={`text-[8px] font-black ${isDarkMode ? 'text-blue-500/60' : 'text-blue-500'} uppercase tracking-widest mb-1.5`}>Último Exame</p>
+                <p className={`text-xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} leading-tight`}>
+                  {gameStats.study.history.length > 0 ? gameStats.study.history[0].specialtyStudyScore : '-'}<span className="text-xs ml-0.5 opacity-60">/10</span>
+                </p>
+             </div>
           </div>
 
           <div className="space-y-4">
@@ -440,6 +484,56 @@ const Profile: React.FC<ProfileProps> = ({
               </div>
               <p className={`text-2xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-700'}`}>{gameStats.threeClues.total} <span className="text-[10px] opacity-50">pts</span></p>
               <p className="text-[8px] font-bold text-purple-400 uppercase mt-1">Recorde: {gameStats.threeClues.best}</p>
+            </div>
+
+            {/* VERSÍCULO EMBARALHADO */}
+            <div className={`${isDarkMode ? 'bg-rose-900/20 border-rose-800/30' : 'bg-rose-50/50 border-rose-100'} p-5 rounded-[2rem] border`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Type size={14} className="text-rose-500" />
+                <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Versículo</p>
+              </div>
+              <p className={`text-2xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-700'}`}>{gameStats.scrambledVerse.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-rose-400 uppercase mt-1">Recorde: {gameStats.scrambledVerse.best}</p>
+            </div>
+
+            {/* NÓS */}
+            <div className={`${isDarkMode ? 'bg-orange-900/20 border-orange-800/30' : 'bg-orange-50/50 border-orange-100'} p-5 rounded-[2rem] border`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={14} className="text-orange-500" />
+                <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Nós</p>
+              </div>
+              <p className={`text-2xl font-black ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>{gameStats.knots.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-orange-400 uppercase mt-1">Recorde: {gameStats.knots.best}</p>
+            </div>
+
+            {/* NATURE_ID */}
+            <div className={`${isDarkMode ? 'bg-lime-900/20 border-lime-800/30' : 'bg-lime-50/50 border-lime-100'} p-5 rounded-[2rem] border`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Star size={14} className="text-lime-500" />
+                <p className="text-[9px] font-black text-lime-600 uppercase tracking-widest">Natureza</p>
+              </div>
+              <p className={`text-2xl font-black ${isDarkMode ? 'text-lime-400' : 'text-lime-700'}`}>{gameStats.natureId.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-lime-400 uppercase mt-1">Recorde: {gameStats.natureId.best}</p>
+            </div>
+
+            {/* PRIMEIROS SOCORROS */}
+            <div className={`${isDarkMode ? 'bg-red-900/20 border-red-800/30' : 'bg-red-50/50 border-red-100'} p-5 rounded-[2rem] border`}>
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldIcon size={14} className="text-red-500" />
+                <p className="text-[9px] font-black text-red-600 uppercase tracking-widest">Socorros</p>
+              </div>
+              <p className={`text-2xl font-black ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>{gameStats.firstAid.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-red-400 uppercase mt-1">Recorde: {gameStats.firstAid.best}</p>
+            </div>
+
+            {/* TRILHA ESPECIALIDADE */}
+            <div className={`${isDarkMode ? 'bg-indigo-900/20 border-indigo-800/30' : 'bg-indigo-50/50 border-indigo-100'} p-5 rounded-[2rem] border`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Map size={14} className="text-indigo-500" />
+                <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Trilha</p>
+              </div>
+              <p className={`text-2xl font-black ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>{gameStats.specialtyTrail.total} <span className="text-[10px] opacity-50">pts</span></p>
+              <p className="text-[8px] font-bold text-indigo-400 uppercase mt-1">Recorde: {gameStats.specialtyTrail.best}</p>
             </div>
           </div>
 

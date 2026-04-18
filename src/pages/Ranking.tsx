@@ -3,6 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { Member, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
+import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
+import MemberProfileModal from '@/components/MemberProfileModal';
 
 interface RankingProps {
   members: Member[];
@@ -15,65 +17,12 @@ type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'p
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
   const [gameTab, setGameTab] = useState<GameTabType>('total');
-
-  const GAME_KEYS = [
-    'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame', 
-    'puzzleGame', 'knotsGame', 'specialtyTrailGame', 
-    'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'specialtyStudyScore'
-  ];
-
-  const calculateSpecific = (member: Member, key: string) => {
-    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => {
-      const s = curr as any;
-      if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-      if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
-      return acc;
-    }, 0);
-  };
-
-  const calculateGamesTotal = (member: Member) => {
-    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, s) => {
-      // Ignorar Mahjong e Brick Breaker do ranking principal de competição
-      if (s.gameId === 'mahjongGame' || s.gameId === 'brickBreakerGame') return acc;
-
-      // Ranking de jogos deve considerar APENAS entradas do tipo 'game' ou que tenham gameId específico
-      // Isso evita que pontuações semanais (lançadas pela liderança) 'vazem' para o ranking de jogos
-      if (s.type === 'game' || s.gameId) {
-        if (s.points !== undefined) return acc + (Number(s.points) || 0);
-        
-        // Verifica as chaves específicas se não houver 'points' genérico
-        for (const key of GAME_KEYS) {
-          if ((s as any)[key] !== undefined) return acc + (Number((s as any)[key]) || 0);
-        }
-      }
-      return acc;
-    }, 0);
-  };
-
-  const calculateWeeklyTotal = (member: Member) => {
-    if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => {
-      // Considera pontuação semanal se tiver o tipo 'weekly' ou se NÃO for jogo
-      // Forçamos a verificação para que entradas de jogos não entrem no total semanal
-      const isWeekly = curr.type === 'weekly' || (!curr.type && !curr.gameId && !curr.quizCategory);
-      if (!isWeekly) return acc;
-
-      return acc + 
-        (Number(curr.punctuality) || 0) + 
-        (Number(curr.uniform) || 0) + 
-        (Number(curr.material) || 0) + 
-        (Number(curr.bible) || 0) + 
-        (Number(curr.voluntariness) || 0) + 
-        (Number(curr.activities) || 0) + 
-        (Number(curr.treasury) || 0);
-    }, 0);
-  };
+  const [selectedProfile, setSelectedProfile] = useState<Member | null>(null);
 
   const calculateGrandTotal = (member: Member) => {
     return calculateWeeklyTotal(member) + calculateGamesTotal(member);
   };
+
 
   const sortedData = useMemo(() => {
     const data = Array.isArray(members) ? [...members] : [];
@@ -187,22 +136,36 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 </p>
                 {tab === 'games' && podiumSlots[1] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">Q:{calculateSpecific(podiumSlots[1], 'quiz')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">M:{calculateSpecific(podiumSlots[1], 'memoryGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">E:{calculateSpecific(podiumSlots[1], 'specialtyGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">3D:{calculateSpecific(podiumSlots[1], 'threeCluesGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">P:{calculateSpecific(podiumSlots[1], 'puzzleGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">N:{calculateSpecific(podiumSlots[1], 'knotsGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">T:{calculateSpecific(podiumSlots[1], 'specialtyTrailGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">V:{calculateSpecific(podiumSlots[1], 'scrambledVerseGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">Nat:{calculateSpecific(podiumSlots[1], 'natureIdGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">Soc:{calculateSpecific(podiumSlots[1], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-slate-400 uppercase">Est:{calculateSpecific(podiumSlots[1], 'specialtyStudyScore')}</span>
+                    {GAME_KEYS.map(key => {
+                      const pts = calculateSpecific(podiumSlots[1]!, key);
+                      if (pts === 0) return null;
+                      return (
+                        <span key={`podium-2-${key}`} className="text-[6px] font-bold text-slate-400 uppercase">
+                          {GAMES_METADATA[key]?.shortLabel || key}:{pts}
+                        </span>
+                      );
+                    })}
+                    {(() => {
+                      const total = calculateGamesTotal(podiumSlots[1]!);
+                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[1]!, k), 0);
+                      const diff = total - knownSum;
+                      if (diff <= 0) return null;
+                      return (
+                        <span key={`podium-2-others`} className="text-[6px] font-bold text-slate-400 uppercase">
+                          O:{diff}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
-              <div className="w-20 h-24 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2">
-                <span className="text-xl font-black text-slate-400 dark:text-slate-500">{getPoints(podiumSlots[1])}</span>
+              <div className="w-20 h-24 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center">
+                <span className={`text-[7px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
+                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                </span>
+                <span className={`text-xl font-black ${tab === 'games' ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {podiumSlots[1] ? getPoints(podiumSlots[1]) : 0}
+                </span>
               </div>
             </div>
 
@@ -220,23 +183,37 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 </p>
                 {tab === 'games' && podiumSlots[0] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">Q:{calculateSpecific(podiumSlots[0], 'quiz')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">M:{calculateSpecific(podiumSlots[0], 'memoryGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">E:{calculateSpecific(podiumSlots[0], 'specialtyGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">3D:{calculateSpecific(podiumSlots[0], 'threeCluesGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">P:{calculateSpecific(podiumSlots[0], 'puzzleGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">N:{calculateSpecific(podiumSlots[0], 'knotsGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">T:{calculateSpecific(podiumSlots[0], 'specialtyTrailGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">V:{calculateSpecific(podiumSlots[0], 'scrambledVerseGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">Nat:{calculateSpecific(podiumSlots[0], 'natureIdGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">Soc:{calculateSpecific(podiumSlots[0], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-blue-400 uppercase">Est:{calculateSpecific(podiumSlots[0], 'specialtyStudyScore')}</span>
+                    {GAME_KEYS.map(key => {
+                      const pts = calculateSpecific(podiumSlots[0]!, key);
+                      if (pts === 0) return null;
+                      return (
+                        <span key={`podium-1-${key}`} className="text-[6px] font-bold text-blue-400 uppercase">
+                          {GAMES_METADATA[key]?.shortLabel || key}:{pts}
+                        </span>
+                      );
+                    })}
+                    {(() => {
+                      const total = calculateGamesTotal(podiumSlots[0]!);
+                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[0]!, k), 0);
+                      const diff = total - knownSum;
+                      if (diff <= 0) return null;
+                      return (
+                        <span key={`podium-1-others`} className="text-[6px] font-bold text-blue-400 uppercase">
+                          O:{diff}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
               <div className="w-24 h-40 bg-gradient-to-b from-white to-yellow-50 dark:from-slate-800 dark:to-slate-900 rounded-t-[2.5rem] shadow-2xl border-t-2 border-yellow-100 dark:border-yellow-900/30 flex flex-col items-center justify-center p-2 text-center">
-                <Trophy size={32} className="text-yellow-400 mb-2" />
-                <span className="text-3xl font-black text-[#0061f2] dark:text-blue-400">{getPoints(podiumSlots[0])}</span>
+                <Trophy size={24} className="text-yellow-400 mb-2" />
+                <span className={`text-[8px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
+                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                </span>
+                <span className={`text-3xl font-black ${tab === 'games' ? 'text-amber-500' : 'text-[#0061f2] dark:text-blue-400'}`}>
+                  {podiumSlots[0] ? getPoints(podiumSlots[0]) : 0}
+                </span>
               </div>
             </div>
 
@@ -254,55 +231,82 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 </p>
                 {tab === 'games' && podiumSlots[2] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">Q:{calculateSpecific(podiumSlots[2], 'quiz')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">M:{calculateSpecific(podiumSlots[2], 'memoryGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">E:{calculateSpecific(podiumSlots[2], 'specialtyGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">3D:{calculateSpecific(podiumSlots[2], 'threeCluesGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">P:{calculateSpecific(podiumSlots[2], 'puzzleGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">N:{calculateSpecific(podiumSlots[2], 'knotsGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">T:{calculateSpecific(podiumSlots[2], 'specialtyTrailGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">V:{calculateSpecific(podiumSlots[2], 'scrambledVerseGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">Nat:{calculateSpecific(podiumSlots[2], 'natureIdGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">Soc:{calculateSpecific(podiumSlots[2], 'firstAidGame')}</span>
-                    <span className="text-[6px] font-bold text-amber-400 uppercase">Est:{calculateSpecific(podiumSlots[2], 'specialtyStudyScore')}</span>
+                    {GAME_KEYS.map(key => {
+                      const pts = calculateSpecific(podiumSlots[2]!, key);
+                      if (pts === 0) return null;
+                      return (
+                        <span key={`podium-3-${key}`} className="text-[6px] font-bold text-amber-400 uppercase">
+                          {GAMES_METADATA[key]?.shortLabel || key}:{pts}
+                        </span>
+                      );
+                    })}
+                    {(() => {
+                      const total = calculateGamesTotal(podiumSlots[2]!);
+                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[2]!, k), 0);
+                      const diff = total - knownSum;
+                      if (diff <= 0) return null;
+                      return (
+                        <span key={`podium-3-others`} className="text-[6px] font-bold text-amber-400 uppercase">
+                          O:{diff}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
-              <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2">
-                <span className="text-xl font-black text-amber-500">{getPoints(podiumSlots[2])}</span>
+              <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center">
+                <span className={`text-[7px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
+                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                </span>
+                <span className={`text-xl font-black text-amber-500`}>
+                  {podiumSlots[2] ? getPoints(podiumSlots[2]) : 0}
+                </span>
               </div>
             </div>
           </div>
 
           {/* LISTAGEM GERAL */}
-          <div className="space-y-3 pb-24">
+          <div className="space-y-4 pb-24">
             {remaining.map((m, idx) => (
-              <div key={`rank-member-${m.id}`} className="flex items-center gap-4 p-4 rounded-[2rem] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 dark:shadow-none">
-                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center font-black text-sm text-slate-400 dark:text-slate-600 shrink-0">{idx + 4}º</div>
-                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-md bg-slate-50 dark:bg-slate-900 shrink-0">
-                  {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 dark:text-slate-700 mt-2" />}
+              <div 
+                key={`rank-member-${m.id}`} 
+                onClick={() => setSelectedProfile(m)}
+                className={`group relative flex items-center gap-4 p-4 rounded-[2.2rem] border transition-all cursor-pointer active:scale-[0.98] ${
+                  isDarkMode 
+                    ? 'bg-slate-800 border-slate-700 hover:border-blue-800 shadow-blue-900/10' 
+                    : 'bg-white border-slate-100 hover:border-blue-100 shadow-blue-900/5'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center font-black text-sm text-slate-400 dark:text-slate-600 shrink-0 border border-slate-100 dark:border-slate-700">{idx + 4}º</div>
+                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-900 shrink-0">
+                  {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="m-auto text-slate-200 dark:text-slate-700 mt-2.5" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm truncate uppercase tracking-tight">{m.name.split(' ')[0]}</h4>
+                <div className="flex-1 min-w-0 pr-2">
+                  <h4 className={`font-black text-sm truncate uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{m.name.split(' ')[0]}</h4>
                   <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{m.unit}</p>
-                  {tab === 'games' && (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">Q: {calculateSpecific(m, 'quiz')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">M: {calculateSpecific(m, 'memoryGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">E: {calculateSpecific(m, 'specialtyGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">3D: {calculateSpecific(m, 'threeCluesGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">P: {calculateSpecific(m, 'puzzleGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">N: {calculateSpecific(m, 'knotsGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">T: {calculateSpecific(m, 'specialtyTrailGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">V: {calculateSpecific(m, 'scrambledVerseGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">Nat: {calculateSpecific(m, 'natureIdGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">Soc: {calculateSpecific(m, 'firstAidGame')}</span>
-                      <span className="text-[7px] font-bold text-slate-400 uppercase">Est: {calculateSpecific(m, 'specialtyStudyScore')}</span>
-                    </div>
-                  )}
                 </div>
-                <div className="text-right shrink-0 px-2">
-                  <p className="text-2xl font-black text-[#0061f2] dark:text-blue-400 leading-none">{getPoints(m)}</p>
+                
+                <div className="flex flex-col gap-1 items-end min-w-[70px]">
+                  <div className={`shrink-0 flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border-2 ${
+                    tab === 'games' 
+                      ? (isDarkMode ? 'bg-amber-900/20 border-amber-800/30' : 'bg-amber-50/50 border-amber-100')
+                      : (isDarkMode ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50/50 border-blue-100')
+                  }`}>
+                    <span className={`text-[7px] font-black uppercase tracking-widest ${
+                      tab === 'games' 
+                        ? (isDarkMode ? 'text-amber-500' : 'text-amber-600')
+                        : (isDarkMode ? 'text-blue-400' : 'text-blue-500')
+                    }`}>
+                      {tab === 'games' ? 'Jogos' : 'Semanal'}
+                    </span>
+                    <span className={`text-base font-black leading-none ${
+                      tab === 'games' 
+                        ? (isDarkMode ? 'text-amber-600' : 'text-amber-700')
+                        : (isDarkMode ? 'text-blue-400' : 'text-blue-700')
+                    }`}>
+                      {getPoints(m)}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -313,23 +317,55 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           {[UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA]
             .map(unit => {
               const unitMembers = members.filter(m => m.unit === unit);
-              const total = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
-              return { unit, total, memberCount: unitMembers.length };
+              const weekly = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
+              const games = unitMembers.reduce((acc, m) => acc + calculateGamesTotal(m), 0);
+              return { unit, weekly, games, memberCount: unitMembers.length };
             })
-            .sort((a, b) => b.total - a.total)
-            .map(({ unit, total, memberCount }) => (
-              <div key={`rank-unit-${unit}`} className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 dark:shadow-none flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <img src={UNIT_LOGOS[unit] || undefined} className="w-12 h-12 object-contain" />
-                  <div>
-                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">{unit}</h3>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">{memberCount} membros</p>
+            .sort((a, b) => b.weekly - a.weekly)
+            .map(({ unit, weekly, games, memberCount }) => (
+              <div 
+                key={`rank-unit-${unit}`} 
+                className={`flex items-center gap-5 p-5 rounded-[2.5rem] border transition-all ${
+                  isDarkMode 
+                    ? 'bg-slate-800 border-slate-700 shadow-blue-900/10' 
+                    : 'bg-white border-slate-100 shadow-blue-900/5'
+                }`}
+              >
+                <div className={`w-16 h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border transition-transform duration-500 overflow-hidden shadow-inner ${
+                  isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
+                }`} style={{ width: '64px', height: '64px' }}>
+                  <img src={UNIT_LOGOS[unit] || undefined} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-base font-black uppercase leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{unit}</h3>
+                  <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md mt-1 ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
+                    <User size={10} />
+                    <span className="text-[8px] font-black uppercase tracking-widest">{memberCount} membros</span>
                   </div>
                 </div>
-                <div className="text-right font-black text-3xl text-[#0061f2] dark:text-blue-400">{total}</div>
+                <div className="flex flex-col items-end">
+                  <div className={`px-4 py-2 rounded-xl border-2 ${
+                    isDarkMode ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50/50 border-blue-100'
+                  }`}>
+                    <span className={`text-[8px] font-black uppercase tracking-widest block mb-0.5 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
+                      Total Semanal
+                    </span>
+                    <span className={`text-xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                      {weekly}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
         </div>
+      )}
+
+      {selectedProfile && (
+        <MemberProfileModal 
+          member={selectedProfile} 
+          onClose={() => setSelectedProfile(null)} 
+          isDarkMode={isDarkMode}
+        />
       )}
     </div>
   );

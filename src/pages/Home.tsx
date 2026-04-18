@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Announcement, AuthUser, Member, BadgeLevel, UserStats } from '@/types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star } from 'lucide-react';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface HomeProps {
   announcements: Announcement[];
@@ -64,15 +65,18 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
   }, [announcements]);
 
   const Shortcut = ({ icon: Icon, label, page, color }: { icon: any, label: string, page: string, color: string }) => (
-    <button 
+    <motion.button 
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.95 }}
       onClick={() => onNavigate(page)}
-      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] shadow-lg border active:scale-95 transition-all ${isDarkMode ? 'bg-dark-card border-dark-border shadow-blue-900/10' : 'bg-white border-slate-50 shadow-slate-200/50'}`}
+      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2.5rem] shadow-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-blue-900/10' : 'bg-white border-slate-100 shadow-slate-200/50'}`}
     >
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg`} style={{ backgroundColor: color }}>
-        <Icon size={24} />
+      <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl mb-1 relative overflow-hidden group`} style={{ backgroundColor: color }}>
+        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Icon size={28} />
       </div>
-      <span className={`text-[10px] font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
-    </button>
+      <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+    </motion.button>
   );
 
   return (
@@ -101,6 +105,97 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
           referrerPolicy="no-referrer"
         />
       </div>
+
+      {/* MURAL DE AVISOS */}
+      {announcements.length > 0 && (
+        <div className="px-6 mt-8">
+          <div className={`relative rounded-[2.5rem] shadow-2xl overflow-hidden group border-2 ${isDarkMode ? 'bg-slate-900 border-blue-900/30 shadow-blue-900/10' : 'bg-white border-blue-100 shadow-blue-900/5'}`}>
+            {/* Background Decor */}
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <ShieldCheck size={120} />
+            </div>
+            <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header */}
+            <div className="px-6 pt-6 flex items-center justify-between pb-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
+                  <div className="relative w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg">
+                    <BellRing size={20} />
+                  </div>
+                </div>
+                <div>
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Mural de Avisos</h3>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Atualizado agora</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-1.5">
+                {announcements.map((_, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setCurrentAvisoIndex(i)}
+                    className={`relative h-1.5 rounded-full transition-all duration-300 overflow-hidden ${i === currentAvisoIndex ? 'w-8 bg-blue-100 dark:bg-blue-900/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
+                  >
+                    {i === currentAvisoIndex && (
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 5, ease: "linear" }}
+                        className="absolute inset-y-0 left-0 bg-blue-500"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="px-6 pb-2 min-h-[110px] relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={announcements[currentAvisoIndex].id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-start gap-2">
+                    <Pin size={14} className="text-blue-400 mt-1 shrink-0 rotate-12" />
+                    <h4 className={`font-black text-base uppercase leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {announcements[currentAvisoIndex].title}
+                    </h4>
+                  </div>
+                  <p className={`text-xs leading-relaxed line-clamp-3 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {announcements[currentAvisoIndex].content}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-wider ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-400'} border border-slate-100 dark:border-slate-700`}>
+                  Postado {announcements[currentAvisoIndex].date}
+                </div>
+              </div>
+              <button 
+                onClick={() => handleShare(announcements[currentAvisoIndex])}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+              >
+                <Share2 size={12} strokeWidth={3} />
+                Compartilhar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DESTAQUE DO DIA - ANIVERSARIANTES */}
       {todayBirthdays.length > 0 && (
