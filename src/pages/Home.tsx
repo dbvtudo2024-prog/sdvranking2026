@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Announcement, AuthUser, Member, BadgeLevel, UserStats } from '@/types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin } from 'lucide-react';
+import { Announcement, AuthUser, Member, BadgeLevel, UserStats, UserRole } from '@/types';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -17,7 +17,65 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge, onUpdateStats }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
   const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
+
+  // Check-in logic
+  const today = new Date().toISOString().split('T')[0];
+  const lastCheckIn = user.stats?.lastCheckInDate;
+  const streak = user.stats?.checkInStreak || 0;
+  
+  const canCheckIn = lastCheckIn !== today;
+  
+  const handleCheckIn = () => {
+    if (!onUpdateStats) return;
+    
+    let newStreak = 1;
+    if (lastCheckIn) {
+      const lastDate = new Date(lastCheckIn);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      if (lastCheckIn === yesterdayStr) {
+        newStreak = streak + 1;
+        // Reward for 7 days
+        if (newStreak === 7 && onAwardBadge) {
+           onAwardBadge('fidelidade_7_dias', BadgeLevel.SILVER);
+        }
+      }
+    }
+    
+    onUpdateStats({
+      lastCheckInDate: today,
+      checkInStreak: newStreak >= 8 ? 1 : (newStreak > 7 ? 1 : newStreak) // Reset logic
+    });
+
+    // Close modal after check-in
+    setTimeout(() => setShowCheckInModal(false), 1500);
+  };
+
+  useEffect(() => {
+    // Check if streak should reset due to missed days
+    if (lastCheckIn && onUpdateStats) {
+      const lastDate = new Date(lastCheckIn);
+      const todayDate = new Date(today);
+      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 1 && lastCheckIn !== today && streak > 0) {
+        onUpdateStats({ checkInStreak: 0 });
+      }
+    }
+  }, [lastCheckIn, today, streak, onUpdateStats]);
+
+  // Handle auto-show modal if can check-in
+  useEffect(() => {
+    if (canCheckIn) {
+      const timer = setTimeout(() => setShowCheckInModal(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [canCheckIn]);
 
   useEffect(() => {
     // AWARD BADGE - Discipline (Sentinela Fiel)
@@ -38,9 +96,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
 
   // Aniversariantes do dia
   const todayBirthdays = useMemo(() => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth();
+    const todayDate = new Date();
+    const currentDay = todayDate.getDate();
+    const currentMonth = todayDate.getMonth();
 
     return safeMembers.filter(m => {
       if (!m.birthday) return false;
@@ -246,6 +304,108 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
           <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />
         </div>
       </div>
+
+      {/* FLOATING ACTION BUTTON / ICON FOR CHECK-IN */}
+      <div className="fixed bottom-44 right-6 z-[100] flex flex-col items-end gap-3 pointer-events-none">
+        <AnimatePresence>
+          {streak > 0 && (
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.8, x: 20 }}
+               animate={{ opacity: 1, scale: 1, x: 0 }}
+               exit={{ opacity: 0, scale: 0.8, x: 20 }}
+               onClick={() => setShowCheckInModal(true)}
+               className={`flex items-center gap-2 px-4 py-3 rounded-2xl shadow-2xl border-2 cursor-pointer active:scale-95 transition-all pointer-events-auto ${isDarkMode ? 'bg-slate-900 border-orange-500/30 shadow-orange-950/20' : 'bg-white border-orange-100 shadow-orange-200/50'}`}
+            >
+               <Flame size={20} className="text-orange-500 fill-orange-500" />
+               <span className={`text-xs font-black uppercase tracking-tight ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>{streak} DIAS</span>
+            </motion.div>
+          )}
+
+          {canCheckIn && (
+            <motion.button 
+               initial={{ opacity: 0, scale: 0.8, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               whileHover={{ scale: 1.05 }}
+               onClick={() => setShowCheckInModal(true)}
+               className="w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-2xl shadow-blue-600/40 flex items-center justify-center animate-bounce hover:animate-none pointer-events-auto"
+            >
+               <Calendar size={28} />
+               <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+               </div>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* CHECK-IN MODAL */}
+      <AnimatePresence>
+        {showCheckInModal && (
+           <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+              <motion.div 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 onClick={() => setShowCheckInModal(false)}
+                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                 className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative border-2 overflow-hidden`}
+              >
+                 <button onClick={() => setShowCheckInModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600"><X size={24} /></button>
+                 
+                 <div className="text-center space-y-6">
+                    <div className="w-20 h-20 rounded-[2rem] bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mx-auto">
+                       <Calendar size={40} />
+                    </div>
+                    
+                    <div>
+                       <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase leading-none">Presença Diária</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Complete 7 dias consecutivos!</p>
+                    </div>
+
+                    <div className="flex justify-center gap-1.5">
+                       <Flame size={20} className="text-orange-500 fill-orange-500" />
+                       <span className="text-xl font-black text-orange-600 dark:text-orange-400">{streak} DIAS SEGUIDOS</span>
+                    </div>
+
+                    <div className="flex justify-between items-center px-1">
+                       {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                          <div key={day} className="flex flex-col items-center gap-2">
+                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                                day <= streak 
+                                   ? 'bg-blue-600 text-white shadow-lg' 
+                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-700'
+                             }`}>
+                                {day <= streak ? <CheckCircle2 size={18} strokeWidth={3} /> : <span className="text-[10px] font-black">{day}</span>}
+                             </div>
+                             <span className="text-[7px] font-black uppercase text-slate-400 tracking-tighter">D{day}</span>
+                          </div>
+                       ))}
+                    </div>
+
+                    {canCheckIn ? (
+                       <button 
+                          onClick={handleCheckIn}
+                          className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 border-b-4 border-blue-900"
+                       >
+                          <ShieldCheck size={20} strokeWidth={3} />
+                          Fazer Check-in de Hoje
+                       </button>
+                    ) : (
+                       <div className="p-4 bg-green-500/10 rounded-2xl border-2 border-dashed border-green-500/30 flex flex-col items-center gap-2">
+                          <CheckCircle2 size={32} className="text-green-500" strokeWidth={3} />
+                          <span className="text-[10px] font-black uppercase text-green-600 tracking-widest">Presença Confirmada!</span>
+                       </div>
+                    )}
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -3,15 +3,16 @@ import React, { useState, useMemo } from 'react';
 import { Member, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
-import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
+import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
 import MemberProfileModal from '@/components/MemberProfileModal';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface RankingProps {
   members: Member[];
   isDarkMode?: boolean;
 }
 
-type TabType = 'members' | 'units' | 'games';
+type TabType = 'members' | 'units' | 'games' | 'hall';
 type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'study';
 
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
@@ -19,29 +20,58 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [gameTab, setGameTab] = useState<GameTabType>('total');
   const [selectedProfile, setSelectedProfile] = useState<Member | null>(null);
 
-  const calculateGrandTotal = (member: Member) => {
-    return calculateWeeklyTotal(member) + calculateGamesTotal(member);
-  };
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
+  const allMonthsWithScores = useMemo(() => {
+    const months = new Set<string>();
+    members.forEach(m => {
+      m.scores.forEach(s => {
+        if (s.date && s.date.length >= 7) {
+          const mStr = s.date.slice(0, 7);
+          // Hall only shows past months (exclude current month)
+          if (mStr !== currentMonth) {
+            months.add(mStr);
+          }
+        }
+      });
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [members, currentMonth]);
 
   const sortedData = useMemo(() => {
     const data = Array.isArray(members) ? [...members] : [];
+    
     if (tab === 'games') {
-      if (gameTab === 'quiz') return data.sort((a, b) => calculateSpecific(b, 'quiz') - calculateSpecific(a, 'quiz'));
-      if (gameTab === 'memory') return data.sort((a, b) => calculateSpecific(b, 'memoryGame') - calculateSpecific(a, 'memoryGame'));
-      if (gameTab === 'specialty') return data.sort((a, b) => calculateSpecific(b, 'specialtyGame') - calculateSpecific(a, 'specialtyGame'));
-      if (gameTab === 'threeclues') return data.sort((a, b) => calculateSpecific(b, 'threeCluesGame') - calculateSpecific(a, 'threeCluesGame'));
-      if (gameTab === 'puzzle') return data.sort((a, b) => calculateSpecific(b, 'puzzleGame') - calculateSpecific(a, 'puzzleGame'));
-      if (gameTab === 'knots') return data.sort((a, b) => calculateSpecific(b, 'knotsGame') - calculateSpecific(a, 'knotsGame'));
-      if (gameTab === 'specialtytrail') return data.sort((a, b) => calculateSpecific(b, 'specialtyTrailGame') - calculateSpecific(a, 'specialtyTrailGame'));
-      if (gameTab === 'scrambledverse') return data.sort((a, b) => calculateSpecific(b, 'scrambledVerseGame') - calculateSpecific(a, 'scrambledVerseGame'));
-      if (gameTab === 'natureid') return data.sort((a, b) => calculateSpecific(b, 'natureIdGame') - calculateSpecific(a, 'natureIdGame'));
-      if (gameTab === 'firstaid') return data.sort((a, b) => calculateSpecific(b, 'firstAidGame') - calculateSpecific(a, 'firstAidGame'));
-      if (gameTab === 'study') return data.sort((a, b) => calculateSpecific(b, 'specialtyStudyScore') - calculateSpecific(a, 'specialtyStudyScore'));
-      return data.sort((a, b) => calculateGamesTotal(b) - calculateGamesTotal(a));
+      if (gameTab === 'total') {
+        return data.sort((a, b) => calculateMonthlyGamesTotal(b, currentMonth) - calculateMonthlyGamesTotal(a, currentMonth));
+      }
+      // For specific games, we need a monthly version of calculateSpecific or filter current scores
+      const getMonthlyPoints = (m: Member, key: string) => {
+        return m.scores
+          .filter(s => s.date && s.date.startsWith(currentMonth))
+          .reduce((acc, curr) => {
+            const s = curr as any;
+            if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
+            if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+            return acc;
+          }, 0);
+      };
+
+      if (gameTab === 'quiz') return data.sort((a, b) => getMonthlyPoints(b, 'quiz') - getMonthlyPoints(a, 'quiz'));
+      if (gameTab === 'memory') return data.sort((a, b) => getMonthlyPoints(b, 'memoryGame') - getMonthlyPoints(a, 'memoryGame'));
+      if (gameTab === 'specialty') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyGame') - getMonthlyPoints(a, 'specialtyGame'));
+      if (gameTab === 'threeclues') return data.sort((a, b) => getMonthlyPoints(b, 'threeCluesGame') - getMonthlyPoints(a, 'threeCluesGame'));
+      if (gameTab === 'puzzle') return data.sort((a, b) => getMonthlyPoints(b, 'puzzleGame') - getMonthlyPoints(a, 'puzzleGame'));
+      if (gameTab === 'knots') return data.sort((a, b) => getMonthlyPoints(b, 'knotsGame') - getMonthlyPoints(a, 'knotsGame'));
+      if (gameTab === 'specialtytrail') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyTrailGame') - getMonthlyPoints(a, 'specialtyTrailGame'));
+      if (gameTab === 'scrambledverse') return data.sort((a, b) => getMonthlyPoints(b, 'scrambledVerseGame') - getMonthlyPoints(a, 'scrambledVerseGame'));
+      if (gameTab === 'natureid') return data.sort((a, b) => getMonthlyPoints(b, 'natureIdGame') - getMonthlyPoints(a, 'natureIdGame'));
+      if (gameTab === 'firstaid') return data.sort((a, b) => getMonthlyPoints(b, 'firstAidGame') - getMonthlyPoints(a, 'firstAidGame'));
+      if (gameTab === 'study') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyStudyScore') - getMonthlyPoints(a, 'specialtyStudyScore'));
     }
+    
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
-  }, [members, tab, gameTab]);
+  }, [members, tab, gameTab, currentMonth]);
 
   const podiumSlots = [sortedData[0] || null, sortedData[1] || null, sortedData[2] || null];
   const remaining = sortedData.slice(3);
@@ -49,18 +79,29 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const getPoints = (m: Member | null) => {
     if (!m) return 0;
     if (tab === 'games') {
-      if (gameTab === 'quiz') return calculateSpecific(m, 'quiz');
-      if (gameTab === 'memory') return calculateSpecific(m, 'memoryGame');
-      if (gameTab === 'specialty') return calculateSpecific(m, 'specialtyGame');
-      if (gameTab === 'threeclues') return calculateSpecific(m, 'threeCluesGame');
-      if (gameTab === 'puzzle') return calculateSpecific(m, 'puzzleGame');
-      if (gameTab === 'knots') return calculateSpecific(m, 'knotsGame');
-      if (gameTab === 'specialtytrail') return calculateSpecific(m, 'specialtyTrailGame');
-      if (gameTab === 'scrambledverse') return calculateSpecific(m, 'scrambledVerseGame');
-      if (gameTab === 'natureid') return calculateSpecific(m, 'natureIdGame');
-      if (gameTab === 'firstaid') return calculateSpecific(m, 'firstAidGame');
-      if (gameTab === 'study') return calculateSpecific(m, 'specialtyStudyScore');
-      return calculateGamesTotal(m);
+      const getMonthlyPoints = (mem: Member, key: string) => {
+        return mem.scores
+          .filter(s => s.date && s.date.startsWith(currentMonth))
+          .reduce((acc, curr) => {
+            const s = curr as any;
+            if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
+            if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+            return acc;
+          }, 0);
+      };
+
+      if (gameTab === 'quiz') return getMonthlyPoints(m, 'quiz');
+      if (gameTab === 'memory') return getMonthlyPoints(m, 'memoryGame');
+      if (gameTab === 'specialty') return getMonthlyPoints(m, 'specialtyGame');
+      if (gameTab === 'threeclues') return getMonthlyPoints(m, 'threeCluesGame');
+      if (gameTab === 'puzzle') return getMonthlyPoints(m, 'puzzleGame');
+      if (gameTab === 'knots') return getMonthlyPoints(m, 'knotsGame');
+      if (gameTab === 'specialtytrail') return getMonthlyPoints(m, 'specialtyTrailGame');
+      if (gameTab === 'scrambledverse') return getMonthlyPoints(m, 'scrambledVerseGame');
+      if (gameTab === 'natureid') return getMonthlyPoints(m, 'natureIdGame');
+      if (gameTab === 'firstaid') return getMonthlyPoints(m, 'firstAidGame');
+      if (gameTab === 'study') return getMonthlyPoints(m, 'specialtyStudyScore');
+      return calculateMonthlyGamesTotal(m, currentMonth);
     }
     return calculateWeeklyTotal(m);
   };
@@ -94,30 +135,89 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8 overflow-y-auto h-full bg-slate-50 dark:bg-[#0f172a]">
-      <div className="bg-[#f1f5f9] dark:bg-slate-800/50 p-1.5 rounded-[2rem] shadow-inner mx-4 mt-6 grid grid-cols-3 gap-1.5">
+      <div className="bg-[#f1f5f9] dark:bg-slate-800/50 p-1.5 rounded-[2rem] shadow-inner mx-4 mt-6 grid grid-cols-4 gap-1.5">
         <TabButton type="members" label="Membro" icon={User} />
         <TabButton type="units" label="Unidade" icon={Shield} />
         <TabButton type="games" label="Jogos" icon={Gamepad2} />
+        <TabButton type="hall" label="Hall" icon={Trophy} />
       </div>
 
       {tab === 'games' && (
-        <div className="flex flex-wrap gap-2 px-4 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
-          <GameTabButton type="total" label="Total" />
-          <GameTabButton type="quiz" label="Quiz" />
-          <GameTabButton type="memory" label="Memória" />
-          <GameTabButton type="specialty" label="Brasões" />
-          <GameTabButton type="threeclues" label="3 Dicas" />
-          <GameTabButton type="puzzle" label="Puzzle" />
-          <GameTabButton type="knots" label="Nós" />
-          <GameTabButton type="specialtytrail" label="Trilha" />
-          <GameTabButton type="scrambledverse" label="Versículo" />
-          <GameTabButton type="natureid" label="Natureza" />
-          <GameTabButton type="firstaid" label="Socorros" />
-          <GameTabButton type="study" label="Estudo" />
+        <div className="px-4 space-y-4">
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+            <GameTabButton type="total" label="Total" />
+            <GameTabButton type="quiz" label="Quiz" />
+            <GameTabButton type="memory" label="Memória" />
+            <GameTabButton type="specialty" label="Brasões" />
+            <GameTabButton type="threeclues" label="3 Dicas" />
+            <GameTabButton type="puzzle" label="Puzzle" />
+            <GameTabButton type="knots" label="Nós" />
+            <GameTabButton type="specialtytrail" label="Trilha" />
+            <GameTabButton type="scrambledverse" label="Versículo" />
+            <GameTabButton type="natureid" label="Natureza" />
+            <GameTabButton type="firstaid" label="Socorros" />
+            <GameTabButton type="study" label="Estudo" />
+          </div>
         </div>
       )}
       
-      {tab !== 'units' ? (
+      {tab === 'hall' ? (
+        <div className="space-y-8 px-4 pb-24">
+           {allMonthsWithScores.map(mStr => {
+              const [y, m] = mStr.split('-');
+              const monthDate = new Date(parseInt(y), parseInt(m) - 1);
+              const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
+              const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+              
+              const monthChampions = [...members]
+                .sort((a, b) => calculateMonthlyGamesTotal(b, mStr) - calculateMonthlyGamesTotal(a, mStr))
+                .slice(0, 3)
+                .filter(ch => calculateMonthlyGamesTotal(ch, mStr) > 0);
+
+              if (monthChampions.length === 0) return null;
+
+              return (
+                <div key={mStr} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-4">
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{monthLabel} {y}</h3>
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    {monthChampions.map((champ, idx) => (
+                      <div key={`${mStr}-${champ.id}`} className={`flex items-center gap-4 p-5 rounded-[2.5rem] border ${
+                        idx === 0 ? 'bg-gradient-to-r from-yellow-50 to-white dark:from-yellow-900/10 dark:to-slate-900 border-yellow-200 dark:border-yellow-900/30' : 
+                        isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
+                      }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${
+                          idx === 0 ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-500/20' :
+                          idx === 1 ? 'bg-slate-200 text-slate-600' :
+                          'bg-orange-300 text-orange-900'
+                        }`}>
+                          {idx + 1}º
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
+                           {champ.photoUrl ? <img src={champ.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-200 dark:text-slate-700" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className={`font-black text-sm uppercase truncate ${idx === 0 ? 'text-yellow-700 dark:text-yellow-500' : 'text-slate-900 dark:text-white'}`}>{champ.name.split(' ')[0]}</p>
+                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{champ.unit}</p>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[8px] font-black uppercase text-slate-400 leading-none mb-1">Pontos Jogos</p>
+                           <p className={`text-xl font-black ${idx === 0 ? 'text-yellow-600' : 'text-slate-600 dark:text-slate-400'}`}>
+                              {calculateMonthlyGamesTotal(champ, mStr)}
+                           </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+           })}
+        </div>
+      ) : tab !== 'units' ? (
         <div className="space-y-8 px-4">
           {/* PÓDIO REESTRUTURADO */}
           <div className="flex items-end justify-center gap-2 pt-6 pb-4">
@@ -137,7 +237,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[1] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const pts = calculateSpecific(podiumSlots[1]!, key);
+                      const getMonthlyPoints = (mem: Member, k: string) => {
+                        return mem.scores
+                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .reduce((acc, curr) => {
+                            const sc = curr as any;
+                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
+                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
+                            return acc;
+                          }, 0);
+                      };
+                      const pts = getMonthlyPoints(podiumSlots[1]!, key);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-2-${key}`} className="text-[6px] font-bold text-slate-400 uppercase">
@@ -145,17 +255,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                         </span>
                       );
                     })}
-                    {(() => {
-                      const total = calculateGamesTotal(podiumSlots[1]!);
-                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[1]!, k), 0);
-                      const diff = total - knownSum;
-                      if (diff <= 0) return null;
-                      return (
-                        <span key={`podium-2-others`} className="text-[6px] font-bold text-slate-400 uppercase">
-                          O:{diff}
-                        </span>
-                      );
-                    })()}
                   </div>
                 )}
               </div>
@@ -184,7 +283,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[0] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const pts = calculateSpecific(podiumSlots[0]!, key);
+                      const getMonthlyPoints = (mem: Member, k: string) => {
+                        return mem.scores
+                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .reduce((acc, curr) => {
+                            const sc = curr as any;
+                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
+                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
+                            return acc;
+                          }, 0);
+                      };
+                      const pts = getMonthlyPoints(podiumSlots[0]!, key);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-1-${key}`} className="text-[6px] font-bold text-blue-400 uppercase">
@@ -192,17 +301,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                         </span>
                       );
                     })}
-                    {(() => {
-                      const total = calculateGamesTotal(podiumSlots[0]!);
-                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[0]!, k), 0);
-                      const diff = total - knownSum;
-                      if (diff <= 0) return null;
-                      return (
-                        <span key={`podium-1-others`} className="text-[6px] font-bold text-blue-400 uppercase">
-                          O:{diff}
-                        </span>
-                      );
-                    })()}
                   </div>
                 )}
               </div>
@@ -212,7 +310,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                   {tab === 'games' ? 'Jogos' : 'Semanal'}
                 </span>
                 <span className={`text-3xl font-black ${tab === 'games' ? 'text-amber-500' : 'text-[#0061f2] dark:text-blue-400'}`}>
-                  {podiumSlots[0] ? getPoints(podiumSlots[0]) : 0}
+                   {podiumSlots[0] ? getPoints(podiumSlots[0]) : 0}
                 </span>
               </div>
             </div>
@@ -232,7 +330,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[2] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const pts = calculateSpecific(podiumSlots[2]!, key);
+                      const getMonthlyPoints = (mem: Member, k: string) => {
+                        return mem.scores
+                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .reduce((acc, curr) => {
+                            const sc = curr as any;
+                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
+                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
+                            return acc;
+                          }, 0);
+                      };
+                      const pts = getMonthlyPoints(podiumSlots[2]!, key);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-3-${key}`} className="text-[6px] font-bold text-amber-400 uppercase">
@@ -240,17 +348,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                         </span>
                       );
                     })}
-                    {(() => {
-                      const total = calculateGamesTotal(podiumSlots[2]!);
-                      const knownSum = GAME_KEYS.reduce((acc, k) => acc + calculateSpecific(podiumSlots[2]!, k), 0);
-                      const diff = total - knownSum;
-                      if (diff <= 0) return null;
-                      return (
-                        <span key={`podium-3-others`} className="text-[6px] font-bold text-amber-400 uppercase">
-                          O:{diff}
-                        </span>
-                      );
-                    })()}
                   </div>
                 )}
               </div>

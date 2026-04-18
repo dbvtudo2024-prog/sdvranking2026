@@ -58,6 +58,9 @@ export interface UserStats {
   totalVerses?: number;
   totalGames?: number;
   totalDevotionals?: number;
+  lastCheckInDate?: string; // "YYYY-MM-DD"
+  checkInStreak?: number;
+  lastMonthlyAwarded?: string; // "YYYY-MM"
 }
 
 export interface Member {
@@ -94,6 +97,8 @@ export interface UserBadge {
   badgeId: string;
   level: BadgeLevel;
   awardedAt: string;
+  points?: number;
+  monthLabel?: string;
 }
 
 export interface BadgeDefinition {
@@ -240,6 +245,7 @@ export interface GameConfig {
   first_aid_override: boolean;
   brick_breaker_override: boolean;
   mahjong_override: boolean;
+  last_monthly_award_month?: string; // "YYYY-MM"
 }
 
 declare global {

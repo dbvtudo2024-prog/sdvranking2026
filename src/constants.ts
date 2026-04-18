@@ -59,6 +59,13 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: BadgeCategory.WISDOM,
     description: 'Estudo de especialidades (Bronze: 1 termo, Prata: 10 termos, Ouro: 50 termos).',
     icon: 'Medal'
+  },
+  {
+    id: 'fidelidade_7_dias',
+    name: 'Mestre da Presença',
+    category: BadgeCategory.COMMITMENT,
+    description: 'Fidelidade absoluta: complete o ciclo de 7 dias de check-in.',
+    icon: 'CheckCircle2'
   }
 ];
 

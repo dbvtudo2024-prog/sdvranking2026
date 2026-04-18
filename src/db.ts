@@ -100,75 +100,84 @@ export const DatabaseService = {
     console.log(`[Realtime] Iniciando canal global: ${channelId}`);
     const channel = supabase.channel(channelId);
 
-    // Fetch initial data
-    if (callbacks.onMembers) {
-      console.log("[Realtime] Buscando membros iniciais...");
-      this.getMembers().then(data => {
-        console.log(`[Realtime] ${data.length} membros carregados.`);
-        callbacks.onMembers!(data);
-      }).catch(err => console.error("[Realtime] Erro membros iniciais:", err));
+    let localMembers: Member[] = [];
+    let localAnnouncements: Announcement[] = [];
+    let localCounselors: CounselorDB[] = [];
 
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, async (payload) => {
-        console.log("[Realtime] Mudança em members:", payload.eventType);
-        const members = await this.getMembers();
-        callbacks.onMembers!(members);
+    // Fetch initial data and setup logic for each table
+    if (callbacks.onMembers) {
+      this.getMembers().then(data => {
+        localMembers = data;
+        callbacks.onMembers!(localMembers);
+      });
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localMembers = [...localMembers, payload.new as Member];
+        } else if (payload.eventType === 'UPDATE') {
+          localMembers = localMembers.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m);
+        } else if (payload.eventType === 'DELETE') {
+          localMembers = localMembers.filter(m => m.id !== payload.old.id);
+        }
+        callbacks.onMembers!([...localMembers]);
       });
     }
 
     if (callbacks.onAnnouncements) {
-      console.log("[Realtime] Buscando avisos iniciais...");
       this.getAnnouncements().then(data => {
-        console.log(`[Realtime] ${data.length} avisos carregados.`);
-        callbacks.onAnnouncements!(data);
-      }).catch(err => console.error("[Realtime] Erro avisos iniciais:", err));
+        localAnnouncements = data;
+        callbacks.onAnnouncements!(localAnnouncements);
+      });
 
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async (payload) => {
-        console.log("[Realtime] Mudança em announcements:", payload.eventType);
-        const announcements = await this.getAnnouncements();
-        callbacks.onAnnouncements!(announcements);
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          localAnnouncements = [payload.new as Announcement, ...localAnnouncements];
+        } else if (payload.eventType === 'UPDATE') {
+          localAnnouncements = localAnnouncements.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a);
+        } else if (payload.eventType === 'DELETE') {
+          localAnnouncements = localAnnouncements.filter(a => a.id !== payload.old.id);
+        }
+        callbacks.onAnnouncements!([...localAnnouncements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       });
     }
 
     if (callbacks.onCounselors) {
-      console.log("[Realtime] Buscando conselheiros iniciais...");
       this.getCounselors().then(data => {
-        console.log(`[Realtime] ${data.length} conselheiros carregados.`);
-        callbacks.onCounselors!(data);
-      }).catch(err => console.error("[Realtime] Erro conselheiros iniciais:", err));
+        localCounselors = data;
+        callbacks.onCounselors!(localCounselors);
+      });
 
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, async (payload) => {
-        console.log("[Realtime] Mudança em conselheiros:", payload.eventType);
-        const counselors = await this.getCounselors();
-        callbacks.onCounselors!(counselors);
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          localCounselors = [...localCounselors, newC];
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          localCounselors = localCounselors.map(c => c.id === payload.new.id ? updatedC : c);
+        } else if (payload.eventType === 'DELETE') {
+          localCounselors = localCounselors.filter(c => c.id !== payload.old.id);
+        }
+        callbacks.onCounselors!([...localCounselors].sort((a, b) => a.name.localeCompare(b.name)));
       });
     }
 
     if (callbacks.onGameConfigs) {
-      console.log("[Realtime] Buscando configs iniciais...");
       this.getGameConfigs().then(config => {
-        if (config) {
-          console.log("[Realtime] Configs carregadas.");
-          callbacks.onGameConfigs!(config);
-        }
-      }).catch(err => console.error("[Realtime] Erro configs iniciais:", err));
-
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, async (payload) => {
-        console.log("[Realtime] Mudança em game_configs:", payload.eventType);
-        const config = await this.getGameConfigs();
         if (config) callbacks.onGameConfigs!(config);
+      });
+
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, payload => {
+        if (payload.new) callbacks.onGameConfigs!(payload.new as GameConfig);
       });
     }
 
     if (callbacks.onChallenges) {
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'challenges' }, payload => {
-        console.log("[Realtime] Novo desafio recebido!");
         callbacks.onChallenges!(payload.new as Challenge1x1);
       });
     }
 
-    return channel.subscribe((status) => {
-      console.log(`[Realtime] Status do canal ${channelId}:`, status);
-    });
+    return channel.subscribe();
   },
 
   // --- MEMBROS ---
@@ -453,6 +462,7 @@ export const DatabaseService = {
       first_aid_override: data.first_aid_override ?? false,
       brick_breaker_override: data.brick_breaker_override ?? false,
       mahjong_override: data.mahjong_override ?? false,
+      last_monthly_award_month: data.last_monthly_award_month
     } as GameConfig;
   },
 

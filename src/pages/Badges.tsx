@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShieldCheck, Star, Shield, Type, Gamepad2, MessageSquare, Brain, Map, Lock, Medal } from 'lucide-react';
+import { ShieldCheck, Star, Shield, Type, Gamepad2, MessageSquare, Brain, Map, Lock, Medal, CheckCircle2, Trophy } from 'lucide-react';
 import { AuthUser, Member, BadgeLevel } from '@/types';
 import { BADGE_DEFINITIONS } from '@/constants';
 
@@ -16,11 +16,13 @@ const BADGE_ICONS: { [key: string]: any } = {
   'Gamepad2': Gamepad2,
   'MessageSquare': MessageSquare,
   'Brain': Brain,
-  'Map': Map
+  'Map': Map,
+  'Medal': Medal,
+  'CheckCircle2': CheckCircle2
 };
 
 const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
-  const currentMember = members.find(m => m.id === user.id);
+  const currentMember = members.find(m => String(m.id) === String(user.id));
   const userBadges = currentMember?.badges || [];
 
   const getBadgeIcon = (iconName: string) => {
@@ -28,16 +30,16 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
   };
 
   return (
-    <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
+    <div className={`flex flex-col h-full overflow-hidden ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
       {/* Stats Header */}
-      <div className={`p-8 pb-10 pt-6 ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-600'} rounded-b-[3.5rem] shadow-xl relative overflow-hidden`}>
+      <div className={`p-8 pb-10 pt-6 ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-600'} rounded-b-[3.5rem] shadow-xl relative overflow-hidden shrink-0`}>
         {/* Abstract circles */}
         <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
 
         <div className="relative z-10">
           <div className="bg-white/10 backdrop-blur-md p-5 rounded-[2rem] border border-white/20 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner">
               <ShieldCheck className="text-white" size={24} />
             </div>
             <div>
@@ -102,6 +104,58 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
             );
           })}
         </div>
+
+        {/* SECTION: INSÍGNIAS MENSAIS */}
+        {userBadges.some(b => b.badgeId.startsWith('monthly_games_')) && (
+          <div className="space-y-4">
+            <h3 className={`text-[11px] font-black uppercase tracking-[0.3em] ml-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Campeões Mensais</h3>
+            <div className="grid grid-cols-1 gap-4">
+              {userBadges.filter(b => b.badgeId.startsWith('monthly_games_')).map(badge => {
+                const parts = badge.badgeId.split('_');
+                const monthStr = parts[2];
+                const rank = parts[3];
+                const [year, month] = monthStr.split('-');
+                const monthName = badge.monthLabel || new Date(parseInt(year), parseInt(month) - 1).toLocaleString('pt-BR', { month: 'long' });
+                const points = badge.points || 0;
+                
+                const levelColors = {
+                  [BadgeLevel.GOLD]: 'from-yellow-400 to-amber-600',
+                  [BadgeLevel.SILVER]: 'from-slate-300 to-slate-500',
+                  [BadgeLevel.BRONZE]: 'from-orange-400 to-orange-600',
+                  [BadgeLevel.DIAMOND]: 'from-blue-400 to-indigo-600'
+                };
+
+                return (
+                  <div key={badge.badgeId} className={`relative overflow-hidden p-6 rounded-[2.5rem] bg-gradient-to-br ${levelColors[badge.level as keyof typeof levelColors] || 'from-blue-500 to-indigo-600'} shadow-2xl shadow-black/10 transition-transform active:scale-95`}>
+                    <div className="absolute -right-4 -bottom-4 text-white/10 rotate-12 pointer-events-none">
+                      <Trophy size={120} />
+                    </div>
+                    <div className="flex items-center gap-6 relative z-10">
+                      <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/40 shadow-xl relative">
+                        <Trophy size={32} className="text-white" fill="white" />
+                        <div className="absolute -top-2 -right-2 bg-white text-[#0061f2] rounded-lg px-2 py-0.5 text-[8px] font-black shadow-lg">
+                          {points} PTS
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white/70 uppercase tracking-widest leading-none">Ranking de Jogos</span>
+                        <h4 className="text-xl font-black text-white uppercase mt-1">{monthName} {year}</h4>
+                        <div className="flex items-center gap-2 mt-2">
+                           <div className="px-3 py-1 bg-black/20 backdrop-blur-sm rounded-full border border-white/10">
+                              <span className="text-[9px] font-black text-white uppercase tracking-tighter">{rank}º LUGAR</span>
+                           </div>
+                           <div className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/10">
+                              <span className="text-[9px] font-black text-white uppercase tracking-tighter">{badge.level}</span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Info Box */}
         <div className={`p-6 rounded-[2rem] border-2 border-dashed ${isDarkMode ? 'bg-blue-900/10 border-blue-800/50' : 'bg-blue-50/50 border-blue-100'}`}>

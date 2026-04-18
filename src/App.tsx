@@ -269,7 +269,7 @@ const App: React.FC = () => {
 
     const updatedUser = { ...user, badges: updatedBadges };
     setUser(updatedUser);
-    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
 
     const member = members.find(m => String(m.id) === String(user.id));
     if (member) {
@@ -296,7 +296,10 @@ const App: React.FC = () => {
       totalQuizzes: (currentStats.totalQuizzes || 0) + (statsUpdate.totalQuizzes || 0),
       totalVerses: (currentStats.totalVerses || 0) + (statsUpdate.totalVerses || 0),
       totalGames: (currentStats.totalGames || 0) + (statsUpdate.totalGames || 0),
-      totalDevotionals: (currentStats.totalDevotionals || 0) + (statsUpdate.totalDevotionals || 0)
+      totalDevotionals: (currentStats.totalDevotionals || 0) + (statsUpdate.totalDevotionals || 0),
+      lastCheckInDate: statsUpdate.lastCheckInDate !== undefined ? statsUpdate.lastCheckInDate : currentStats.lastCheckInDate,
+      checkInStreak: statsUpdate.checkInStreak !== undefined ? statsUpdate.checkInStreak : currentStats.checkInStreak,
+      lastMonthlyAwarded: statsUpdate.lastMonthlyAwarded !== undefined ? statsUpdate.lastMonthlyAwarded : currentStats.lastMonthlyAwarded
     };
 
     // AWARD STATS-BASED BADGES
@@ -314,7 +317,7 @@ const App: React.FC = () => {
 
     const updatedUser = { ...user, stats: newStats };
     setUser(updatedUser);
-    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
 
     const member = members.find(m => String(m.id) === String(user.id));
     if (member) {
@@ -459,6 +462,76 @@ const App: React.FC = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentPage]);
+
+  useEffect(() => {
+    const processMonthlyAwards = async () => {
+      // Only Leadership can trigger the awarding
+      if (user?.role !== UserRole.LEADERSHIP) return;
+
+      const config = await DatabaseService.getGameConfigs();
+      if (!config) return;
+
+      const now = new Date();
+      // Get previous month string "YYYY-MM"
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (config.last_monthly_award_month === lastMonthStr) return;
+
+      console.log(`[Awards] Processando premiação mensal para: ${lastMonthStr}`);
+      
+      // Use the members we already have in state
+      if (!members || members.length === 0) return;
+
+      const { calculateMonthlyGamesTotal } = await import('@/helpers/scoreHelpers');
+      
+      const sortedByGames = [...members].sort((a, b) => 
+        calculateMonthlyGamesTotal(b, lastMonthStr) - calculateMonthlyGamesTotal(a, lastMonthStr)
+      );
+
+      const top3 = sortedByGames.slice(0, 3);
+      const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
+
+      const awardPromises = top3.map(async (m, idx) => {
+        if (!m) return;
+        const score = calculateMonthlyGamesTotal(m, lastMonthStr);
+        if (score <= 0) return;
+
+        const monthName = lastMonth.toLocaleString('pt-BR', { month: 'long' });
+        const badgeId = `monthly_games_${lastMonthStr}_${idx + 1}`;
+        
+        const newBadge: UserBadge = {
+          badgeId,
+          level: levels[idx],
+          awardedAt: new Date().toISOString(),
+          points: score,
+          monthLabel: monthName.charAt(0).toUpperCase() + monthName.slice(1)
+        };
+
+        const existingBadges = m.badges || [];
+        if (existingBadges.some(b => b.badgeId === badgeId)) return;
+
+        const updatedMember = { ...m, badges: [...existingBadges, newBadge] };
+        await DatabaseService.updateMember(updatedMember);
+        
+        // If this member is the current user, update session
+        if (user && String(m.id) === String(user.id)) {
+           const updatedUser = { ...user, badges: [...(user.badges || []), newBadge] };
+           setUser(updatedUser);
+           localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
+        }
+      });
+
+      await Promise.all(awardPromises);
+      await DatabaseService.updateGameConfig({ last_monthly_award_month: lastMonthStr });
+      console.log(`[Awards] Premiação de ${lastMonthStr} concluída.`);
+    };
+
+    // Run award processing only if we have members and user is leadership
+    if (user && user.role === UserRole.LEADERSHIP && members.length > 0) {
+      processMonthlyAwards();
+    }
+  }, [user?.role, members.length > 0]); // Triggers only when role is set or members first load
 
   const renderPage = () => {
     switch (currentPage) {
@@ -659,7 +732,7 @@ const App: React.FC = () => {
         </header>
       )}
       
-      {['home', 'chat', 'bible', 'devotional', 'specialty_study'].includes(currentPage) && <TickerBanner announcements={announcements} />}
+      {['chat', 'bible', 'devotional', 'specialty_study'].includes(currentPage) && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 

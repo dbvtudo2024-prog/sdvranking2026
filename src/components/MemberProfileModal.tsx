@@ -93,9 +93,13 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
             {member.badges && member.badges.length > 0 ? (
               <div className="grid grid-cols-4 gap-3">
                 {member.badges.map(ub => {
+                  const isMonthly = ub.badgeId.startsWith('monthly_games_');
                   const badge = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId);
-                  if (!badge) return null;
-                  const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
+                  
+                  if (!badge && !isMonthly) return null;
+                  
+                  const BadgeIcon = isMonthly ? Trophy : (BADGE_ICONS[badge?.icon || ''] || HelpCircle);
+                  const badgeName = isMonthly ? ub.monthLabel || 'Mensal' : (badge?.name || 'Insignia');
                   
                   return (
                     <div key={ub.badgeId} className="flex flex-col items-center">
@@ -107,7 +111,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                         <BadgeIcon size={24} />
                       </div>
                       <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {badge.name.split(' ')[0]}
+                        {badgeName.split(' ')[0]}
                       </p>
                     </div>
                   );
@@ -133,7 +137,6 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
               <div className="space-y-2.5">
                 {member.scores
                   .filter(s => s.specialtyStudyId)
-                  .slice(-3)
                   .map((s, idx) => (
                   <div key={idx} className={`flex justify-between items-center p-4 rounded-[1.5rem] border shadow-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-100'}`}>
                     <div className="flex-1 min-w-0 pr-4 text-left">

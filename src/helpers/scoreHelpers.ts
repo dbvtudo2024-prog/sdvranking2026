@@ -54,3 +54,25 @@ export const calculateGamesTotal = (member: Member) => {
   // O total de jogos deve ser exatamente a soma dos jogos listados na imagem (GAME_KEYS)
   return GAME_KEYS.reduce((acc, key) => acc + calculateSpecific(member, key), 0);
 };
+
+export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) => {
+  // monthYear format: "YYYY-MM"
+  if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+  
+  return member.scores
+    .filter(s => s.date && s.date.startsWith(monthYear))
+    .reduce((acc, s) => {
+      let monthTotal = 0;
+      const scoreObj = s as any;
+      
+      GAME_KEYS.forEach(key => {
+        if (scoreObj.gameId === key) {
+          monthTotal += (Number(scoreObj.points) || Number(scoreObj[key]) || 0);
+        } else if (scoreObj[key] !== undefined) {
+          monthTotal += (Number(scoreObj[key]) || 0);
+        }
+      });
+      
+      return acc + monthTotal;
+    }, 0);
+};
