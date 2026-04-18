@@ -167,7 +167,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20 overflow-y-auto h-full bg-slate-50 dark:bg-[#0f172a]">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-8 overflow-y-auto h-full bg-slate-50 dark:bg-[#0f172a]">
       <div className="bg-[#f1f5f9] dark:bg-slate-800/50 p-1.5 rounded-[2rem] shadow-inner mx-4 mt-6 grid grid-cols-3 gap-1.5">
         <TabButton type="members" label="Membro" icon={User} />
         <TabButton type="units" label="Unidade" icon={Shield} />

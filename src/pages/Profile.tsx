@@ -1,9 +1,19 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AuthUser, UserRole, UnitName, Member } from '@/types';
-import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '@/constants';
-import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star } from 'lucide-react';
+import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory } from '@/types';
+import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES, BADGE_DEFINITIONS } from '@/constants';
+import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+// ICON MAPPING FOR BADGES
+const BADGE_ICONS: { [key: string]: any } = {
+  'Shield': ShieldIcon,
+  'Type': Type,
+  'Gamepad2': Gamepad2,
+  'MessageSquare': MessageSquare,
+  'Brain': Brain,
+  'Map': Map
+};
 
 interface ProfileProps {
   user: AuthUser;
@@ -317,6 +327,55 @@ const Profile: React.FC<ProfileProps> = ({
                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma Especialidade Concluída</p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* INSÍGNIAS (BADGES) CONQUISTADAS */}
+        <div className={`${isDarkMode ? 'bg-dark-card border-dark-border' : 'bg-white border-slate-50'} p-8 rounded-[3rem] border shadow-xl shadow-blue-900/5 space-y-8`}>
+          <div className="flex items-center gap-3">
+            <Medal className="text-yellow-500" size={24} />
+            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Suas Insígnias</h3>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {BADGE_DEFINITIONS.map(badge => {
+              const userBadge = user.badges?.find(ub => ub.badgeId === badge.id);
+              const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
+              const isUnlocked = !!userBadge;
+
+              return (
+                <div 
+                  key={badge.id}
+                  className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
+                    isUnlocked 
+                      ? (isDarkMode ? 'bg-blue-900/10 border-blue-500/50' : 'bg-blue-50/50 border-blue-200 opacity-100 shadow-lg shadow-blue-500/10') 
+                      : (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40' : 'bg-slate-50 border-slate-100 opacity-30 grayscale')
+                  }`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-transform ${isUnlocked ? 'scale-110 active:scale-125' : ''} ${
+                    isUnlocked 
+                      ? (isDarkMode ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20' : 'bg-white text-[#0061f2] shadow-xl shadow-blue-500/20') 
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  }`}>
+                    <BadgeIcon size={28} />
+                  </div>
+                  <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badge.name}</p>
+                  <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">{badge.category}</p>
+                  
+                  {isUnlocked && (
+                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-blue-900 p-1 rounded-full shadow-lg border-2 border-white">
+                      <Star size={10} fill="currentColor" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={`p-5 rounded-2xl border border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] leading-relaxed text-center">
+              Continue jogando e participando para conquistar novas insígnias!
+            </p>
           </div>
         </div>
 

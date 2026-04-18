@@ -10,11 +10,12 @@ interface QuizSelectionProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   onBack: () => void;
   quizOverride: boolean;
 }
 
-const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onBack, quizOverride }) => {
+const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, quizOverride }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
 

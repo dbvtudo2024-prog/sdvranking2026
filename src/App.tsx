@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig } from '@/types';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge } from '@/types';
 import { DatabaseService } from '@/db';
 import { APP_VERSION } from '@/constants';
 import Login from '@/pages/Login';
@@ -244,6 +244,36 @@ const App: React.FC = () => {
     try { await DatabaseService.updateMember(updatedMember); } catch (e) { console.error(e); }
   }, []);
 
+  const handleAwardBadge = useCallback(async (badgeId: string, level: BadgeLevel = BadgeLevel.BRONZE) => {
+    if (!user) return;
+    
+    // Check if user already has this badge at this level or higher
+    const currentBadges = user.badges || [];
+    const existingBadge = currentBadges.find(b => b.badgeId === badgeId);
+    
+    if (existingBadge && existingBadge.level === level) return;
+
+    const newBadge: UserBadge = {
+      badgeId,
+      level,
+      awardedAt: new Date().toISOString()
+    };
+
+    const updatedBadges = existingBadge 
+      ? currentBadges.map(b => b.badgeId === badgeId ? newBadge : b)
+      : [...currentBadges, newBadge];
+
+    const updatedUser = { ...user, badges: updatedBadges };
+    setUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+    const member = members.find(m => String(m.id) === String(user.id));
+    if (member) {
+      const updatedMember = { ...member, badges: updatedBadges };
+      handleUpdateMember(updatedMember);
+    }
+  }, [user, members, handleUpdateMember]);
+
   const handleDeleteMember = useCallback(async (id: string | number) => {
     setMembers(prev => prev.filter(m => String(m.id) !== String(id)));
     try { await DatabaseService.deleteMember(String(id)); } catch (e) { console.error(e); }
@@ -384,7 +414,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} />;
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
@@ -394,8 +424,8 @@ const App: React.FC = () => {
       case 'leadership': return <Leadership members={members} isDarkMode={isDarkMode} />;
       case 'pathfinders': return <Pathfinders members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
-      case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
+      case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
@@ -404,7 +434,7 @@ const App: React.FC = () => {
       case 'admin_specialty_study': return <AdminSpecialtyStudyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_puzzle': return <AdminPuzzleEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
-      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
+      case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
       onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
@@ -587,7 +617,7 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
       {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
-        <footer className="shrink-0 fixed bottom-0 left-0 right-0 z-[100]">
+        <footer className="shrink-0 z-[100]">
           <AppNavbar 
             currentPage={currentPage as any} 
             setCurrentPage={setCurrentPage as any} 

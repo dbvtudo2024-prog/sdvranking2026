@@ -77,7 +77,7 @@ const Units: React.FC<UnitsProps> = ({ members, onSelectUnit, onGoToBirthdays, i
   );
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 bg-white dark:bg-[#0f172a] overflow-y-auto pb-24 pt-6">
+    <div className="flex flex-col h-full animate-in fade-in duration-500 bg-white dark:bg-[#0f172a] overflow-y-auto pb-8 pt-6">
       {/* UNITS LIST SECTION */}
       <div className="px-4 flex flex-col gap-4 mb-8">
         <UnitButton unit={UnitName.AGUIA_DOURADA} stats={aguiaStats} color="#FFD700" />

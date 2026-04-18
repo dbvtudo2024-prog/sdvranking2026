@@ -18,11 +18,12 @@ interface ScrambledVerseGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   onBack: () => void;
   override: boolean;
 }
 
-const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, override }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [verses, setVerses] = useState<ScrambledVerse[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -117,6 +118,12 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
+
+    // AWARD BADGE - Wisdom (Escriba Veloz)
+    // Award if perfect score (e.g., 5 verses * 20 pts = 100)
+    if (finalScore >= (verses.length * 20) && onAwardBadge) {
+      onAwardBadge('escriba_veloz');
+    }
 
     updatedScores.push({
       type: 'game',
@@ -267,10 +274,10 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
             >
               {/* REFERENCE HINT */}
               <div className="flex flex-col items-center gap-1">
-                <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em]">Referência de Estudo</p>
-                <div className="flex items-center gap-2 px-6 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-full border border-blue-100 dark:border-blue-800">
-                  <Book size={14} className="text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">{currentVerse.title}</span>
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">Onde está na Bíblia?</p>
+                <div className="flex items-center gap-3 px-8 py-3 bg-amber-50 dark:bg-amber-900/30 rounded-full border-2 border-amber-100 dark:border-amber-800 shadow-sm animate-pulse">
+                  <Book size={18} className="text-amber-600 dark:text-amber-400" />
+                  <span className="text-base font-black text-amber-700 dark:text-amber-300 uppercase tracking-tight">{currentVerse.title}</span>
                 </div>
               </div>
 

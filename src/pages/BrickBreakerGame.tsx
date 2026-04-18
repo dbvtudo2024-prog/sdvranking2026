@@ -12,6 +12,7 @@ interface BrickBreakerGameProps {
   user: AuthUser | null;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   override?: boolean;
 }
 
@@ -30,7 +31,7 @@ interface Brick {
   bonus?: 'multiball' | 'expand';
 }
 
-const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, override }) => {
+const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, onAwardBadge, override }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished' | 'won_level'>('start');
   const [score, setScore] = useState(0);
@@ -101,6 +102,34 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
       [1, 1, 1, 1, 1, 1, 1, 1],
       [0, 1, 2, 2, 2, 2, 1, 0],
       [0, 0, 1, 1, 1, 1, 0, 0]
+    ],
+    // Nível 6: Labirinto de Aço
+    [
+      [1, 2, 1, 2, 1, 2, 1, 2],
+      [-1, 0, -1, 0, -1, 0, -1, 0],
+      [2, 1, 2, 1, 2, 1, 2, 1],
+      [0, -1, 0, -1, 0, -1, 0, -1],
+      [1, 2, 1, 2, 1, 2, 1, 2],
+      [-1, 0, -1, 0, -1, 0, -1, 0]
+    ],
+    // Nível 7: O Diamante
+    [
+      [0, 0, 0, -1, -1, 0, 0, 0],
+      [0, 0, -1, 2, 2, -1, 0, 0],
+      [0, -1, 2, 1, 1, 2, -1, 0],
+      [-1, 2, 1, 1, 1, 1, 2, -1],
+      [0, -1, 2, 1, 1, 2, -1, 0],
+      [0, 0, -1, 2, 2, -1, 0, 0],
+      [0, 0, 0, -1, -1, 0, 0, 0]
+    ],
+    // Nível 8: Muralha Reforçada
+    [
+      [-1, -1, -1, -1, -1, -1, -1, -1],
+      [2, 2, 2, 2, 2, 2, 2, 2],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 2, 2, 2, 2, 2],
+      [-1, -1, -1, -1, -1, -1, -1, -1],
+      [1, 1, 1, 1, 1, 1, 1, 1]
     ]
   ];
 
@@ -380,6 +409,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   };
 
   const nextLevel = () => {
+    // AWARD BADGE - Skill (Demolidor de Blocos)
+    if (level >= 8 && onAwardBadge) {
+      onAwardBadge('demolidor_blocos');
+    }
     setLevel(l => l + 1);
     setGameState('playing');
   };

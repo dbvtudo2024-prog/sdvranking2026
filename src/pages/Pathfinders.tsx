@@ -92,7 +92,7 @@ const Pathfinders: React.FC<PathfindersProps> = ({ members, isDarkMode }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto">
-      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-24 pt-8">
+      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-8 pt-8">
         {pathfinders.length > 0 ? (
           pathfinders.map((pathfinder) => (
             <div 

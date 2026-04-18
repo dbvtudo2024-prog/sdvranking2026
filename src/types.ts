@@ -63,6 +63,35 @@ export interface Member {
   unit: UnitName;
   scores: Score[];
   photoUrl?: string;
+  badges?: UserBadge[];
+}
+
+export enum BadgeCategory {
+  COMMITMENT = 'Compromisso',
+  WISDOM = 'Sabedoria',
+  SKILL = 'Habilidade',
+  FELLOWSHIP = 'Comunhão'
+}
+
+export enum BadgeLevel {
+  BRONZE = 'Bronze',
+  SILVER = 'Prata',
+  GOLD = 'Ouro',
+  DIAMOND = 'Diamante'
+}
+
+export interface UserBadge {
+  badgeId: string;
+  level: BadgeLevel;
+  awardedAt: string;
+}
+
+export interface BadgeDefinition {
+  id: string;
+  name: string;
+  category: BadgeCategory;
+  description: string;
+  icon: string;
 }
 
 export interface Announcement {
@@ -85,6 +114,7 @@ export interface AuthUser {
   password?: string;
   photoUrl?: string;
   counselor?: string;
+  badges?: UserBadge[];
 }
 
 export interface BibleReadingProgress {

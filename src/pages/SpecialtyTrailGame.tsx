@@ -12,11 +12,12 @@ interface SpecialtyTrailGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   onBack: () => void;
   override: boolean;
 }
 
-const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, override }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentPos, setCurrentPos] = useState(0);
@@ -79,6 +80,11 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
+
+    // AWARD BADGE - Skill (Explorador de Trilhas)
+    if (finalScore >= 60 && onAwardBadge) { // 6 questions * 10 pts = 60
+      onAwardBadge('explorador_trilhas');
+    }
 
     updatedScores.push({
       type: 'game',

@@ -10,11 +10,20 @@ interface HomeProps {
   isDarkMode?: boolean;
   user: AuthUser;
   members: Member[];
+  onAwardBadge?: (badgeId: string) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members }) => {
+const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
+
+  useEffect(() => {
+    // AWARD BADGE - Discipline (Sentinela Fiel)
+    // Award the login badge when the user lands on the Home page
+    if (onAwardBadge) {
+      onAwardBadge('sentinela_fiel');
+    }
+  }, [onAwardBadge]);
 
   const safeMembers = Array.isArray(members) ? members : [];
 
@@ -59,7 +68,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
   );
 
   return (
-    <div className={`flex flex-col h-full overflow-y-auto pb-24 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
+    <div className={`flex flex-col h-full overflow-y-auto pb-8 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
       {/* BRASÃO DO CLUBE AO TOPO */}
       <div className={`flex flex-col items-center justify-center pt-12 pb-8 landscape:pt-4 landscape:pb-4 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 

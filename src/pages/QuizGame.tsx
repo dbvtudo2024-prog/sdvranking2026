@@ -12,10 +12,11 @@ interface QuizGameProps {
   user: AuthUser;
   member?: Member;
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   onBack: () => void;
 }
 
-const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onBack }) => {
+const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onAwardBadge, onBack }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -65,6 +66,12 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
 
   const saveScoreToProfile = useCallback(() => {
     if (member) {
+      // AWARD BADGE - Knowledge (Mestre do Quiz)
+      // Max score: 10 questions * 2 points = 20
+      if (score >= 20 && onAwardBadge) {
+        onAwardBadge('mestre_quiz');
+      }
+
       const newScore: Score = {
         type: 'game',
         gameId: 'quiz',

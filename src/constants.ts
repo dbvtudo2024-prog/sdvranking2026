@@ -1,7 +1,52 @@
 
-import { UnitName, QuizQuestion } from './types';
+import { UnitName, QuizQuestion, BadgeDefinition, BadgeCategory } from './types';
 
 export const APP_VERSION = '3.1.0';
+
+export const BADGE_DEFINITIONS: BadgeDefinition[] = [
+  {
+    id: 'sentinela_fiel',
+    name: 'Sentinela Fiel',
+    category: BadgeCategory.COMMITMENT,
+    description: 'Entrou no app todos os dias da semana.',
+    icon: 'Shield'
+  },
+  {
+    id: 'escriba_veloz',
+    name: 'Escriba Veloz',
+    category: BadgeCategory.WISDOM,
+    description: 'Completou o Versículo Embaralhado sem erros.',
+    icon: 'Type'
+  },
+  {
+    id: 'demolidor_blocos',
+    name: 'Demolidor de Blocos',
+    category: BadgeCategory.SKILL,
+    description: 'Alcançou o nível 8 no jogo de Blocos.',
+    icon: 'Gamepad2'
+  },
+  {
+    id: 'voz_acampamento',
+    name: 'Voz do Acampamento',
+    category: BadgeCategory.FELLOWSHIP,
+    description: 'Enviou mensagens motivadoras no chat global.',
+    icon: 'MessageSquare'
+  },
+  {
+    id: 'mestre_quiz',
+    name: 'Mestre do Quiz',
+    category: BadgeCategory.WISDOM,
+    description: 'Acertou todas as questões de um Quiz.',
+    icon: 'Brain'
+  },
+  {
+    id: 'explorador_trilhas',
+    name: 'Explorador de Trilhas',
+    category: BadgeCategory.SKILL,
+    description: 'Venceu o desafio da trilha das especialidades.',
+    icon: 'Map'
+  }
+];
 
 export const COLORS = {
   PRIMARY_BLUE: '#0061f2',

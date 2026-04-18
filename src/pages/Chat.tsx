@@ -7,9 +7,10 @@ import { Send, Users, Shield, MessageSquare, Loader2 } from 'lucide-react';
 interface ChatProps {
   user: AuthUser;
   isDarkMode?: boolean;
+  onAwardBadge?: (badgeId: string) => void;
 }
 
-const Chat: React.FC<ChatProps> = ({ user, isDarkMode }) => {
+const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -127,6 +128,12 @@ const Chat: React.FC<ChatProps> = ({ user, isDarkMode }) => {
 
     try {
       await DatabaseService.sendMessage(newMsg);
+
+      // AWARD BADGE - Fellowship (Voz do Acampamento)
+      const userSentCount = messages.filter(m => m.sender_id === user.id).length + 1;
+      if (userSentCount >= 5 && onAwardBadge) {
+        onAwardBadge('voz_acampamento');
+      }
     } catch (err: any) {
       console.error("Erro ao enviar mensagem:", err);
       // Remove a mensagem otimista se falhar

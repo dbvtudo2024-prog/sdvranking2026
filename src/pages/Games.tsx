@@ -20,6 +20,7 @@ interface GamesProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onAwardBadge?: (badgeId: string) => void;
   quizOverride: boolean;
   memoryOverride: boolean;
   specialtyOverride: boolean;
@@ -38,6 +39,7 @@ const Games: React.FC<GamesProps> = ({
   user, 
   members, 
   onUpdateMember, 
+  onAwardBadge,
   quizOverride, 
   memoryOverride, 
   specialtyOverride,
@@ -283,7 +285,7 @@ const Games: React.FC<GamesProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 w-full pt-8 landscape:pt-4 pb-24 px-4 sm:px-8 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
+    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 w-full pt-8 landscape:pt-4 pb-8 px-4 sm:px-8 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
       <div className="w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-2 landscape:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-[120px] sm:auto-rows-[160px] landscape:auto-rows-[140px]">
           
