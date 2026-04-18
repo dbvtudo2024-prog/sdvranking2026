@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Announcement, AuthUser, Member } from '@/types';
+import { Announcement, AuthUser, Member, BadgeLevel, UserStats } from '@/types';
 import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 
@@ -10,20 +10,28 @@ interface HomeProps {
   isDarkMode?: boolean;
   user: AuthUser;
   members: Member[];
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (statsUpdate: Partial<UserStats>) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge }) => {
+const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge, onUpdateStats }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
 
   useEffect(() => {
     // AWARD BADGE - Discipline (Sentinela Fiel)
     // Award the login badge when the user lands on the Home page
-    if (onAwardBadge) {
-      onAwardBadge('sentinela_fiel');
+    const loginFlag = sessionStorage.getItem('login_counted');
+    if (!loginFlag && onUpdateStats && onAwardBadge) {
+      onUpdateStats({ totalLogins: 1 });
+      sessionStorage.setItem('login_counted', 'true');
+      
+      const totalLogins = (user.stats?.totalLogins || 0) + 1;
+      if (totalLogins >= 30) onAwardBadge('sentinela_fiel', BadgeLevel.GOLD);
+      else if (totalLogins >= 7) onAwardBadge('sentinela_fiel', BadgeLevel.SILVER);
+      else onAwardBadge('sentinela_fiel', BadgeLevel.BRONZE);
     }
-  }, [onAwardBadge]);
+  }, [onAwardBadge, onUpdateStats, user.stats?.totalLogins]);
 
   const safeMembers = Array.isArray(members) ? members : [];
 
@@ -89,11 +97,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         <img 
           src={LOGO_APP} 
           alt="Brasão do Clube" 
-          className="w-32 h-32 landscape:w-16 landscape:h-16 object-contain drop-shadow-2xl" 
+          className="w-32 h-32 landscape:w-20 landscape:h-20 object-contain drop-shadow-2xl" 
           referrerPolicy="no-referrer"
         />
-        <h1 className={`mt-4 landscape:mt-1 text-xl landscape:text-sm font-black uppercase tracking-tighter ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sentinelas da Verdade</h1>
-        <p className="text-[10px] landscape:hidden font-bold text-blue-600 uppercase tracking-[0.3em]">Clube de Desbravadores</p>
       </div>
 
       {/* DESTAQUE DO DIA - ANIVERSARIANTES */}
@@ -132,63 +138,8 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         </div>
       )}
 
-      {/* MURAL DE AVISOS */}
-      <div className="px-6 mt-8">
-        <div className="bg-[#0061f2] rounded-[2.5rem] p-6 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 text-white/10 rotate-12 pointer-events-none">
-            <Megaphone size={80} />
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Megaphone size={16} className="text-white" />
-                <h3 className="text-white text-[11px] font-black uppercase tracking-widest">Mural de Avisos</h3>
-              </div>
-              {announcements.length > 1 && (
-                <div className="flex gap-1">
-                  {announcements.map((_, idx) => (
-                    <div key={idx} className={`h-1 rounded-full transition-all duration-300 ${idx === currentAvisoIndex ? 'w-3 bg-white' : 'w-1 bg-white/30'}`} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="relative h-36">
-              {announcements.length > 0 ? (
-                announcements.map((aviso, idx) => (
-                  <div 
-                    key={aviso.id} 
-                    className={`absolute inset-0 transition-all duration-700 ease-in-out ${idx === currentAvisoIndex ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
-                  >
-                    <div className={`rounded-2xl p-5 h-full flex flex-col justify-start shadow-sm relative group overflow-y-auto ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
-                      <button 
-                        onClick={() => handleShare(aviso)}
-                        className={`absolute right-3 top-3 p-2 transition-colors z-20 ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-100 hover:text-blue-600'}`}
-                        title="Compartilhar no WhatsApp"
-                      >
-                        <Share2 size={16} />
-                      </button>
-                      <div className="flex flex-col mb-2 pr-8">
-                        <p className={`text-sm font-black uppercase leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{aviso.title}</p>
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-md w-fit ${isDarkMode ? 'text-blue-400 bg-blue-900/30' : 'text-blue-600 bg-blue-50'}`}>{aviso.date}</span>
-                      </div>
-                      <p className={`text-xs leading-relaxed font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{aviso.content}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="bg-white/10 rounded-2xl p-4 text-center border border-white/20 h-full flex items-center justify-center">
-                  <p className="text-[10px] text-white/60 italic font-bold uppercase">Nenhum aviso importante.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ÍCONES DE ATALHOS */}
-      <div className="px-6 mt-10">
+      <div className="px-6 mt-6">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Acesso Rápido</h3>
         <div className="grid grid-cols-3 gap-4">
           <Shortcut icon={LayoutGrid} label="Unidades" page="units" color="#0061f2" />
@@ -196,8 +147,6 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
           <Shortcut icon={BookOpen} label="Bíblia" page="bible" color="#8b5cf6" />
           <Shortcut icon={Trophy} label="Ranking" page="ranking" color="#f59e0b" />
           <Shortcut icon={MessageCircle} label="Chat" page="chat" color="#10b981" />
-          <Shortcut icon={ShieldCheck} label="Líderes" page="leadership" color="#6366f1" />
-          <Shortcut icon={Users} label="Desbravadores" page="pathfinders" color="#f43f5e" />
           <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
           <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />
         </div>

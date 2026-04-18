@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { AuthUser, Member, Score, UserRole } from '@/types';
+import { AuthUser, Member, Score, UserRole, UserStats } from '@/types';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Brain, CheckCircle2 } from 'lucide-react';
 import GameHeader from '@/components/GameHeader';
@@ -11,6 +11,7 @@ interface MemoryGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   memoryOverride: boolean;
 }
@@ -42,7 +43,7 @@ const CARD_IMAGES = [
   { type: 'apito', url: 'https://api.iconify.design/fluent-emoji:whistle.svg' }
 ];
 
-const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onBack, memoryOverride }) => {
+const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onUpdateStats, onBack, memoryOverride }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard' | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -268,6 +269,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     
     if (memberToUpdate) {
+      if (onUpdateStats) onUpdateStats({ totalGames: 1 });
       const points = calculatePoints();
       const newScore: Score = {
         type: 'game',

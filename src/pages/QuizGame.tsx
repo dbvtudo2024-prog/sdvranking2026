@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DatabaseService } from '@/db';
-import { AuthUser, Member, Score, QuizQuestion } from '@/types';
+import { AuthUser, Member, Score, QuizQuestion, BadgeLevel, UserStats } from '@/types';
 import { Check, X, Trophy, Loader2, HelpCircle, CheckCircle2 } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
@@ -12,11 +12,12 @@ interface QuizGameProps {
   user: AuthUser;
   member?: Member;
   onUpdateMember: (member: Member) => void;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
 }
 
-const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onAwardBadge, onBack }) => {
+const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onAwardBadge, onUpdateStats, onBack }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -68,9 +69,13 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     if (member) {
       // AWARD BADGE - Knowledge (Mestre do Quiz)
       // Max score: 10 questions * 2 points = 20
-      if (score >= 20 && onAwardBadge) {
-        onAwardBadge('mestre_quiz');
+      if (onAwardBadge) {
+        if (score === 20) onAwardBadge('mestre_quiz', BadgeLevel.GOLD);
+        else if (score >= 18) onAwardBadge('mestre_quiz', BadgeLevel.SILVER);
+        else if (score >= 15) onAwardBadge('mestre_quiz', BadgeLevel.BRONZE);
       }
+
+      if (onUpdateStats) onUpdateStats({ totalQuizzes: 1 });
 
       const newScore: Score = {
         type: 'game',

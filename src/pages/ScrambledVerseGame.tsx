@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle, Type, Trophy, RefreshCcw, Undo2, Book
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { AuthUser, Member, UserRole } from '@/types';
+import { AuthUser, Member, UserRole, BadgeLevel, UserStats } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -18,16 +18,18 @@ interface ScrambledVerseGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   override: boolean;
 }
 
-const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, override }) => {
+const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [verses, setVerses] = useState<ScrambledVerse[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [score, setScore] = useState(0);
+  const [totalErrors, setTotalErrors] = useState(0);
   const [gameState, setGameState] = useState<'loading' | 'playing' | 'finished'>('loading');
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   
@@ -93,6 +95,8 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
           }
         }, 1000);
       } else {
+        // Increment errors
+        setTotalErrors(prev => prev + 1);
         // Reset if wrong
         setTimeout(() => {
           setSelectedWords([]);
@@ -114,15 +118,19 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!memberToUpdate) return;
 
+    if (onUpdateStats) onUpdateStats({ totalVerses: 1 });
+
     const todayStr = new Date().toISOString();
     const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
 
     // AWARD BADGE - Wisdom (Escriba Veloz)
-    // Award if perfect score (e.g., 5 verses * 20 pts = 100)
-    if (finalScore >= (verses.length * 20) && onAwardBadge) {
-      onAwardBadge('escriba_veloz');
+    // Bronze: Completar, Prata: Máx 1 erro, Ouro: Sem erros
+    if (onAwardBadge) {
+      if (totalErrors === 0 && finalScore >= 100) onAwardBadge('escriba_veloz', BadgeLevel.GOLD);
+      else if (totalErrors <= 1 && finalScore >= 100) onAwardBadge('escriba_veloz', BadgeLevel.SILVER);
+      else if (finalScore >= 20) onAwardBadge('escriba_veloz', BadgeLevel.BRONZE);
     }
 
     updatedScores.push({

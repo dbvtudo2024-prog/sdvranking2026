@@ -4,7 +4,7 @@ import { Home, Trophy, User, Gamepad2, ShieldCheck, MessageCircle, LayoutGrid, B
 
 interface NavbarProps {
   currentPage: string;
-  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'chat' | 'bible_reading' | 'bible' | 'specialty_study') => void;
+  setCurrentPage: (page: 'home' | 'units' | 'ranking' | 'leadership' | 'profile' | 'games' | 'badges' | 'chat' | 'bible_reading' | 'bible' | 'specialty_study') => void;
   unreadCount?: number;
   isDarkMode?: boolean;
 }
@@ -46,18 +46,11 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage, unreadCoun
       </button>
 
       <button 
-        onClick={() => setCurrentPage('chat')}
-        className={`${getItemClasses('chat')} relative`}
+        onClick={() => setCurrentPage('badges')}
+        className={getItemClasses('badges')}
       >
-        <MessageCircle size={16} strokeWidth={iconStroke('chat')} />
-        <span className="text-[8px] font-black uppercase tracking-tighter mt-1">Chat</span>
-        
-        {/* BADGE DE NOTIFICAÇÃO COM BRILHO */}
-        {unreadCount > 0 && (
-          <div className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_10px_rgba(220,38,38,0.5)] animate-bounce z-10">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </div>
-        )}
+        <ShieldCheck size={16} strokeWidth={iconStroke('badges')} />
+        <span className="text-[8px] font-black uppercase tracking-tighter mt-1">Insígnias</span>
       </button>
 
       <button 

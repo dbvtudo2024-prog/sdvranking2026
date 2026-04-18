@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseService } from '@/db';
 import { Loader2, BookOpen, ExternalLink, ChevronLeft, History, Share2 } from 'lucide-react';
-import { Devotional as DevotionalType } from '@/types';
+import { Devotional as DevotionalType, BadgeLevel, UserStats } from '@/types';
 
 interface DevotionalProps {
   onBack: () => void;
   isDarkMode?: boolean;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
 }
 
-const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode }) => {
+const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode, onAwardBadge, onUpdateStats }) => {
   const [devotional, setDevotional] = useState<DevotionalType | null>(null);
   const [history, setHistory] = useState<DevotionalType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,12 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode }) => {
     try {
       const current = await DatabaseService.getDevotional();
       setDevotional(current);
+      if (current && onUpdateStats) {
+        onUpdateStats({ totalDevotionals: 1 });
+        // Award badge based on total devotionals if we had it, 
+        // but for now let's just use the onAwardBadge if it exists elsewhere or here.
+        // Actually, the user profile probably tracks this.
+      }
       const past = await DatabaseService.getDevotionalHistory(1000);
       setHistory(past);
     } catch (err) {

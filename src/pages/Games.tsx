@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music, ArrowLeft } from 'lucide-react';
-import { AuthUser, Member, UserRole, Score } from '@/types';
+import { AuthUser, Member, UserRole, Score, BadgeLevel, UserStats } from '@/types';
 import QuizSelection from '@/pages/QuizSelection';
 import MemoryGame from '@/pages/MemoryGame';
 import SpecialtyGame from '@/pages/SpecialtyGame';
@@ -20,7 +20,8 @@ interface GamesProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   quizOverride: boolean;
   memoryOverride: boolean;
   specialtyOverride: boolean;
@@ -40,6 +41,7 @@ const Games: React.FC<GamesProps> = ({
   members, 
   onUpdateMember, 
   onAwardBadge,
+  onUpdateStats,
   quizOverride, 
   memoryOverride, 
   specialtyOverride,
@@ -216,7 +218,7 @@ const Games: React.FC<GamesProps> = ({
   };
 
   const renderActiveGame = () => {
-    const gameProps = { user, members, onUpdateMember, onBack: () => setActiveGame('hub') };
+    const gameProps = { user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack: () => setActiveGame('hub') };
     
     let gameComponent = null;
     switch (activeGame) {

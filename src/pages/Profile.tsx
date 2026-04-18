@@ -23,6 +23,7 @@ interface ProfileProps {
   onGoToAdminManagement?: () => void;
   counselorList?: string[];
   onUpdateMember?: (member: Member) => void;
+  onGoToBadges?: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
 }
@@ -35,6 +36,7 @@ const Profile: React.FC<ProfileProps> = ({
   onGoToAdminManagement,
   counselorList = [],
   onUpdateMember,
+  onGoToBadges,
   isDarkMode,
   onToggleDarkMode
 }) => {
@@ -332,9 +334,21 @@ const Profile: React.FC<ProfileProps> = ({
 
         {/* INSÍGNIAS (BADGES) CONQUISTADAS */}
         <div className={`${isDarkMode ? 'bg-dark-card border-dark-border' : 'bg-white border-slate-50'} p-8 rounded-[3rem] border shadow-xl shadow-blue-900/5 space-y-8`}>
-          <div className="flex items-center gap-3">
-            <Medal className="text-yellow-500" size={24} />
-            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Suas Insígnias</h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Medal className="text-yellow-500" size={24} />
+              <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Suas Insígnias</h3>
+            </div>
+            {onGoToBadges && (
+              <button 
+                onClick={onGoToBadges}
+                className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 ${
+                  isDarkMode ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                }`}
+              >
+                Ver Tudo
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

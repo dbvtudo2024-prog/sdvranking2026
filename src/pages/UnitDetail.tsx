@@ -1,8 +1,19 @@
 
 import React, { useState, useRef, useMemo } from 'react';
-import { UnitName, Member, UserRole, Score } from '@/types';
-import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES } from '@/constants';
-import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2 } from 'lucide-react';
+import { UnitName, Member, UserRole, Score, BadgeLevel } from '@/types';
+import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES, BADGE_DEFINITIONS } from '@/constants';
+import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book } from 'lucide-react';
+
+const BADGE_ICONS: { [key: string]: any } = {
+  'Shield': Shield,
+  'Type': Type,
+  'Gamepad2': Gamepad2,
+  'MessageSquare': MessageSquare,
+  'Brain': Brain,
+  'Map': Map,
+  'Book': Book,
+  'Medal': Medal
+};
 
 interface UnitDetailProps {
   unitName: UnitName;
@@ -30,6 +41,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMemberForPoints, setSelectedMemberForPoints] = useState<Member | null>(null);
+  const [selectedMemberProfile, setSelectedMemberProfile] = useState<Member | null>(null);
   const [selectedMemberIdForHistory, setSelectedMemberIdForHistory] = useState<string | null>(null);
   const [newScore, setNewScore] = useState<Partial<Score>>({
     date: new Date().toISOString().split('T')[0]
@@ -179,7 +191,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const calculateWeeklyTotal = (member: Member) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
     return member.scores.reduce((acc, curr) => {
-      // Considera pontuação semanal se tiver o tipo 'weekly' ou se tiver campos de pontuação semanal e não for jogo
+      // Considera pontuação semanal se tiver o tipo 'weekly' ou se NÃO for jogo
       const isWeekly = curr.type === 'weekly' || (!curr.type && !curr.gameId && !curr.quizCategory);
       if (!isWeekly) return acc;
       
@@ -196,33 +208,26 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
   const calculateGamesTotal = (member: Member) => {
     if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
-    return member.scores.reduce((acc, curr) => {
-      const s = curr as any;
-      if (s.type === 'game') {
+    return member.scores.reduce((acc, s) => {
+      // Ignorar chaves específicas de Mahjong e Brick Breaker do ranking
+      if (s.gameId === 'mahjongGame' || s.gameId === 'brickBreakerGame') return acc;
+
+      // Ranking de jogos deve considerar APENAS entradas do tipo 'game' ou que tenham gameId
+      if (s.type === 'game' || s.gameId) {
         if (s.points !== undefined) return acc + (Number(s.points) || 0);
+        
         const gameKeys = [
           'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
           'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
           'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
-          'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
+          'ballSortGame', 'specialtyStudyScore'
         ];
+        
         for (const key of gameKeys) {
-          if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+          if ((s as any)[key] !== undefined) return acc + (Number((s as any)[key]) || 0);
         }
-        return acc;
       }
-      let gamePoints = 0;
-      if (s.gameId && s.points) gamePoints += Number(s.points) || 0;
-      const gameKeys = [
-        'quiz', 'memoryGame', 'specialtyGame', 'challenge1x1', 'threeCluesGame',
-        'puzzleGame', 'knotsGame', 'whoAmIGame', 'specialtyTrailGame',
-        'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'pianoTilesGame',
-        'mahjongGame', 'ballSortGame', 'brickBreakerGame', 'specialtyStudyScore'
-      ];
-      gameKeys.forEach(key => {
-        if (s[key] !== undefined && s.gameId !== key) gamePoints += Number(s[key]) || 0;
-      });
-      return acc + gamePoints;
+      return acc;
     }, 0);
   };
 
@@ -239,10 +244,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto">
       <div className="p-4 sm:p-8">
         <div className="flex justify-between items-center mb-8 bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm min-h-[80px]">
-          <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 px-2">
-            <img src={UNIT_LOGOS[unitName]} alt="Brasão" className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-            <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Desbravadores'}</span>
-          </div>
+            <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 px-2">
+              <img src={UNIT_LOGOS[unitName]} alt="Brasão" className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+              <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}</span>
+            </div>
           {isUserLeadership && (
             <button onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} className="bg-[#0061f2] text-white p-4 rounded-full sm:rounded-2xl font-black shadow-xl active:scale-95 transition-all">
               <Plus size={24} strokeWidth={3} />
@@ -252,7 +257,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           {filteredMembers.map(member => (
-            <div key={member.id} onClick={() => isUserLeadership && setSelectedMemberForPoints(member)} className="bg-white dark:bg-slate-800 p-6 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group">
+            <div key={member.id} onClick={() => setSelectedMemberProfile(member)} className="bg-white dark:bg-slate-800 p-6 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer group">
               <div className="flex gap-4">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white dark:border-slate-700 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-900">
                   {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" /> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`} className="w-full h-full object-cover" />}
@@ -267,7 +272,18 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                 <div className="absolute top-6 right-6 font-black text-[#0061f2] text-lg">
                    {calculateGrandTotal(member)} pts
                 </div>
-                <div className="absolute bottom-5 right-6 flex gap-1">
+                
+                {/* AÇÕES NO CARD */}
+                <div className="absolute bottom-5 right-6 flex items-center gap-1">
+                   {isUserLeadership && (
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); setSelectedMemberForPoints(member); }} 
+                       className="p-2.5 bg-blue-50 dark:bg-blue-900/40 text-[#0061f2] dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all flex items-center gap-1 shadow-sm"
+                     >
+                       <Plus size={16} strokeWidth={3} />
+                       <span className="text-[10px] font-black uppercase tracking-tighter">Pontos</span>
+                     </button>
+                   )}
                    <button onClick={(e) => { e.stopPropagation(); setSelectedMemberIdForHistory(member.id); }} className="p-2 text-slate-300 hover:text-blue-600 transition-all"><History size={18} /></button>
                    {isUserLeadership && (
                      <>
@@ -281,6 +297,127 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
           ))}
         </div>
       </div>
+
+      {/* MODAL PERFIL */}
+      {selectedMemberProfile && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+            <button onClick={() => setSelectedMemberProfile(null)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-500 transition-colors">
+              <X size={28} />
+            </button>
+            
+            <div className="flex flex-col items-center text-center space-y-6 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
+              <div className="w-24 h-24 rounded-full border-4 border-[#0061f2] p-1 shadow-xl shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900">
+                  {selectedMemberProfile.photoUrl ? (
+                    <img src={selectedMemberProfile.photoUrl} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedMemberProfile.id}`} className="w-full h-full object-cover" />
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-tight">{selectedMemberProfile.name}</h3>
+                <p className="text-[#0061f2] font-black uppercase tracking-widest text-[10px] mt-1">{selectedMemberProfile.unit}</p>
+                <div className="mt-2 flex items-center justify-center gap-2">
+                  <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-[9px] font-black text-slate-500 uppercase">{selectedMemberProfile.className || 'Sem Classe'}</span>
+                  <span className="bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full text-[9px] font-black text-blue-600 uppercase">{selectedMemberProfile.counselor || 'Sem cargo'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 w-full shrink-0">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Pontos Semanais</p>
+                  <p className="text-lg font-black text-slate-800 dark:text-white">{calculateWeeklyTotal(selectedMemberProfile)}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Pontos Jogos</p>
+                  <p className="text-lg font-black text-[#0061f2]">{calculateGamesTotal(selectedMemberProfile)}</p>
+                </div>
+              </div>
+
+              {/* INSÍGNIAS CONQUISTADAS */}
+              <div className="w-full space-y-4">
+                <div className="flex items-center gap-2 mb-2 ml-1">
+                  <Medal className="text-yellow-500" size={14} />
+                  <h4 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Insígnias Conquistadas</h4>
+                </div>
+                
+                {selectedMemberProfile.badges && selectedMemberProfile.badges.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-2">
+                    {selectedMemberProfile.badges.map(ub => {
+                      const badge = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId);
+                      if (!badge) return null;
+                      const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
+                      
+                      return (
+                        <div key={ub.badgeId} className="flex flex-col items-center">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-1 shadow-sm relative ${
+                            ub.level === BadgeLevel.GOLD ? 'bg-yellow-500' : 
+                            ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
+                            'bg-orange-700'
+                          } text-white`}>
+                            <BadgeIcon size={20} />
+                            <div className="absolute -top-1 -right-1 bg-white text-yellow-500 p-0.5 rounded-full shadow-sm">
+                              <Star size={8} fill="currentColor" />
+                            </div>
+                          </div>
+                          <p className="text-[7px] font-black uppercase text-center text-slate-500 leading-tight truncate w-full">{badge.name.split(' ')[0]}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Nenhuma insígnia ainda</p>
+                  </div>
+                )}
+              </div>
+
+              {/* ESTUDOS (ESPECIALIDADES) */}
+              <div className="w-full space-y-4">
+                <div className="flex items-center gap-2 mb-2 ml-1">
+                  <Brain className="text-blue-500" size={14} />
+                  <h4 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Especialidades Estudadas</h4>
+                </div>
+                
+                {selectedMemberProfile.scores.filter(s => s.specialtyStudyId).length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedMemberProfile.scores
+                      .filter(s => s.specialtyStudyId)
+                      .slice(-3) // Mostra as 3 últimas
+                      .map((s, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="text-[9px] font-black uppercase text-slate-700 dark:text-slate-200 truncate">{s.specialtyStudyName}</p>
+                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{s.date}</p>
+                        </div>
+                        <div className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/40 px-2 py-1 rounded-lg">
+                          {s.specialtyStudyScore}/10
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Nenhum estudo concluído</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full pt-4">
+                <button 
+                  onClick={() => { setSelectedMemberIdForHistory(selectedMemberProfile.id); setSelectedMemberProfile(null); }}
+                  className="w-full py-4 rounded-2xl bg-[#0061f2] text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <History size={14} /> Ver Histórico Completo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL PONTOS */}
       {selectedMemberForPoints && (

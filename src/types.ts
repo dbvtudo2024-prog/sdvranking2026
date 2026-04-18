@@ -51,6 +51,15 @@ export interface Score {
   specialtyStudyName?: string;
 }
 
+export interface UserStats {
+  totalMessages?: number;
+  totalLogins?: number;
+  totalQuizzes?: number;
+  totalVerses?: number;
+  totalGames?: number;
+  totalDevotionals?: number;
+}
+
 export interface Member {
   id: string;
   name: string;
@@ -64,6 +73,7 @@ export interface Member {
   scores: Score[];
   photoUrl?: string;
   badges?: UserBadge[];
+  stats?: UserStats;
 }
 
 export enum BadgeCategory {
@@ -115,6 +125,7 @@ export interface AuthUser {
   photoUrl?: string;
   counselor?: string;
   badges?: UserBadge[];
+  stats?: UserStats;
 }
 
 export interface BibleReadingProgress {

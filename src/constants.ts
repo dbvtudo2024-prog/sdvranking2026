@@ -8,43 +8,57 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: 'sentinela_fiel',
     name: 'Sentinela Fiel',
     category: BadgeCategory.COMMITMENT,
-    description: 'Entrou no app todos os dias da semana.',
+    description: 'Fidelidade no acesso ao app (Bronze: 1 dia, Prata: 7 dias, Ouro: 30 dias).',
     icon: 'Shield'
   },
   {
     id: 'escriba_veloz',
     name: 'Escriba Veloz',
     category: BadgeCategory.WISDOM,
-    description: 'Completou o Versículo Embaralhado sem erros.',
+    description: 'Sabedoria nos versículos (Bronze: Completar, Prata: Máx 1 erro, Ouro: Sem erros).',
     icon: 'Type'
   },
   {
     id: 'demolidor_blocos',
     name: 'Demolidor de Blocos',
     category: BadgeCategory.SKILL,
-    description: 'Alcançou o nível 8 no jogo de Blocos.',
+    description: 'Habilidade no Quebra-Blocos (Bronze: 1000 pts, Prata: 3000 pts, Ouro: 5000 pts).',
     icon: 'Gamepad2'
   },
   {
     id: 'voz_acampamento',
     name: 'Voz do Acampamento',
     category: BadgeCategory.FELLOWSHIP,
-    description: 'Enviou mensagens motivadoras no chat global.',
+    description: 'Participação no chat (Bronze: 5 msgs, Prata: 20 msgs, Ouro: 100 msgs).',
     icon: 'MessageSquare'
   },
   {
     id: 'mestre_quiz',
     name: 'Mestre do Quiz',
     category: BadgeCategory.WISDOM,
-    description: 'Acertou todas as questões de um Quiz.',
+    description: 'Excelência nos conhecimentos (Bronze: Nota 15, Prata: Nota 18, Ouro: Nota 20).',
     icon: 'Brain'
   },
   {
     id: 'explorador_trilhas',
     name: 'Explorador de Trilhas',
     category: BadgeCategory.SKILL,
-    description: 'Venceu o desafio da trilha das especialidades.',
+    description: 'Domínio das especialidades (Bronze: 1 vitória, Prata: 5 vitórias, Ouro: 15 vitórias).',
     icon: 'Map'
+  },
+  {
+    id: 'conquistador_biblico',
+    name: 'Conquistador Bíblico',
+    category: BadgeCategory.FELLOWSHIP,
+    description: 'Leitura da Bíblia (Bronze: 1 cap, Prata: 10 caps, Ouro: 50 caps).',
+    icon: 'Book'
+  },
+  {
+    id: 'estudioso_medal',
+    name: 'Medalha de Estudo',
+    category: BadgeCategory.WISDOM,
+    description: 'Estudo de especialidades (Bronze: 1 termo, Prata: 10 termos, Ouro: 50 termos).',
+    icon: 'Medal'
   }
 ];
 

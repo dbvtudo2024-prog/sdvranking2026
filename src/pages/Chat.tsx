@@ -1,16 +1,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AuthUser, ChatMessage, UnitName } from '@/types';
+import { AuthUser, ChatMessage, UnitName, BadgeLevel, UserStats } from '@/types';
 import { DatabaseService } from '@/db';
 import { Send, Users, Shield, MessageSquare, Loader2 } from 'lucide-react';
 
 interface ChatProps {
   user: AuthUser;
   isDarkMode?: boolean;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
 }
 
-const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge }) => {
+const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge, onUpdateStats }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -129,10 +130,15 @@ const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge }) => {
     try {
       await DatabaseService.sendMessage(newMsg);
 
-      // AWARD BADGE - Fellowship (Voz do Acampamento)
-      const userSentCount = messages.filter(m => m.sender_id === user.id).length + 1;
-      if (userSentCount >= 5 && onAwardBadge) {
-        onAwardBadge('voz_acampamento');
+      // UPDATE STATS & AWARD BADGE
+      if (onUpdateStats) onUpdateStats({ totalMessages: 1 });
+      
+      const updatedTotalMessages = (user.stats?.totalMessages || 0) + 1;
+      
+      if (onAwardBadge) {
+        if (updatedTotalMessages >= 100) onAwardBadge('voz_acampamento', BadgeLevel.GOLD);
+        else if (updatedTotalMessages >= 20) onAwardBadge('voz_acampamento', BadgeLevel.SILVER);
+        else if (updatedTotalMessages >= 5) onAwardBadge('voz_acampamento', BadgeLevel.BRONZE);
       }
     } catch (err: any) {
       console.error("Erro ao enviar mensagem:", err);

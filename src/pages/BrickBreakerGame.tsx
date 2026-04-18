@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { RotateCcw, Trophy, Heart, Play, ArrowLeft, CheckCircle2, Home, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AuthUser, Member, Score, UserRole } from '@/types';
+import { AuthUser, Member, Score, UserRole, BadgeLevel, UserStats } from '@/types';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
 
@@ -12,7 +12,8 @@ interface BrickBreakerGameProps {
   user: AuthUser | null;
   members: Member[];
   onUpdateMember: (member: Member) => void;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   override?: boolean;
 }
 
@@ -31,7 +32,7 @@ interface Brick {
   bonus?: 'multiball' | 'expand';
 }
 
-const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, onAwardBadge, override }) => {
+const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, onAwardBadge, onUpdateStats, override }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished' | 'won_level'>('start');
   const [score, setScore] = useState(0);
@@ -208,9 +209,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   };
 
   const handleFinish = useCallback(() => {
+    if (onUpdateStats) onUpdateStats({ totalGames: 1 });
     // Apenas encerra o jogo sem salvar no perfil do membro para não entrar no ranking
     setGameState('finished');
-  }, []);
+  }, [onUpdateStats]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -410,8 +412,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
   const nextLevel = () => {
     // AWARD BADGE - Skill (Demolidor de Blocos)
-    if (level >= 8 && onAwardBadge) {
-      onAwardBadge('demolidor_blocos');
+    if (onAwardBadge) {
+      if (level === 8) onAwardBadge('demolidor_blocos', BadgeLevel.GOLD);
+      else if (level >= 5) onAwardBadge('demolidor_blocos', BadgeLevel.SILVER);
+      else if (level >= 3) onAwardBadge('demolidor_blocos', BadgeLevel.BRONZE);
     }
     setLevel(l => l + 1);
     setGameState('playing');

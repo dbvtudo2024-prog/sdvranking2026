@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge } from '@/types';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats } from '@/types';
 import { DatabaseService } from '@/db';
 import { APP_VERSION } from '@/constants';
 import Login from '@/pages/Login';
@@ -24,13 +24,12 @@ import Birthdays, { BirthdaysRef } from '@/pages/Birthdays';
 import SpecialtyStudyArea, { SpecialtyStudyHandle } from '@/pages/SpecialtyStudyArea';
 import AdminManagement from '@/pages/AdminManagement';
 import Games from '@/pages/Games';
-import Leadership from '@/pages/Leadership';
-import Pathfinders from '@/pages/Pathfinders';
 import Chat from '@/pages/Chat';
+import Badges from '@/pages/Badges';
 import AppNavbar from '@/components/AppNavbar';
 import TickerBanner from '@/components/TickerBanner';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, Bell, X, Sword, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -45,7 +44,7 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'leadership' | 'pathfinders' | 'profile' | 'games' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'birthdays'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'profile' | 'games' | 'badges' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'birthdays'>('home');
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
@@ -251,7 +250,12 @@ const App: React.FC = () => {
     const currentBadges = user.badges || [];
     const existingBadge = currentBadges.find(b => b.badgeId === badgeId);
     
-    if (existingBadge && existingBadge.level === level) return;
+    // Level hierarchy for comparison
+    const levels = [BadgeLevel.BRONZE, BadgeLevel.SILVER, BadgeLevel.GOLD, BadgeLevel.DIAMOND];
+    const currentLevelIdx = existingBadge ? levels.indexOf(existingBadge.level) : -1;
+    const newLevelIdx = levels.indexOf(level);
+
+    if (existingBadge && currentLevelIdx >= newLevelIdx) return;
 
     const newBadge: UserBadge = {
       badgeId,
@@ -270,6 +274,51 @@ const App: React.FC = () => {
     const member = members.find(m => String(m.id) === String(user.id));
     if (member) {
       const updatedMember = { ...member, badges: updatedBadges };
+      handleUpdateMember(updatedMember);
+    }
+  }, [user, members, handleUpdateMember]);
+
+  const handleUpdateStats = useCallback(async (statsUpdate: Partial<UserStats>) => {
+    if (!user) return;
+    
+    const currentStats = user.stats || {
+      totalMessages: 0,
+      totalLogins: 0,
+      totalQuizzes: 0,
+      totalVerses: 0,
+      totalGames: 0,
+      totalDevotionals: 0
+    };
+
+    const newStats: UserStats = {
+      totalMessages: (currentStats.totalMessages || 0) + (statsUpdate.totalMessages || 0),
+      totalLogins: (currentStats.totalLogins || 0) + (statsUpdate.totalLogins || 0),
+      totalQuizzes: (currentStats.totalQuizzes || 0) + (statsUpdate.totalQuizzes || 0),
+      totalVerses: (currentStats.totalVerses || 0) + (statsUpdate.totalVerses || 0),
+      totalGames: (currentStats.totalGames || 0) + (statsUpdate.totalGames || 0),
+      totalDevotionals: (currentStats.totalDevotionals || 0) + (statsUpdate.totalDevotionals || 0)
+    };
+
+    // AWARD STATS-BASED BADGES
+    if (newStats.totalDevotionals) {
+      if (newStats.totalDevotionals >= 30) handleAwardBadge('estudioso_medal', BadgeLevel.GOLD);
+      else if (newStats.totalDevotionals >= 15) handleAwardBadge('estudioso_medal', BadgeLevel.SILVER);
+      else if (newStats.totalDevotionals >= 5) handleAwardBadge('estudioso_medal', BadgeLevel.BRONZE);
+    }
+
+    if (newStats.totalVerses) {
+      if (newStats.totalVerses >= 30) handleAwardBadge('conquistador_biblico', BadgeLevel.GOLD);
+      else if (newStats.totalVerses >= 15) handleAwardBadge('conquistador_biblico', BadgeLevel.SILVER);
+      else if (newStats.totalVerses >= 5) handleAwardBadge('conquistador_biblico', BadgeLevel.BRONZE);
+    }
+
+    const updatedUser = { ...user, stats: newStats };
+    setUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+    const member = members.find(m => String(m.id) === String(user.id));
+    if (member) {
+      const updatedMember = { ...member, stats: newStats };
       handleUpdateMember(updatedMember);
     }
   }, [user, members, handleUpdateMember]);
@@ -351,12 +400,11 @@ const App: React.FC = () => {
       case 'bible': return 'Bíblia Sagrada';
       case 'bible_reading': return 'Plano de Leitura';
       case 'ranking': return 'Ranking Geral';
-      case 'leadership': return 'Corpo Diretivo';
-      case 'pathfinders': return 'Desbravadores';
       case 'birthdays': return 'Aniversariantes';
       case 'profile': return 'Meu Perfil';
       case 'games': return 'Central de Jogos';
       case 'chat': return 'Chat do Clube';
+      case 'badges': return 'Minhas Insígnias';
       case 'unit_detail': return selectedUnit ? `Unidade ${selectedUnit}` : 'Detalhes';
       case 'admin_announcements': return 'Mural de Avisos';
       case 'admin_quiz': return 'Editor de Quiz';
@@ -414,18 +462,17 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} />;
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
-      case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
+      case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
-      case 'leadership': return <Leadership members={members} isDarkMode={isDarkMode} />;
-      case 'pathfinders': return <Pathfinders members={members} isDarkMode={isDarkMode} />;
-      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
-      case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} />;
+      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
+      case 'badges': return <Badges user={user!} members={members} isDarkMode={isDarkMode} />;
+      case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
@@ -612,11 +659,32 @@ const App: React.FC = () => {
         </header>
       )}
       
-      {currentPage !== 'specialty_study' && currentPage !== 'home' && <TickerBanner announcements={announcements} />}
+      {['home', 'chat', 'bible', 'devotional', 'specialty_study'].includes(currentPage) && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
+      {/* FLOATING CHAT BUTTON */}
+      {user && currentPage !== 'chat' && !isGameActive && (
+        <button 
+          onClick={() => setCurrentPage('chat')}
+          className={`fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-[90] transition-all active:scale-90 hover:scale-105 ${
+            isDarkMode 
+              ? 'bg-blue-500 text-white shadow-blue-500/20 active:bg-blue-600' 
+              : 'bg-[#0061f2] text-white shadow-blue-600/30 active:bg-blue-700'
+          }`}
+        >
+          <div className="relative">
+            <MessageCircle size={28} strokeWidth={2.5} />
+            {unreadCount > 0 && (
+              <div className="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_15px_rgba(220,38,38,0.4)] animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </div>
+            )}
+          </div>
+        </button>
+      )}
+
+      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
         <footer className="shrink-0 z-[100]">
           <AppNavbar 
             currentPage={currentPage as any} 

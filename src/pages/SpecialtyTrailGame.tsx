@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, Refr
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { AuthUser, Member, QuizQuestion, UserRole } from '@/types';
+import { AuthUser, Member, QuizQuestion, UserRole, BadgeLevel, UserStats } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -12,12 +12,13 @@ interface SpecialtyTrailGameProps {
   user: AuthUser;
   members: Member[];
   onUpdateMember: (member: Member) => void;
-  onAwardBadge?: (badgeId: string) => void;
+  onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
+  onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   override: boolean;
 }
 
-const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, override }) => {
+const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentPos, setCurrentPos] = useState(0);
@@ -76,14 +77,18 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!memberToUpdate) return;
 
+    if (onUpdateStats) onUpdateStats({ totalGames: 1 });
+
     const todayStr = new Date().toISOString();
     const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
 
     // AWARD BADGE - Skill (Explorador de Trilhas)
-    if (finalScore >= 60 && onAwardBadge) { // 6 questions * 10 pts = 60
-      onAwardBadge('explorador_trilhas');
+    if (onAwardBadge) {
+      if (finalScore >= 150) onAwardBadge('explorador_trilhas', BadgeLevel.GOLD);
+      else if (finalScore >= 100) onAwardBadge('explorador_trilhas', BadgeLevel.SILVER);
+      else if (finalScore >= 50) onAwardBadge('explorador_trilhas', BadgeLevel.BRONZE);
     }
 
     updatedScores.push({
