@@ -14,7 +14,10 @@ const BADGE_ICONS: { [key: string]: any } = {
   'Gamepad2': Gamepad2,
   'MessageSquare': MessageSquare,
   'Brain': Brain,
-  'Map': Map
+  'Map': Map,
+  'CheckCircle2': Check,
+  'Medal': Medal,
+  'Book': BookOpen
 };
 
 interface ProfileProps {
@@ -405,12 +408,15 @@ const Profile: React.FC<ProfileProps> = ({
             {/* Renderizar todas as insígnias do usuário (incluindo as mensais) */}
             {user.badges?.map(ub => {
               const isMonthly = ub.badgeId.startsWith('monthly_games_');
-              const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId);
+              const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
+              const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
               
-              if (!badgeDef && !isMonthly) return null;
+              if (!badgeDef && !isMonthly && !isSpecialtyMaster) return null;
               
-              const BadgeIcon = isMonthly ? Trophy : (BADGE_ICONS[badgeDef?.icon || ''] || HelpCircle);
-              const badgeName = isMonthly ? ub.monthLabel || 'Mensal' : (badgeDef?.name || 'Insignia');
+              const BadgeIcon = isMonthly ? Trophy : (isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef?.icon || ''] || HelpCircle));
+              const badgeName = isMonthly ? (ub.monthLabel || 'Mensal') : 
+                               isSpecialtyMaster ? `Mestre ${ub.level}` :
+                               (badgeDef?.name || 'Insignia');
               
               return (
                 <div 

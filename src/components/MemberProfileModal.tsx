@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Member, BadgeLevel } from '@/types';
-import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy } from 'lucide-react';
+import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy, Check } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
 import { BADGE_DEFINITIONS } from '@/constants';
@@ -14,7 +14,8 @@ const BADGE_ICONS: { [key: string]: any } = {
   'Brain': Brain,
   'Map': Map,
   'Book': Book,
-  'Medal': Medal
+  'Medal': Medal,
+  'CheckCircle2': Check
 };
 
 interface MemberProfileModalProps {
@@ -91,37 +92,59 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
               <h4 className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Insígnias Conquistadas</h4>
             </div>
             
-            {member.badges && member.badges.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3">
-                {member.badges.map(ub => {
+            <div className="grid grid-cols-4 gap-3">
+               {/* Conquered Badges */}
+               {member.badges?.map(ub => {
                   const isMonthly = ub.badgeId.startsWith('monthly_games_');
-                  const badge = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId);
+                  const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
+                  const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                   
-                  if (!badge && !isMonthly) return null;
+                  if (!badgeDef && !isMonthly && !isSpecialtyMaster) return null;
                   
-                  const BadgeIcon = isMonthly ? Trophy : (BADGE_ICONS[badge?.icon || ''] || HelpCircle);
-                  const badgeName = isMonthly ? ub.monthLabel || 'Mensal' : (badge?.name || 'Insignia');
+                  const BadgeIcon = isMonthly ? Trophy : (isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef?.icon || ''] || HelpCircle));
+                  const badgeName = isMonthly ? (ub.monthLabel || 'Mensal') : 
+                                   isSpecialtyMaster ? `Mestre ${ub.level}` :
+                                   (badgeDef?.name || 'Insignia');
                   
                   return (
                     <div key={ub.badgeId} className="flex flex-col items-center">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
-                        ub.level === BadgeLevel.GOLD ? 'bg-yellow-500' : 
+                        ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
+                        ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
                         ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
                         'bg-orange-700'
-                      } text-white border-4 border-white dark:border-slate-800`}>
+                      } text-white border-2 border-white dark:border-slate-800`}>
                         <BadgeIcon size={24} />
                       </div>
-                      <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                         {badgeName.split(' ')[0]}
                       </p>
                     </div>
                   );
                 })}
-              </div>
-            ) : (
-              <div className={`py-6 text-center rounded-[2rem] border-2 border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest leading-none">Nenhuma insígnia conquistada</p>
-              </div>
+
+                {/* Not Conquered Badges (Grayed out) */}
+                {BADGE_DEFINITIONS.filter(badge => !member.badges?.some(ub => ub.badgeId === badge.id)).map(badge => {
+                  const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
+                  return (
+                    <div key={`not-conquered-${badge.id}`} className="flex flex-col items-center opacity-30 grayscale cursor-help" title={`Conquiste ${badge.name}`}>
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600">
+                        <BadgeIcon size={24} />
+                      </div>
+                      <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {badge.name.split(' ')[0]}
+                      </p>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {(!member.badges || member.badges.length === 0) && (
+               <div className={`py-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800`}>
+                 <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest">
+                   {member.name.split(' ')[0]} ainda está trilhando seu caminho
+                 </p>
+               </div>
             )}
           </div>
 

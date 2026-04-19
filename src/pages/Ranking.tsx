@@ -233,7 +233,21 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                            {champ.photoUrl ? <img src={champ.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-200 dark:text-slate-700" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                           <p className={`font-black text-sm uppercase truncate ${idx === 0 ? 'text-yellow-700 dark:text-yellow-500' : 'text-slate-900 dark:text-white'}`}>{champ.name.split(' ')[0]}</p>
+                           <div className="flex items-center gap-2">
+                             <p className={`font-black text-sm uppercase truncate ${idx === 0 ? 'text-yellow-700 dark:text-yellow-500' : 'text-slate-900 dark:text-white'}`}>{champ.name.split(' ')[0]}</p>
+                             <div className="flex -space-x-1">
+                               {champ.badges?.slice(0, 3).map((ub, bidx) => (
+                                 <div 
+                                   key={`hall-mini-badge-${champ.id}-${bidx}`}
+                                   className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
+                                     ub.badgeId.startsWith('monthly_games_') ? 'bg-amber-400' : 'bg-blue-400'
+                                   }`}
+                                 >
+                                   <Trophy size={8} className="text-white" />
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{champ.unit}</p>
                         </div>
                         <div className="text-right">
@@ -441,7 +455,23 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                   {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="m-auto text-slate-200 dark:text-slate-700 mt-2.5" />}
                 </div>
                 <div className="flex-1 min-w-0 pr-2">
-                  <h4 className={`font-black text-sm truncate uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{m.name.split(' ')[0]}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className={`font-black text-sm truncate uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{m.name.split(' ')[0]}</h4>
+                    
+                    {/* Render mini badges icons */}
+                    <div className="flex -space-x-1">
+                      {m.badges?.slice(0, 3).map((ub, bidx) => (
+                        <div 
+                          key={`mini-badge-${m.id}-${bidx}`}
+                          className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
+                             ub.badgeId.startsWith('monthly_games_') ? 'bg-amber-400' : 'bg-blue-400'
+                          }`}
+                        >
+                          <Trophy size={8} className="text-white" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{m.unit}</p>
                 </div>
                 

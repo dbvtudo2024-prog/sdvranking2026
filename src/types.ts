@@ -90,7 +90,8 @@ export enum BadgeLevel {
   BRONZE = 'Bronze',
   SILVER = 'Prata',
   GOLD = 'Ouro',
-  DIAMOND = 'Diamante'
+  DIAMOND = 'Diamante',
+  MASTER = 'Mestre'
 }
 
 export interface UserBadge {

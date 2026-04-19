@@ -66,6 +66,13 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     category: BadgeCategory.COMMITMENT,
     description: 'Fidelidade absoluta: complete o ciclo de 7 dias de check-in.',
     icon: 'CheckCircle2'
+  },
+  {
+    id: 'mestre_especialidade',
+    name: 'Mestre da Especialidade',
+    category: BadgeCategory.WISDOM,
+    description: 'Especialista em concluir estudos (Bronze: 10, Prata: 25, Ouro: 50, Diamante: 75, Mestre: 100).',
+    icon: 'Shield'
   }
 ];
 
