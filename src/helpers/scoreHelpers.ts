@@ -4,7 +4,7 @@ import { Member, Score } from '@/types';
 export const GAME_KEYS = [
   'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
   'puzzleGame', 'knotsGame', 'specialtyTrailGame', 
-  'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'specialtyStudyScore'
+  'scrambledVerseGame', 'natureIdGame', 'firstAidGame'
 ];
 
 export const GAMES_METADATA: { [key: string]: { label: string, shortLabel: string } } = {
@@ -17,8 +17,7 @@ export const GAMES_METADATA: { [key: string]: { label: string, shortLabel: strin
   specialtyTrailGame: { label: 'Trilha', shortLabel: 'T' },
   scrambledVerseGame: { label: 'Versículo', shortLabel: 'V' },
   natureIdGame: { label: 'Natureza', shortLabel: 'Nat' },
-  firstAidGame: { label: 'Socorros', shortLabel: 'Soc' },
-  specialtyStudyScore: { label: 'Estudo', shortLabel: 'Est' }
+  firstAidGame: { label: 'Socorros', shortLabel: 'Soc' }
 };
 
 export const calculateSpecific = (member: Member, key: string) => {
@@ -60,7 +59,27 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
   if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
   
   return member.scores
-    .filter(s => s.date && s.date.startsWith(monthYear))
+    .filter(s => {
+      if (!s.date) return false;
+      let scoreMStr = '';
+      
+      // Handle YYYY-MM-DD or YYYY-MM
+      if (s.date.includes('-')) {
+        const parts = s.date.split('-');
+        if (parts.length >= 2) scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+      }
+      // Handle DD/MM/YYYY or DD/MM
+      else if (s.date.includes('/')) {
+        const parts = s.date.split('/');
+        if (parts.length === 3) scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+        else if (parts.length === 2) {
+          // Assuming MM/YYYY if month > 12? No, let's be careful.
+          // Usually it's DD/MM/YYYY.
+        }
+      }
+      
+      return scoreMStr === monthYear;
+    })
     .reduce((acc, s) => {
       let monthTotal = 0;
       const scoreObj = s as any;

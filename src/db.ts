@@ -104,32 +104,53 @@ export const DatabaseService = {
     let localAnnouncements: Announcement[] = [];
     let localCounselors: CounselorDB[] = [];
 
+    // Auxiliary to ensure consistent config data
+    const transformConfig = (data: any): GameConfig => ({
+      ...data,
+      quiz_override: data.quiz_override ?? false,
+      memory_override: data.memory_override ?? false,
+      specialty_override: data.specialty_override ?? false,
+      three_clues_override: data.three_clues_override ?? false,
+      puzzle_override: data.puzzle_override ?? false,
+      knots_override: data.knots_override ?? false,
+      specialty_trail_override: data.specialty_trail_override ?? false,
+      scrambled_verse_override: data.scrambled_verse_override ?? false,
+      nature_id_override: data.nature_id_override ?? false,
+      first_aid_override: data.first_aid_override ?? false,
+      brick_breaker_override: data.brick_breaker_override ?? false,
+      mahjong_override: data.mahjong_override ?? false,
+    });
+
     // Fetch initial data and setup logic for each table
     if (callbacks.onMembers) {
+      console.log("[Realtime] Buscando membros...");
       this.getMembers().then(data => {
         localMembers = data;
         callbacks.onMembers!(localMembers);
-      });
+      }).catch(err => console.error("[Realtime] Erro ao buscar membros:", err));
 
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
+        console.log("[Realtime] Mudança em members:", payload.eventType);
         if (payload.eventType === 'INSERT') {
           localMembers = [...localMembers, payload.new as Member];
         } else if (payload.eventType === 'UPDATE') {
-          localMembers = localMembers.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m);
+          localMembers = localMembers.map(m => String(m.id) === String(payload.new.id) ? { ...m, ...payload.new } : m);
         } else if (payload.eventType === 'DELETE') {
-          localMembers = localMembers.filter(m => m.id !== payload.old.id);
+          localMembers = localMembers.filter(m => String(m.id) !== String(payload.old.id));
         }
         callbacks.onMembers!([...localMembers]);
       });
     }
 
     if (callbacks.onAnnouncements) {
+      console.log("[Realtime] Buscando anúncios...");
       this.getAnnouncements().then(data => {
         localAnnouncements = data;
         callbacks.onAnnouncements!(localAnnouncements);
-      });
+      }).catch(err => console.error("[Realtime] Erro ao buscar anúncios:", err));
 
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
+        console.log("[Realtime] Mudança em announcements:", payload.eventType);
         if (payload.eventType === 'INSERT') {
           localAnnouncements = [payload.new as Announcement, ...localAnnouncements];
         } else if (payload.eventType === 'UPDATE') {
@@ -142,12 +163,14 @@ export const DatabaseService = {
     }
 
     if (callbacks.onCounselors) {
+      console.log("[Realtime] Buscando conselheiros...");
       this.getCounselors().then(data => {
         localCounselors = data;
         callbacks.onCounselors!(localCounselors);
-      });
+      }).catch(err => console.error("[Realtime] Erro ao buscar conselheiros:", err));
 
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
+        console.log("[Realtime] Mudança em conselheiros:", payload.eventType);
         if (payload.eventType === 'INSERT') {
           const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
           localCounselors = [...localCounselors, newC];
@@ -162,12 +185,14 @@ export const DatabaseService = {
     }
 
     if (callbacks.onGameConfigs) {
+      console.log("[Realtime] Buscando game configs...");
       this.getGameConfigs().then(config => {
         if (config) callbacks.onGameConfigs!(config);
-      });
+      }).catch(err => console.error("[Realtime] Erro ao buscar game configs:", err));
 
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'game_configs' }, payload => {
-        if (payload.new) callbacks.onGameConfigs!(payload.new as GameConfig);
+        console.log("[Realtime] Mudança em game_configs:", payload.eventType);
+        if (payload.new) callbacks.onGameConfigs!(transformConfig(payload.new));
       });
     }
 
@@ -177,7 +202,9 @@ export const DatabaseService = {
       });
     }
 
-    return channel.subscribe();
+    return channel.subscribe((status) => {
+      console.log(`[Realtime] Status do canal ${channelId}:`, status);
+    });
   },
 
   // --- MEMBROS ---
@@ -196,7 +223,12 @@ export const DatabaseService = {
       if (data && data.length > 0) {
         console.log("[DB] Colunas em members:", Object.keys(data[0]));
       }
-      return (data || []) as Member[];
+      return (data || []).map(m => ({
+        ...m,
+        badges: m.badges || [],
+        scores: m.scores || [],
+        stats: m.stats || {}
+      })) as Member[];
     });
   },
 
@@ -234,7 +266,9 @@ export const DatabaseService = {
       counselor: member.counselor,
       unit: member.unit,
       scores: member.scores,
-      photoUrl: member.photoUrl
+      photoUrl: member.photoUrl,
+      badges: member.badges,
+      stats: member.stats
     };
     const { error } = await supabase.from('members').insert([payload]);
     if (error) {
@@ -255,7 +289,9 @@ export const DatabaseService = {
       counselor: updates.counselor,
       unit: updates.unit,
       scores: updates.scores,
-      photoUrl: updates.photoUrl
+      photoUrl: updates.photoUrl,
+      badges: updates.badges,
+      stats: updates.stats
     };
     const { error } = await supabase.from('members').update(payload).eq('id', id);
     if (error) {
@@ -276,7 +312,9 @@ export const DatabaseService = {
       counselor: m.counselor,
       unit: m.unit,
       scores: m.scores,
-      photoUrl: m.photoUrl
+      photoUrl: m.photoUrl,
+      badges: m.badges,
+      stats: m.stats
     }));
     const { error } = await supabase.from('members').upsert(payloads);
     if (error) {

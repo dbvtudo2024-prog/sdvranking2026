@@ -13,7 +13,7 @@ interface RankingProps {
 }
 
 type TabType = 'members' | 'units' | 'games' | 'hall';
-type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid' | 'study';
+type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid';
 
 const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const [tab, setTab] = useState<TabType>('members');
@@ -22,14 +22,27 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
 
   const currentMonth = new Date().toISOString().slice(0, 7);
 
+  // Sync profile when members list updates (ensures badges show up in real-time)
+  const currentProfile = useMemo(() => {
+    if (!selectedProfile) return null;
+    return members.find(m => m.id === selectedProfile.id) || selectedProfile;
+  }, [members, selectedProfile]);
+
   const allMonthsWithScores = useMemo(() => {
     const months = new Set<string>();
     members.forEach(m => {
       m.scores.forEach(s => {
-        if (s.date && s.date.length >= 7) {
-          const mStr = s.date.slice(0, 7);
-          // Hall only shows past months (exclude current month)
-          if (mStr !== currentMonth) {
+        if (s.date) {
+          let mStr = '';
+          if (s.date.includes('-')) {
+            const parts = s.date.split('-');
+            if (parts.length >= 2) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+          } else if (s.date.includes('/')) {
+            const parts = s.date.split('/');
+            if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+          }
+
+          if (mStr && mStr.length === 7 && mStr !== currentMonth) {
             months.add(mStr);
           }
         }
@@ -48,7 +61,18 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       // For specific games, we need a monthly version of calculateSpecific or filter current scores
       const getMonthlyPoints = (m: Member, key: string) => {
         return m.scores
-          .filter(s => s.date && s.date.startsWith(currentMonth))
+          .filter(s => {
+            if (!s.date) return false;
+            let mStr = '';
+            if (s.date.includes('-')) {
+              const parts = s.date.split('-');
+              if (parts.length >= 2) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+            } else if (s.date.includes('/')) {
+              const parts = s.date.split('/');
+              if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+            }
+            return mStr === currentMonth;
+          })
           .reduce((acc, curr) => {
             const s = curr as any;
             if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
@@ -67,7 +91,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return data.sort((a, b) => getMonthlyPoints(b, 'scrambledVerseGame') - getMonthlyPoints(a, 'scrambledVerseGame'));
       if (gameTab === 'natureid') return data.sort((a, b) => getMonthlyPoints(b, 'natureIdGame') - getMonthlyPoints(a, 'natureIdGame'));
       if (gameTab === 'firstaid') return data.sort((a, b) => getMonthlyPoints(b, 'firstAidGame') - getMonthlyPoints(a, 'firstAidGame'));
-      if (gameTab === 'study') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyStudyScore') - getMonthlyPoints(a, 'specialtyStudyScore'));
     }
     
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
@@ -81,7 +104,18 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
     if (tab === 'games') {
       const getMonthlyPoints = (mem: Member, key: string) => {
         return mem.scores
-          .filter(s => s.date && s.date.startsWith(currentMonth))
+          .filter(s => {
+            if (!s.date) return false;
+            let mStr = '';
+            if (s.date.includes('-')) {
+              const parts = s.date.split('-');
+              if (parts.length >= 2) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+            } else if (s.date.includes('/')) {
+              const parts = s.date.split('/');
+              if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+            }
+            return mStr === currentMonth;
+          })
           .reduce((acc, curr) => {
             const s = curr as any;
             if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
@@ -100,7 +134,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'scrambledverse') return getMonthlyPoints(m, 'scrambledVerseGame');
       if (gameTab === 'natureid') return getMonthlyPoints(m, 'natureIdGame');
       if (gameTab === 'firstaid') return getMonthlyPoints(m, 'firstAidGame');
-      if (gameTab === 'study') return getMonthlyPoints(m, 'specialtyStudyScore');
       return calculateMonthlyGamesTotal(m, currentMonth);
     }
     return calculateWeeklyTotal(m);
@@ -156,7 +189,6 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
             <GameTabButton type="scrambledverse" label="Versículo" />
             <GameTabButton type="natureid" label="Natureza" />
             <GameTabButton type="firstaid" label="Socorros" />
-            <GameTabButton type="study" label="Estudo" />
           </div>
         </div>
       )}
@@ -239,7 +271,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     {GAME_KEYS.map(key => {
                       const getMonthlyPoints = (mem: Member, k: string) => {
                         return mem.scores
-                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .filter(s => {
+                            if (!s.date) return false;
+                            if (s.date.startsWith(currentMonth)) return true;
+                            if (s.date.includes('/')) {
+                              const parts = s.date.split('/');
+                              if (parts.length === 3) {
+                                return `${parts[2]}-${parts[1]}` === currentMonth;
+                              }
+                            }
+                            return false;
+                          })
                           .reduce((acc, curr) => {
                             const sc = curr as any;
                             if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
@@ -285,7 +327,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     {GAME_KEYS.map(key => {
                       const getMonthlyPoints = (mem: Member, k: string) => {
                         return mem.scores
-                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .filter(s => {
+                            if (!s.date) return false;
+                            if (s.date.startsWith(currentMonth)) return true;
+                            if (s.date.includes('/')) {
+                              const parts = s.date.split('/');
+                              if (parts.length === 3) {
+                                return `${parts[2]}-${parts[1]}` === currentMonth;
+                              }
+                            }
+                            return false;
+                          })
                           .reduce((acc, curr) => {
                             const sc = curr as any;
                             if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
@@ -332,7 +384,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     {GAME_KEYS.map(key => {
                       const getMonthlyPoints = (mem: Member, k: string) => {
                         return mem.scores
-                          .filter(s => s.date && s.date.startsWith(currentMonth))
+                          .filter(s => {
+                            if (!s.date) return false;
+                            if (s.date.startsWith(currentMonth)) return true;
+                            if (s.date.includes('/')) {
+                              const parts = s.date.split('/');
+                              if (parts.length === 3) {
+                                return `${parts[2]}-${parts[1]}` === currentMonth;
+                              }
+                            }
+                            return false;
+                          })
                           .reduce((acc, curr) => {
                             const sc = curr as any;
                             if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
@@ -457,9 +519,9 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
         </div>
       )}
 
-      {selectedProfile && (
+      {currentProfile && (
         <MemberProfileModal 
-          member={selectedProfile} 
+          member={currentProfile} 
           onClose={() => setSelectedProfile(null)} 
           isDarkMode={isDarkMode}
         />

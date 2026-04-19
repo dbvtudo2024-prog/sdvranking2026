@@ -463,75 +463,122 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentPage]);
 
-  useEffect(() => {
-    const processMonthlyAwards = async () => {
-      // Only Leadership can trigger the awarding
-      if (user?.role !== UserRole.LEADERSHIP) return;
+  const lastProcessedRef = useRef<string>('');
 
-      const config = await DatabaseService.getGameConfigs();
-      if (!config) return;
+  const processMonthlyAwards = useCallback(async () => {
+    if (!user) return; // Permitir que qualquer usuário calcule (idempotente)
+    if (!members || members.length === 0) return;
 
-      const now = new Date();
-      // Get previous month string "YYYY-MM"
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (config.last_monthly_award_month === lastMonthStr) return;
+    // Criar um hash mais leve e inteligente do estado atual
+    // Mudança na quantidade de membros, scores ou na contagem total de badges de todos os membros juntas
+    const totalBadges = members.reduce((acc, m) => acc + (m.badges?.length || 0), 0);
+    const totalScores = members.reduce((acc, m) => acc + (m.scores?.length || 0), 0);
+    const stateHash = `v2-${members.length}-${totalBadges}-${totalScores}`;
+    
+    if (lastProcessedRef.current === stateHash) return;
+    lastProcessedRef.current = stateHash;
 
-      console.log(`[Awards] Processando premiação mensal para: ${lastMonthStr}`);
-      
-      // Use the members we already have in state
-      if (!members || members.length === 0) return;
-
+    console.log(`[Awards] Verificando premiações automáticas para todos...`);
+    
+    try {
       const { calculateMonthlyGamesTotal } = await import('@/helpers/scoreHelpers');
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
-      const sortedByGames = [...members].sort((a, b) => 
-        calculateMonthlyGamesTotal(b, lastMonthStr) - calculateMonthlyGamesTotal(a, lastMonthStr)
-      );
-
-      const top3 = sortedByGames.slice(0, 3);
-      const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
-
-      const awardPromises = top3.map(async (m, idx) => {
-        if (!m) return;
-        const score = calculateMonthlyGamesTotal(m, lastMonthStr);
-        if (score <= 0) return;
-
-        const monthName = lastMonth.toLocaleString('pt-BR', { month: 'long' });
-        const badgeId = `monthly_games_${lastMonthStr}_${idx + 1}`;
-        
-        const newBadge: UserBadge = {
-          badgeId,
-          level: levels[idx],
-          awardedAt: new Date().toISOString(),
-          points: score,
-          monthLabel: monthName.charAt(0).toUpperCase() + monthName.slice(1)
-        };
-
-        const existingBadges = m.badges || [];
-        if (existingBadges.some(b => b.badgeId === badgeId)) return;
-
-        const updatedMember = { ...m, badges: [...existingBadges, newBadge] };
-        await DatabaseService.updateMember(updatedMember);
-        
-        // If this member is the current user, update session
-        if (user && String(m.id) === String(user.id)) {
-           const updatedUser = { ...user, badges: [...(user.badges || []), newBadge] };
-           setUser(updatedUser);
-           localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
-        }
+      const monthsSet = new Set<string>();
+      members.forEach(m => {
+        if (!m.scores) return;
+        m.scores.forEach(s => {
+          if (!s.date) return;
+          let mStr = '';
+          if (s.date.includes('-')) {
+            const dateParts = s.date.split('-');
+            if (dateParts.length >= 2) mStr = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}`;
+          } else if (s.date.includes('/')) {
+            const parts = s.date.split('/');
+            if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+          }
+          if (mStr && mStr.length === 7 && mStr !== currentMonth) {
+            monthsSet.add(mStr);
+          }
+        });
       });
 
-      await Promise.all(awardPromises);
-      await DatabaseService.updateGameConfig({ last_monthly_award_month: lastMonthStr });
-      console.log(`[Awards] Premiação de ${lastMonthStr} concluída.`);
-    };
+      const pastMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+      const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
 
-    // Run award processing only if we have members and user is leadership
-    if (user && user.role === UserRole.LEADERSHIP && members.length > 0) {
-      processMonthlyAwards();
+      const updatesToProcess: { [memberId: string]: Member } = {};
+
+      for (const mStr of pastMonths) {
+        const [y, m] = mStr.split('-');
+        const monthDate = new Date(parseInt(y), parseInt(m) - 1);
+        const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
+        const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+        // Pré-calcular scores para evitar re-cálculos pesados no sort
+        const memberScores = members.map(m => ({
+          member: m,
+          score: calculateMonthlyGamesTotal(m, mStr)
+        }));
+
+        const sortedByGames = memberScores
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .filter(si => si.score > 0);
+
+        for (let idx = 0; idx < sortedByGames.length; idx++) {
+          const { member: champ, score } = sortedByGames[idx];
+          const badgeId = `monthly_games_${mStr}_${idx + 1}`;
+
+          // Verifica no objeto já em processo de atualização ou no original
+          const currentMemberData = updatesToProcess[String(champ.id)] || champ;
+          const existingBadges = currentMemberData.badges || [];
+          
+          if (existingBadges.some(b => b.badgeId === badgeId)) continue;
+          
+          console.log(`[Awards] Preparando premiação de ${champ.name} com ${badgeId}`);
+          
+          const newBadge: UserBadge = {
+            badgeId,
+            level: levels[idx],
+            awardedAt: new Date().toISOString(),
+            points: score,
+            monthLabel: `${monthLabel} ${y}`
+          };
+
+          const updatedMember = { ...currentMemberData, badges: [...existingBadges, newBadge] };
+          updatesToProcess[String(champ.id)] = updatedMember;
+          
+          // Se for o usuário conectado, atualiza o estado local para refletir na UI sem delay
+          if (user && (String(champ.id) === String(user.id) || champ.name === user.name)) {
+            setUser(prev => {
+              if (!prev) return null;
+              if ((prev.badges || []).some(b => b.badgeId === badgeId)) return prev;
+              const updated = { ...prev, badges: [...(prev.badges || []), newBadge] };
+              localStorage.setItem('sentinelas_user', JSON.stringify(updated));
+              return updated;
+            });
+          }
+        }
+      }
+
+      // Executa todas as atualizações acumuladas
+      const entries = Object.entries(updatesToProcess);
+      if (entries.length > 0) {
+        console.log(`[Awards] Enviando ${entries.length} atualizações de membros para o banco...`);
+        for (const [_, updatedMember] of entries) {
+          await DatabaseService.updateMember(updatedMember);
+        }
+      }
+    } catch (err) {
+      console.error("[Awards] Erro ao processar premiações:", err);
     }
-  }, [user?.role, members.length > 0]); // Triggers only when role is set or members first load
+  }, [user, members]);
+
+  useEffect(() => {
+    // Executa sempre que os membros mudarem, o hash interno impedirá loops
+    processMonthlyAwards();
+  }, [members, user?.role, processMonthlyAwards]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -556,6 +603,7 @@ const App: React.FC = () => {
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
+      onProcessMonthlyAwards={processMonthlyAwards}
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
       onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
       onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} 

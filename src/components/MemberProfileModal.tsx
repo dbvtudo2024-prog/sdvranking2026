@@ -3,6 +3,7 @@ import React from 'react';
 import { Member, BadgeLevel } from '@/types';
 import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
+import { formatDate } from '@/helpers/dateHelpers';
 import { BADGE_DEFINITIONS } from '@/constants';
 
 const BADGE_ICONS: { [key: string]: any } = {
@@ -141,7 +142,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                   <div key={idx} className={`flex justify-between items-center p-4 rounded-[1.5rem] border shadow-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-100'}`}>
                     <div className="flex-1 min-w-0 pr-4 text-left">
                       <p className={`text-[10px] font-black uppercase truncate mb-0.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{s.specialtyStudyName}</p>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{s.date}</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(s.date)}</p>
                     </div>
                     <div className={`px-3 py-1.5 rounded-xl font-black text-xs ${Number(s.specialtyStudyScore) >= 7 ? (isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-600') : (isDarkMode ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600')}`}>
                       {s.specialtyStudyScore}/10

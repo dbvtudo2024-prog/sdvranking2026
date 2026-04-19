@@ -49,6 +49,7 @@ interface AdminManagementProps {
   onToggleBrickBreakerOverride: () => void;
   mahjongOverride: boolean;
   onToggleMahjongOverride: () => void;
+  onProcessMonthlyAwards?: () => Promise<void>;
   isDarkMode?: boolean;
 }
 
@@ -95,6 +96,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onToggleBrickBreakerOverride,
   mahjongOverride,
   onToggleMahjongOverride,
+  onProcessMonthlyAwards,
   isDarkMode
 }) => {
   const [showCounselorModal, setShowCounselorModal] = useState(false);
@@ -394,9 +396,22 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
              <h3 className={`${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[10px] font-black uppercase tracking-[0.2em]`}>Mural e Equipe</h3>
            </div>
            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button onClick={onGoToAdminAvisos} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}>
                 <BellRing size={24} /> GERENCIAR AVISOS
               </button>
+              <button 
+                onClick={() => {
+                  if (onProcessMonthlyAwards) {
+                    onProcessMonthlyAwards();
+                    alert('Solicitado processamento de medalhas! Verifique no perfil após alguns segundos.');
+                  }
+                }}
+                className={`w-full ${isDarkMode ? 'bg-amber-900/10 text-amber-500 border-amber-900/30' : 'bg-amber-50 text-amber-700 border-amber-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-[10px] tracking-widest active:scale-95 transition-all outline-none`}
+              >
+                <Trophy size={20} /> Medalhas Mensais
+              </button>
+            </div>
               <div className="grid grid-cols-2 gap-4">
                 <button onClick={() => { setEditCounselor(null); setNewCounselorName(''); setShowCounselorModal(true); }} className={`${isDarkMode ? 'bg-slate-900/50 text-blue-400 border-blue-900/30' : 'bg-blue-50/50 text-[#0061f2] border-blue-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
                   <UserPlus size={22} /> CONSELHEIROS
@@ -467,6 +482,26 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               >
                 {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
                 CORRIGIR STATUS DE JOGOS
+              </button>
+              <button 
+                onClick={async () => {
+                  if (onProcessMonthlyAwards) {
+                    setIsProcessing(true);
+                    try {
+                      await onProcessMonthlyAwards();
+                      alert("✅ Insígnias históricas atualizadas com sucesso!");
+                    } catch (err) {
+                      alert("❌ Erro ao atualizar insígnias.");
+                    } finally {
+                      setIsProcessing(false);
+                    }
+                  }
+                }}
+                disabled={isProcessing}
+                className={`w-full ${isDarkMode ? 'bg-indigo-900/20 text-indigo-400 border-indigo-900/30' : 'bg-indigo-50 text-indigo-600 border-indigo-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
+              >
+                {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Trophy size={24} />}
+                ATUALIZAR INSÍGNIAS HISTÓRICAS
               </button>
            </div>
         </div>

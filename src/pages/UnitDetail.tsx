@@ -2,9 +2,10 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { UnitName, Member, UserRole, Score, BadgeLevel } from '@/types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES, BADGE_DEFINITIONS } from '@/constants';
-import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book } from 'lucide-react';
+import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book, ArrowLeft, Trophy } from 'lucide-react';
 import MemberProfileModal from '@/components/MemberProfileModal';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
+import { formatDate } from '@/helpers/dateHelpers';
 
 const BADGE_ICONS: { [key: string]: any } = {
   'Shield': Shield,
@@ -72,6 +73,12 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const historyMember = useMemo(() => {
     return members.find(m => m.id === selectedMemberIdForHistory);
   }, [members, selectedMemberIdForHistory]);
+
+  // Sync profile when members list updates (ensures badges show up in real-time)
+  const currentProfile = useMemo(() => {
+    if (!selectedMemberProfile) return null;
+    return members.find(m => m.id === selectedMemberProfile.id) || selectedMemberProfile;
+  }, [members, selectedMemberProfile]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0];
@@ -254,12 +261,39 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                       {member.className || 'Liderança'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="flex items-center gap-1.5 opacity-80 mb-2">
                     <Shield size={10} className="text-[#0061f2]" />
                     <p className={`text-[9px] font-black uppercase tracking-wider truncate`}>
                       {isLiderancaUnit ? member.counselor : (member.counselor ? member.counselor : 'Sem Conselheiro')}
                     </p>
                   </div>
+                  
+                  {/* Badge list mini */}
+                  {member.badges && member.badges.length > 0 && (
+                    <div className="flex -space-x-1 overflow-hidden mt-1">
+                      {member.badges.slice(0, 6).map((ub, idx) => {
+                        const isMonthly = ub.badgeId.startsWith('monthly_games_');
+                        return (
+                          <div 
+                            key={`mini-badge-${member.id}-${idx}`}
+                            style={{ zIndex: 10 - idx }}
+                            className={`w-4 h-4 rounded-full border-[1px] border-white dark:border-slate-800 flex items-center justify-center shadow-sm relative ${
+                              ub.level === BadgeLevel.GOLD ? 'bg-yellow-400' : 
+                              ub.level === BadgeLevel.SILVER ? 'bg-slate-300' : 
+                              'bg-orange-600'
+                            }`}
+                          >
+                            {isMonthly ? <Trophy size={8} className="text-white" strokeWidth={3} /> : <Medal size={8} className="text-white" strokeWidth={3} />}
+                          </div>
+                        );
+                      })}
+                      {member.badges.length > 6 && (
+                        <div className={`w-4 h-4 rounded-full border-[1px] border-white dark:border-slate-800 flex items-center justify-center bg-slate-200 dark:bg-slate-700 text-[5px] font-black leading-none ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} style={{ zIndex: 0 }}>
+                          +{member.badges.length - 6}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Score Badge */}
@@ -320,11 +354,11 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       </div>
 
       {/* MODAL PERFIL */}
-      {selectedMemberProfile && (
+      {currentProfile && (
         <MemberProfileModal 
-          member={selectedMemberProfile} 
+          member={currentProfile} 
           onClose={() => setSelectedMemberProfile(null)}
-          onViewHistory={() => { setSelectedMemberIdForHistory(selectedMemberProfile.id); setSelectedMemberProfile(null); }}
+          onViewHistory={() => { setSelectedMemberIdForHistory(currentProfile.id); setSelectedMemberProfile(null); }}
           isDarkMode={isDarkMode}
         />
       )}
@@ -334,9 +368,14 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">
-                {editingScoreIndex !== null ? 'Editar Pontos' : 'Lançar Pontos'}
-              </h3>
+              <div>
+                <h3 className="text-xl font-black text-[#0061f2] uppercase tracking-tight">
+                  {editingScoreIndex !== null ? 'Editar Pontos' : 'Lançar Pontos'}
+                </h3>
+                <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {selectedMemberForPoints.name}
+                </p>
+              </div>
               <button onClick={() => { setSelectedMemberForPoints(null); setEditingScoreIndex(null); setNewScore({ date: new Date().toISOString().split('T')[0] }); }} className="text-slate-300 hover:text-slate-500"><X size={28} /></button>
             </div>
             <div className="space-y-4">
@@ -370,10 +409,17 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
           <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[3rem] p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900">
+                <button 
+                  onClick={() => { setSelectedMemberProfile(historyMember); setSelectedMemberIdForHistory(null); }}
+                  className={`p-2 -ml-2 rounded-xl transition-all active:scale-90 ${isDarkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}
+                  title="Voltar ao Perfil"
+                >
+                  <ArrowLeft size={24} strokeWidth={3} />
+                </button>
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 border-2 border-white dark:border-slate-700 shadow-sm">
                   <img src={historyMember.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${historyMember.id}`} className="w-full h-full object-cover" />
                 </div>
-                <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-100 uppercase truncate max-w-[200px]">{historyMember.name}</h3>
+                <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-100 uppercase truncate max-w-[150px]">{historyMember.name}</h3>
               </div>
               <button onClick={() => setSelectedMemberIdForHistory(null)} className="text-slate-300 hover:text-slate-500"><X size={28} /></button>
             </div>
@@ -389,7 +435,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                     return (
                       <div key={`weekly-${idx}`} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm flex items-center justify-between">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-[#0061f2] uppercase">{s.date}</span>
+                          <span className="text-[10px] font-black text-[#0061f2] uppercase">{formatDate(s.date)}</span>
                           <span className="text-xl font-black text-slate-800 dark:text-slate-100">{calculateScoreTotal(s)} pts</span>
                         </div>
                         {isUserLeadership && (
