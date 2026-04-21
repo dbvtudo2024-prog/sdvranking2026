@@ -58,12 +58,15 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
   useEffect(() => {
     // Check if streak should reset due to missed days
     if (lastCheckIn && onUpdateStats) {
-      const lastDate = new Date(lastCheckIn);
-      const todayDate = new Date(today);
-      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const lastDate = new Date(lastCheckIn + 'T12:00:00'); // Midday to avoid TZ issues
+      const todayDate = new Date(today + 'T12:00:00');
       
-      if (diffDays > 1 && lastCheckIn !== today && streak > 0) {
+      const diffTime = todayDate.getTime() - lastDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Se passou mais de 1 dia (ou seja, pulou o dia de ontem), reseta
+      if (diffDays > 1 && streak > 0) {
+        console.log(`[Streak] Resetando ofensiva. Último: ${lastCheckIn}, Hoje: ${today}, Diferença: ${diffDays} dias`);
         onUpdateStats({ checkInStreak: 0 });
       }
     }

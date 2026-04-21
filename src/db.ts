@@ -279,7 +279,7 @@ export const DatabaseService = {
 
   async updateMember(member: Member) {
     const { id, ...updates } = member;
-    const payload = {
+    const payload: any = {
       name: updates.name,
       role: updates.role,
       age: updates.age,
@@ -289,36 +289,50 @@ export const DatabaseService = {
       counselor: updates.counselor,
       unit: updates.unit,
       scores: updates.scores,
-      photoUrl: updates.photoUrl,
-      badges: updates.badges,
-      stats: updates.stats
+      photoUrl: updates.photoUrl
     };
+
+    // Só inclui badges e stats se existirem no objeto (ajuda na migração)
+    if (updates.badges) payload.badges = updates.badges;
+    if (updates.stats) payload.stats = updates.stats;
+
     const { error } = await supabase.from('members').update(payload).eq('id', id);
     if (error) {
       console.error("Erro ao atualizar membro no Supabase:", error);
+      // Se for erro de coluna inexistente, avisamos de forma amigável
+      if (error.code === 'PGRST204') {
+        console.warn("AVISO: Coluna 'badges' ou 'stats' está faltando na tabela 'members'. Execute o SQL de migração.");
+      }
       throw error;
     }
   },
 
   async updateMembers(members: Member[]) {
-    const payloads = members.map(m => ({
-      id: m.id,
-      name: m.name,
-      role: m.role,
-      age: m.age,
-      className: m.className,
-      joinedAt: m.joinedAt,
-      birthday: m.birthday,
-      counselor: m.counselor,
-      unit: m.unit,
-      scores: m.scores,
-      photoUrl: m.photoUrl,
-      badges: m.badges,
-      stats: m.stats
-    }));
+    const payloads = members.map(m => {
+      const p: any = {
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        age: m.age,
+        className: m.className,
+        joinedAt: m.joinedAt,
+        birthday: m.birthday,
+        counselor: m.counselor,
+        unit: m.unit,
+        scores: m.scores,
+        photoUrl: m.photoUrl
+      };
+      if (m.badges) p.badges = m.badges;
+      if (m.stats) p.stats = m.stats;
+      return p;
+    });
+
     const { error } = await supabase.from('members').upsert(payloads);
     if (error) {
       console.error("Erro ao atualizar múltiplos membros:", error);
+      if (error.code === 'PGRST204') {
+        console.warn("AVISO CRÍTICO: Colunas ausentes detectadas. O ranking e medalhas podem não salvar corretamente até a execução do SQL.");
+      }
       throw error;
     }
   },
@@ -1238,31 +1252,37 @@ export const DatabaseService = {
   },
 
   async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
+    console.log("[DB] Adicionando novo estudo de especialidade:", study.name);
     const { error } = await supabase.from('specialty_studies').insert([study]);
     if (error) {
+      console.error("[DB] Erro ao adicionar estudo:", error);
       // Se o erro for de coluna inexistente, tentamos salvar sem a data de agendamento
-      if (error.message.includes('scheduled_for')) {
+      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || error.status === 404) {
+        console.warn("[DB] Tentando salvar sem coluna 'scheduled_for'...");
         const { scheduled_for, ...studyWithoutSchedule } = study;
         const { error: retryError } = await supabase.from('specialty_studies').insert([studyWithoutSchedule]);
-        if (retryError) throw retryError;
+        if (retryError) {
+          console.error("[DB] Erro na tentativa de contingência:", retryError);
+          throw retryError;
+        }
         return;
       }
-      console.error("Erro ao adicionar estudo:", error);
       throw error;
     }
   },
 
   async updateSpecialtyStudy(study: SpecialtyStudy) {
+    console.log("[DB] Atualizando estudo de especialidade:", study.name);
     const { id, created_at, ...updates } = study;
     const { error } = await supabase.from('specialty_studies').update(updates).eq('id', id);
     if (error) {
-      if (error.message.includes('scheduled_for')) {
+      console.error("[DB] Erro ao atualizar estudo:", error);
+      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || error.status === 404) {
         const { scheduled_for, ...updatesWithoutSchedule } = updates;
         const { error: retryError } = await supabase.from('specialty_studies').update(updatesWithoutSchedule).eq('id', id);
         if (retryError) throw retryError;
         return;
       }
-      console.error("Erro ao atualizar estudo:", error);
       throw error;
     }
   },

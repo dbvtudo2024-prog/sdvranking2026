@@ -189,6 +189,10 @@ const App: React.FC = () => {
                 console.log("[Sync] Sincronizando estado do usuário logado via ID.");
                 const updated = { ...prev, badges: me.badges || [], scores: me.scores || [], stats: statsToUse };
                 localStorage.setItem('sentinelas_user', JSON.stringify(updated));
+                
+                // Persistência Tripla: Garantir que medalhas atribuídas 'offline' ou via ranking persistam na tabela users (para login)
+                DatabaseService.addUser(updated).catch(e => console.error("Erro ao sincronizar login pós-update externo:", e));
+                
                 return updated;
               }
               return prev;
@@ -574,17 +578,19 @@ const App: React.FC = () => {
       }
       return sacc + points;
     }, 0) || 0), 0);
-    const userBadgesHash = user?.badges?.length || 0;
-    const stateHash = `v9-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}`;
+    const userBadgesHash = (user?.badges || []).map(b => b.badgeId).join(':');
+    // Hash mais detalhado para detectar mudanças em IDs de medalhas ou conteúdos
+    const badgesFingerprint = members.map(m => (m.badges || []).map(b => `${b.badgeId}-${b.level}`).join('|')).join('##');
+    const stateHash = `v15-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}-${badgesFingerprint}`;
     
     if (lastProcessedRef.current === stateHash) {
-      console.log(`[Awards] Hash idêntica (${stateHash}), pulando.`);
+      if (members.length > 0) console.log("[Awards] Nenhuma mudança detectada na hash de estado.");
       return;
     }
+    
     lastProcessedRef.current = stateHash;
-
-    console.log(`[Awards] Processando medalhas automaticamente (${stateHash})...`);
     isProcessingAwards.current = true;
+    console.log(`[Awards] Iniciando re-processamento automático de medalhas (v14)...`);
     
     try {
       const now = new Date();
@@ -625,7 +631,11 @@ const App: React.FC = () => {
 
       for (const mStr of pastMonths) {
         const sorted = [...members]
-          .map(m => ({ m, score: calculateMonthlyGamesTotal(m, mStr) }))
+          .map(m => {
+            const score = calculateMonthlyGamesTotal(m, mStr);
+            console.log(`[Awards] Calculando mesa ${mStr} para ${m.name}: ${score} pts`);
+            return { m, score };
+          })
           .filter(si => si.score > 0)
           .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
@@ -634,7 +644,7 @@ const App: React.FC = () => {
           .slice(0, 3);
         
         expectedChampionsByMonth[mStr] = sorted.map(si => String(si.m.id));
-        console.log(`[Awards] Campeões de ${mStr}:`, sorted.map(si => `${si.m.name} (${si.score})`));
+        console.log(`[Awards] Campeões de ${mStr} (Top 3):`, sorted.map(si => `${si.m.name} (${si.score} pts)`));
       }
 
       const updatesToProcess: { [memberId: string]: Member } = {};
@@ -654,17 +664,27 @@ const App: React.FC = () => {
           
           // ID format: monthly_games_YYYY-MM_Pos
           const parts = b.badgeId.split('_');
-          const monthStr = parts[2]; // mStr format: YYYY-MM
+          if (parts.length < 4) return false; // ID inválido, remove
+          
+          const monthStr = parts[2]; // format: YYYY-MM
           const pos = parseInt(parts[3]);
           
           const expectedChamps = expectedChampionsByMonth[monthStr];
-          if (!expectedChamps) return false; // Mês sem pontuação (ou atual), remove
+          if (!expectedChamps) {
+            console.log(`[Awards] Removendo badge de mês sem registro: ${b.badgeId} para ${m.name}`);
+            hasChanges = true;
+            return false; 
+          }
           
           const expectedChampIdAtPos = expectedChamps[pos - 1];
-          const shouldIHaveThis = expectedChampIdAtPos === String(m.id);
+          const isCorrectWinner = String(expectedChampIdAtPos) === String(m.id);
           
-          if (!shouldIHaveThis) hasChanges = true;
-          return shouldIHaveThis;
+          if (!isCorrectWinner) {
+            console.log(`[Awards] Removendo badge INCORRETA: ${b.badgeId} de ${m.name}. Esperado: ${expectedChampIdAtPos}`);
+            hasChanges = true;
+            return false;
+          }
+          return true;
         });
 
         // 2. Adicionar medalhas mensais que estão faltando
@@ -677,6 +697,7 @@ const App: React.FC = () => {
             const badgeId = `monthly_games_${monthStr}_${pos}`;
             
             if (!filteredBadges.some(b => b.badgeId === badgeId)) {
+              console.log(`[Awards] Adicionando badge faltante: ${badgeId} para ${m.name}`);
               hasChanges = true;
               const [y, mm] = monthStr.split('-');
               const monthDate = new Date(parseInt(y), parseInt(mm) - 1);

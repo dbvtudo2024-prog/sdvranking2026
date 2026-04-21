@@ -135,19 +135,30 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
       let monthTotal = 0;
       const scoreObj = s as any;
       
-      // Para o total mensal, apenas somamos se houver chaves de jogos
-      // Isso evita que pontos semanais (sem chaves de jogos) entrem no total
-      GAME_KEYS.forEach(key => {
-        if (scoreObj.gameId === key) {
-          monthTotal += (Number(scoreObj.points) || Number(scoreObj[key]) || 0);
-        } else if (scoreObj[key] !== undefined && scoreObj.type !== 'weekly') {
-          monthTotal += (Number(scoreObj[key]) || 0);
+      // CRITICAL: Apenas soma se for Explicitamente um Jogo (previne entrada de pontos bíblicos semanais)
+      const hasWeeklyFields = scoreObj.uniform !== undefined || scoreObj.bible !== undefined || scoreObj.punctuality !== undefined || scoreObj.material !== undefined;
+      const isGame = scoreObj.type === 'game' || scoreObj.gameId !== undefined || GAME_KEYS.some(k => scoreObj[k] !== undefined) || (scoreObj.points !== undefined && !hasWeeklyFields);
+
+      if (isGame) {
+        // Se tem gameId definido, ele DEVE estar no GAME_KEYS para ser contado no ranking mensal de jogos
+        if (scoreObj.gameId !== undefined) {
+          if (GAME_KEYS.includes(scoreObj.gameId)) {
+            monthTotal = (Number(scoreObj.points) || Number(scoreObj[scoreObj.gameId]) || 0);
+          }
+          // Caso contrário (ex: specialtyStudy, mahjong, etc), não somamos nada ao ranking mensal de jogos
+        } else {
+          // Fallback para quando não tem gameId (registros históricos ou compatibilidade)
+          GAME_KEYS.forEach(key => {
+            if (scoreObj[key] !== undefined && scoreObj.type !== 'weekly') {
+              monthTotal += (Number(scoreObj[key]) || 0);
+            }
+          });
+          
+          // Se ainda for zero mas é um registro de jogo antigo sem campos específicos (apenas 'points')
+          if (monthTotal === 0 && scoreObj.points && !hasWeeklyFields) {
+            monthTotal = Number(scoreObj.points);
+          }
         }
-      });
-      
-      // Fallback para registros históricos que podem ter apenas 'points' e 'type: game'
-      if (monthTotal === 0 && (scoreObj.type === 'game' || scoreObj.gameId) && scoreObj.points) {
-        monthTotal = Number(scoreObj.points);
       }
       
       return acc + monthTotal;
