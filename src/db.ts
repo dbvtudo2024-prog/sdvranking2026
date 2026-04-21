@@ -731,19 +731,21 @@ export const DatabaseService = {
   },
 
   async addUser(user: AuthUser) {
-    // Removemos o campo 'counselor' pois ele pertence à tabela 'members', não 'users'
-    const { counselor, ...userPayload } = user;
+    // Save all fields to users table including stats and badges
     const payload = {
-      id: userPayload.id,
-      name: userPayload.name,
-      role: userPayload.role,
-      funcao: userPayload.funcao,
-      unit: userPayload.unit,
-      age: userPayload.age,
-      className: userPayload.className,
-      birthday: userPayload.birthday,
-      email: userPayload.email,
-      photoUrl: userPayload.photoUrl
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      funcao: user.funcao,
+      unit: user.unit,
+      age: user.age,
+      className: user.className,
+      birthday: user.birthday,
+      email: user.email,
+      password: user.password,
+      photoUrl: user.photoUrl,
+      stats: user.stats,
+      badges: user.badges
     };
     const { error } = await supabase.from('users').upsert([payload]);
     if (error) {

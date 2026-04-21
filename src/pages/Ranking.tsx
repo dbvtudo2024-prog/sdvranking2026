@@ -3,8 +3,9 @@ import React, { useState, useMemo } from 'react';
 import { Member, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
-import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
+import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, calculateMonthlySpecific, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
 import MemberProfileModal from '@/components/MemberProfileModal';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface RankingProps {
@@ -58,39 +59,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
       if (gameTab === 'total') {
         return data.sort((a, b) => calculateMonthlyGamesTotal(b, currentMonth) - calculateMonthlyGamesTotal(a, currentMonth));
       }
-      // For specific games, we need a monthly version of calculateSpecific or filter current scores
-      const getMonthlyPoints = (m: Member, key: string) => {
-        return m.scores
-          .filter(s => {
-            if (!s.date) return false;
-            let mStr = '';
-            if (s.date.includes('-')) {
-              const parts = s.date.split('-');
-              if (parts.length >= 2) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
-            } else if (s.date.includes('/')) {
-              const parts = s.date.split('/');
-              if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
-            }
-            return mStr === currentMonth;
-          })
-          .reduce((acc, curr) => {
-            const s = curr as any;
-            if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-            if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
-            return acc;
-          }, 0);
-      };
-
-      if (gameTab === 'quiz') return data.sort((a, b) => getMonthlyPoints(b, 'quiz') - getMonthlyPoints(a, 'quiz'));
-      if (gameTab === 'memory') return data.sort((a, b) => getMonthlyPoints(b, 'memoryGame') - getMonthlyPoints(a, 'memoryGame'));
-      if (gameTab === 'specialty') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyGame') - getMonthlyPoints(a, 'specialtyGame'));
-      if (gameTab === 'threeclues') return data.sort((a, b) => getMonthlyPoints(b, 'threeCluesGame') - getMonthlyPoints(a, 'threeCluesGame'));
-      if (gameTab === 'puzzle') return data.sort((a, b) => getMonthlyPoints(b, 'puzzleGame') - getMonthlyPoints(a, 'puzzleGame'));
-      if (gameTab === 'knots') return data.sort((a, b) => getMonthlyPoints(b, 'knotsGame') - getMonthlyPoints(a, 'knotsGame'));
-      if (gameTab === 'specialtytrail') return data.sort((a, b) => getMonthlyPoints(b, 'specialtyTrailGame') - getMonthlyPoints(a, 'specialtyTrailGame'));
-      if (gameTab === 'scrambledverse') return data.sort((a, b) => getMonthlyPoints(b, 'scrambledVerseGame') - getMonthlyPoints(a, 'scrambledVerseGame'));
-      if (gameTab === 'natureid') return data.sort((a, b) => getMonthlyPoints(b, 'natureIdGame') - getMonthlyPoints(a, 'natureIdGame'));
-      if (gameTab === 'firstaid') return data.sort((a, b) => getMonthlyPoints(b, 'firstAidGame') - getMonthlyPoints(a, 'firstAidGame'));
+      
+      if (gameTab === 'quiz') return data.sort((a, b) => calculateMonthlySpecific(b, 'quiz', currentMonth) - calculateMonthlySpecific(a, 'quiz', currentMonth));
+      if (gameTab === 'memory') return data.sort((a, b) => calculateMonthlySpecific(b, 'memoryGame', currentMonth) - calculateMonthlySpecific(a, 'memoryGame', currentMonth));
+      if (gameTab === 'specialty') return data.sort((a, b) => calculateMonthlySpecific(b, 'specialtyGame', currentMonth) - calculateMonthlySpecific(a, 'specialtyGame', currentMonth));
+      if (gameTab === 'threeclues') return data.sort((a, b) => calculateMonthlySpecific(b, 'threeCluesGame', currentMonth) - calculateMonthlySpecific(a, 'threeCluesGame', currentMonth));
+      if (gameTab === 'puzzle') return data.sort((a, b) => calculateMonthlySpecific(b, 'puzzleGame', currentMonth) - calculateMonthlySpecific(a, 'puzzleGame', currentMonth));
+      if (gameTab === 'knots') return data.sort((a, b) => calculateMonthlySpecific(b, 'knotsGame', currentMonth) - calculateMonthlySpecific(a, 'knotsGame', currentMonth));
+      if (gameTab === 'specialtytrail') return data.sort((a, b) => calculateMonthlySpecific(b, 'specialtyTrailGame', currentMonth) - calculateMonthlySpecific(a, 'specialtyTrailGame', currentMonth));
+      if (gameTab === 'scrambledverse') return data.sort((a, b) => calculateMonthlySpecific(b, 'scrambledVerseGame', currentMonth) - calculateMonthlySpecific(a, 'scrambledVerseGame', currentMonth));
+      if (gameTab === 'natureid') return data.sort((a, b) => calculateMonthlySpecific(b, 'natureIdGame', currentMonth) - calculateMonthlySpecific(a, 'natureIdGame', currentMonth));
+      if (gameTab === 'firstaid') return data.sort((a, b) => calculateMonthlySpecific(b, 'firstAidGame', currentMonth) - calculateMonthlySpecific(a, 'firstAidGame', currentMonth));
     }
     
     return data.sort((a, b) => calculateWeeklyTotal(b) - calculateWeeklyTotal(a));
@@ -119,7 +98,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
           .reduce((acc, curr) => {
             const s = curr as any;
             if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-            if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+            if (s[key] !== undefined && s.type !== 'weekly') return acc + (Number(s[key]) || 0);
             return acc;
           }, 0);
       };
@@ -235,7 +214,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                           {idx + 1}º
                         </div>
                         <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
-                           {champ.photoUrl ? <img src={champ.photoUrl} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-200 dark:text-slate-700" />}
+                           {champ.photoUrl ? <img src={formatImageUrl(champ.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-200 dark:text-slate-700" />}
                         </div>
                         <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-2">
@@ -276,7 +255,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
             {/* 2º LUGAR */}
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-800 shadow-lg flex items-center justify-center relative z-20">
-                {podiumSlots[1]?.photoUrl ? <img src={podiumSlots[1].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200 dark:text-slate-700" />}
+                {podiumSlots[1]?.photoUrl ? <img src={formatImageUrl(podiumSlots[1].photoUrl)} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200 dark:text-slate-700" />}
               </div>
               <div className="text-center mt-2 mb-2 px-1 w-20">
                 <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase truncate leading-tight">
@@ -288,27 +267,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[1] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const getMonthlyPoints = (mem: Member, k: string) => {
-                        return mem.scores
-                          .filter(s => {
-                            if (!s.date) return false;
-                            if (s.date.startsWith(currentMonth)) return true;
-                            if (s.date.includes('/')) {
-                              const parts = s.date.split('/');
-                              if (parts.length === 3) {
-                                return `${parts[2]}-${parts[1]}` === currentMonth;
-                              }
-                            }
-                            return false;
-                          })
-                          .reduce((acc, curr) => {
-                            const sc = curr as any;
-                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
-                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
-                            return acc;
-                          }, 0);
-                      };
-                      const pts = getMonthlyPoints(podiumSlots[1]!, key);
+                      const pts = calculateMonthlySpecific(podiumSlots[1]!, key, currentMonth);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-2-${key}`} className="text-[6px] font-bold text-slate-400 uppercase">
@@ -332,7 +291,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
             {/* 1º LUGAR */}
             <div className="flex flex-col items-center z-10 -translate-y-4">
               <div className="w-20 h-20 rounded-full border-4 border-[#FFD700] overflow-hidden bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center relative z-20">
-                {podiumSlots[0]?.photoUrl ? <img src={podiumSlots[0].photoUrl} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200 dark:text-slate-700" />}
+                {podiumSlots[0]?.photoUrl ? <img src={formatImageUrl(podiumSlots[0].photoUrl)} className="w-full h-full object-cover" /> : <User size={32} className="text-slate-200 dark:text-slate-700" />}
               </div>
               <div className="text-center mt-2 mb-2 px-1 w-24">
                 <p className="text-[10px] font-black text-[#0061f2] dark:text-blue-400 uppercase truncate leading-tight">
@@ -344,27 +303,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[0] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const getMonthlyPoints = (mem: Member, k: string) => {
-                        return mem.scores
-                          .filter(s => {
-                            if (!s.date) return false;
-                            if (s.date.startsWith(currentMonth)) return true;
-                            if (s.date.includes('/')) {
-                              const parts = s.date.split('/');
-                              if (parts.length === 3) {
-                                return `${parts[2]}-${parts[1]}` === currentMonth;
-                              }
-                            }
-                            return false;
-                          })
-                          .reduce((acc, curr) => {
-                            const sc = curr as any;
-                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
-                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
-                            return acc;
-                          }, 0);
-                      };
-                      const pts = getMonthlyPoints(podiumSlots[0]!, key);
+                      const pts = calculateMonthlySpecific(podiumSlots[0]!, key, currentMonth);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-1-${key}`} className="text-[6px] font-bold text-blue-400 uppercase">
@@ -401,27 +340,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 {tab === 'games' && podiumSlots[2] && (
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {GAME_KEYS.map(key => {
-                      const getMonthlyPoints = (mem: Member, k: string) => {
-                        return mem.scores
-                          .filter(s => {
-                            if (!s.date) return false;
-                            if (s.date.startsWith(currentMonth)) return true;
-                            if (s.date.includes('/')) {
-                              const parts = s.date.split('/');
-                              if (parts.length === 3) {
-                                return `${parts[2]}-${parts[1]}` === currentMonth;
-                              }
-                            }
-                            return false;
-                          })
-                          .reduce((acc, curr) => {
-                            const sc = curr as any;
-                            if (sc.gameId === k) return acc + (Number(sc.points) || Number(sc[k]) || 0);
-                            if (sc[k] !== undefined) return acc + (Number(sc[k]) || 0);
-                            return acc;
-                          }, 0);
-                      };
-                      const pts = getMonthlyPoints(podiumSlots[2]!, key);
+                      const pts = calculateMonthlySpecific(podiumSlots[2]!, key, currentMonth);
                       if (pts === 0) return null;
                       return (
                         <span key={`podium-3-${key}`} className="text-[6px] font-bold text-amber-400 uppercase">
@@ -457,7 +376,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               >
                 <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center font-black text-sm text-slate-400 dark:text-slate-600 shrink-0 border border-slate-100 dark:border-slate-700">{idx + 4}º</div>
                 <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-900 shrink-0">
-                  {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="m-auto text-slate-200 dark:text-slate-700 mt-2.5" />}
+                  {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={24} className="m-auto text-slate-200 dark:text-slate-700 mt-2.5" />}
                 </div>
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2">

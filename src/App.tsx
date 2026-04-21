@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats } from '@/types';
 import { DatabaseService } from '@/db';
-import { calculateMonthlyGamesTotal } from '@/helpers/scoreHelpers';
+import { calculateMonthlyGamesTotal, GAME_KEYS } from '@/helpers/scoreHelpers';
 import { APP_VERSION } from '@/constants';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -162,6 +162,39 @@ const App: React.FC = () => {
       onMembers: (data) => {
         console.log("[App] Membros recebidos:", data.length);
         setMembers(data);
+        
+        // Sincronizar o estado do usuário logado se ele estiver na lista de membros
+        if (user) {
+          const me = data.find(m => String(m.id) === String(user.id));
+          if (me) {
+            setUser(prev => {
+              if (!prev) return null;
+              // Sincronização estrita por ID
+              const statsChanged = JSON.stringify(prev.stats) !== JSON.stringify(me.stats);
+              const badgesChanged = JSON.stringify(prev.badges) !== JSON.stringify(me.badges);
+              const scoresChanged = JSON.stringify(prev.scores) !== JSON.stringify(me.scores);
+              
+              if (statsChanged || badgesChanged || scoresChanged) {
+                // Sincroniza apenas se o que vem do banco for diferente. 
+                // Para stats, vamos ser mais conservadores: se o user local tem lastCheckInDate hoje, e o do banco não, mantemos o local.
+                const localDate = prev.stats?.lastCheckInDate;
+                const remoteDate = me.stats?.lastCheckInDate;
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                let statsToUse = me.stats || {};
+                if (localDate === todayStr && remoteDate !== todayStr && prev.stats) {
+                  statsToUse = prev.stats;
+                }
+
+                console.log("[Sync] Sincronizando estado do usuário logado via ID.");
+                const updated = { ...prev, badges: me.badges || [], scores: me.scores || [], stats: statsToUse };
+                localStorage.setItem('sentinelas_user', JSON.stringify(updated));
+                return updated;
+              }
+              return prev;
+            });
+          }
+        }
       },
       onChallenges: (challenge) => {
         console.log("[App] Novo desafio recebido!");
@@ -271,6 +304,9 @@ const App: React.FC = () => {
     const updatedUser = { ...user, badges: updatedBadges };
     setUser(updatedUser);
     localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
+    
+    // PERSISTÊNCIA DUPLA: Users (para login) e Members (para ranking)
+    DatabaseService.addUser(updatedUser).catch(e => console.error("Erro ao persistir badge em users:", e));
 
     const member = members.find(m => String(m.id) === String(user.id));
     if (member) {
@@ -319,6 +355,9 @@ const App: React.FC = () => {
     const updatedUser = { ...user, stats: newStats };
     setUser(updatedUser);
     localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
+    
+    // PERSISTÊNCIA DUPLA: Users (para login) e Members (para ranking)
+    DatabaseService.addUser(updatedUser).catch(e => console.error("Erro ao persistir stats em users:", e));
 
     const member = members.find(m => String(m.id) === String(user.id));
     if (member) {
@@ -526,17 +565,28 @@ const App: React.FC = () => {
     // Hash mais sensível: agora considera a soma total de pontos para detectar mudanças nos placares
     const totalBadges = members.reduce((acc, m) => acc + (m.badges?.length || 0), 0);
     const totalScores = members.reduce((acc, m) => acc + (m.scores?.length || 0), 0);
-    const totalPoints = members.reduce((acc, m) => acc + (m.scores?.reduce((sacc, s) => sacc + (s.points || 0), 0) || 0), 0);
-    const stateHash = `v7-${members.length}-${totalBadges}-${totalScores}-${totalPoints}`;
+    const totalPoints = members.reduce((acc, m) => acc + (m.scores?.reduce((sacc, s) => {
+      // Considera pontos de registros históricos também na hash
+      const scoreObj = s as any;
+      let points = Number(scoreObj.points) || 0;
+      if (points === 0) {
+        GAME_KEYS.forEach(key => { points += Number(scoreObj[key]) || 0; });
+      }
+      return sacc + points;
+    }, 0) || 0), 0);
+    const userBadgesHash = user?.badges?.length || 0;
+    const stateHash = `v9-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}`;
     
-    if (lastProcessedRef.current === stateHash) return;
+    if (lastProcessedRef.current === stateHash) {
+      console.log(`[Awards] Hash idêntica (${stateHash}), pulando.`);
+      return;
+    }
     lastProcessedRef.current = stateHash;
 
     console.log(`[Awards] Processando medalhas automaticamente (${stateHash})...`);
     isProcessingAwards.current = true;
     
     try {
-      const { calculateMonthlyGamesTotal } = await import('@/helpers/scoreHelpers');
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
@@ -567,10 +617,10 @@ const App: React.FC = () => {
       });
 
       const pastMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+      console.log("[Awards] Meses identificados para premiação:", pastMonths);
       const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
-
+      
       // Mapeamento dos ganhadores esperados para cada mês
-      // month -> [memberIdAtPos1, memberIdAtPos2, memberIdAtPos3]
       const expectedChampionsByMonth: { [month: string]: string[] } = {};
 
       for (const mStr of pastMonths) {
@@ -584,6 +634,7 @@ const App: React.FC = () => {
           .slice(0, 3);
         
         expectedChampionsByMonth[mStr] = sorted.map(si => String(si.m.id));
+        console.log(`[Awards] Campeões de ${mStr}:`, sorted.map(si => `${si.m.name} (${si.score})`));
       }
 
       const updatesToProcess: { [memberId: string]: Member } = {};
@@ -591,7 +642,10 @@ const App: React.FC = () => {
       // RECONCILIAÇÃO: Para cada membro, verificar se as medalhas atuais batem com as esperadas
       members.forEach(m => {
         let hasChanges = false;
-        const currentBadges = m.badges || [];
+        
+        // CRITICAL: Se o membro for o usuário logado, use o objeto 'user' para preservar stats recentes
+        const baseObject = (user && String(m.id) === String(user.id)) ? { ...m, ...user } as Member : m;
+        const currentBadges = baseObject.badges || [];
         
         // 1. Remover medalhas mensais que não deveriam estar lá ou que estão na posição errada
         // E manter as outras insígnias intocadas
@@ -600,10 +654,10 @@ const App: React.FC = () => {
           
           // ID format: monthly_games_YYYY-MM_Pos
           const parts = b.badgeId.split('_');
-          const month = parts[2];
+          const monthStr = parts[2]; // mStr format: YYYY-MM
           const pos = parseInt(parts[3]);
           
-          const expectedChamps = expectedChampionsByMonth[month];
+          const expectedChamps = expectedChampionsByMonth[monthStr];
           if (!expectedChamps) return false; // Mês sem pontuação (ou atual), remove
           
           const expectedChampIdAtPos = expectedChamps[pos - 1];
@@ -614,22 +668,22 @@ const App: React.FC = () => {
         });
 
         // 2. Adicionar medalhas mensais que estão faltando
-        for (const month of pastMonths) {
-          const expectedChamps = expectedChampionsByMonth[month];
+        for (const monthStr of pastMonths) {
+          const expectedChamps = expectedChampionsByMonth[monthStr];
           const myPos = expectedChamps.indexOf(String(m.id));
           
           if (myPos !== -1) {
             const pos = myPos + 1;
-            const badgeId = `monthly_games_${month}_${pos}`;
+            const badgeId = `monthly_games_${monthStr}_${pos}`;
             
             if (!filteredBadges.some(b => b.badgeId === badgeId)) {
               hasChanges = true;
-              const [y, mm] = month.split('-');
+              const [y, mm] = monthStr.split('-');
               const monthDate = new Date(parseInt(y), parseInt(mm) - 1);
               const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
               const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
               const posLabel = pos === 1 ? '1º Lugar' : pos === 2 ? '2º Lugar' : '3º Lugar';
-              const score = calculateMonthlyGamesTotal(m, month);
+              const score = calculateMonthlyGamesTotal(baseObject, monthStr);
 
               filteredBadges.push({
                 badgeId,
@@ -654,7 +708,7 @@ const App: React.FC = () => {
         });
 
         if (hasChanges) {
-          updatesToProcess[String(m.id)] = { ...m, badges: uniqueFinalBadges };
+          updatesToProcess[String(m.id)] = { ...baseObject, badges: uniqueFinalBadges };
         }
       });
 
@@ -666,14 +720,11 @@ const App: React.FC = () => {
         console.log(`[Awards] Aplicando ${entries.length} atualizações de membros...`);
         await DatabaseService.updateMembers(entries);
         
-        // Sync local user state if changed
+        // Sync local user state if changed (STRICT ID MATCH ONLY)
         if (user) {
-          const myUpdate = entries.find(e => 
-            String(e.id) === String(user.id) || 
-            (e.name === user.name && e.role === user.role && e.unit === user.unit)
-          );
+          const myUpdate = entries.find(e => String(e.id) === String(user.id));
           if (myUpdate) {
-            console.log("[Awards] Sincronizando estado do usuário atual.");
+            console.log("[Awards] Sincronizando estado do usuário atual pós-processamento.");
             setUser(prev => {
               if (!prev) return null;
               const updated = { ...prev, badges: myUpdate.badges };

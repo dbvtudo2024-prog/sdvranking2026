@@ -93,7 +93,17 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
         className: formData.className,
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        counselor: isLeadership ? formData.funcao : formData.counselor
+        counselor: isLeadership ? formData.funcao : formData.counselor,
+        badges: [],
+        stats: {
+          totalMessages: 0,
+          totalLogins: 1,
+          totalQuizzes: 0,
+          totalVerses: 0,
+          totalGames: 0,
+          totalDevotionals: 0,
+          checkInStreak: 0
+        }
       };
 
       const newMember: Member = {
@@ -106,7 +116,17 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
         joinedAt: new Date().toISOString().split('T')[0],
         counselor: isLeadership ? formData.funcao : (formData.counselor || 'A definir'),
         unit: finalUnit || UnitName.LIDERANCA,
-        scores: []
+        scores: [],
+        badges: [],
+        stats: {
+          totalMessages: 0,
+          totalLogins: 1,
+          totalQuizzes: 0,
+          totalVerses: 0,
+          totalGames: 0,
+          totalDevotionals: 0,
+          checkInStreak: 0
+        }
       };
 
       await DatabaseService.addUser(newUser);

@@ -24,8 +24,21 @@ export const calculateSpecific = (member: Member, key: string) => {
   if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
   return member.scores.reduce((acc, curr) => {
     const s = curr as any;
-    if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-    if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+    
+    // Se o registro tem gameId, verificamos se bate com a chave
+    if (s.gameId !== undefined) {
+      if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
+      return acc;
+    }
+    
+    // Se não tem gameId, verificamos se tem a chave diretamente (compatibilidade com histórico)
+    // Mas garantimos que não seja um registro puramente semanal
+    if (s[key] !== undefined) {
+      // Se for explicitamente 'weekly', ignoramos para cálculos de jogos
+      if (s.type === 'weekly') return acc;
+      return acc + (Number(s[key]) || 0);
+    }
+    
     return acc;
   }, 0);
 };
@@ -54,6 +67,30 @@ export const calculateGamesTotal = (member: Member) => {
   return GAME_KEYS.reduce((acc, key) => acc + calculateSpecific(member, key), 0);
 };
 
+export const calculateMonthlySpecific = (member: Member, key: string, monthYear: string) => {
+  if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+  return member.scores
+    .filter(s => {
+      if (!s.date) return false;
+      let scoreMStr = '';
+      if (s.date.includes('-')) {
+        const parts = s.date.split('-');
+        if (parts.length >= 2) scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+      } else if (s.date.includes('/')) {
+        const parts = s.date.split('/');
+        if (parts.length === 3) scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+      }
+      return scoreMStr === monthYear;
+    })
+    .reduce((acc, curr) => {
+      const s = curr as any;
+      if (s.type === 'weekly') return acc;
+      if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
+      if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+      return acc;
+    }, 0);
+};
+
 export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) => {
   // monthYear format: "YYYY-MM"
   if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
@@ -61,6 +98,8 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
   return member.scores
     .filter(s => {
       if (!s.date) return false;
+      
+      // Filtro de data
       let scoreMStr = '';
       
       // Padronizar para YYYY-MM
@@ -96,13 +135,20 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
       let monthTotal = 0;
       const scoreObj = s as any;
       
+      // Para o total mensal, apenas somamos se houver chaves de jogos
+      // Isso evita que pontos semanais (sem chaves de jogos) entrem no total
       GAME_KEYS.forEach(key => {
         if (scoreObj.gameId === key) {
           monthTotal += (Number(scoreObj.points) || Number(scoreObj[key]) || 0);
-        } else if (scoreObj[key] !== undefined) {
+        } else if (scoreObj[key] !== undefined && scoreObj.type !== 'weekly') {
           monthTotal += (Number(scoreObj[key]) || 0);
         }
       });
+      
+      // Fallback para registros históricos que podem ter apenas 'points' e 'type: game'
+      if (monthTotal === 0 && (scoreObj.type === 'game' || scoreObj.gameId) && scoreObj.points) {
+        monthTotal = Number(scoreObj.points);
+      }
       
       return acc + monthTotal;
     }, 0);
