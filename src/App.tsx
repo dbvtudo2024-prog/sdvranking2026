@@ -527,7 +527,7 @@ const App: React.FC = () => {
     const totalBadges = members.reduce((acc, m) => acc + (m.badges?.length || 0), 0);
     const totalScores = members.reduce((acc, m) => acc + (m.scores?.length || 0), 0);
     const totalPoints = members.reduce((acc, m) => acc + (m.scores?.reduce((sacc, s) => sacc + (s.points || 0), 0) || 0), 0);
-    const stateHash = `v6-${members.length}-${totalBadges}-${totalScores}-${totalPoints}`;
+    const stateHash = `v7-${members.length}-${totalBadges}-${totalScores}-${totalPoints}`;
     
     if (lastProcessedRef.current === stateHash) return;
     lastProcessedRef.current = stateHash;
@@ -536,9 +536,7 @@ const App: React.FC = () => {
     isProcessingAwards.current = true;
     
     try {
-      const updatesToProcess: { [memberId: string]: Member } = {};
-      
-      // 1. Processar Medalhas Mensais
+      const { calculateMonthlyGamesTotal } = await import('@/helpers/scoreHelpers');
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
@@ -571,102 +569,119 @@ const App: React.FC = () => {
       const pastMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
       const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
 
-      for (const mStr of pastMonths) {
-        const memberScores = members.map(m => {
-          const mScore = calculateMonthlyGamesTotal(m, mStr);
-          return {
-            member: m,
-            score: mScore
-          };
-        });
+      // Mapeamento dos ganhadores esperados para cada mês
+      // month -> [memberIdAtPos1, memberIdAtPos2, memberIdAtPos3]
+      const expectedChampionsByMonth: { [month: string]: string[] } = {};
 
-        // Ordenação estável e idêntica ao Ranking.tsx
-        const sortedByGames = memberScores
+      for (const mStr of pastMonths) {
+        const sorted = [...members]
+          .map(m => ({ m, score: calculateMonthlyGamesTotal(m, mStr) }))
           .filter(si => si.score > 0)
           .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
-            return a.member.name.localeCompare(b.member.name);
+            return a.m.name.localeCompare(b.m.name);
           })
           .slice(0, 3);
+        
+        expectedChampionsByMonth[mStr] = sorted.map(si => String(si.m.id));
+      }
 
-        if (sortedByGames.length > 0) {
-          console.log(`[Awards] Campeões de ${mStr}:`, sortedByGames.map(si => `${si.member.name} (${si.score})`));
-        }
+      const updatesToProcess: { [memberId: string]: Member } = {};
 
-        for (let idx = 0; idx < sortedByGames.length; idx++) {
-          const { member: champ, score } = sortedByGames[idx];
-          const position = idx + 1;
-          const badgeId = `monthly_games_${mStr}_${position}`;
+      // RECONCILIAÇÃO: Para cada membro, verificar se as medalhas atuais batem com as esperadas
+      members.forEach(m => {
+        let hasChanges = false;
+        const currentBadges = m.badges || [];
+        
+        // 1. Remover medalhas mensais que não deveriam estar lá ou que estão na posição errada
+        // E manter as outras insígnias intocadas
+        let filteredBadges = currentBadges.filter(b => {
+          if (!b.badgeId.startsWith('monthly_games_')) return true;
           
-          const currentMemberData = updatesToProcess[String(champ.id)] || champ;
-          const existingBadges = currentMemberData.badges || [];
+          // ID format: monthly_games_YYYY-MM_Pos
+          const parts = b.badgeId.split('_');
+          const month = parts[2];
+          const pos = parseInt(parts[3]);
           
-          if (!existingBadges.some(b => b.badgeId === badgeId)) {
-            const [y, mm] = mStr.split('-');
-            const monthDate = new Date(parseInt(y), parseInt(mm) - 1);
-            const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
-            const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-            const positionLabel = position === 1 ? '1º Lugar' : position === 2 ? '2º Lugar' : '3º Lugar';
+          const expectedChamps = expectedChampionsByMonth[month];
+          if (!expectedChamps) return false; // Mês sem pontuação (ou atual), remove
+          
+          const expectedChampIdAtPos = expectedChamps[pos - 1];
+          const shouldIHaveThis = expectedChampIdAtPos === String(m.id);
+          
+          if (!shouldIHaveThis) hasChanges = true;
+          return shouldIHaveThis;
+        });
 
-            const newBadge: UserBadge = {
-              badgeId,
-              level: levels[idx],
-              awardedAt: new Date().toISOString(),
-              points: score,
-              monthLabel: `${positionLabel} - ${monthLabel} ${y}`
-            };
+        // 2. Adicionar medalhas mensais que estão faltando
+        for (const month of pastMonths) {
+          const expectedChamps = expectedChampionsByMonth[month];
+          const myPos = expectedChamps.indexOf(String(m.id));
+          
+          if (myPos !== -1) {
+            const pos = myPos + 1;
+            const badgeId = `monthly_games_${month}_${pos}`;
             
-            updatesToProcess[String(champ.id)] = { ...currentMemberData, badges: [...existingBadges, newBadge] };
-            
-            // Check robusto para atualizar o usuário atual (mesmo se IDs estiverem confusos)
-            const isMe = user && (
-              String(champ.id) === String(user.id) || 
-              (champ.name === user.name && champ.role === user.role && champ.unit === user.unit)
-            );
+            if (!filteredBadges.some(b => b.badgeId === badgeId)) {
+              hasChanges = true;
+              const [y, mm] = month.split('-');
+              const monthDate = new Date(parseInt(y), parseInt(mm) - 1);
+              const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
+              const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+              const posLabel = pos === 1 ? '1º Lugar' : pos === 2 ? '2º Lugar' : '3º Lugar';
+              const score = calculateMonthlyGamesTotal(m, month);
 
-            if (isMe) {
-              console.log(`[Awards] Concedendo ${badgeId} para o usuário logado.`);
-              setUser(prev => {
-                if (!prev) return null;
-                const badges = prev.badges || [];
-                if (badges.some(b => b.badgeId === badgeId)) return prev;
-                const updated = { ...prev, badges: [...badges, newBadge] };
-                localStorage.setItem('sentinelas_user', JSON.stringify(updated));
-                return updated;
+              filteredBadges.push({
+                badgeId,
+                level: levels[myPos],
+                awardedAt: new Date().toISOString(),
+                points: score,
+                monthLabel: `${posLabel} - ${monthLabel} ${y}`
               });
             }
           }
         }
-      }
+
+        // 3. Remover Duplicatas (Safety)
+        const seen = new Set<string>();
+        const uniqueFinalBadges = filteredBadges.filter(b => {
+          if (seen.has(b.badgeId)) {
+            hasChanges = true;
+            return false;
+          }
+          seen.add(b.badgeId);
+          return true;
+        });
+
+        if (hasChanges) {
+          updatesToProcess[String(m.id)] = { ...m, badges: uniqueFinalBadges };
+        }
+      });
 
       // 2. Processar Mestres de Especialidades
       await processSpecialtyAwards(members, updatesToProcess);
 
-      // 3. Executar Atualizações com Limpeza de Duplicatas
-      // Primeiro, verificar se algum membro (mesmo sem novos prêmios) tem duplicatas no banco
-      members.forEach(m => {
-        const badges = m.badges || [];
-        if (badges.length > 0) {
-          const ids = badges.map(b => b.badgeId);
-          if (ids.length !== new Set(ids).size) {
-            updatesToProcess[String(m.id)] = updatesToProcess[String(m.id)] || m;
+      const entries = Object.values(updatesToProcess);
+      if (entries.length > 0) {
+        console.log(`[Awards] Aplicando ${entries.length} atualizações de membros...`);
+        await DatabaseService.updateMembers(entries);
+        
+        // Sync local user state if changed
+        if (user) {
+          const myUpdate = entries.find(e => 
+            String(e.id) === String(user.id) || 
+            (e.name === user.name && e.role === user.role && e.unit === user.unit)
+          );
+          if (myUpdate) {
+            console.log("[Awards] Sincronizando estado do usuário atual.");
+            setUser(prev => {
+              if (!prev) return null;
+              const updated = { ...prev, badges: myUpdate.badges };
+              localStorage.setItem('sentinelas_user', JSON.stringify(updated));
+              return updated;
+            });
           }
         }
-      });
-
-      const entries = Object.values(updatesToProcess).map(m => {
-        const seen = new Set<string>();
-        const uniqueBadges = (m.badges || []).filter(b => {
-          if (!b.badgeId || seen.has(b.badgeId)) return false;
-          seen.add(b.badgeId);
-          return true;
-        });
-        return { ...m, badges: uniqueBadges };
-      });
-
-      if (entries.length > 0) {
-        console.log(`[Awards] Atualizando ${entries.length} membros (incluindo limpeza de duplicatas)...`);
-        await DatabaseService.updateMembers(entries);
       }
     } catch (err) {
       console.error("[Awards] Falha crítica no processamento:", err);
