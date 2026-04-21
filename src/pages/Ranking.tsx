@@ -202,9 +202,14 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
               
               const monthChampions = [...members]
-                .sort((a, b) => calculateMonthlyGamesTotal(b, mStr) - calculateMonthlyGamesTotal(a, mStr))
-                .slice(0, 3)
-                .filter(ch => calculateMonthlyGamesTotal(ch, mStr) > 0);
+                .filter(m => calculateMonthlyGamesTotal(m, mStr) > 0)
+                .sort((a, b) => {
+                  const scoreB = calculateMonthlyGamesTotal(b, mStr);
+                  const scoreA = calculateMonthlyGamesTotal(a, mStr);
+                  if (scoreB !== scoreA) return scoreB - scoreA;
+                  return a.name.localeCompare(b.name);
+                })
+                .slice(0, 3);
 
               if (monthChampions.length === 0) return null;
 

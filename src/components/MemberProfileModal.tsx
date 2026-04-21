@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Member, BadgeLevel } from '@/types';
+import { Member, BadgeLevel, UserBadge } from '@/types';
 import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy, Check } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
@@ -96,25 +96,41 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
               
               {member.badges?.some(b => b.badgeId.startsWith('monthly_games_')) ? (
                 <div className="grid grid-cols-4 gap-3">
-                  {member.badges
-                    .filter(b => b.badgeId.startsWith('monthly_games_'))
-                    .map(ub => (
-                      <div key={ub.badgeId} className="flex flex-col items-center">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
-                          ub.level === BadgeLevel.GOLD ? 'bg-yellow-400 shadow-yellow-500/20' : 
-                          ub.level === BadgeLevel.SILVER ? 'bg-slate-300 shadow-slate-500/20' : 
-                          'bg-orange-600 shadow-orange-500/20'
-                        } text-white border-2 border-white dark:border-slate-800`}>
-                          <Trophy size={24} />
+                  {(() => {
+                    const gamesBadges = (member.badges || []).filter(b => b.badgeId.startsWith('monthly_games_'));
+                    const uniqueBadges: UserBadge[] = [];
+                    const seen = new Set<string>();
+                    for (const b of gamesBadges) {
+                      if (!seen.has(b.badgeId)) {
+                        seen.add(b.badgeId);
+                        uniqueBadges.push(b);
+                      }
+                    }
+                    
+                    return uniqueBadges.map(ub => {
+                      const parts = (ub.monthLabel || '').split('-');
+                      const positionLabel = parts[0]?.trim() || 'Campeão';
+                      const monthYear = parts[1]?.trim() || 'Mensal';
+
+                      return (
+                        <div key={ub.badgeId} className="flex flex-col items-center">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
+                            ub.level === BadgeLevel.GOLD ? 'bg-yellow-400 font-bold text-yellow-900 shadow-yellow-500/20' : 
+                            ub.level === BadgeLevel.SILVER ? 'bg-slate-300 font-bold text-slate-700 shadow-slate-500/20' : 
+                            'bg-orange-600 font-bold text-orange-100 shadow-orange-500/20'
+                          } text-white border-2 border-white dark:border-slate-800`}>
+                            <Trophy size={24} />
+                          </div>
+                          <p className={`text-[7px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                            {positionLabel}
+                          </p>
+                          <p className={`text-[6px] font-bold uppercase text-center opacity-60 truncate w-full ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {monthYear}
+                          </p>
                         </div>
-                        <p className={`text-[7px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                          {ub.monthLabel?.split('-')[0].trim() || 'Campeão'}
-                        </p>
-                        <p className={`text-[6px] font-bold uppercase text-center opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {ub.monthLabel?.split('-')[1]?.trim().split(' ')[0] || ''}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <div className={`py-4 text-center rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -134,31 +150,43 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
 
               <div className="grid grid-cols-4 gap-3">
                 {/* Conquered Club Badges */}
-                {(member.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
-                  const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
-                  const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
-                  
-                  if (!badgeDef) return null;
-                  
-                  const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
-                  const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
-                  
-                  return (
-                    <div key={ub.badgeId} className="flex flex-col items-center">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
-                        ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
-                        ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
-                        ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
-                        'bg-blue-600'
-                      } text-white border-2 border-white dark:border-slate-800`}>
-                        <BadgeIcon size={24} />
+                {(() => {
+                  const clubBadges = (member.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_'));
+                  const uniqueBadges: UserBadge[] = [];
+                  const seen = new Set<string>();
+                  for (const b of clubBadges) {
+                    if (!seen.has(b.badgeId)) {
+                      seen.add(b.badgeId);
+                      uniqueBadges.push(b);
+                    }
+                  }
+
+                  return uniqueBadges.map(ub => {
+                    const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
+                    const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
+                    
+                    if (!badgeDef) return null;
+                    
+                    const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
+                    const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
+                    
+                    return (
+                      <div key={ub.badgeId} className="flex flex-col items-center">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
+                          ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
+                          ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
+                          ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
+                          'bg-blue-600'
+                        } text-white border-2 border-white dark:border-slate-800`}>
+                          <BadgeIcon size={24} />
+                        </div>
+                        <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {badgeName.split(' ')[0]}
+                        </p>
                       </div>
-                      <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                        {badgeName.split(' ')[0]}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
 
                 {/* Not Conquered Club Badges */}
                 {BADGE_DEFINITIONS

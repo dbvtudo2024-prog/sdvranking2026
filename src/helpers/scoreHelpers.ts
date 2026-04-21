@@ -63,18 +63,30 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
       if (!s.date) return false;
       let scoreMStr = '';
       
-      // Handle YYYY-MM-DD or YYYY-MM
+      // Padronizar para YYYY-MM
       if (s.date.includes('-')) {
         const parts = s.date.split('-');
-        if (parts.length >= 2) scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+        if (parts.length >= 2) {
+          // Se for YYYY-MM-DD
+          if (parts[0].length === 4) {
+            scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+          } 
+          // Se for DD-MM-YYYY
+          else if (parts[2]?.length === 4) {
+            scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+          }
+        }
       }
-      // Handle DD/MM/YYYY or DD/MM
       else if (s.date.includes('/')) {
         const parts = s.date.split('/');
-        if (parts.length === 3) scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
-        else if (parts.length === 2) {
-          // Assuming MM/YYYY if month > 12? No, let's be careful.
-          // Usually it's DD/MM/YYYY.
+        if (parts.length === 3) {
+          // DD/MM/YYYY
+          scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+        } else if (parts.length === 2) {
+          // MM/YYYY ou DD/MM
+          const year = parts[1].length === 4 ? parts[1] : parts[0].length === 4 ? parts[0] : '';
+          const month = parts[1].length === 4 ? parts[0] : parts[1];
+          if (year) scoreMStr = `${year}-${month.padStart(2, '0')}`;
         }
       }
       

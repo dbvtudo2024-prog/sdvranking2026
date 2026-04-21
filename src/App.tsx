@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats } from '@/types';
 import { DatabaseService } from '@/db';
+import { calculateMonthlyGamesTotal } from '@/helpers/scoreHelpers';
 import { APP_VERSION } from '@/constants';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -538,7 +539,6 @@ const App: React.FC = () => {
       const updatesToProcess: { [memberId: string]: Member } = {};
       
       // 1. Processar Medalhas Mensais
-      const { calculateMonthlyGamesTotal } = await import('@/helpers/scoreHelpers');
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
@@ -547,13 +547,23 @@ const App: React.FC = () => {
         (m.scores || []).forEach(s => {
           if (!s.date) return;
           let mStr = '';
+          
           if (s.date.includes('-')) {
-            const dateParts = s.date.split('-');
-            if (dateParts.length >= 2) mStr = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}`;
+            const parts = s.date.split('-');
+            if (parts.length >= 2) {
+              if (parts[0].length === 4) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+              else if (parts[2]?.length === 4) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+            }
           } else if (s.date.includes('/')) {
             const parts = s.date.split('/');
             if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+            else if (parts.length === 2) {
+              const year = parts[1].length === 4 ? parts[1] : parts[0].length === 4 ? parts[0] : '';
+              const month = parts[1].length === 4 ? parts[0] : parts[1];
+              if (year) mStr = `${year}-${month.padStart(2, '0')}`;
+            }
           }
+          
           if (mStr && mStr.length === 7 && mStr !== currentMonth) monthsSet.add(mStr);
         });
       });
@@ -562,18 +572,26 @@ const App: React.FC = () => {
       const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
 
       for (const mStr of pastMonths) {
-        const memberScores = members.map(m => ({
-          member: m,
-          score: calculateMonthlyGamesTotal(m, mStr)
-        }));
+        const memberScores = members.map(m => {
+          const mScore = calculateMonthlyGamesTotal(m, mStr);
+          return {
+            member: m,
+            score: mScore
+          };
+        });
 
+        // Ordenação estável e idêntica ao Ranking.tsx
         const sortedByGames = memberScores
+          .filter(si => si.score > 0)
           .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return a.member.name.localeCompare(b.member.name);
           })
-          .slice(0, 3)
-          .filter(si => si.score > 0);
+          .slice(0, 3);
+
+        if (sortedByGames.length > 0) {
+          console.log(`[Awards] Campeões de ${mStr}:`, sortedByGames.map(si => `${si.member.name} (${si.score})`));
+        }
 
         for (let idx = 0; idx < sortedByGames.length; idx++) {
           const { member: champ, score } = sortedByGames[idx];
@@ -600,7 +618,14 @@ const App: React.FC = () => {
             
             updatesToProcess[String(champ.id)] = { ...currentMemberData, badges: [...existingBadges, newBadge] };
             
-            if (user && String(champ.id) === String(user.id)) {
+            // Check robusto para atualizar o usuário atual (mesmo se IDs estiverem confusos)
+            const isMe = user && (
+              String(champ.id) === String(user.id) || 
+              (champ.name === user.name && champ.role === user.role && champ.unit === user.unit)
+            );
+
+            if (isMe) {
+              console.log(`[Awards] Concedendo ${badgeId} para o usuário logado.`);
               setUser(prev => {
                 if (!prev) return null;
                 const badges = prev.badges || [];
@@ -617,9 +642,30 @@ const App: React.FC = () => {
       // 2. Processar Mestres de Especialidades
       await processSpecialtyAwards(members, updatesToProcess);
 
-      // 3. Executar Atualizações
-      const entries = Object.values(updatesToProcess);
+      // 3. Executar Atualizações com Limpeza de Duplicatas
+      // Primeiro, verificar se algum membro (mesmo sem novos prêmios) tem duplicatas no banco
+      members.forEach(m => {
+        const badges = m.badges || [];
+        if (badges.length > 0) {
+          const ids = badges.map(b => b.badgeId);
+          if (ids.length !== new Set(ids).size) {
+            updatesToProcess[String(m.id)] = updatesToProcess[String(m.id)] || m;
+          }
+        }
+      });
+
+      const entries = Object.values(updatesToProcess).map(m => {
+        const seen = new Set<string>();
+        const uniqueBadges = (m.badges || []).filter(b => {
+          if (!b.badgeId || seen.has(b.badgeId)) return false;
+          seen.add(b.badgeId);
+          return true;
+        });
+        return { ...m, badges: uniqueBadges };
+      });
+
       if (entries.length > 0) {
+        console.log(`[Awards] Atualizando ${entries.length} membros (incluindo limpeza de duplicatas)...`);
         await DatabaseService.updateMembers(entries);
       }
     } catch (err) {
