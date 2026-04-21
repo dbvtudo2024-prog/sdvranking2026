@@ -517,18 +517,22 @@ const App: React.FC = () => {
     });
   }, [user]);
 
+  const isProcessingAwards = useRef(false);
   const processAutomatedAwards = useCallback(async () => {
-    if (!user) return;
+    if (!user || isProcessingAwards.current) return;
     if (!members || members.length === 0) return;
 
+    // Hash mais sensível: agora considera a soma total de pontos para detectar mudanças nos placares
     const totalBadges = members.reduce((acc, m) => acc + (m.badges?.length || 0), 0);
     const totalScores = members.reduce((acc, m) => acc + (m.scores?.length || 0), 0);
-    const stateHash = `v3-${members.length}-${totalBadges}-${totalScores}`;
+    const totalPoints = members.reduce((acc, m) => acc + (m.scores?.reduce((sacc, s) => sacc + (s.points || 0), 0) || 0), 0);
+    const stateHash = `v6-${members.length}-${totalBadges}-${totalScores}-${totalPoints}`;
     
     if (lastProcessedRef.current === stateHash) return;
     lastProcessedRef.current = stateHash;
 
-    console.log(`[Awards] Iniciando processamento preventivo...`);
+    console.log(`[Awards] Processando medalhas automaticamente (${stateHash})...`);
+    isProcessingAwards.current = true;
     
     try {
       const updatesToProcess: { [memberId: string]: Member } = {};
@@ -558,18 +562,16 @@ const App: React.FC = () => {
       const levels = [BadgeLevel.GOLD, BadgeLevel.SILVER, BadgeLevel.BRONZE];
 
       for (const mStr of pastMonths) {
-        const [y, mm] = mStr.split('-');
-        const monthDate = new Date(parseInt(y), parseInt(mm) - 1);
-        const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
-        const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-
         const memberScores = members.map(m => ({
           member: m,
           score: calculateMonthlyGamesTotal(m, mStr)
         }));
 
         const sortedByGames = memberScores
-          .sort((a, b) => b.score - a.score)
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.member.name.localeCompare(b.member.name);
+          })
           .slice(0, 3)
           .filter(si => si.score > 0);
 
@@ -577,11 +579,17 @@ const App: React.FC = () => {
           const { member: champ, score } = sortedByGames[idx];
           const position = idx + 1;
           const badgeId = `monthly_games_${mStr}_${position}`;
+          
           const currentMemberData = updatesToProcess[String(champ.id)] || champ;
           const existingBadges = currentMemberData.badges || [];
           
           if (!existingBadges.some(b => b.badgeId === badgeId)) {
+            const [y, mm] = mStr.split('-');
+            const monthDate = new Date(parseInt(y), parseInt(mm) - 1);
+            const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
+            const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
             const positionLabel = position === 1 ? '1º Lugar' : position === 2 ? '2º Lugar' : '3º Lugar';
+
             const newBadge: UserBadge = {
               badgeId,
               level: levels[idx],
@@ -589,13 +597,15 @@ const App: React.FC = () => {
               points: score,
               monthLabel: `${positionLabel} - ${monthLabel} ${y}`
             };
+            
             updatesToProcess[String(champ.id)] = { ...currentMemberData, badges: [...existingBadges, newBadge] };
             
             if (user && String(champ.id) === String(user.id)) {
               setUser(prev => {
                 if (!prev) return null;
-                if ((prev.badges || []).some(b => b.badgeId === badgeId)) return prev;
-                const updated = { ...prev, badges: [...(prev.badges || []), newBadge] };
+                const badges = prev.badges || [];
+                if (badges.some(b => b.badgeId === badgeId)) return prev;
+                const updated = { ...prev, badges: [...badges, newBadge] };
                 localStorage.setItem('sentinelas_user', JSON.stringify(updated));
                 return updated;
               });
@@ -608,15 +618,14 @@ const App: React.FC = () => {
       await processSpecialtyAwards(members, updatesToProcess);
 
       // 3. Executar Atualizações
-      const entries = Object.entries(updatesToProcess);
+      const entries = Object.values(updatesToProcess);
       if (entries.length > 0) {
-        console.log(`[Awards] Persistindo ${entries.length} atualizações...`);
-        for (const [_, updatedMember] of entries) {
-          await DatabaseService.updateMember(updatedMember);
-        }
+        await DatabaseService.updateMembers(entries);
       }
     } catch (err) {
       console.error("[Awards] Falha crítica no processamento:", err);
+    } finally {
+      isProcessingAwards.current = false;
     }
   }, [user, members, processSpecialtyAwards]);
 

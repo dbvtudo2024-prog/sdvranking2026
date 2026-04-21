@@ -83,28 +83,65 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
             </div>
           </div>
 
-          {/* BADGES SECTION */}
-          <div className="w-full space-y-4 pt-2">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-amber-900/30 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-                <Medal size={16} />
+          {/* BADGES SECTIONS */}
+          <div className="w-full space-y-6 pt-2">
+            {/* 1. MEDALHAS MENSAIS (Campeões de Jogos) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-yellow-900/30 text-yellow-500' : 'bg-yellow-50 text-yellow-600'}`}>
+                  <Trophy size={16} />
+                </div>
+                <h4 className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Medalhas de Jogos</h4>
               </div>
-              <h4 className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Insígnias Conquistadas</h4>
+              
+              {member.badges?.some(b => b.badgeId.startsWith('monthly_games_')) ? (
+                <div className="grid grid-cols-4 gap-3">
+                  {member.badges
+                    .filter(b => b.badgeId.startsWith('monthly_games_'))
+                    .map(ub => (
+                      <div key={ub.badgeId} className="flex flex-col items-center">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
+                          ub.level === BadgeLevel.GOLD ? 'bg-yellow-400 shadow-yellow-500/20' : 
+                          ub.level === BadgeLevel.SILVER ? 'bg-slate-300 shadow-slate-500/20' : 
+                          'bg-orange-600 shadow-orange-500/20'
+                        } text-white border-2 border-white dark:border-slate-800`}>
+                          <Trophy size={24} />
+                        </div>
+                        <p className={`text-[7px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {ub.monthLabel?.split('-')[0].trim() || 'Campeão'}
+                        </p>
+                        <p className={`text-[6px] font-bold uppercase text-center opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {ub.monthLabel?.split('-')[1]?.trim().split(' ')[0] || ''}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className={`py-4 text-center rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Nenhuma medalha conquistada</p>
+                </div>
+              )}
             </div>
-            
-            <div className="grid grid-cols-4 gap-3">
-               {/* Conquered Badges */}
-               {member.badges?.map(ub => {
-                  const isMonthly = ub.badgeId.startsWith('monthly_games_');
+
+            {/* 2. INSÍGNIAS DO CLUBE (Especialidades, Atividades, etc) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/30 text-blue-500' : 'bg-blue-50 text-blue-600'}`}>
+                  <Medal size={16} />
+                </div>
+                <h4 className={`text-[10px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Insígnias do Clube</h4>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                {/* Conquered Club Badges */}
+                {member.badges?.filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
                   const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
                   const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                   
-                  if (!badgeDef && !isMonthly && !isSpecialtyMaster) return null;
+                  if (!badgeDef) return null;
                   
-                  const BadgeIcon = isMonthly ? Trophy : (isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef?.icon || ''] || HelpCircle));
-                  const badgeName = isMonthly ? (ub.monthLabel || 'Mensal') : 
-                                   isSpecialtyMaster ? `Mestre ${ub.level}` :
-                                   (badgeDef?.name || 'Insignia');
+                  const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
+                  const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
                   
                   return (
                     <div key={ub.badgeId} className="flex flex-col items-center">
@@ -112,7 +149,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                         ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
                         ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
                         ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
-                        'bg-orange-700'
+                        'bg-blue-600'
                       } text-white border-2 border-white dark:border-slate-800`}>
                         <BadgeIcon size={24} />
                       </div>
@@ -123,11 +160,13 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                   );
                 })}
 
-                {/* Not Conquered Badges (Grayed out) */}
-                {BADGE_DEFINITIONS.filter(badge => !member.badges?.some(ub => ub.badgeId === badge.id)).map(badge => {
+                {/* Not Conquered Club Badges */}
+                {BADGE_DEFINITIONS
+                  .filter(badge => !member.badges?.some(ub => ub.badgeId === badge.id || (ub.badgeId.startsWith('specialty_master_') && badge.id === 'mestre_especialidade')))
+                  .map(badge => {
                   const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
                   return (
-                    <div key={`not-conquered-${badge.id}`} className="flex flex-col items-center opacity-30 grayscale cursor-help" title={`Conquiste ${badge.name}`}>
+                    <div key={`not-conquered-${badge.id}`} className="flex flex-col items-center opacity-20 grayscale">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600">
                         <BadgeIcon size={24} />
                       </div>
@@ -137,15 +176,8 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                     </div>
                   );
                 })}
+              </div>
             </div>
-
-            {(!member.badges || member.badges.length === 0) && (
-               <div className={`py-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800`}>
-                 <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest">
-                   {member.name.split(' ')[0]} ainda está trilhando seu caminho
-                 </p>
-               </div>
-            )}
           </div>
 
           {/* STUDIES SECTION */}

@@ -404,63 +404,119 @@ const Profile: React.FC<ProfileProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {/* Renderizar todas as insígnias do usuário (incluindo as mensais) */}
-            {user.badges?.map(ub => {
-              const isMonthly = ub.badgeId.startsWith('monthly_games_');
-              const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
-              const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
-              
-              if (!badgeDef && !isMonthly && !isSpecialtyMaster) return null;
-              
-              const BadgeIcon = isMonthly ? Trophy : (isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef?.icon || ''] || HelpCircle));
-              const badgeName = isMonthly ? (ub.monthLabel || 'Mensal') : 
-                               isSpecialtyMaster ? `Mestre ${ub.level}` :
-                               (badgeDef?.name || 'Insignia');
-              
-              return (
-                <div 
-                  key={ub.badgeId}
-                  className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
-                    isDarkMode ? 'bg-blue-900/10 border-blue-500/50 shadow-lg shadow-blue-500/10' : 'bg-blue-50/50 border-blue-200 shadow-lg shadow-blue-500/10'
-                  }`}
-                >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-transform scale-110 active:scale-125 ${
-                    isDarkMode ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20' : 'bg-white text-[#0061f2] shadow-xl shadow-blue-500/20'
-                  }`}>
-                    <BadgeIcon size={28} />
-                  </div>
-                  <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badgeName}</p>
-                  <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                    {isMonthly ? 'Campeão de Jogos' : badgeDef?.category}
-                  </p>
-                  
-                  <div className="absolute -top-2 -right-2 bg-yellow-400 text-blue-900 p-1 rounded-full shadow-lg border-2 border-white">
-                    <Star size={10} fill="currentColor" />
-                  </div>
-                </div>
-              );
-            })}
+          {/* 1. SEÇÃO DE MEDALHAS DE JOGOS */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+               <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-yellow-900/30 text-yellow-500' : 'bg-yellow-50 text-yellow-600'}`}>
+                <Trophy size={16} />
+              </div>
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Medalhas de Campeão</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {user.badges?.filter(b => b.badgeId.startsWith('monthly_games_')).map(ub => {
+                const positionLabel = ub.monthLabel?.split('-')[0].trim() || 'Campeão';
+                const monthYear = ub.monthLabel?.split('-')[1]?.trim() || 'Mensal';
 
-            {/* Renderizar insígnias padrão que o usuário ainda NÃO conquistou */}
-            {BADGE_DEFINITIONS.filter(badge => !user.badges?.some(ub => ub.badgeId === badge.id)).map(badge => {
-              const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
-              
-              return (
-                <div 
-                  key={badge.id}
-                  className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
-                    isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40' : 'bg-slate-50 border-slate-100 opacity-30 grayscale'
-                  }`}
-                >
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-slate-200 dark:bg-slate-700 text-slate-400">
-                    <BadgeIcon size={28} />
+                return (
+                  <div 
+                    key={ub.badgeId}
+                    className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
+                      isDarkMode ? 'bg-yellow-900/10 border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'bg-yellow-50/50 border-yellow-200 shadow-lg shadow-yellow-500/10'
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-transform scale-110 active:scale-125 ${
+                      ub.level === BadgeLevel.GOLD ? 'bg-yellow-400' : ub.level === BadgeLevel.SILVER ? 'bg-slate-300' : 'bg-orange-600'
+                    } text-white shadow-xl`}>
+                      <Trophy size={28} />
+                    </div>
+                    <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{positionLabel}</p>
+                    <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                      {monthYear}
+                    </p>
+                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-blue-900 p-1 rounded-full shadow-lg border-2 border-white">
+                      <Star size={10} fill="currentColor" />
+                    </div>
                   </div>
-                  <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badge.name}</p>
-                  <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">{badge.category}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+              
+              {(!user.badges || !user.badges.some(b => b.badgeId.startsWith('monthly_games_'))) && (
+                 <div className={`col-span-full py-8 text-center rounded-[2.5rem] border-2 border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'} opacity-50`}>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dispute o ranking para ganhar sua primeira medalha!</p>
+                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* 2. SEÇÃO DE INSÍGNIAS DO CLUBE */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+               <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/30 text-blue-500' : 'bg-blue-50 text-blue-600'}`}>
+                <Medal size={16} />
+              </div>
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Insígnias do Clube</h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {/* Renderizar todas as insígnias do clube que o usuário JÁ conquistou */}
+              {user.badges?.filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
+                const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
+                const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
+                
+                if (!badgeDef) return null;
+                
+                const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
+                const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
+                
+                return (
+                  <div 
+                    key={ub.badgeId}
+                    className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
+                      isDarkMode ? 'bg-blue-900/10 border-blue-500/50 shadow-lg shadow-blue-500/10' : 'bg-blue-50/50 border-blue-200 shadow-lg shadow-blue-500/10'
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-transform scale-110 active:scale-125 ${
+                      ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
+                      ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
+                      ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
+                      'bg-blue-600'
+                    } text-white shadow-xl`}>
+                      <BadgeIcon size={28} />
+                    </div>
+                    <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badgeName}</p>
+                    <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                      {badgeDef.category}
+                    </p>
+                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-blue-900 p-1 rounded-full shadow-lg border-2 border-white">
+                      <Star size={10} fill="currentColor" />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Renderizar insígnias do clube que o usuário ainda NÃO conquistou */}
+              {BADGE_DEFINITIONS
+                .filter(badge => !user.badges?.some(ub => ub.badgeId === badge.id || (ub.badgeId.startsWith('specialty_master_') && badge.id === 'mestre_especialidade')))
+                .map(badge => {
+                const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
+                
+                return (
+                  <div 
+                    key={badge.id}
+                    className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
+                      isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40' : 'bg-slate-50 border-slate-100 opacity-20 grayscale'
+                    }`}
+                  >
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-slate-200 dark:bg-slate-700 text-slate-400">
+                      <BadgeIcon size={28} />
+                    </div>
+                    <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badge.name}</p>
+                    <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">{badge.category}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className={`p-5 rounded-2xl border border-dashed ${isDarkMode ? 'bg-slate-800/20 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
