@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory } from '@/types';
+import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory, BadgeLevel } from '@/types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES, BADGE_DEFINITIONS } from '@/constants';
 import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -414,7 +414,7 @@ const Profile: React.FC<ProfileProps> = ({
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {user.badges?.filter(b => b.badgeId.startsWith('monthly_games_')).map(ub => {
+              {(user.badges || []).filter(b => b.badgeId.startsWith('monthly_games_')).map(ub => {
                 const positionLabel = ub.monthLabel?.split('-')[0].trim() || 'Campeão';
                 const monthYear = ub.monthLabel?.split('-')[1]?.trim() || 'Mensal';
 
@@ -460,7 +460,7 @@ const Profile: React.FC<ProfileProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {/* Renderizar todas as insígnias do clube que o usuário JÁ conquistou */}
-              {user.badges?.filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
+              {(user.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
                 const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
                 const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                 

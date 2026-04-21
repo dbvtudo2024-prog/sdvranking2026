@@ -134,7 +134,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
 
               <div className="grid grid-cols-4 gap-3">
                 {/* Conquered Club Badges */}
-                {member.badges?.filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
+                {(member.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).map(ub => {
                   const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
                   const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                   

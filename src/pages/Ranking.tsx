@@ -236,7 +236,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                            <div className="flex items-center gap-2">
                              <p className={`font-black text-sm uppercase truncate ${idx === 0 ? 'text-yellow-700 dark:text-yellow-500' : 'text-slate-900 dark:text-white'}`}>{champ.name.split(' ')[0]}</p>
                              <div className="flex -space-x-1">
-                               {champ.badges?.slice(0, 3).map((ub, bidx) => (
+                               {(champ.badges || []).slice(0, 3).map((ub, bidx) => (
                                  <div 
                                    key={`hall-mini-badge-${champ.id}-${bidx}`}
                                    className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
@@ -460,7 +460,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                     
                     {/* Render mini badges icons */}
                     <div className="flex -space-x-1">
-                      {m.badges?.slice(0, 3).map((ub, bidx) => (
+                      {(m.badges || []).slice(0, 3).map((ub, bidx) => (
                         <div 
                           key={`mini-badge-${m.id}-${bidx}`}
                           className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
