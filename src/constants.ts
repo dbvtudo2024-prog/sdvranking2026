@@ -61,10 +61,10 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: 'Medal'
   },
   {
-    id: 'fidelidade_7_dias',
+    id: 'fidelidade_presenca',
     name: 'Mestre da Presença',
     category: BadgeCategory.COMMITMENT,
-    description: 'Fidelidade absoluta: complete o ciclo de 7 dias de check-in.',
+    description: 'Fidelidade absoluta: complete ciclos de check-in (7, 15, 30, 60 e 90 dias).',
     icon: 'CheckCircle2'
   },
   {

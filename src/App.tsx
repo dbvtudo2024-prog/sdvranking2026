@@ -644,10 +644,13 @@ const App: React.FC = () => {
       else if (chapters >= 10) grantBadge('conquistador_biblico', BadgeLevel.SILVER, chapters);
       else if (chapters >= 1) grantBadge('conquistador_biblico', BadgeLevel.BRONZE, chapters);
 
-      // 7. Mestre da Presença (Streak de 7 dias)
-      if ((stats.checkInStreak || 0) >= 7) {
-        grantBadge('fidelidade_7_dias', BadgeLevel.GOLD, stats.checkInStreak);
-      }
+      // 7. Mestre da Presença (Streak de check-in)
+      const streak = stats.checkInStreak || 0;
+      if (streak >= 90) grantBadge('fidelidade_presenca', BadgeLevel.MASTER, streak);
+      else if (streak >= 60) grantBadge('fidelidade_presenca', BadgeLevel.DIAMOND, streak);
+      else if (streak >= 30) grantBadge('fidelidade_presenca', BadgeLevel.GOLD, streak);
+      else if (streak >= 15) grantBadge('fidelidade_presenca', BadgeLevel.SILVER, streak);
+      else if (streak >= 7) grantBadge('fidelidade_presenca', BadgeLevel.BRONZE, streak);
 
       if (hasChanges) {
         updates[String(m.id)] = { ...currentMemberData, badges: currentBadges };
