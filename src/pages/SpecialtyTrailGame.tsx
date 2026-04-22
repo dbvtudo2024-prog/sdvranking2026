@@ -95,8 +95,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
       type: 'game',
       gameId: 'specialtyTrailGame',
       date: new Date().toLocaleDateString('pt-BR'),
-      points: finalScore,
-      specialtyTrailGame: finalScore
+      points: finalScore
     });
 
     onUpdateMember({ ...memberToUpdate, scores: updatedScores });

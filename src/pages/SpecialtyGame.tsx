@@ -6,6 +6,7 @@ import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image, Ref
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
+import { getCycleStart, checkPlayedThisWeek, safeAddScore } from '@/utils/gameUtils';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -169,9 +170,12 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     }, 1200);
   };
 
+  const hasSavedRef = useRef(false);
+
   useEffect(() => {
-    if (gameState === 'result') {
+    if (gameState === 'result' && !hasSavedRef.current) {
       try {
+        hasSavedRef.current = true;
         // Find member again to ensure we have latest data
         const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
         
@@ -180,13 +184,14 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
           const newScore: Score = {
             type: 'game',
             gameId: 'specialtyGame',
-            date: new Date().toLocaleDateString('pt-BR'),
-            points: points,
-            specialtyGame: points
+            date: new Date().toISOString(),
+            points: points
           };
           
-          const currentScores = Array.isArray(memberToUpdate.scores) ? memberToUpdate.scores : [];
-          onUpdateMember({ ...memberToUpdate, scores: [...currentScores, newScore] });
+          onUpdateMember({ 
+            ...memberToUpdate, 
+            scores: safeAddScore(memberToUpdate.scores || [], newScore) 
+          });
         }
       } catch (err) {
         console.error("Erro ao salvar pontuação:", err);

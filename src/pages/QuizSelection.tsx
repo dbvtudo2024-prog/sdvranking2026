@@ -15,6 +15,8 @@ interface QuizSelectionProps {
   quizOverride: boolean;
 }
 
+import { checkPlayedThisWeek } from '@/utils/gameUtils';
+
 const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, quizOverride }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
@@ -33,38 +35,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
   }, [quizOverride, isAdmin]);
 
   const hasPlayedThisWeek = (category: 'Desbravadores' | 'Bíblia') => {
-    if (isAdmin) return false; // Admins podem jogar sempre
-    if (!currentMember) return false;
-    
-    const now = new Date();
-    const day = now.getDay();
-    // O ciclo começa no Domingo (0).
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
-
-    return (currentMember.scores || []).some(s => {
-      const scoreDate = new Date(s.date);
-      
-      // Handle ISO and DD/MM/YYYY formats
-      let d: Date;
-      if (isNaN(scoreDate.getTime())) {
-        const parts = s.date.split('/');
-        if (parts.length === 3) {
-          d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-        } else {
-          return false;
-        }
-      } else {
-        d = scoreDate;
-      }
-      
-      const matchesGame = s.gameId ? s.gameId === 'quiz' : (s.quiz !== undefined || (s as any).quizCategory !== undefined);
-      return d >= sunday && 
-             matchesGame && 
-             s.quizCategory === category;
-    });
+    if (isAdmin) return false;
+    return checkPlayedThisWeek(currentMember, 'quiz', category);
   };
 
   const getBestScore = (category: 'Desbravadores' | 'Bíblia') => {

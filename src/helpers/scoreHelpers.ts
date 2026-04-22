@@ -25,17 +25,23 @@ export const calculateSpecific = (member: Member, key: string) => {
   return member.scores.reduce((acc, curr) => {
     const s = curr as any;
     
+    // EXCLUSÃO CRÍTICA: Se for um estudo de especialidade, nunca conta como jogo
+    if (s.gameId === 'specialtyStudy' || s.specialtyStudyScore !== undefined) return acc;
+    if (s.type === 'weekly') return acc;
+    
     // Se o registro tem gameId, verificamos se bate com a chave
     if (s.gameId !== undefined) {
-      if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
+      if (s.gameId === key) {
+        // Prioritiza s.points se existir e for um número válido, senão usa s[key]
+        const p = Number(s.points);
+        if (!isNaN(p) && s.points !== undefined && s.points !== null) return acc + p;
+        return acc + (Number(s[key]) || 0);
+      }
       return acc;
     }
     
-    // Se não tem gameId, verificamos se tem a chave diretamente (compatibilidade com histórico)
-    // Mas garantimos que não seja um registro puramente semanal
+    // Se não tem gameId, mas tem a chave e não é semanal (histórico)
     if (s[key] !== undefined) {
-      // Se for explicitamente 'weekly', ignoramos para cálculos de jogos
-      if (s.type === 'weekly') return acc;
       return acc + (Number(s[key]) || 0);
     }
     
@@ -71,11 +77,19 @@ export const calculateMonthlySpecific = (member: Member, key: string, monthYear:
   if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
   return member.scores
     .filter(s => {
+      // EXCLUSÃO CRÍTICA: Se for um estudo de especialidade, nunca conta como jogo
+      const scoreObj = s as any;
+      if (scoreObj.gameId === 'specialtyStudy' || scoreObj.specialtyStudyScore !== undefined) return false;
+      if (scoreObj.type === 'weekly') return false;
+
       if (!s.date) return false;
       let scoreMStr = '';
       if (s.date.includes('-')) {
         const parts = s.date.split('-');
-        if (parts.length >= 2) scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+        if (parts.length >= 2) {
+          if (parts[0].length === 4) scoreMStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+          else if (parts[2]?.length === 4) scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+        }
       } else if (s.date.includes('/')) {
         const parts = s.date.split('/');
         if (parts.length === 3) scoreMStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
@@ -84,9 +98,18 @@ export const calculateMonthlySpecific = (member: Member, key: string, monthYear:
     })
     .reduce((acc, curr) => {
       const s = curr as any;
-      if (s.type === 'weekly') return acc;
-      if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-      if (s[key] !== undefined) return acc + (Number(s[key]) || 0);
+      
+      if (s.gameId === key) {
+        const p = Number(s.points);
+        if (!isNaN(p) && s.points !== undefined && s.points !== null) return acc + p;
+        return acc + (Number(s[key]) || 0);
+      }
+      
+      // Apenas se NÃO tiver gameId ou se for um registro antigo de jogo
+      if (s.gameId === undefined && s[key] !== undefined) {
+        return acc + (Number(s[key]) || 0);
+      }
+      
       return acc;
     }, 0);
 };
@@ -135,9 +158,10 @@ export const calculateMonthlyGamesTotal = (member: Member, monthYear: string) =>
       let monthTotal = 0;
       const scoreObj = s as any;
       
-      // CRITICAL: Apenas soma se for Explicitamente um Jogo (previne entrada de pontos bíblicos semanais)
+      // CRITICAL: Apenas soma se for Explicitamente um Jogo (previne entrada de pontos bíblicos semanais e estudos)
       const hasWeeklyFields = scoreObj.uniform !== undefined || scoreObj.bible !== undefined || scoreObj.punctuality !== undefined || scoreObj.material !== undefined;
-      const isGame = scoreObj.type === 'game' || scoreObj.gameId !== undefined || GAME_KEYS.some(k => scoreObj[k] !== undefined) || (scoreObj.points !== undefined && !hasWeeklyFields);
+      const isStudy = scoreObj.gameId === 'specialtyStudy' || scoreObj.specialtyStudyScore !== undefined;
+      const isGame = !isStudy && (scoreObj.type === 'game' || scoreObj.gameId !== undefined || GAME_KEYS.some(k => scoreObj[k] !== undefined) || (scoreObj.points !== undefined && !hasWeeklyFields));
 
       if (isGame) {
         // Se tem gameId definido, ele DEVE estar no GAME_KEYS para ser contado no ranking mensal de jogos

@@ -43,6 +43,8 @@ const CARD_IMAGES = [
   { type: 'apito', url: 'https://api.iconify.design/fluent-emoji:whistle.svg' }
 ];
 
+import { getCycleStart, checkPlayedThisWeek, safeAddScore } from '@/utils/gameUtils';
+
 const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onUpdateStats, onBack, memoryOverride }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard' | null>(null);
@@ -60,47 +62,14 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
 
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
+  const cycleStart = useMemo(() => getCycleStart(), []);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
     // Standard availability: Sunday (0) to Thursday (4)
     const available = (day >= 0 && day <= 4) || memoryOverride || isAdmin;
-
-    let played = false;
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        const matchesGame = s.gameId === 'memoryGame' || (s as any).memoryGame !== undefined;
-        return d >= cycleStart && matchesGame;
-      });
-    }
+    const played = checkPlayedThisWeek(currentMember, 'memoryGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [memoryOverride, currentMember, isAdmin, cycleStart]);
@@ -241,7 +210,6 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   };
 
   const handleFinish = () => {
-    // Find member again to ensure we have latest data
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     
     if (memberToUpdate) {
@@ -250,43 +218,39 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         type: 'game',
         gameId: 'memoryGame',
         points: points,
-        memoryGame: points,
-        date: new Date().toLocaleDateString('pt-BR')
+        date: new Date().toISOString()
       };
       
-      const updatedScores = [...(memberToUpdate.scores || []), newScore];
-
       onUpdateMember({
         ...memberToUpdate,
-        scores: updatedScores
+        scores: safeAddScore(memberToUpdate.scores || [], newScore)
       });
     }
     onBack();
   };
 
+  const hasSavedRef = useRef(false);
+
   const saveScoreToProfile = useCallback(() => {
-    // Find member again to ensure we have latest data
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     
-    if (memberToUpdate) {
+    if (memberToUpdate && !hasSavedRef.current) {
+      hasSavedRef.current = true;
       if (onUpdateStats) onUpdateStats({ totalGames: 1 });
       const points = calculatePoints();
       const newScore: Score = {
         type: 'game',
         gameId: 'memoryGame',
         points: points,
-        memoryGame: points,
-        date: new Date().toLocaleDateString('pt-BR')
+        date: new Date().toISOString()
       };
       
-      const updatedScores = [...(memberToUpdate.scores || []), newScore];
-
       onUpdateMember({
         ...memberToUpdate,
-        scores: updatedScores
+        scores: safeAddScore(memberToUpdate.scores || [], newScore)
       });
     }
-  }, [calculatePoints, members, user.id, user.name, onUpdateMember]);
+  }, [calculatePoints, members, user.id, user.name, onUpdateMember, onUpdateStats]);
 
   useEffect(() => {
     if (isGameOver) {

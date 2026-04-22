@@ -6,6 +6,7 @@ import { Check, X, Trophy, Loader2, HelpCircle, CheckCircle2 } from 'lucide-reac
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
+import { safeAddScore, checkPlayedThisWeek } from '@/utils/gameUtils';
 
 interface QuizGameProps {
   category: 'Desbravadores' | 'Bíblia';
@@ -65,8 +66,11 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
     }, 1200);
   };
 
+  const hasSavedRef = React.useRef(false);
+
   const saveScoreToProfile = useCallback(() => {
-    if (member) {
+    if (member && !hasSavedRef.current) {
+      hasSavedRef.current = true;
       // AWARD BADGE - Knowledge (Mestre do Quiz)
       // Max score: 10 questions * 2 points = 20
       if (onAwardBadge) {
@@ -81,16 +85,16 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         type: 'game',
         gameId: 'quiz',
         points: score,
-        quiz: score,
         quizCategory: category,
-        date: new Date().toLocaleDateString('pt-BR')
+        date: new Date().toISOString() // Use ISO for consistency
       };
+      
       onUpdateMember({
         ...member,
-        scores: [...(member.scores || []), newScore]
+        scores: safeAddScore(member.scores || [], newScore)
       });
     }
-  }, [score, category, member, onUpdateMember]);
+  }, [score, category, member, onUpdateMember, onAwardBadge, onUpdateStats]);
 
   useEffect(() => {
     if (showResult) {
@@ -100,36 +104,10 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
 
   const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
 
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
-
   const hasPlayedThisWeek = useMemo(() => {
     if (isAdmin) return false;
-    if (!member?.scores) return false;
-    
-    const parseScoreDate = (dateStr: string) => {
-      if (dateStr.includes('T')) return new Date(dateStr);
-      const [day, month, year] = dateStr.split('/').map(Number);
-      return new Date(year, month - 1, day);
-    };
-
-    return (member.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      const matchesGame = s.gameId === 'quiz' || (s as any).quiz !== undefined;
-      return d >= cycleStart && matchesGame;
-    });
-  }, [member, isAdmin, cycleStart]);
+    return checkPlayedThisWeek(member, 'quiz', category);
+  }, [member, isAdmin, category]);
 
   if (loading) {
     return (

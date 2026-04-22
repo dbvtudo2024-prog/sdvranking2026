@@ -15,6 +15,7 @@ import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
 import MahjongGame from '@/pages/MahjongGame';
 import BrickBreakerGame from '@/pages/BrickBreakerGame';
+import { isGameTimeAvailable, getCycleStart, parseScoreDate, checkPlayedThisWeek } from '@/utils/gameUtils';
 
 interface GamesProps {
   user: AuthUser;
@@ -71,139 +72,51 @@ const Games: React.FC<GamesProps> = ({
 
   const isGameDay = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    
-    // Aberto de Domingo (0) após as 12h até Quarta (3) inclusive
-    // Quinta (4) já é bloqueado conforme solicitado
-    if (day === 0) return hour >= 12;
-    // Segunda(1), Terça(2), Quarta(3)
-    return day >= 1 && day <= 3;
+    return isGameTimeAvailable(now.getDay(), now.getHours(), {}, 'global', false);
   }, []);
 
-  const cycleStart = useMemo(() => {
+  const cycleStart = useMemo(() => getCycleStart(), []);
+
+  const overrides = {
+    quiz: quizOverride,
+    memory: memoryOverride,
+    specialty: specialtyOverride,
+    threeClues: threeCluesOverride,
+    puzzle: puzzleOverride,
+    knots: knotsOverride,
+    specialtyTrail: specialtyTrailOverride,
+    scrambledVerse: scrambledVerseOverride,
+    natureId: natureIdOverride,
+    firstAid: firstAidOverride
+  };
+
+  const getGameStatus = (gameId: string, overrideKey: string, dbGameId: string) => {
     const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
+    const clubUnlocked = isGameTimeAvailable(now.getDay(), now.getHours(), overrides, overrideKey, false);
+    const unlocked = clubUnlocked || isAdmin;
     
-    const start = new Date(now);
-    // Se for domingo e ainda não for meio-dia, o ciclo começou no domingo passado às 12h.
-    // Caso contrário, o ciclo começou no domingo mais recente às 12h.
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
+    let alreadyPlayed = false;
+    if (gameId === 'quiz') {
+      const playedDesb = checkPlayedThisWeek(currentMember, 'quiz', 'Desbravadores');
+      const playedBiblia = checkPlayedThisWeek(currentMember, 'quiz', 'Bíblia');
+      alreadyPlayed = !isAdmin && playedDesb && playedBiblia;
     } else {
-      start.setDate(now.getDate() - day);
+      alreadyPlayed = !isAdmin && checkPlayedThisWeek(currentMember, dbGameId);
     }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
-
-  const parseScoreDate = (dateStr: string): Date | null => {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) return d;
     
-    // Fallback for DD/MM/YYYY
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-    }
-    return null;
+    return { unlocked, clubUnlocked, alreadyPlayed };
   };
 
-  const checkPlayedThisWeek = (gameId: string) => {
-    if (!currentMember || isAdmin) return false;
-    return (currentMember.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      if (!d) return false;
-      // Se o score tem gameId, ele DEVE ser igual ao gameId procurado.
-      // Se não tem gameId (scores antigos), verificamos se a chave específica existe.
-      const matchesGame = s.gameId ? s.gameId === gameId : (s as any)[gameId] !== undefined;
-      return d >= cycleStart && matchesGame;
-    });
-  };
-
-  const quizStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || quizOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    if (!currentMember) return { unlocked, clubUnlocked, alreadyPlayed: false };
-    
-    const playedDesb = (currentMember.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      if (!d) return false;
-      return d >= cycleStart && (s.quizCategory === 'Desbravadores' || (s as any).quizCategory === 'Desbravadores');
-    });
-    const playedBiblia = (currentMember.scores || []).some(s => {
-      const d = parseScoreDate(s.date);
-      if (!d) return false;
-      return d >= cycleStart && (s.quizCategory === 'Bíblia' || (s as any).quizCategory === 'Bíblia');
-    });
-    
-    const alreadyPlayed = !isAdmin && (playedDesb && playedBiblia);
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
-
-  const memoryStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || memoryOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('memoryGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, memoryOverride, isAdmin]);
-
-  const specialtyStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || specialtyOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('specialtyGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, specialtyOverride, isAdmin]);
-
-  const threeCluesStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || threeCluesOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('threeCluesGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, threeCluesOverride, isAdmin]);
-
-  const puzzleStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || puzzleOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('puzzleGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, puzzleOverride, isAdmin]);
-
-  const knotsStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || knotsOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('knotsGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, knotsOverride, isAdmin]);
-
-  const specialtyTrailStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || specialtyTrailOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('specialtyTrailGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, specialtyTrailOverride, isAdmin]);
-
-  const scrambledVerseStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || scrambledVerseOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('scrambledVerseGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, scrambledVerseOverride, isAdmin]);
-
-  const natureIdStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || natureIdOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('natureIdGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, natureIdOverride, isAdmin]);
-
-  const firstAidStatus = useMemo(() => {
-    const clubUnlocked = isGameDay || firstAidOverride;
-    const unlocked = clubUnlocked || isAdmin;
-    const alreadyPlayed = !isAdmin && checkPlayedThisWeek('firstAidGame');
-    return { unlocked, clubUnlocked, alreadyPlayed };
-  }, [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
+  const quizStatus = useMemo(() => getGameStatus('quiz', 'quiz', 'quiz'), [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
+  const memoryStatus = useMemo(() => getGameStatus('memory', 'memory', 'memoryGame'), [currentMember, cycleStart, isGameDay, memoryOverride, isAdmin]);
+  const specialtyStatus = useMemo(() => getGameStatus('specialty', 'specialty', 'specialtyGame'), [currentMember, cycleStart, isGameDay, specialtyOverride, isAdmin]);
+  const threeCluesStatus = useMemo(() => getGameStatus('threeClues', 'threeClues', 'threeCluesGame'), [currentMember, cycleStart, isGameDay, threeCluesOverride, isAdmin]);
+  const puzzleStatus = useMemo(() => getGameStatus('puzzle', 'puzzle', 'puzzleGame'), [currentMember, cycleStart, isGameDay, puzzleOverride, isAdmin]);
+  const knotsStatus = useMemo(() => getGameStatus('knots', 'knots', 'knotsGame'), [currentMember, cycleStart, isGameDay, knotsOverride, isAdmin]);
+  const specialtyTrailStatus = useMemo(() => getGameStatus('specialtyTrail', 'specialtyTrail', 'specialtyTrailGame'), [currentMember, cycleStart, isGameDay, specialtyTrailOverride, isAdmin]);
+  const scrambledVerseStatus = useMemo(() => getGameStatus('scrambledVerse', 'scrambledVerse', 'scrambledVerseGame'), [currentMember, cycleStart, isGameDay, scrambledVerseOverride, isAdmin]);
+  const natureIdStatus = useMemo(() => getGameStatus('natureId', 'natureId', 'natureIdGame'), [currentMember, cycleStart, isGameDay, natureIdOverride, isAdmin]);
+  const firstAidStatus = useMemo(() => getGameStatus('firstAid', 'firstAid', 'firstAidGame'), [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";

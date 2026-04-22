@@ -128,7 +128,6 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
       type: 'game',
       gameId: 'natureIdGame',
       points: score,
-      natureIdGame: score,
       date: new Date().toLocaleDateString('pt-BR')
     };
 

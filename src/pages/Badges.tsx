@@ -220,25 +220,20 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className={`relative w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}
             >
-              <div className={`p-8 bg-gradient-to-br ${isDarkMode ? 'from-blue-600/20 to-indigo-600/20' : 'from-blue-600 to-indigo-700'}`}>
+              <div className={`p-6 bg-gradient-to-br ${isDarkMode ? 'from-blue-600/20 to-indigo-600/20' : 'from-blue-600 to-indigo-700'}`}>
                 <button 
                   onClick={() => setSelectedBadge(null)}
-                  className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-20"
+                  className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 z-20"
                 >
-                  <X size={24} />
+                  <X size={20} />
                 </button>
-
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/40 shadow-xl relative shrink-0">
-                    {React.createElement(getBadgeIcon(selectedBadge.icon), { size: 32, className: "text-white" })}
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-lg">
-                      <Zap size={14} className="text-yellow-900" fill="currentColor" />
-                    </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/40 shadow-xl relative shrink-0">
+                    {React.createElement(getBadgeIcon(selectedBadge.icon), { size: 24, className: "text-white" })}
                   </div>
-                  
                   <div className="text-left">
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight mb-1">{selectedBadge.name}</h3>
-                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">{selectedBadge.category}</span>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none mb-1">{selectedBadge.name}</h3>
+                    <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em]">{selectedBadge.category}</span>
                   </div>
                 </div>
               </div>

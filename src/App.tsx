@@ -289,7 +289,7 @@ const App: React.FC = () => {
     const existingBadge = currentBadges.find(b => b.badgeId === badgeId);
     
     // Level hierarchy for comparison
-    const levels = [BadgeLevel.BRONZE, BadgeLevel.SILVER, BadgeLevel.GOLD, BadgeLevel.DIAMOND];
+    const levels = [BadgeLevel.BRONZE, BadgeLevel.SILVER, BadgeLevel.GOLD, BadgeLevel.PLATINUM, BadgeLevel.DIAMOND, BadgeLevel.MASTER, BadgeLevel.LEGENDARY];
     const currentLevelIdx = existingBadge ? levels.indexOf(existingBadge.level) : -1;
     const newLevelIdx = levels.indexOf(level);
 
@@ -646,8 +646,10 @@ const App: React.FC = () => {
 
       // 7. Mestre da Presença (Streak de check-in)
       const streak = stats.checkInStreak || 0;
-      if (streak >= 90) grantBadge('fidelidade_presenca', BadgeLevel.MASTER, streak);
-      else if (streak >= 60) grantBadge('fidelidade_presenca', BadgeLevel.DIAMOND, streak);
+      if (streak >= 180) grantBadge('fidelidade_presenca', BadgeLevel.LEGENDARY, streak);
+      else if (streak >= 120) grantBadge('fidelidade_presenca', BadgeLevel.MASTER, streak);
+      else if (streak >= 90) grantBadge('fidelidade_presenca', BadgeLevel.DIAMOND, streak);
+      else if (streak >= 60) grantBadge('fidelidade_presenca', BadgeLevel.PLATINUM, streak);
       else if (streak >= 30) grantBadge('fidelidade_presenca', BadgeLevel.GOLD, streak);
       else if (streak >= 15) grantBadge('fidelidade_presenca', BadgeLevel.SILVER, streak);
       else if (streak >= 7) grantBadge('fidelidade_presenca', BadgeLevel.BRONZE, streak);

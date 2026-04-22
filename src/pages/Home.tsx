@@ -48,8 +48,17 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
     
     onUpdateStats({
       lastCheckInDate: today,
-      checkInStreak: newStreak >= 8 ? 1 : (newStreak > 7 ? 1 : newStreak) // Reset logic
+      checkInStreak: newStreak
     });
+    
+    // Award badges for milestones
+    if (onAwardBadge) {
+      if (newStreak === 7) onAwardBadge('fidelidade_presenca', BadgeLevel.BRONZE);
+      else if (newStreak === 15) onAwardBadge('fidelidade_presenca', BadgeLevel.SILVER);
+      else if (newStreak === 30) onAwardBadge('fidelidade_presenca', BadgeLevel.GOLD);
+      else if (newStreak === 60) onAwardBadge('fidelidade_presenca', BadgeLevel.DIAMOND);
+      else if (newStreak === 90) onAwardBadge('fidelidade_presenca', BadgeLevel.MASTER);
+    }
 
     // Close modal after check-in
     setTimeout(() => setShowCheckInModal(false), 1500);
@@ -376,18 +385,24 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
                     </div>
 
                     <div className="flex justify-between items-center px-1">
-                       {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                          <div key={day} className="flex flex-col items-center gap-2">
-                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                                day <= streak 
-                                   ? 'bg-blue-600 text-white shadow-lg' 
-                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-700'
-                             }`}>
-                                {day <= streak ? <CheckCircle2 size={18} strokeWidth={3} /> : <span className="text-[10px] font-black">{day}</span>}
-                             </div>
-                             <span className="text-[7px] font-black uppercase text-slate-400 tracking-tighter">D{day}</span>
-                          </div>
-                       ))}
+                       {(() => {
+                         const nextMilestone = streak <= 7 ? 7 : streak <= 15 ? 15 : streak <= 30 ? 30 : streak <= 60 ? 60 : streak <= 90 ? 90 : 100;
+                         const start = Math.max(1, streak - 3);
+                         const days = Array.from({ length: 7 }, (_, i) => start + i);
+                         
+                         return days.map(day => (
+                            <div key={day} className="flex flex-col items-center gap-2">
+                               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                                  day <= streak 
+                                     ? 'bg-blue-600 text-white shadow-lg' 
+                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-700'
+                               }`}>
+                                  {day <= streak ? <CheckCircle2 size={18} strokeWidth={3} /> : <span className="text-[10px] font-black">{day}</span>}
+                               </div>
+                               <span className="text-[7px] font-black uppercase text-slate-400 tracking-tighter">D{day}</span>
+                            </div>
+                         ));
+                       })()}
                     </div>
 
                     {canCheckIn ? (

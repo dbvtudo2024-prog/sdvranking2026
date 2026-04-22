@@ -1257,7 +1257,7 @@ export const DatabaseService = {
     if (error) {
       console.error("[DB] Erro ao adicionar estudo:", error);
       // Se o erro for de coluna inexistente, tentamos salvar sem a data de agendamento
-      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || error.status === 404) {
+      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || (error as any).status === 404) {
         console.warn("[DB] Tentando salvar sem coluna 'scheduled_for'...");
         const { scheduled_for, ...studyWithoutSchedule } = study;
         const { error: retryError } = await supabase.from('specialty_studies').insert([studyWithoutSchedule]);
@@ -1277,7 +1277,7 @@ export const DatabaseService = {
     const { error } = await supabase.from('specialty_studies').update(updates).eq('id', id);
     if (error) {
       console.error("[DB] Erro ao atualizar estudo:", error);
-      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || error.status === 404) {
+      if (error.message.includes('scheduled_for') || error.code === 'PGRST100' || (error as any).status === 404) {
         const { scheduled_for, ...updatesWithoutSchedule } = updates;
         const { error: retryError } = await supabase.from('specialty_studies').update(updatesWithoutSchedule).eq('id', id);
         if (retryError) throw retryError;

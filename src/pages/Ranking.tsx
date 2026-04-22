@@ -81,38 +81,16 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   const getPoints = (m: Member | null) => {
     if (!m) return 0;
     if (tab === 'games') {
-      const getMonthlyPoints = (mem: Member, key: string) => {
-        return mem.scores
-          .filter(s => {
-            if (!s.date) return false;
-            let mStr = '';
-            if (s.date.includes('-')) {
-              const parts = s.date.split('-');
-              if (parts.length >= 2) mStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
-            } else if (s.date.includes('/')) {
-              const parts = s.date.split('/');
-              if (parts.length === 3) mStr = `${parts[2]}-${parts[1].padStart(2, '0')}`;
-            }
-            return mStr === currentMonth;
-          })
-          .reduce((acc, curr) => {
-            const s = curr as any;
-            if (s.gameId === key) return acc + (Number(s.points) || Number(s[key]) || 0);
-            if (s[key] !== undefined && s.type !== 'weekly') return acc + (Number(s[key]) || 0);
-            return acc;
-          }, 0);
-      };
-
-      if (gameTab === 'quiz') return getMonthlyPoints(m, 'quiz');
-      if (gameTab === 'memory') return getMonthlyPoints(m, 'memoryGame');
-      if (gameTab === 'specialty') return getMonthlyPoints(m, 'specialtyGame');
-      if (gameTab === 'threeclues') return getMonthlyPoints(m, 'threeCluesGame');
-      if (gameTab === 'puzzle') return getMonthlyPoints(m, 'puzzleGame');
-      if (gameTab === 'knots') return getMonthlyPoints(m, 'knotsGame');
-      if (gameTab === 'specialtytrail') return getMonthlyPoints(m, 'specialtyTrailGame');
-      if (gameTab === 'scrambledverse') return getMonthlyPoints(m, 'scrambledVerseGame');
-      if (gameTab === 'natureid') return getMonthlyPoints(m, 'natureIdGame');
-      if (gameTab === 'firstaid') return getMonthlyPoints(m, 'firstAidGame');
+      if (gameTab === 'quiz') return calculateMonthlySpecific(m, 'quiz', currentMonth);
+      if (gameTab === 'memory') return calculateMonthlySpecific(m, 'memoryGame', currentMonth);
+      if (gameTab === 'specialty') return calculateMonthlySpecific(m, 'specialtyGame', currentMonth);
+      if (gameTab === 'threeclues') return calculateMonthlySpecific(m, 'threeCluesGame', currentMonth);
+      if (gameTab === 'puzzle') return calculateMonthlySpecific(m, 'puzzleGame', currentMonth);
+      if (gameTab === 'knots') return calculateMonthlySpecific(m, 'knotsGame', currentMonth);
+      if (gameTab === 'specialtytrail') return calculateMonthlySpecific(m, 'specialtyTrailGame', currentMonth);
+      if (gameTab === 'scrambledverse') return calculateMonthlySpecific(m, 'scrambledVerseGame', currentMonth);
+      if (gameTab === 'natureid') return calculateMonthlySpecific(m, 'natureIdGame', currentMonth);
+      if (gameTab === 'firstaid') return calculateMonthlySpecific(m, 'firstAidGame', currentMonth);
       return calculateMonthlyGamesTotal(m, currentMonth);
     }
     return calculateWeeklyTotal(m);

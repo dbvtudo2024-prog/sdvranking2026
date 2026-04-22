@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music } from 'lucide-react';
-import { Member, ChatMessage, Devotional, CounselorDB } from '@/types';
+import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, supabase } from '@/db';
+import { GAME_KEYS } from '@/helpers/scoreHelpers';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
 
@@ -290,8 +292,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
+  const [inspectingMember, setInspectingMember] = useState<Member | null>(null);
+
   const handleFixGameStatus = async () => {
-    if (!window.confirm("⚠️ AÇÃO DE LIMPEZA: Deseja corrigir o status de jogos dos desbravadores? Isso removerá marcações duplicadas de jogos que foram salvos incorretamente no passado, sem apagar seus pontos totais.")) return;
+    if (!window.confirm("Isso irá remover pontuações duplicadas e padronizar o formato dos dados. Deseja continuar?")) return;
     
     setIsProcessing(true);
     try {
@@ -300,25 +304,47 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         if (!member.scores || !Array.isArray(member.scores)) return member;
         
         let hasChanges = false;
-        const cleanedScores = member.scores.map(score => {
-          if (score.type === 'game' && score.gameId) {
-            const gameKeys = [
-              'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
-              'puzzleGame', 'knotsGame', 'specialtyTrailGame',
-              'scrambledVerseGame', 'natureIdGame', 'firstAidGame', 'brickBreakerGame'
-            ];
-            
-            const newScore = { ...score };
-            gameKeys.forEach(key => {
-              if (key !== score.gameId && (newScore as any)[key] !== undefined) {
-                delete (newScore as any)[key];
-                hasChanges = true;
-              }
-            });
-            return newScore;
+        const cycleStart = new Date();
+        cycleStart.setDate(cycleStart.getDate() - cycleStart.getDay());
+        cycleStart.setHours(12, 0, 0, 0);
+
+        const seenCurrentWeek = new Set<string>();
+        const cleanedScores: Score[] = [];
+
+        // Ordenar por data
+        const sortedScores = [...member.scores].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        for (const scoreObj of sortedScores) {
+          const s = { ...scoreObj } as any;
+          const scoreDate = new Date(s.date);
+          
+          if (!s.gameId) {
+            const foundKey = GAME_KEYS.find(key => s[key] !== undefined);
+            if (foundKey) {
+              s.gameId = foundKey;
+              s.points = Number(s[foundKey]);
+              hasChanges = true;
+            }
           }
-          return score;
-        });
+
+          if (s.gameId) {
+            if (s.points === undefined && s[s.gameId] !== undefined) {
+              s.points = Number(s[s.gameId]);
+              hasChanges = true;
+            }
+            GAME_KEYS.forEach(key => { if (s[key] !== undefined && key !== 'points') { delete s[key]; hasChanges = true; } });
+
+            if (scoreDate >= cycleStart) {
+              const uniqueKey = `${s.gameId}-${s.quizCategory || ''}`;
+              if (seenCurrentWeek.has(uniqueKey)) {
+                hasChanges = true;
+                continue;
+              }
+              seenCurrentWeek.add(uniqueKey);
+            }
+          }
+          cleanedScores.push(s);
+        }
         
         if (hasChanges) {
           fixedCount++;
@@ -423,7 +449,40 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
            </div>
         </div>
 
-        {/* 3. GESTÃO DE JOGOS */}
+        {/* 3. INSPEÇÃO DE MEMBROS */}
+        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6 border backdrop-blur-sm`}>
+           <div className="flex items-center gap-2 px-2">
+             <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-amber-900/30 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+               <User size={16} />
+             </div>
+             <h3 className={`${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[10px] font-black uppercase tracking-[0.2em]`}>Inspeção de Membros</h3>
+           </div>
+           
+           <div className="space-y-4">
+             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight px-2">Verificar pontuações brutas e logs de atividade</p>
+             <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+               {members.sort((a, b) => a.name.localeCompare(b.name)).map(member => (
+                 <div 
+                   key={member.id}
+                   className={`flex items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}
+                 >
+                   <div className="overflow-hidden pr-4">
+                     <p className={`text-xs font-black uppercase truncate ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>{member.name}</p>
+                     <p className="text-[9px] text-slate-500 font-bold uppercase">Unidade: {member.unit}</p>
+                   </div>
+                   <button 
+                     onClick={() => setInspectingMember(member)}
+                     className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all flex-shrink-0"
+                   >
+                     Inspecionar
+                   </button>
+                 </div>
+               ))}
+             </div>
+           </div>
+        </div>
+
+        {/* 4. GESTÃO DE JOGOS */}
         <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6 border backdrop-blur-sm`}>
            <div className="flex items-center gap-2 px-2">
              <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -884,6 +943,82 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </div>
         </div>
       )}
+      {/* MODAL DE INSPEÇÃO DE MEMBRO */}
+      <AnimatePresence>
+        {inspectingMember && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setInspectingMember(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`relative w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#1e293b] border-slate-700' : 'bg-white border-slate-200'} rounded-[2.5rem] shadow-2xl border`}
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className={`text-xl font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{inspectingMember.name}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Logs de Pontuação e Atividade</p>
+                </div>
+                <button onClick={() => setInspectingMember(null)} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`p-4 rounded-3xl ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Pontos de Jogos</p>
+                    <p className="text-2xl font-black text-blue-500">{(inspectingMember as any).totalGamesPoints || 0}</p>
+                  </div>
+                  <div className={`p-4 rounded-3xl ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Estudos</p>
+                    <p className="text-2xl font-black text-amber-500">{(inspectingMember as any).specialtyStudyScore || 0}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2">Registros Brutos ({inspectingMember.scores?.length || 0})</h4>
+                  <div className="space-y-2">
+                    {inspectingMember.scores?.slice().reverse().map((score: any, idx: number) => (
+                      <div key={idx} className={`p-3 rounded-2xl border text-[10px] ${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter ${
+                            score.type === 'game' ? 'bg-blue-100 text-blue-600' : 
+                            score.type === 'weekly' ? 'bg-green-100 text-green-600' : 
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            {score.type || 'N/A'} - {score.gameId || 'N/A'}
+                          </span>
+                          <span className="text-slate-400 font-bold">{score.date}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          {Object.entries(score).map(([key, val]) => (
+                            <div key={key} className="flex justify-between border-b border-slate-50 dark:border-slate-800/50 pb-1">
+                              <span className="text-slate-500 font-medium">{key}:</span>
+                              <span className={`font-bold ${key === 'points' ? 'text-blue-500' : isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                                {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {(!inspectingMember.scores || inspectingMember.scores.length === 0) && (
+                      <div className="py-10 text-center">
+                        <p className="text-slate-400 font-bold text-xs uppercase">Nenhum registro encontrado</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

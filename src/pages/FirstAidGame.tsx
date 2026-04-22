@@ -128,7 +128,6 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
       type: 'game',
       gameId: 'firstAidGame',
       points: score,
-      firstAidGame: score,
       date: new Date().toLocaleDateString('pt-BR')
     };
 

@@ -29,7 +29,12 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   const duelRanking = useMemo(() => {
     return members
       .map(m => {
-        const total = (m.scores || []).reduce((acc, s) => acc + (s.challenge1x1 || 0), 0);
+        const total = (m.scores || []).reduce((acc, s) => {
+          if (s.gameId === 'challenge1x1' || (s as any).challenge1x1 !== undefined) {
+             return acc + (Number(s.points) || Number((s as any).challenge1x1) || 0);
+          }
+          return acc;
+        }, 0);
         return { ...m, totalPoints: total };
       })
       .filter(m => m.totalPoints > 0)
@@ -49,7 +54,6 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           type: 'game',
           gameId: 'challenge1x1',
           date: new Date().toLocaleDateString('pt-BR'), 
-          challenge1x1: points,
           points: points
         };
         const updated = {

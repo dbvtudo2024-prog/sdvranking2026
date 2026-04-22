@@ -7,6 +7,7 @@ import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, 
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
 import GameStatsBar from '@/components/GameStatsBar';
+import { safeAddScore } from '@/utils/gameUtils';
 
 interface ThreeCluesGameProps {
   user: AuthUser;
@@ -191,20 +192,17 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     if (!memberToUpdate) return;
 
-    const todayStr = new Date().toISOString();
-    const updatedScores = [...(memberToUpdate.scores || [])];
-
-    const finalScore = score;
-
-    updatedScores.push({
+    const newScore: Score = {
       type: 'game',
       gameId: 'threeCluesGame',
-      date: new Date().toLocaleDateString('pt-BR'),
-      points: finalScore,
-      threeCluesGame: finalScore
-    });
+      date: new Date().toISOString(),
+      points: score
+    };
 
-    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
+    onUpdateMember({ 
+      ...memberToUpdate, 
+      scores: safeAddScore(memberToUpdate.scores || [], newScore) 
+    });
     onBack();
   };
 

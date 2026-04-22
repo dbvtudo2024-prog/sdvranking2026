@@ -1,10 +1,11 @@
 
-import React from 'react';
-import { Member, BadgeLevel, UserBadge } from '@/types';
+import React, { useState } from 'react';
+import { Member, BadgeLevel, UserBadge, BadgeDefinition } from '@/types';
 import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy, Check } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
 import { BADGE_DEFINITIONS } from '@/constants';
+import BadgeInfoModal from './BadgeInfoModal';
 
 const BADGE_ICONS: { [key: string]: any } = {
   'Shield': Shield,
@@ -26,9 +27,19 @@ interface MemberProfileModalProps {
 }
 
 const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose, onViewHistory, isDarkMode }) => {
+  const [selectedBadgeInfo, setSelectedBadgeInfo] = useState<BadgeDefinition | null>(null);
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[250] flex items-center justify-center p-4">
       <div className={`relative w-full max-w-md rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+        
+        {selectedBadgeInfo && (
+          <BadgeInfoModal 
+            badge={selectedBadgeInfo} 
+            isDarkMode={isDarkMode} 
+            onClose={() => setSelectedBadgeInfo(null)} 
+          />
+        )}
         {/* Decorative background element */}
         <div className="absolute top-0 inset-x-0 h-32 bg-blue-600 opacity-10 blur-3xl -z-10" />
         
@@ -113,8 +124,15 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                       const monthYear = parts[1]?.trim() || 'Mensal';
 
                       return (
-                        <div key={ub.badgeId} className="flex flex-col items-center">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
+                        <div 
+                          key={ub.badgeId} 
+                          className="flex flex-col items-center cursor-pointer group"
+                          onClick={() => {
+                            const def = BADGE_DEFINITIONS.find(d => ub.badgeId.startsWith(d.id));
+                            if (def) setSelectedBadgeInfo(def);
+                          }}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative transition-all group-hover:scale-110 ${
                             ub.level === BadgeLevel.GOLD ? 'bg-yellow-400 font-bold text-yellow-900 shadow-yellow-500/20' : 
                             ub.level === BadgeLevel.SILVER ? 'bg-slate-300 font-bold text-slate-700 shadow-slate-500/20' : 
                             'bg-orange-600 font-bold text-orange-100 shadow-orange-500/20'
@@ -171,8 +189,14 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                     const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
                     
                     return (
-                      <div key={ub.badgeId} className="flex flex-col items-center">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative ${
+                      <div 
+                        key={ub.badgeId} 
+                        className="flex flex-col items-center cursor-pointer group"
+                        onClick={() => {
+                          if (badgeDef) setSelectedBadgeInfo(badgeDef);
+                        }}
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative transition-all group-hover:scale-110 ${
                           ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
                           ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
                           ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
@@ -194,8 +218,12 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                   .map(badge => {
                   const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
                   return (
-                    <div key={`not-conquered-${badge.id}`} className="flex flex-col items-center opacity-20 grayscale">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600">
+                    <div 
+                      key={`not-conquered-${badge.id}`} 
+                      className="flex flex-col items-center opacity-20 grayscale cursor-pointer group"
+                      onClick={() => setSelectedBadgeInfo(badge)}
+                    >
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600 transition-all group-hover:opacity-100 group-hover:grayscale-0">
                         <BadgeIcon size={24} />
                       </div>
                       <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>

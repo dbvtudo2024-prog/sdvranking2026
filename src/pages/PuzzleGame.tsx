@@ -7,6 +7,7 @@ import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Imag
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
+import { safeAddScore } from '@/utils/gameUtils';
 
 interface PuzzleGameProps {
   user: AuthUser;
@@ -241,7 +242,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   };
 
   const handleFinish = () => {
-    // Find member again to ensure we have latest data
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     
     if (memberToUpdate) {
@@ -250,39 +250,35 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         type: 'game',
         gameId: 'puzzleGame',
         points: points,
-        puzzleGame: points,
-        date: new Date().toLocaleDateString('pt-BR')
+        date: new Date().toISOString()
       };
       
-      const updatedScores = [...(memberToUpdate.scores || []), newScore];
-
       onUpdateMember({
         ...memberToUpdate,
-        scores: updatedScores
+        scores: safeAddScore(memberToUpdate.scores || [], newScore)
       });
     }
     onBack();
   };
 
+  const hasSavedRef = useRef(false);
+
   const saveScoreToProfile = useCallback(() => {
-    // Find member again to ensure we have latest data
     const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
     
-    if (memberToUpdate) {
+    if (memberToUpdate && !hasSavedRef.current) {
+      hasSavedRef.current = true;
       const points = calculatePoints();
       const newScore: Score = {
         type: 'game',
         gameId: 'puzzleGame',
         points: points,
-        puzzleGame: points,
-        date: new Date().toLocaleDateString('pt-BR')
+        date: new Date().toISOString()
       };
       
-      const updatedScores = [...(memberToUpdate.scores || []), newScore];
-
       onUpdateMember({
         ...memberToUpdate,
-        scores: updatedScores
+        scores: safeAddScore(memberToUpdate.scores || [], newScore)
       });
     }
   }, [calculatePoints, members, user.id, user.name, onUpdateMember]);

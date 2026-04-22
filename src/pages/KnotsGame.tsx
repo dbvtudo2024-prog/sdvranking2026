@@ -179,7 +179,6 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
       type: 'game',
       gameId: 'knotsGame',
       points: score,
-      knotsGame: score,
       date: new Date().toLocaleDateString('pt-BR')
     };
 

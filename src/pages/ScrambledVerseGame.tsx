@@ -137,8 +137,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
       type: 'game',
       gameId: 'scrambledVerseGame',
       date: new Date().toLocaleDateString('pt-BR'),
-      points: finalScore,
-      scrambledVerseGame: finalScore
+      points: finalScore
     });
 
     onUpdateMember({ ...memberToUpdate, scores: updatedScores });

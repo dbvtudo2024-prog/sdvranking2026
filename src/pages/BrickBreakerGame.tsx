@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AuthUser, Member, Score, UserRole, BadgeLevel, UserStats } from '@/types';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
+import { safeAddScore } from '@/utils/gameUtils';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -208,11 +209,28 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     setGameState('playing');
   };
 
+  const hasSavedRef = useRef(false);
+
   const handleFinish = useCallback(() => {
     if (onUpdateStats) onUpdateStats({ totalGames: 1 });
-    // Apenas encerra o jogo sem salvar no perfil do membro para não entrar no ranking
+    
+    if (currentMember && !hasSavedRef.current) {
+      hasSavedRef.current = true;
+      const newScore: Score = {
+        type: 'game',
+        gameId: 'brickBreakerGame',
+        points: score,
+        date: new Date().toISOString()
+      };
+      
+      onUpdateMember({
+        ...currentMember,
+        scores: safeAddScore(currentMember.scores || [], newScore)
+      });
+    }
+
     setGameState('finished');
-  }, [onUpdateStats]);
+  }, [onUpdateStats, currentMember, score, onUpdateMember]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
