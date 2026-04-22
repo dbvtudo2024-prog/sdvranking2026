@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { ShieldCheck, Star, Shield, Type, Gamepad2, MessageSquare, Brain, Map, Lock, Medal, CheckCircle2, Trophy } from 'lucide-react';
-import { AuthUser, Member, BadgeLevel } from '@/types';
+import React, { useState } from 'react';
+import { ShieldCheck, Star, Shield, Type, Gamepad2, MessageSquare, Brain, Map, Lock, Medal, CheckCircle2, Trophy, X, Zap, Target, BookOpenCheck } from 'lucide-react';
+import { AuthUser, Member, BadgeLevel, BadgeDefinition } from '@/types';
 import { BADGE_DEFINITIONS } from '@/constants';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface BadgesProps {
   user: AuthUser;
@@ -22,11 +23,35 @@ const BADGE_ICONS: { [key: string]: any } = {
 };
 
 const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
+  const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
+  const [selectedMonthly, setSelectedMonthly] = useState<any | null>(null);
+  
   const currentMember = members.find(m => String(m.id) === String(user.id));
   const userBadges = currentMember?.badges || [];
 
   const getBadgeIcon = (iconName: string) => {
     return BADGE_ICONS[iconName] || ShieldCheck;
+  };
+
+  const handleBadgeClick = (badge: BadgeDefinition) => {
+    setSelectedBadge(badge);
+    setSelectedMonthly(null);
+  };
+
+  const handleMonthlyClick = (badge: any) => {
+    const parts = badge.badgeId.split('_');
+    const monthStr = parts[2];
+    const rank = parts[3];
+    const [year, month] = monthStr.split('-');
+    const monthName = badge.monthLabel || new Date(parseInt(year), parseInt(month) - 1).toLocaleString('pt-BR', { month: 'long' });
+    
+    setSelectedMonthly({
+      ...badge,
+      monthName,
+      year,
+      rank
+    });
+    setSelectedBadge(null);
   };
 
   return (
@@ -60,15 +85,16 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
             const BadgeIcon = getBadgeIcon(badge.icon);
             
             return (
-              <div 
+              <button 
                 key={badge.id}
-                className={`p-5 rounded-[2.5rem] border-2 transition-all relative flex flex-col items-center justify-between min-h-[180px] ${
+                onClick={() => handleBadgeClick(badge)}
+                className={`p-5 rounded-[2.5rem] border-2 transition-all relative flex flex-col items-center justify-between min-h-[180px] text-left w-full outline-none ${
                   isUnlocked 
-                    ? (isDarkMode ? 'bg-blue-900/20 border-blue-500/50 scale-100 shadow-lg shadow-blue-500/5' : 'bg-white border-blue-100 shadow-xl shadow-blue-500/10') 
-                    : (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40 grayscale' : 'bg-slate-50 border-slate-100 opacity-40 grayscale')
+                    ? (isDarkMode ? 'bg-blue-900/20 border-blue-500/50 scale-100 shadow-lg shadow-blue-500/5 active:scale-95' : 'bg-white border-blue-100 shadow-xl shadow-blue-500/10 active:scale-95') 
+                    : (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40 grayscale hover:opacity-60 active:scale-95' : 'bg-slate-50 border-slate-100 opacity-40 grayscale hover:opacity-60 active:scale-95')
                 }`}
               >
-                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-3 transition-transform ${isUnlocked ? 'active:scale-110' : ''} ${
+                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-3 transition-transform ${
                   isUnlocked 
                     ? (userBadge.level === BadgeLevel.GOLD ? 'bg-yellow-500 shadow-yellow-500/40' : 
                        userBadge.level === BadgeLevel.SILVER ? 'bg-slate-400 shadow-slate-400/40' : 
@@ -100,7 +126,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
                     <Lock size={12} className={isDarkMode ? 'text-slate-600' : 'text-slate-300'} />
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -126,7 +152,11 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
                 };
 
                 return (
-                  <div key={badge.badgeId} className={`relative overflow-hidden p-6 rounded-[2.5rem] bg-gradient-to-br ${levelColors[badge.level as keyof typeof levelColors] || 'from-blue-500 to-indigo-600'} shadow-2xl shadow-black/10 transition-transform active:scale-95`}>
+                  <button 
+                    key={badge.badgeId} 
+                    onClick={() => handleMonthlyClick(badge)}
+                    className={`relative overflow-hidden p-6 rounded-[2.5rem] bg-gradient-to-br ${levelColors[badge.level as keyof typeof levelColors] || 'from-blue-500 to-indigo-600'} shadow-2xl shadow-black/10 transition-transform active:scale-95 text-left w-full outline-none`}
+                  >
                     <div className="absolute -right-4 -bottom-4 text-white/10 rotate-12 pointer-events-none">
                       <Trophy size={120} />
                     </div>
@@ -150,7 +180,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -172,6 +202,163 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
           </div>
         </div>
       </div>
+
+      {/* MODAL PARA INSÍGNIAS NORMAIS */}
+      <AnimatePresence>
+        {selectedBadge && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedBadge(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className={`relative w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}
+            >
+              <div className={`p-8 bg-gradient-to-br ${isDarkMode ? 'from-blue-600/20 to-indigo-600/20' : 'from-blue-600 to-indigo-700'}`}>
+                <button 
+                  onClick={() => setSelectedBadge(null)}
+                  className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-20"
+                >
+                  <X size={24} />
+                </button>
+
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/40 shadow-xl relative shrink-0">
+                    {React.createElement(getBadgeIcon(selectedBadge.icon), { size: 32, className: "text-white" })}
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-lg">
+                      <Zap size={14} className="text-yellow-900" fill="currentColor" />
+                    </div>
+                  </div>
+                  
+                  <div className="text-left">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight mb-1">{selectedBadge.name}</h3>
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">{selectedBadge.category}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                      <Target size={18} />
+                    </div>
+                    <span className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>O Desafio:</span>
+                  </div>
+                  <p className={`text-sm font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {selectedBadge.description}
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <BookOpenCheck size={16} className="text-emerald-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2]">Como Ganhar?</span>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Bronze: Nível Inicial</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Prata: Desafio Moderado</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                      <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Ouro: Excelência Máxima</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedBadge(null)}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+                >
+                  Entendi, vou conquistar!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL PARA INSÍGNIAS MENSAIS */}
+      <AnimatePresence>
+        {selectedMonthly && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMonthly(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className={`relative w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}
+            >
+              <div className={`p-8 bg-gradient-to-br from-amber-500 to-orange-600`}>
+                <button 
+                  onClick={() => setSelectedMonthly(null)}
+                  className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-20"
+                >
+                  <X size={24} />
+                </button>
+
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border-2 border-white/40 shadow-xl relative shrink-0">
+                    <Trophy size={32} className="text-white" fill="white" />
+                  </div>
+                  
+                  <div className="text-left">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight mb-1">Campeão de Jogos</h3>
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">{selectedMonthly.monthName} {selectedMonthly.year}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="text-center">
+                  <div className={`inline-block px-5 py-2 rounded-full border-2 border-amber-500/20 mb-4 ${isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
+                    <span className="text-[11px] font-black uppercase tracking-widest">{selectedMonthly.rank}º LUGAR NO RANKING</span>
+                  </div>
+                  <p className={`text-sm font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Esta insígnia é concedida aos 3 melhores jogadores do mês. Você alcançou a marca de **{selectedMonthly.points} pontos** e provou ser um verdadeiro Sentinela da Verdade!
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg bg-blue-600 text-white`}>
+                          <Medal size={16} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2]">Conquista</span>
+                      </div>
+                      <span className={`text-[10px] font-black ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>ESTRELAS GLOBAIS</span>
+                   </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedMonthly(null)}
+                  className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-orange-600/20 active:scale-95"
+                >
+                  Fechar com orgulho!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

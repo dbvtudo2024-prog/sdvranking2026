@@ -561,6 +561,111 @@ const App: React.FC = () => {
     });
   }, [user]);
 
+  const processScoreBasedAwards = useCallback(async (currentMembers: Member[], updates: { [id: string]: Member }) => {
+    if (!user) return;
+
+    const getBadgeLevelRank = (l: BadgeLevel) => {
+      switch (l) {
+        case BadgeLevel.BRONZE: return 1;
+        case BadgeLevel.SILVER: return 2;
+        case BadgeLevel.GOLD: return 3;
+        case BadgeLevel.DIAMOND: return 4;
+        case BadgeLevel.MASTER: return 5;
+        default: return 0;
+      }
+    };
+
+    currentMembers.forEach(m => {
+      const scores = m.scores || [];
+      const stats = m.stats || {};
+      
+      const currentMemberData = updates[String(m.id)] || m;
+      let currentBadges = [...(currentMemberData.badges || [])];
+      let hasChanges = false;
+
+      const grantBadge = (badgeId: string, level: BadgeLevel, points?: number) => {
+        const existingIdx = currentBadges.findIndex(b => b.badgeId === badgeId);
+        if (existingIdx === -1) {
+          currentBadges.push({ badgeId, level, awardedAt: new Date().toISOString(), points });
+          hasChanges = true;
+        } else {
+          const existing = currentBadges[existingIdx];
+          if (getBadgeLevelRank(level) > getBadgeLevelRank(existing.level)) {
+            currentBadges[existingIdx] = { ...existing, level, points, awardedAt: new Date().toISOString() };
+            hasChanges = true;
+          }
+        }
+      };
+
+      // 1. Mestre do Quiz
+      const quizScores = scores.map(s => {
+        const sObj = s as any;
+        return Number(sObj.quiz) || (sObj.gameId === 'quiz' ? Number(sObj.points) : 0);
+      });
+      const maxQuiz = Math.max(0, ...quizScores);
+      if (maxQuiz >= 20) grantBadge('mestre_quiz', BadgeLevel.GOLD, maxQuiz);
+      else if (maxQuiz >= 18) grantBadge('mestre_quiz', BadgeLevel.SILVER, maxQuiz);
+      else if (maxQuiz >= 15) grantBadge('mestre_quiz', BadgeLevel.BRONZE, maxQuiz);
+
+      // 2. Explorador de Trilhas (Vitórias = Registros > 0)
+      const trailWins = scores.filter(s => {
+        const sObj = s as any;
+        return (Number(sObj.specialtyTrailGame) > 0) || (sObj.gameId === 'specialtyTrailGame' && Number(sObj.points) > 0);
+      }).length;
+      if (trailWins >= 15) grantBadge('explorador_trilhas', BadgeLevel.GOLD, trailWins);
+      else if (trailWins >= 5) grantBadge('explorador_trilhas', BadgeLevel.SILVER, trailWins);
+      else if (trailWins >= 1) grantBadge('explorador_trilhas', BadgeLevel.BRONZE, trailWins);
+
+      // 3. Demolidor de Blocos
+      const bbScores = scores.map(s => {
+        const sObj = s as any;
+        return Number(sObj.brickBreakerGame) || (sObj.gameId === 'brickBreakerGame' ? Number(sObj.points) : 0);
+      });
+      const maxBB = Math.max(0, ...bbScores);
+      if (maxBB >= 5000) grantBadge('demolidor_blocos', BadgeLevel.GOLD, maxBB);
+      else if (maxBB >= 3000) grantBadge('demolidor_blocos', BadgeLevel.SILVER, maxBB);
+      else if (maxBB >= 1000) grantBadge('demolidor_blocos', BadgeLevel.BRONZE, maxBB);
+
+      // 4. Voz do Acampamento
+      const msgCount = stats.totalMessages || 0;
+      if (msgCount >= 100) grantBadge('voz_acampamento', BadgeLevel.GOLD, msgCount);
+      else if (msgCount >= 20) grantBadge('voz_acampamento', BadgeLevel.SILVER, msgCount);
+      else if (msgCount >= 5) grantBadge('voz_acampamento', BadgeLevel.BRONZE, msgCount);
+
+      // 5. Sentinela Fiel
+      const logins = stats.totalLogins || 0;
+      if (logins >= 30) grantBadge('sentinela_fiel', BadgeLevel.GOLD, logins);
+      else if (logins >= 7) grantBadge('sentinela_fiel', BadgeLevel.SILVER, logins);
+      else if (logins >= 1) grantBadge('sentinela_fiel', BadgeLevel.BRONZE, logins);
+
+      // 6. Conquistador Bíblico (Capítulos lidos)
+      const chapters = stats.totalVerses || 0;
+      if (chapters >= 50) grantBadge('conquistador_biblico', BadgeLevel.GOLD, chapters);
+      else if (chapters >= 10) grantBadge('conquistador_biblico', BadgeLevel.SILVER, chapters);
+      else if (chapters >= 1) grantBadge('conquistador_biblico', BadgeLevel.BRONZE, chapters);
+
+      // 7. Mestre da Presença (Streak de 7 dias)
+      if ((stats.checkInStreak || 0) >= 7) {
+        grantBadge('fidelidade_7_dias', BadgeLevel.GOLD, stats.checkInStreak);
+      }
+
+      if (hasChanges) {
+        updates[String(m.id)] = { ...currentMemberData, badges: currentBadges };
+      }
+    });
+
+    // Sincronizar com o usuário logado se ele estiver recebendo atualizações
+    const myId = String(user.id);
+    if (updates[myId]) {
+      setUser(prev => {
+        if (!prev) return null;
+        const updated = { ...prev, badges: updates[myId].badges };
+        localStorage.setItem('sentinelas_user', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [user]);
+
   const isProcessingAwards = useRef(false);
   const processAutomatedAwards = useCallback(async () => {
     if (!user || isProcessingAwards.current) return;
@@ -581,7 +686,7 @@ const App: React.FC = () => {
     const userBadgesHash = (user?.badges || []).map(b => b.badgeId).join(':');
     // Hash mais detalhado para detectar mudanças em IDs de medalhas ou conteúdos
     const badgesFingerprint = members.map(m => (m.badges || []).map(b => `${b.badgeId}-${b.level}`).join('|')).join('##');
-    const stateHash = `v15-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}-${badgesFingerprint}`;
+    const stateHash = `v16-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}-${badgesFingerprint}`;
     
     if (lastProcessedRef.current === stateHash) {
       if (members.length > 0) console.log("[Awards] Nenhuma mudança detectada na hash de estado.");
@@ -590,7 +695,7 @@ const App: React.FC = () => {
     
     lastProcessedRef.current = stateHash;
     isProcessingAwards.current = true;
-    console.log(`[Awards] Iniciando re-processamento automático de medalhas (v14)...`);
+    console.log(`[Awards] Iniciando re-processamento automático de medalhas (v16)...`);
     
     try {
       const now = new Date();
@@ -735,6 +840,9 @@ const App: React.FC = () => {
 
       // 2. Processar Mestres de Especialidades
       await processSpecialtyAwards(members, updatesToProcess);
+      
+      // 3. Processar Insígnias baseadas em Pontos Históricos e Stats
+      await processScoreBasedAwards(members, updatesToProcess);
 
       const entries = Object.values(updatesToProcess);
       if (entries.length > 0) {
@@ -760,7 +868,7 @@ const App: React.FC = () => {
     } finally {
       isProcessingAwards.current = false;
     }
-  }, [user, members, processSpecialtyAwards]);
+  }, [user, members, processSpecialtyAwards, processScoreBasedAwards]);
 
   useEffect(() => {
     processAutomatedAwards();

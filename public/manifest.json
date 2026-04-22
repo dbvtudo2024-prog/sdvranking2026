@@ -18,7 +18,7 @@
       "src": "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     }
   ]
 }
