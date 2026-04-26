@@ -112,10 +112,17 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
     const currentDay = todayDate.getDate();
     const currentMonth = todayDate.getMonth();
 
-    return safeMembers.filter(m => {
+    const birthdays = safeMembers.filter(m => {
       if (!m.birthday) return false;
       const [y, mStr, dStr] = m.birthday.split('-');
       return parseInt(mStr) - 1 === currentMonth && parseInt(dStr) === currentDay;
+    });
+
+    const seen = new Set();
+    return birthdays.filter(m => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
     });
   }, [safeMembers]);
 
@@ -125,14 +132,30 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
     window.open(url, '_blank');
   };
 
+  const uniqueAnnouncements = useMemo(() => {
+    const seen = new Set();
+    return (announcements || []).filter(a => {
+      if (!a.id || seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+  }, [announcements]);
+
   useEffect(() => {
-    if (announcements && announcements.length > 1) {
+    if (uniqueAnnouncements && uniqueAnnouncements.length > 1) {
       const timer = setInterval(() => {
-        setCurrentAvisoIndex((prev) => (prev + 1) % announcements.length);
+        setCurrentAvisoIndex((prev) => (prev + 1) % uniqueAnnouncements.length);
       }, 5000);
       return () => clearInterval(timer);
     }
-  }, [announcements]);
+  }, [uniqueAnnouncements]);
+
+  // Handle index out of bounds if announcements decrease
+  useEffect(() => {
+    if (currentAvisoIndex >= uniqueAnnouncements.length && uniqueAnnouncements.length > 0) {
+      setCurrentAvisoIndex(0);
+    }
+  }, [uniqueAnnouncements.length, currentAvisoIndex]);
 
   const Shortcut = ({ icon: Icon, label, page, color }: { icon: any, label: string, page: string, color: string }) => (
     <motion.button 
@@ -177,7 +200,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       </div>
 
       {/* MURAL DE AVISOS */}
-      {announcements.length > 0 && (
+      {uniqueAnnouncements.length > 0 && (
         <div className="px-6 mt-8">
           <div className={`relative rounded-[2.5rem] shadow-2xl overflow-hidden group border-2 ${isDarkMode ? 'bg-slate-900 border-blue-900/30 shadow-blue-900/10' : 'bg-white border-blue-100 shadow-blue-900/5'}`}>
             {/* Background Decor */}
@@ -205,9 +228,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               </div>
 
               <div className="flex gap-1.5">
-                {announcements.map((_, i) => (
+                {uniqueAnnouncements.map((aviso, i) => (
                   <button 
-                    key={i} 
+                    key={aviso.id} 
                     onClick={() => setCurrentAvisoIndex(i)}
                     className={`relative h-1.5 rounded-full transition-all duration-300 overflow-hidden ${i === currentAvisoIndex ? 'w-8 bg-blue-100 dark:bg-blue-900/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
                   >
@@ -228,7 +251,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
             <div className="px-6 pb-2 min-h-[110px] relative">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={announcements[currentAvisoIndex].id}
+                  key={uniqueAnnouncements[currentAvisoIndex].id}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -238,11 +261,11 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
                   <div className="flex items-start gap-2">
                     <Pin size={14} className="text-blue-400 mt-1 shrink-0 rotate-12" />
                     <h4 className={`font-black text-base uppercase leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {announcements[currentAvisoIndex].title}
+                      {uniqueAnnouncements[currentAvisoIndex].title}
                     </h4>
                   </div>
                   <p className={`text-xs leading-relaxed line-clamp-3 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {announcements[currentAvisoIndex].content}
+                    {uniqueAnnouncements[currentAvisoIndex].content}
                   </p>
                 </motion.div>
               </AnimatePresence>
@@ -252,11 +275,11 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
             <div className="px-6 py-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
               <div className="flex items-center gap-2">
                 <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-wider ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-400'} border border-slate-100 dark:border-slate-700`}>
-                  Postado {announcements[currentAvisoIndex].date}
+                  Postado {uniqueAnnouncements[currentAvisoIndex].date}
                 </div>
               </div>
               <button 
-                onClick={() => handleShare(announcements[currentAvisoIndex])}
+                onClick={() => handleShare(uniqueAnnouncements[currentAvisoIndex])}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
               >
                 <Share2 size={12} strokeWidth={3} />

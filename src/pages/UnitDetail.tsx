@@ -67,7 +67,13 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   });
 
   const filteredMembers = useMemo(() => {
-    return (members || []).filter(m => m.unit === unitName);
+    let data = (members || []).filter(m => m.unit === unitName);
+    const seenIds = new Set();
+    return data.filter(m => {
+      if (seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    });
   }, [members, unitName]);
 
   const historyMember = useMemo(() => {

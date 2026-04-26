@@ -295,21 +295,26 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   const [inspectingMember, setInspectingMember] = useState<Member | null>(null);
 
+  const [fixProgress, setFixProgress] = useState<{current: number, total: number} | null>(null);
+
   const handleFixGameStatus = async () => {
-    if (!window.confirm("Isso irá remover pontuações duplicadas e padronizar o formato dos dados. Deseja continuar?")) return;
+    if (!window.confirm("Isso irá remover pontuações duplicadas e padronizar o formato dos dados em lotes para evitar erros. Deseja continuar?")) return;
     
     setIsProcessing(true);
+    setFixProgress(null);
     try {
-      let fixedCount = 0;
-      const updatedMembers = members.map(member => {
-        if (!member.scores || !Array.isArray(member.scores)) return member;
+      const allUpdatedMembers: Member[] = [];
+      let totalToFix = 0;
+
+      // 1. Identificar quem precisa de correção localmente primeiro
+      const membersToCorrection = members.map(member => {
+        if (!member.scores || !Array.isArray(member.scores)) return null;
         
         let hasChanges = false;
         const cycleStart = getCycleStart();
         const seenCurrentWeek = new Set<string>();
         const cleanedScores: Score[] = [];
 
-        // Ordenar por data com segurança
         const sortedScores = [...member.scores].sort((a, b) => {
           const dateA = new Date(a.date).getTime();
           const dateB = new Date(b.date).getTime();
@@ -351,22 +356,25 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         }
         
         if (hasChanges) {
-          fixedCount++;
           return { ...member, scores: cleanedScores };
         }
-        return member;
-      });
+        return null;
+      }).filter((m): m is Member => m !== null);
 
-      if (fixedCount > 0) {
-        const toUpdate = updatedMembers.filter(m => {
-          const original = members.find(orig => orig.id === m.id);
-          return JSON.stringify(original?.scores) !== JSON.stringify(m.scores);
-        });
+      totalToFix = membersToCorrection.length;
 
-        if (toUpdate.length > 0) {
-          await DatabaseService.updateMembers(toUpdate);
+      if (totalToFix > 0) {
+        setFixProgress({ current: 0, total: totalToFix });
+        
+        // 2. Processar em lotes de 10 para evitar timeout do banco
+        const batchSize = 10;
+        for (let i = 0; i < membersToCorrection.length; i += batchSize) {
+          const batch = membersToCorrection.slice(i, i + batchSize);
+          await DatabaseService.updateMembers(batch);
+          setFixProgress({ current: Math.min(i + batchSize, totalToFix), total: totalToFix });
         }
-        alert(`✅ SUCESSO: O status de jogos de ${fixedCount} desbravadores foi corrigido!`);
+        
+        alert(`✅ SUCESSO: O status de jogos de ${totalToFix} desbravadores foi corrigido com sucesso!`);
       } else {
         alert("ℹ️ Nenhuma inconsistência encontrada para corrigir.");
       }
@@ -375,6 +383,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       alert(`❌ ERRO: ${error.message || "Falha ao processar a correção."}`);
     } finally {
       setIsProcessing(false);
+      setFixProgress(null);
     }
   };
 
@@ -541,10 +550,25 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               <button 
                 onClick={handleFixGameStatus} 
                 disabled={isProcessing}
-                className={`w-full ${isDarkMode ? 'bg-amber-900/20 text-amber-400 border-amber-900/30' : 'bg-amber-50 text-amber-600 border-amber-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
+                className={`w-full ${isDarkMode ? 'bg-amber-900/20 text-amber-400 border-amber-900/30' : 'bg-amber-50 text-amber-600 border-amber-100'} py-6 rounded-[2rem] font-black flex flex-col items-center justify-center gap-2 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
               >
-                {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
-                CORRIGIR STATUS DE JOGOS
+                <div className="flex items-center gap-4">
+                  {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
+                  CORRIGIR STATUS DE JOGOS
+                </div>
+                {fixProgress && (
+                  <div className="w-full max-w-[200px] mt-2">
+                    <div className="h-1.5 w-full bg-slate-200/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-500 transition-all duration-300" 
+                        style={{ width: `${(fixProgress.current / fixProgress.total) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[8px] mt-1 opacity-70">
+                      PROCESSANDO: {fixProgress.current} / {fixProgress.total}
+                    </p>
+                  </div>
+                )}
               </button>
               <button 
                 onClick={async () => {

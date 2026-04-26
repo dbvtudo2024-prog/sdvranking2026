@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig } from '@/types';
 
-const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
+const SUPABASE_URL = 'https://heuotluvniqozsuwcnpi.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhldW90bHV2bmlxb3pzdXdjbnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTg5NDcsImV4cCI6MjA4ODgzNDk0N30.IPeNpraSXp_Zup8Lc57LaOcchqt7SVkPk0Crozvr1Jk'; 
 
 const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
   try {
@@ -132,7 +132,10 @@ export const DatabaseService = {
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
         console.log("[Realtime] Mudança em members:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          localMembers = [...localMembers, payload.new as Member];
+          const exists = localMembers.some(m => String(m.id) === String(payload.new.id));
+          if (!exists) {
+            localMembers = [...localMembers, payload.new as Member];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localMembers = localMembers.map(m => String(m.id) === String(payload.new.id) ? { ...m, ...payload.new } : m);
         } else if (payload.eventType === 'DELETE') {
@@ -152,7 +155,10 @@ export const DatabaseService = {
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
         console.log("[Realtime] Mudança em announcements:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          localAnnouncements = [payload.new as Announcement, ...localAnnouncements];
+          const exists = localAnnouncements.some(a => a.id === payload.new.id);
+          if (!exists) {
+            localAnnouncements = [payload.new as Announcement, ...localAnnouncements];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localAnnouncements = localAnnouncements.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a);
         } else if (payload.eventType === 'DELETE') {
@@ -172,8 +178,11 @@ export const DatabaseService = {
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
         console.log("[Realtime] Mudança em conselheiros:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
-          localCounselors = [...localCounselors, newC];
+          const exists = localCounselors.some(c => c.id === payload.new.id);
+          if (!exists) {
+            const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+            localCounselors = [...localCounselors, newC];
+          }
         } else if (payload.eventType === 'UPDATE') {
           const updatedC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
           localCounselors = localCounselors.map(c => c.id === payload.new.id ? updatedC : c);
@@ -243,7 +252,10 @@ export const DatabaseService = {
       .channel('members_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localMembers = [...localMembers, payload.new as Member];
+          const exists = localMembers.some(m => m.id === payload.new.id);
+          if (!exists) {
+            localMembers = [...localMembers, payload.new as Member];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localMembers = localMembers.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m);
         } else if (payload.eventType === 'DELETE') {
@@ -459,7 +471,10 @@ export const DatabaseService = {
       .channel('specialties_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'EspecialidadesDBV' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localSpecialties = [...localSpecialties, payload.new as SpecialtyDBV];
+          const exists = localSpecialties.some(s => s.id === payload.new.id);
+          if (!exists) {
+            localSpecialties = [...localSpecialties, payload.new as SpecialtyDBV];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localSpecialties = localSpecialties.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
         } else if (payload.eventType === 'DELETE') {
@@ -700,7 +715,11 @@ export const DatabaseService = {
       .channel('quiz_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localQuestions = [mapQ(payload.new), ...localQuestions];
+          const mapped = mapQ(payload.new);
+          const exists = localQuestions.some(q => q.id === mapped.id);
+          if (!exists) {
+            localQuestions = [mapped, ...localQuestions];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localQuestions = localQuestions.map(q => q.id === payload.new.id ? mapQ(payload.new) : q);
         } else if (payload.eventType === 'DELETE') {
@@ -1309,7 +1328,10 @@ export const DatabaseService = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, payload => {
         console.log("[Realtime] Mudança em specialty_studies:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          localStudies = [payload.new as SpecialtyStudy, ...localStudies];
+          const exists = localStudies.some(s => s.id === payload.new.id);
+          if (!exists) {
+            localStudies = [payload.new as SpecialtyStudy, ...localStudies];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localStudies = localStudies.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
         } else if (payload.eventType === 'DELETE') {
@@ -1333,7 +1355,10 @@ export const DatabaseService = {
       .channel('three_clues_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localQuestions = [payload.new as ThreeCluesQuestion, ...localQuestions];
+          const exists = localQuestions.some(q => q.id === payload.new.id);
+          if (!exists) {
+            localQuestions = [payload.new as ThreeCluesQuestion, ...localQuestions];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localQuestions = localQuestions.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q);
         } else if (payload.eventType === 'DELETE') {
@@ -1390,7 +1415,10 @@ export const DatabaseService = {
       .channel('puzzle_images_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'puzzle_images' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localImages = [payload.new, ...localImages];
+          const exists = localImages.some(img => img.id === payload.new.id);
+          if (!exists) {
+            localImages = [payload.new, ...localImages];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localImages = localImages.map(img => img.id === payload.new.id ? { ...img, ...payload.new } : img);
         } else if (payload.eventType === 'DELETE') {
@@ -1495,7 +1523,10 @@ export const DatabaseService = {
       .channel('scrambled_verses_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'scrambled_verses' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localVerses = [payload.new, ...localVerses];
+          const exists = localVerses.some(v => v.id === payload.new.id);
+          if (!exists) {
+            localVerses = [payload.new, ...localVerses];
+          }
         } else if (payload.eventType === 'UPDATE') {
           localVerses = localVerses.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v);
         } else if (payload.eventType === 'DELETE') {
