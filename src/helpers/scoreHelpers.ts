@@ -4,7 +4,8 @@ import { Member, Score } from '@/types';
 export const GAME_KEYS = [
   'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
   'puzzleGame', 'knotsGame', 'specialtyTrailGame', 
-  'scrambledVerseGame', 'natureIdGame', 'firstAidGame'
+  'scrambledVerseGame', 'natureIdGame', 'firstAidGame',
+  'brickBreakerGame', 'mahjongGame', 'challenge1x1'
 ];
 
 export const GAMES_METADATA: { [key: string]: { label: string, shortLabel: string } } = {
@@ -17,7 +18,10 @@ export const GAMES_METADATA: { [key: string]: { label: string, shortLabel: strin
   specialtyTrailGame: { label: 'Trilha', shortLabel: 'T' },
   scrambledVerseGame: { label: 'Versículo', shortLabel: 'V' },
   natureIdGame: { label: 'Natureza', shortLabel: 'Nat' },
-  firstAidGame: { label: 'Socorros', shortLabel: 'Soc' }
+  firstAidGame: { label: 'Socorros', shortLabel: 'Soc' },
+  brickBreakerGame: { label: 'Brick Breaker', shortLabel: 'BB' },
+  mahjongGame: { label: 'Mahjong', shortLabel: 'MJ' },
+  challenge1x1: { label: 'Duelo 1x1', shortLabel: '1x1' }
 };
 
 export const calculateSpecific = (member: Member, key: string) => {

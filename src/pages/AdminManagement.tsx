@@ -5,6 +5,7 @@ import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, supabase } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
+import { getCycleStart } from '@/utils/gameUtils';
 
 import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
 
@@ -304,15 +305,18 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         if (!member.scores || !Array.isArray(member.scores)) return member;
         
         let hasChanges = false;
-        const cycleStart = new Date();
-        cycleStart.setDate(cycleStart.getDate() - cycleStart.getDay());
-        cycleStart.setHours(12, 0, 0, 0);
-
+        const cycleStart = getCycleStart();
         const seenCurrentWeek = new Set<string>();
         const cleanedScores: Score[] = [];
 
-        // Ordenar por data
-        const sortedScores = [...member.scores].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Ordenar por data com segurança
+        const sortedScores = [...member.scores].sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (isNaN(dateA)) return 1;
+          if (isNaN(dateB)) return -1;
+          return dateA - dateB;
+        });
 
         for (const scoreObj of sortedScores) {
           const s = { ...scoreObj } as any;
@@ -366,9 +370,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       } else {
         alert("ℹ️ Nenhuma inconsistência encontrada para corrigir.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao corrigir status:", error);
-      alert("❌ ERRO: Falha ao processar a correção.");
+      alert(`❌ ERRO: ${error.message || "Falha ao processar a correção."}`);
     } finally {
       setIsProcessing(false);
     }

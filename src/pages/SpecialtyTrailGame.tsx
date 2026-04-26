@@ -3,6 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, RefreshCcw, Flag, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import { safeAddScore } from '@/utils/gameUtils';
+import { Score } from '@/types';
 import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, UserRole, BadgeLevel, UserStats } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -91,14 +93,14 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
       else if (finalScore >= 50) onAwardBadge('explorador_trilhas', BadgeLevel.BRONZE);
     }
 
-    updatedScores.push({
+    const newScore: Score = {
       type: 'game',
       gameId: 'specialtyTrailGame',
-      date: new Date().toLocaleDateString('pt-BR'),
+      date: new Date().toISOString(),
       points: finalScore
-    });
+    };
 
-    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
+    onUpdateMember({ ...memberToUpdate, scores: safeAddScore(memberToUpdate.scores || [], newScore) });
   };
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';

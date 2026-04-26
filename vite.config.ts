@@ -18,7 +18,26 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          manifest: false,
+          manifest: {
+            name: 'Sentinelas da Verdade',
+            short_name: 'Sentinelas',
+            description: 'Sistema de Ranking e Gestão de Desbravadores',
+            theme_color: '#1e293b',
+            background_color: '#0f172a',
+            display: 'standalone',
+            icons: [
+              {
+                src: 'https://api.iconify.design/fluent-emoji:shield.svg',
+                sizes: '192x192',
+                type: 'image/svg+xml'
+              },
+              {
+                src: 'https://api.iconify.design/fluent-emoji:shield.svg',
+                sizes: '512x512',
+                type: 'image/svg+xml'
+              }
+            ]
+          },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
             runtimeCaching: [

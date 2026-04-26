@@ -3,6 +3,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthUser, Member, Challenge1x1, QuizQuestion } from '@/types';
 import { QUIZ_QUESTIONS, UNIT_LOGOS } from '@/constants';
 import { DatabaseService, supabase } from '@/db';
+import { safeAddScore } from '@/utils/gameUtils';
+import { Score } from '@/types';
 import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
@@ -53,12 +55,12 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         const newScore = { 
           type: 'game',
           gameId: 'challenge1x1',
-          date: new Date().toLocaleDateString('pt-BR'), 
+          date: new Date().toISOString(), 
           points: points
         };
         const updated = {
           ...myMember, 
-          scores: [...(myMember.scores || []), newScore]
+          scores: safeAddScore(myMember.scores || [], newScore as Score)
         };
         onUpdateMember(updated);
       }

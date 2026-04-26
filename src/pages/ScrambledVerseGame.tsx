@@ -3,8 +3,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Type, Trophy, RefreshCcw, Undo2, Book, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import { safeAddScore } from '@/utils/gameUtils';
 import GameStatsBar from '@/components/GameStatsBar';
-import { AuthUser, Member, UserRole, BadgeLevel, UserStats } from '@/types';
+import { AuthUser, Member, UserRole, BadgeLevel, UserStats, Score } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
 
@@ -133,14 +134,14 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
       else if (finalScore >= 20) onAwardBadge('escriba_veloz', BadgeLevel.BRONZE);
     }
 
-    updatedScores.push({
+    const newScore: Score = {
       type: 'game',
       gameId: 'scrambledVerseGame',
-      date: new Date().toLocaleDateString('pt-BR'),
+      date: new Date().toISOString(),
       points: finalScore
-    });
+    };
 
-    onUpdateMember({ ...memberToUpdate, scores: updatedScores });
+    onUpdateMember({ ...memberToUpdate, scores: safeAddScore(memberToUpdate.scores || [], newScore) });
   };
 
   const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
