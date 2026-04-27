@@ -373,40 +373,45 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
           // 2. Prepare data for insert: filter out sensitive/problematic columns
         const dataToInsert = oldData.map(item => {
-          const newItem = { ...item };
-          // Remove created_at to let new DB handle it
+          let newItem = { ...item };
           if ('created_at' in newItem) delete newItem.created_at;
           
           // Field Mapping Compatibility (Specific per context)
           if (table === 'users') {
             if ('password' in newItem) delete newItem.password;
+            if ('Nome' in newItem && !newItem.full_name) newItem.full_name = newItem.Nome;
             if ('full_name' in newItem) newItem.name = newItem.full_name;
             else if ('name' in newItem) newItem.full_name = newItem.name;
-            // Clean up garbage fields from old Supabase exports
-            ['title', ' Nome', 'Imagem', 'Categoria'].forEach(f => { if (f in newItem) delete newItem[f]; });
+
+            // STRICT SANITIZATION for users
+            const allowed = ['id', 'email', 'full_name', 'name', 'avatar_url', 'role', 'password'];
+            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
           }
 
           if (table === 'members') {
             if ('name' in newItem && !('full_name' in newItem)) newItem.full_name = newItem.name;
             if ('full_name' in newItem && !('name' in newItem)) newItem.name = newItem.full_name;
+            const allowed = ['id', 'name', 'full_name', 'unit', 'birth_date', 'phone', 'email', 'role', 'active'];
+            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
           }
 
           if (table === 'specialty_studies') {
-            // Keep pdfurl as is, but ensure title/name consistency if needed
-            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
+            // Mapping logic based on user's screenshot
+            if ('pdf_url' in newItem && !('pdfurl' in newItem)) newItem.pdfurl = newItem.pdf_url;
             if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
+            if ('name' in newItem) newItem.title = newItem.name; // Keep title for fallback if column exists
+            
+            // STRICT SANITIZATION for specialty_studies
+            const allowed = ['id', 'name', 'pdfurl', 'category', 'questions', 'puzzle_image_url', 'specialty_image_url', 'video_url', 'content', 'scheduled_for', 'title'];
+            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
           }
 
           if (table === 'EspecialidadesDBV') {
             if ('Nome' in newItem) { newItem.name = newItem.Nome; newItem.title = newItem.Nome; }
             if ('Imagem' in newItem) newItem.image_url = newItem.Imagem;
             if ('Categoria' in newItem) newItem.category = newItem.Categoria;
-          }
-
-          const contentTables = ['devotionals', 'specialty_studies', 'announcements', 'especialidades', 'puzzle_images'];
-          if (contentTables.includes(table)) {
-            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
-            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
+            const allowed = ['id', 'name', 'title', 'image_url', 'category', 'Nome', 'Imagem', 'Categoria'];
+            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
           }
 
           if (table === 'quizzes') {
@@ -415,20 +420,19 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           }
 
           if (table === 'who_am_i_questions' || table === 'three_clues_questions') {
-             if ('correct_answer' in newItem && !('answer' in newItem)) newItem.answer = newItem.correct_answer;
+             if ('correct_answer' in newItem && !('answer' in newItem) && typeof newItem.correct_answer === 'string') newItem.answer = newItem.correct_answer;
              if ('answer' in newItem && !('correct_answer' in newItem)) newItem.correct_answer = newItem.answer;
           }
 
-          // CLEANUP: Remove any fields that are definitely not in the new schema to avoid "column not found" errors
-          const knownGoshColumns = ['pdfurl', 'Imagem', 'Categoria', 'Nome', 'testament'];
-          knownGoshColumns.forEach(f => {
-            if (f in newItem && f !== 'testament') { // Keep testament for Bible table if needed
-               delete newItem[f];
-            }
-          });
+          // Generic cleanup for common content tables
+          const contentTables = ['devotionals', 'announcements', 'especialidades', 'puzzle_images'];
+          if (contentTables.includes(table)) {
+            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
+            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
+          }
 
           // Handle ID Mismatch
-          const tablesUsingUUID = ['members', 'users', 'specialty_studies'];
+          const tablesUsingUUID = ['members', 'users', 'specialty_studies', 'specialty_study_questions'];
           const isTargetUUID = tablesUsingUUID.includes(table);
           
           if (!isTargetUUID && newItem.id !== undefined) {
@@ -448,14 +452,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           return newItem;
         });
 
-        // 3. Insert into new (current) in VERY small batches with delay
-        // Table-specific batch size to avoid timeouts
-        const getBatchSize = (t: string) => {
-          if (['messages', 'members', 'specialty_studies'].includes(t)) return 1;
-          return 2;
-        };
-
-        const BATCH_SIZE = getBatchSize(table);
+        // 3. Insert into new (current) in SINGLE batches with delay to avoid timeouts
+        const BATCH_SIZE = 1; 
         for (let i = 0; i < dataToInsert.length; i += BATCH_SIZE) {
           const batch = dataToInsert.slice(i, i + BATCH_SIZE);
           
@@ -463,19 +461,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           const { error: upsertError } = await supabase.from(table).upsert(batch, { onConflict: table === 'game_configs' ? 'key' : 'id' });
           
           if (upsertError) {
-             // Fallback: try removing ID entirely if upsert fails (only if not a UUID table)
-             const tablesUsingUUID = ['members', 'users', 'specialty_studies'];
-             if (!tablesUsingUUID.includes(table)) {
-                const fallbackBatch = batch.map(b => { const { id, ...rest } = b; return rest; });
-                const { error: insertError } = await supabase.from(table).insert(fallbackBatch);
-                if (insertError) throw new Error(`Erro fatal em ${table} (lote ${i}): ${insertError.message}`);
-             } else {
-                throw new Error(`Erro fatal em ${table} (lote ${i}): ${upsertError.message}`);
-             }
+             console.error(`Erro no registro ${i} de ${table}:`, upsertError.message);
+             // Special case: if error is column not found, we might need a more aggressive cleanup
+             throw new Error(`Erro fatal em ${table} (registro ${i}): ${upsertError.message}`);
           }
           
           setMigrationStatus(`⏳ Migrando ${table}... (${Math.min(i + BATCH_SIZE, dataToInsert.length)}/${dataToInsert.length})`);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800)); // Larger delay for absolute stability
         }
         
         setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
@@ -899,7 +891,12 @@ BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'specialty_studies') THEN
         ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS name TEXT;
         ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS title TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS pdf_url TEXT;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS pdfurl TEXT;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS category TEXT;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS questions JSONB;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS puzzle_image_url TEXT;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS specialty_image_url TEXT;
+        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS video_url TEXT;
     END IF;
 
     -- EspecialidadesDBV
