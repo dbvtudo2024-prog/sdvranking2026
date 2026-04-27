@@ -377,8 +377,16 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           // Remove created_at to let new DB handle it
           if ('created_at' in newItem) delete newItem.created_at;
           
-          // Remove password from users table if it exists (security and constraint fix)
-          if (table === 'users' && 'password' in newItem) delete newItem.password;
+          // Remove password/unsupported fields from users table
+          if (table === 'users') {
+            if ('password' in newItem) delete newItem.password;
+            if ('title' in newItem) delete newItem.title;
+            // Map name to full_name for users compatibility
+            if ('name' in newItem && !('full_name' in newItem)) {
+              newItem.full_name = newItem.name;
+              delete newItem.name;
+            }
+          }
 
           // Handle ID Mismatch: 
           // If table uses BIGINT in new DB (most tables) but data has UUID string (old DB style)
@@ -393,10 +401,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
              }
           }
           
-          // Field Mapping Compatibility:
-          // Ensure 'name' and 'title' are synced if one is missing (common cause of schema errors)
-          if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
-          if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
+          // Field Mapping Compatibility for Content tables
+          const isContentTable = ['devotionals', 'specialty_studies', 'announcements'].includes(table);
+          if (isContentTable) {
+            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
+            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
+          }
 
           // Safety: Convert any potential numeric strings back to numbers for specific columns
           const numericKeys = ['score', 'points', 'correct_answer', 'study_id', 'chapter', 'verse'];
