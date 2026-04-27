@@ -131,32 +131,38 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       try {
         const { data, error } = await supabase.from(table).select('*').limit(1);
         if (error) {
-          results.push({ table, count: -1, status: `Erro: ${error.message}`, columns: [] });
-        } else {
-          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
-          const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
-          
-          let alertMsg = 'OK';
-          if (table === 'specialty_studies' || table === 'devotionals') {
-            const { error: colError } = await supabase.from(table).select('scheduled_for').limit(0);
-            if (colError) {
-              if (colError.message.includes('scheduled_for') || colError.code === 'PGRST102' || colError.code === 'PGRST100') {
-                alertMsg = 'Faltando coluna scheduled_for';
-              } else {
-                alertMsg = `Erro Coluna: ${colError.message} (${colError.code})`;
-              }
-            }
-          }
-
+          // Se a tabela não existe ou deu erro de permissão
           results.push({ 
             table, 
-            count: count || 0, 
-            status: alertMsg, 
-            columns 
+            count: 0, 
+            status: `ERRO: ${error.message} (Código: ${error.code})`, 
+            columns: [] 
           });
+          continue;
         }
+        
+        const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+        const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
+        
+        let alertMsg = 'OK';
+        // Verificação específica de coluna
+        if (table === 'specialty_studies' || table === 'devotionals') {
+          const { error: colError } = await supabase.from(table).select('scheduled_for').limit(0);
+          if (colError) {
+            if (colError.message.includes('scheduled_for') || colError.code === 'PGRST102' || colError.code === 'PGRST100') {
+              alertMsg = 'Faltando coluna scheduled_for';
+            }
+          }
+        }
+
+        results.push({ 
+          table, 
+          count: count || 0, 
+          status: alertMsg, 
+          columns 
+        });
       } catch (e: any) {
-        results.push({ table, count: -1, status: `Exceção: ${e.message}`, columns: [] });
+        results.push({ table, count: 0, status: `EXCEÇÃO: ${e.message}`, columns: [] });
       }
     }
     setDiagnosticResults(results);
@@ -716,37 +722,79 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </button>
 
           {diagnosticResults.length > 0 && (
-            <div className="space-y-3 mt-4">
-              {diagnosticResults.some(r => r.status.includes('Faltando')) && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4">
-                   <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                     <AlertTriangle size={14} /> Atualização Necessária
-                   </p>
-                   <p className="text-[9px] font-bold text-amber-600/70 mb-3">Execute este comando na aba SQL EDITOR do seu Supabase Dashboard para ativar o agendamento:</p>
-                   <code className="block p-3 bg-black/20 rounded-xl text-[8px] font-mono text-amber-500 break-all select-all">
-                     ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
-                     ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
-                   </code>
+            <div className="space-y-4 mt-6">
+              {/* Painel de Correção SQL */}
+              <div className={`p-6 rounded-[2.5rem] border-2 ${isDarkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-900 border-slate-800'} overflow-hidden shadow-2xl`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Database size={18} className="text-amber-400" />
+                  <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Comandos de Reparo (SQL Editor)</h4>
                 </div>
-              )}
-              {diagnosticResults.map(res => (
-                <div key={res.table} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">{res.table}</span>
-                    <span className={`font-black text-[10px] uppercase ${res.status === 'OK' ? 'text-emerald-500' : 'text-red-500'}`}>{res.status}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Registros: {res.count}</span>
-                  </div>
-                  {res.columns.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {res.columns.map(col => (
-                        <span key={col} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
-                      ))}
+                <p className="text-[9px] text-slate-400 mb-4 leading-relaxed uppercase font-black opacity-70">
+                  Copie o código abaixo e cole no SQL EDITOR do seu Supabase Dashboard para criar as tabelas que estão faltando nas suas imagens:
+                </p>
+                <div className="bg-black/40 p-4 rounded-3xl border border-slate-700/50">
+                  <pre className="text-[8px] font-mono text-green-400 overflow-x-auto custom-scrollbar select-all leading-tight">
+{`-- 1. CORREÇÃO DE COLUNAS
+ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMP WITH TIME ZONE;
+ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMP WITH TIME ZONE;
+
+-- 2. CRIAR TABELA DEVOCIONAIS
+CREATE TABLE IF NOT EXISTS devotionals (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  title TEXT, content TEXT, link TEXT,
+  scheduled_for TIMESTAMP WITH TIME ZONE
+);
+
+-- 3. CRIAR TABELA QUIZZES (RESULTADOS)
+CREATE TABLE IF NOT EXISTS quizzes (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  user_id UUID, score INTEGER, category TEXT
+);
+
+-- 4. CRIAR TABELAS DE APOIO
+CREATE TABLE IF NOT EXISTS who_am_i_questions (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  content TEXT, correct_answer TEXT, clues JSONB
+);
+
+CREATE TABLE IF NOT EXISTS "EspecialidadesDBV" (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  "Nome" TEXT, "Imagem" TEXT, "Categoria" TEXT
+);`}
+                  </pre>
+                </div>
+                <div className="mt-4 p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                  <p className="text-[8px] font-bold text-blue-400 uppercase leading-none text-center">
+                    Dica: Após rodar no SQL Editor, clique em "EXECUTAR DIAGNÓSTICO" novamente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Lista de Resultados */}
+              <div className="grid grid-cols-1 gap-3">
+                {diagnosticResults.map(res => (
+                  <div key={res.table} className={`p-5 rounded-[2rem] border-2 transition-all ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                       <div className="flex flex-col">
+                         <span className="font-black text-[11px] uppercase tracking-tighter text-blue-500">{res.table}</span>
+                         <span className={`text-[7px] font-black uppercase opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Total: {res.count} registros</span>
+                       </div>
+                       <span className={`px-2.5 py-1 rounded-lg font-black text-[9px] uppercase tracking-widest ${
+                         res.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                       }`}>{res.status}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {res.columns.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1">
+                        {res.columns.map(col => (
+                          <span key={col} className={`text-[6px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>{col}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
