@@ -380,9 +380,15 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           return newItem;
         });
 
-        // 3. Insert into new (current)
-        const { error: insertError } = await supabase.from(table).upsert(dataToInsert);
-        if (insertError) throw new Error(`Erro ao inserir em ${table}: ${insertError.message}`);
+        // 3. Insert into new (current) in batches of 50 to avoid timeouts
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < dataToInsert.length; i += BATCH_SIZE) {
+          const batch = dataToInsert.slice(i, i + BATCH_SIZE);
+          const { error: insertError } = await supabase.from(table).upsert(batch);
+          if (insertError) throw new Error(`Erro ao inserir lote em ${table}: ${insertError.message}`);
+          
+          setMigrationStatus(`⏳ Migrando ${table}... (${Math.min(i + BATCH_SIZE, dataToInsert.length)}/${dataToInsert.length})`);
+        }
         
         setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
       }
