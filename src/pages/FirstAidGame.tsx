@@ -15,9 +15,10 @@ interface FirstAidGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   override: boolean;
+  allowedDay?: number | null;
 }
 
-const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMember, onBack, override, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -30,13 +31,13 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { firstAid: override }, 'firstAid', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { firstAid: override, firstAid_allowed_day: allowedDay }, 'firstAid', user);
     
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'firstAidGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user]);
+  }, [override, allowedDay, isAdmin, members, user]);
 
   useEffect(() => {
     if (hasPlayedThisWeek && !isAdmin) return;

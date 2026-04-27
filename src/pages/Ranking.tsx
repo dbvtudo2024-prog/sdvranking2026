@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Member, UnitName } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
-import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, calculateMonthlySpecific, GAME_KEYS, GAMES_METADATA } from '@/helpers/scoreHelpers';
+import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, calculateMonthlySpecific, GAME_KEYS, GAMES_METADATA, EXTRA_GAME_KEYS } from '@/helpers/scoreHelpers';
 import MemberProfileModal from '@/components/MemberProfileModal';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';

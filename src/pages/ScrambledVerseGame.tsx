@@ -23,9 +23,10 @@ interface ScrambledVerseGameProps {
   onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   override: boolean;
+  allowedDay?: number | null;
 }
 
-const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override }) => {
+const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [verses, setVerses] = useState<ScrambledVerse[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -144,13 +145,13 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { scrambledVerse: override }, 'scrambledVerse', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { scrambledVerse: override, scrambledVerse_allowed_day: allowedDay }, 'scrambledVerse', user);
 
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'scrambledVerseGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user]);
+  }, [override, allowedDay, isAdmin, members, user]);
 
   if (!isAvailable && !isAdmin && !override) {
     return (

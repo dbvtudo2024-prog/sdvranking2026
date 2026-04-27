@@ -14,10 +14,11 @@ interface SpecialtyGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   specialtyOverride: boolean;
+  allowedDay?: number | null;
   isDarkMode?: boolean;
 }
 
-const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride, isDarkMode }) => {
+const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMember, onBack, specialtyOverride, allowedDay, isDarkMode }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'result'>('lobby');
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -82,13 +83,13 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialty: specialtyOverride }, 'specialty', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialty: specialtyOverride, specialty_allowed_day: allowedDay }, 'specialty', user);
     
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [specialtyOverride, members, user, isAdmin]);
+  }, [specialtyOverride, allowedDay, members, user, isAdmin]);
 
   const startTimer = (limit?: number) => {
     stopTimer();

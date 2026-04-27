@@ -18,9 +18,10 @@ interface SpecialtyTrailGameProps {
   onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   override: boolean;
+  allowedDay?: number | null;
 }
 
-const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override }) => {
+const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack, override, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [currentPos, setCurrentPos] = useState(0);
@@ -103,13 +104,13 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialtyTrail: override }, 'specialtyTrail', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialtyTrail: override, specialtyTrail_allowed_day: allowedDay }, 'specialtyTrail', user);
 
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyTrailGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user]);
+  }, [override, allowedDay, isAdmin, members, user]);
 
   if (!isAvailable && !isAdmin && !override) {
     return (

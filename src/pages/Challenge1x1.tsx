@@ -8,6 +8,9 @@ import { Score } from '@/types';
 import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
+import { calculateSpecific } from '@/helpers/scoreHelpers';
+import { formatImageUrl } from '@/helpers/imageHelpers';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface Challenge1x1PageProps {
   user: AuthUser;
@@ -24,24 +27,16 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   const [answeredLocal, setAnsweredLocal] = useState(false);
   const [isMachineMode, setIsMachineMode] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [showRanking, setShowRanking] = useState(false);
   
   const machineTimerRef = useRef<number | null>(null);
   const myMember = useMemo(() => members.find(m => m.id === user.id), [members, user.id]);
 
   const duelRanking = useMemo(() => {
     return members
-      .map(m => {
-        const total = (m.scores || []).reduce((acc, s) => {
-          if (s.gameId === 'challenge1x1' || (s as any).challenge1x1 !== undefined) {
-             return acc + (Number(s.points) || Number((s as any).challenge1x1) || 0);
-          }
-          return acc;
-        }, 0);
-        return { ...m, totalPoints: total };
-      })
+      .map(m => ({ ...m, totalPoints: calculateSpecific(m, 'challenge1x1') }))
       .filter(m => m.totalPoints > 0)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
-      .slice(0, 10);
+      .sort((a, b) => b.totalPoints - a.totalPoints);
   }, [members]);
 
   useEffect(() => {
@@ -426,12 +421,20 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
            <div className="relative z-10">
               <h3 className="text-lg font-black uppercase tracking-tight mb-1">Duelo com a IA</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Nenhum amigo online? Desafie o robô!</p>
-              <button 
-                onClick={handleChallengeMachine}
-                className="bg-yellow-400 text-slate-900 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2"
-              >
-                <Zap size={16} fill="currentColor" /> DESAFIAR ROBÔ
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleChallengeMachine}
+                  className="bg-yellow-400 text-slate-900 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <Zap size={14} fill="currentColor" /> DESAFIAR ROBÔ
+                </button>
+                <button 
+                  onClick={() => setShowRanking(true)}
+                  className="bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 border border-white/10"
+                >
+                  <Trophy size={14} /> RANKING
+                </button>
+              </div>
            </div>
         </div>
 
@@ -456,15 +459,15 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         )}
 
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
-            <Users size={14} /> Desafiar Membro
-          </h3>
-          <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
-            {members.filter(m => m.id !== user.id).map(member => (
+           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+             <Users size={14} /> Desafiar Membro
+           </h3>
+           <div className="max-h-[280px] sm:max-h-[500px] overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-8">
+            {members.filter(m => m.id !== user.id).sort((a,b) => a.name.localeCompare(b.name)).map(member => (
               <div key={member.id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 flex items-center justify-between group hover:border-blue-200 transition-all">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700">
-                    {member.photoUrl ? <img src={member.photoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <Users size={20} className="text-slate-300" />}
+                    {member.photoUrl ? <img src={formatImageUrl(member.photoUrl)} className="w-full h-full object-cover" /> : <Users size={20} className="text-slate-300" />}
                   </div>
                   <div>
                     <p className="font-black text-slate-800 dark:text-white text-sm leading-tight">{member.name}</p>
@@ -482,42 +485,68 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-100">
-           <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest ml-2 flex items-center gap-2 mb-4">
-             <Trophy size={14} /> Top Duelistas da Arena
-           </h3>
-           <div className="max-h-[260px] sm:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
-              {duelRanking.length > 0 ? duelRanking.map((ranked, index) => (
-                <div key={ranked.id} className="bg-white dark:bg-slate-800 p-4 rounded-[1.5rem] border border-slate-50 dark:border-slate-700 shadow-sm flex items-center justify-between transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${index === 0 ? 'bg-amber-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-400'}`}>
-                      {index + 1}º
-                    </div>
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 shrink-0 border border-slate-50 dark:border-slate-700">
-                      {ranked.photoUrl ? <img src={ranked.photoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <User size={20} className="text-slate-300 dark:text-slate-600 mx-auto mt-2.5" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-black text-slate-800 dark:text-white text-[10px] sm:text-xs uppercase leading-tight mb-0.5 truncate">{ranked.name}</p>
-                      <div className="flex items-center gap-1">
-                        {UNIT_LOGOS[ranked.unit] && <img src={UNIT_LOGOS[ranked.unit]} className="w-3 h-3 object-contain" referrerPolicy="no-referrer" />}
-                        <p className="text-[8px] font-bold text-slate-400 uppercase truncate">{ranked.unit}</p>
+      <AnimatePresence>
+        {showRanking && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+          >
+            <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
+              <div className="bg-red-600 p-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Swords className="text-white" size={24} />
+                  <h3 className="text-white font-black uppercase tracking-tight">Ranking Da Arena</h3>
+                </div>
+                <button onClick={() => setShowRanking(false)} className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors">
+                  <ArrowLeft size={20} />
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {duelRanking.map((m, idx) => (
+                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                      <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
+                        {idx + 1}º
+                      </div>
+                      <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0">
+                        {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 mt-2.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-xs uppercase text-slate-800 dark:text-white truncate">{m.name}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">{m.unit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-red-600 dark:text-red-400 leading-none">
+                          {m.totalPoints}
+                        </p>
+                        <p className="text-[7px] font-black uppercase text-slate-400">Pontos</p>
                       </div>
                     </div>
+                  ))}
+                
+                {duelRanking.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-slate-400 font-bold uppercase text-xs">A arena está calma... Desafie alguém!</p>
                   </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <p className="text-lg font-black text-blue-600 leading-none">{ranked.totalPoints}</p>
-                    <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest leading-none mt-1">Duelo Pts</p>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-10 opacity-30">
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em]">Nenhum duelo registrado</p>
-                </div>
-              )}
-           </div>
-        </div>
-      </div>
+                )}
+              </div>
+              
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                <button 
+                  onClick={() => setShowRanking(false)}
+                  className="w-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Voltar ao Lobby
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   </div>
   );

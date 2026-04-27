@@ -6,6 +6,9 @@ import { AuthUser, Member, Score, UserRole, BadgeLevel, UserStats } from '@/type
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
 import { safeAddScore } from '@/utils/gameUtils';
+import { calculateSpecific } from '@/helpers/scoreHelpers';
+import { formatImageUrl } from '@/helpers/imageHelpers';
+import { User } from 'lucide-react';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -39,6 +42,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
+  const [showRanking, setShowRanking] = useState(false);
 
   const currentMember = useMemo(() => 
     members.find(m => m.id === user?.id || (m.name.trim().toLowerCase() === user?.name?.trim().toLowerCase())),
@@ -493,10 +497,19 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
               <div className="flex flex-col gap-3 w-full">
                 <button 
                   onClick={startGame}
-                  className="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                  className="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm mb-1"
                 >
                   Começar
                 </button>
+                
+                <button 
+                  onClick={() => setShowRanking(true)}
+                  className="w-full py-4 bg-amber-500 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 text-sm"
+                >
+                  <Trophy size={20} />
+                  Ranking Blocos
+                </button>
+
                 <button 
                   onClick={onBack}
                   className="w-full py-3 bg-slate-800 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
@@ -543,6 +556,70 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {showRanking && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+          >
+            <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
+              <div className="bg-blue-600 p-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Trophy className="text-white" size={24} />
+                  <h3 className="text-white font-black uppercase tracking-tight">Ranking Quebra-Tudo</h3>
+                </div>
+                <button onClick={() => setShowRanking(false)} className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors">
+                  <ArrowLeft size={20} />
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {[...members]
+                  .sort((a, b) => calculateSpecific(b, 'brickBreakerGame') - calculateSpecific(a, 'brickBreakerGame'))
+                  .filter(m => calculateSpecific(m, 'brickBreakerGame') > 0)
+                  .map((m, idx) => (
+                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user?.id ? 'bg-blue-900/40 border-blue-800' : 'bg-slate-800 border-slate-700'}`}>
+                      <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center font-black text-xs text-slate-500">
+                        {idx + 1}º
+                      </div>
+                      <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0">
+                        {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-700 mt-2.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-xs uppercase text-white truncate">{m.name}</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">{m.unit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-blue-400 leading-none">
+                          {calculateSpecific(m, 'brickBreakerGame')}
+                        </p>
+                        <p className="text-[7px] font-black uppercase text-slate-500">Recorde</p>
+                      </div>
+                    </div>
+                  ))}
+                
+                {[...members].filter(m => calculateSpecific(m, 'brickBreakerGame') > 0).length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-slate-500 font-bold uppercase text-xs">Acelere e quebre tudo primeiro!</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 bg-slate-950">
+                <button 
+                  onClick={() => setShowRanking(false)}
+                  className="w-full bg-slate-800 text-slate-400 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="bg-slate-800/50 p-3 rounded-2xl flex items-center gap-3">

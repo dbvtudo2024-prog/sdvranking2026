@@ -13,11 +13,12 @@ interface QuizSelectionProps {
   onAwardBadge?: (badgeId: string) => void;
   onBack: () => void;
   quizOverride: boolean;
+  allowedDay?: number | null;
 }
 
 import { checkPlayedThisWeek, checkIsAdmin, findMemberForUser, isGameTimeAvailable } from '@/utils/gameUtils';
 
-const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, quizOverride }) => {
+const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, quizOverride, allowedDay }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
 
@@ -29,8 +30,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const isAvailable = useMemo(() => {
     const now = new Date();
-    return isGameTimeAvailable(now.getDay(), now.getHours(), { quiz: quizOverride }, 'quiz', user);
-  }, [quizOverride, user]);
+    return isGameTimeAvailable(now.getDay(), now.getHours(), { quiz: quizOverride, quiz_allowed_day: allowedDay }, 'quiz', user);
+  }, [quizOverride, allowedDay, user]);
 
   const hasPlayedThisWeek = (category: 'Desbravadores' | 'Bíblia') => {
     if (isAdmin) return false;

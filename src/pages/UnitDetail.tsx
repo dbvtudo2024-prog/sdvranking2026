@@ -28,6 +28,7 @@ interface UnitDetailProps {
   onDeleteMember: (id: string | number) => void;
   role: UserRole;
   userName?: string;
+  userEmail?: string;
   counselorList?: string[];
   isDarkMode?: boolean;
 }
@@ -39,6 +40,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   onUpdateMember, 
   onDeleteMember,
   role,
+  userName,
+  userEmail,
   counselorList = [],
   isDarkMode
 }) => {
@@ -56,6 +59,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
   const isLiderancaUnit = unitName === UnitName.LIDERANCA;
   const isUserLeadership = role === UserRole.LEADERSHIP;
+  const isProtectedAdmin = userEmail?.toLowerCase() === 'ronaldosonic@gmail.com';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -216,7 +220,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               </div>
               <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}</span>
             </div>
-          {isUserLeadership && (
+          {isProtectedAdmin && (
             <button onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} className="bg-[#0061f2] text-white p-4 rounded-full sm:rounded-2xl font-black shadow-xl active:scale-95 transition-all">
               <Plus size={24} strokeWidth={3} />
             </button>
@@ -320,7 +324,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   >
                     <History size={18} />
                   </button>
-                  {isUserLeadership && (
+                  {isProtectedAdmin && (
                     <>
                       <button 
                         onClick={(e) => { e.stopPropagation(); setEditingMember(member); setIsEditing(true); setShowAddModal(true); }} 
@@ -438,7 +442,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                           <span className="text-[10px] font-black text-[#0061f2] uppercase">{formatDate(s.date)}</span>
                           <span className="text-xl font-black text-slate-800 dark:text-slate-100">{calculateScoreTotal(s)} pts</span>
                         </div>
-                        {isUserLeadership && (
+                        {isProtectedAdmin && (
                           <div className="flex gap-2">
                             <button onClick={() => handleEditScore(historyMember, originalIndex)} className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl active:scale-90 transition-all"><Edit2 size={16} /></button>
                             <button onClick={() => handleDeleteScore(historyMember, originalIndex)} className="p-2.5 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-xl active:scale-90 transition-all"><Trash2 size={16} /></button>

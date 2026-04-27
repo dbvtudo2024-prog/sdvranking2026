@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Member, BadgeLevel, UserBadge, BadgeDefinition } from '@/types';
 import { X, Medal, Brain, History, Star, HelpCircle, Shield, Type, Gamepad2, MessageSquare, Map, Book, Trophy, Check } from 'lucide-react';
-import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
+import { calculateWeeklyTotal, calculateGamesTotal, calculateExtraGamesTotal } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
 import { BADGE_DEFINITIONS } from '@/constants';
 import BadgeInfoModal from './BadgeInfoModal';
@@ -87,12 +87,35 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
               </p>
             </div>
             <div className={`p-5 rounded-[2rem] border-2 shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50/50 border-blue-100'}`}>
-              <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 leading-none ${isDarkMode ? 'text-blue-400/70' : 'text-blue-400'}`}>Pontos Jogos</p>
+              <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 leading-none ${isDarkMode ? 'text-blue-400/70' : 'text-blue-400'}`}>Ranking Jogos</p>
               <p className={`text-2xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                 {calculateGamesTotal(member)}
               </p>
             </div>
           </div>
+
+          {/* Extra Games Score - New Section */}
+          {calculateExtraGamesTotal(member) > 0 && (
+            <div className={`w-full p-5 rounded-[2rem] border-2 shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/50 border-emerald-100'}`}>
+               <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 leading-none ${isDarkMode ? 'text-emerald-400/70' : 'text-emerald-400'}`}>Outros Jogos (Mahjong/Duelo/Blocos)</p>
+               <div className="flex justify-between items-center">
+                 <p className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                   {calculateExtraGamesTotal(member)}
+                 </p>
+                 <div className="flex gap-2">
+                   {['mahjongGame', 'brickBreakerGame', 'challenge1x1'].map(key => {
+                     const actualPts = member.scores.reduce((acc, s:any) => acc + (s.gameId === key ? (Number(s.points) || 0) : 0), 0);
+                     if (actualPts === 0) return null;
+                     return (
+                       <span key={`extra-${key}`} className={`px-2 py-0.5 rounded-lg text-[7px] font-bold uppercase ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                         {key === 'mahjongGame' ? 'MJ' : key === 'brickBreakerGame' ? 'BL' : '1x1'}: {actualPts}
+                       </span>
+                     );
+                   })}
+                 </div>
+               </div>
+            </div>
+          )}
 
           {/* BADGES SECTIONS */}
           <div className="w-full space-y-6 pt-2">

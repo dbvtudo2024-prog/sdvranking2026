@@ -32,7 +32,17 @@ interface GamesProps {
   specialtyTrailOverride: boolean;
   scrambledVerseOverride: boolean;
   natureIdOverride: boolean;
+  natureIdAllowedDay?: number | null;
   firstAidOverride: boolean;
+  firstAidAllowedDay?: number | null;
+  quizAllowedDay?: number | null;
+  memoryAllowedDay?: number | null;
+  specialtyAllowedDay?: number | null;
+  threeCluesAllowedDay?: number | null;
+  puzzleAllowedDay?: number | null;
+  knotsAllowedDay?: number | null;
+  specialtyTrailAllowedDay?: number | null;
+  scrambledVerseAllowedDay?: number | null;
   isDarkMode?: boolean;
   onGameActiveChange?: (active: boolean) => void;
 }
@@ -52,7 +62,17 @@ const Games: React.FC<GamesProps> = ({
   specialtyTrailOverride,
   scrambledVerseOverride,
   natureIdOverride,
+  natureIdAllowedDay,
   firstAidOverride,
+  firstAidAllowedDay,
+  quizAllowedDay,
+  memoryAllowedDay,
+  specialtyAllowedDay,
+  threeCluesAllowedDay,
+  puzzleAllowedDay,
+  knotsAllowedDay,
+  specialtyTrailAllowedDay,
+  scrambledVerseAllowedDay,
   isDarkMode,
   onGameActiveChange
 }) => {
@@ -78,15 +98,25 @@ const Games: React.FC<GamesProps> = ({
 
   const overrides = {
     quiz: quizOverride,
+    quiz_allowed_day: quizAllowedDay,
     memory: memoryOverride,
+    memory_allowed_day: memoryAllowedDay,
     specialty: specialtyOverride,
+    specialty_allowed_day: specialtyAllowedDay,
     threeClues: threeCluesOverride,
+    threeClues_allowed_day: threeCluesAllowedDay,
     puzzle: puzzleOverride,
+    puzzle_allowed_day: puzzleAllowedDay,
     knots: knotsOverride,
+    knots_allowed_day: knotsAllowedDay,
     specialtyTrail: specialtyTrailOverride,
+    specialtyTrail_allowed_day: specialtyTrailAllowedDay,
     scrambledVerse: scrambledVerseOverride,
+    scrambledVerse_allowed_day: scrambledVerseAllowedDay,
     natureId: natureIdOverride,
-    firstAid: firstAidOverride
+    natureId_allowed_day: natureIdAllowedDay,
+    firstAid: firstAidOverride,
+    firstAid_allowed_day: firstAidAllowedDay
   };
 
   const getGameStatus = (gameId: string, overrideKey: string, dbGameId: string) => {
@@ -106,16 +136,16 @@ const Games: React.FC<GamesProps> = ({
     return { unlocked, clubUnlocked, alreadyPlayed };
   };
 
-  const quizStatus = useMemo(() => getGameStatus('quiz', 'quiz', 'quiz'), [currentMember, cycleStart, isGameDay, quizOverride, isAdmin]);
-  const memoryStatus = useMemo(() => getGameStatus('memory', 'memory', 'memoryGame'), [currentMember, cycleStart, isGameDay, memoryOverride, isAdmin]);
-  const specialtyStatus = useMemo(() => getGameStatus('specialty', 'specialty', 'specialtyGame'), [currentMember, cycleStart, isGameDay, specialtyOverride, isAdmin]);
-  const threeCluesStatus = useMemo(() => getGameStatus('threeClues', 'threeClues', 'threeCluesGame'), [currentMember, cycleStart, isGameDay, threeCluesOverride, isAdmin]);
-  const puzzleStatus = useMemo(() => getGameStatus('puzzle', 'puzzle', 'puzzleGame'), [currentMember, cycleStart, isGameDay, puzzleOverride, isAdmin]);
-  const knotsStatus = useMemo(() => getGameStatus('knots', 'knots', 'knotsGame'), [currentMember, cycleStart, isGameDay, knotsOverride, isAdmin]);
-  const specialtyTrailStatus = useMemo(() => getGameStatus('specialtyTrail', 'specialtyTrail', 'specialtyTrailGame'), [currentMember, cycleStart, isGameDay, specialtyTrailOverride, isAdmin]);
-  const scrambledVerseStatus = useMemo(() => getGameStatus('scrambledVerse', 'scrambledVerse', 'scrambledVerseGame'), [currentMember, cycleStart, isGameDay, scrambledVerseOverride, isAdmin]);
-  const natureIdStatus = useMemo(() => getGameStatus('natureId', 'natureId', 'natureIdGame'), [currentMember, cycleStart, isGameDay, natureIdOverride, isAdmin]);
-  const firstAidStatus = useMemo(() => getGameStatus('firstAid', 'firstAid', 'firstAidGame'), [currentMember, cycleStart, isGameDay, firstAidOverride, isAdmin]);
+  const quizStatus = useMemo(() => getGameStatus('quiz', 'quiz', 'quiz'), [currentMember, cycleStart, quizOverride, quizAllowedDay, isAdmin]);
+  const memoryStatus = useMemo(() => getGameStatus('memory', 'memory', 'memoryGame'), [currentMember, cycleStart, memoryOverride, memoryAllowedDay, isAdmin]);
+  const specialtyStatus = useMemo(() => getGameStatus('specialty', 'specialty', 'specialtyGame'), [currentMember, cycleStart, specialtyOverride, specialtyAllowedDay, isAdmin]);
+  const threeCluesStatus = useMemo(() => getGameStatus('threeClues', 'threeClues', 'threeCluesGame'), [currentMember, cycleStart, threeCluesOverride, threeCluesAllowedDay, isAdmin]);
+  const puzzleStatus = useMemo(() => getGameStatus('puzzle', 'puzzle', 'puzzleGame'), [currentMember, cycleStart, puzzleOverride, puzzleAllowedDay, isAdmin]);
+  const knotsStatus = useMemo(() => getGameStatus('knots', 'knots', 'knotsGame'), [currentMember, cycleStart, knotsOverride, knotsAllowedDay, isAdmin]);
+  const specialtyTrailStatus = useMemo(() => getGameStatus('specialtyTrail', 'specialtyTrail', 'specialtyTrailGame'), [currentMember, cycleStart, specialtyTrailOverride, specialtyTrailAllowedDay, isAdmin]);
+  const scrambledVerseStatus = useMemo(() => getGameStatus('scrambledVerse', 'scrambledVerse', 'scrambledVerseGame'), [currentMember, cycleStart, scrambledVerseOverride, scrambledVerseAllowedDay, isAdmin]);
+  const natureIdStatus = useMemo(() => getGameStatus('natureId', 'natureId', 'natureIdGame'), [currentMember, cycleStart, natureIdOverride, natureIdAllowedDay, isAdmin]);
+  const firstAidStatus = useMemo(() => getGameStatus('firstAid', 'firstAid', 'firstAidGame'), [currentMember, cycleStart, firstAidOverride, firstAidAllowedDay, isAdmin]);
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
@@ -133,17 +163,17 @@ const Games: React.FC<GamesProps> = ({
     
     let gameComponent = null;
     switch (activeGame) {
-      case 'quiz': gameComponent = <QuizSelection {...gameProps} quizOverride={quizOverride} />; break;
-      case 'memory': gameComponent = <MemoryGame {...gameProps} memoryOverride={memoryOverride} />; break;
-      case 'specialty': gameComponent = <SpecialtyGame {...gameProps} specialtyOverride={specialtyOverride} isDarkMode={isDarkMode} />; break;
+      case 'quiz': gameComponent = <QuizSelection {...gameProps} quizOverride={quizOverride} allowedDay={quizAllowedDay} />; break;
+      case 'memory': gameComponent = <MemoryGame {...gameProps} memoryOverride={memoryOverride} allowedDay={memoryAllowedDay} />; break;
+      case 'specialty': gameComponent = <SpecialtyGame {...gameProps} specialtyOverride={specialtyOverride} allowedDay={specialtyAllowedDay} isDarkMode={isDarkMode} />; break;
       case '1x1': gameComponent = <Challenge1x1Page {...gameProps} />; break;
-      case 'threeclues': gameComponent = <ThreeCluesGame {...gameProps} override={threeCluesOverride} />; break;
-      case 'puzzle': gameComponent = <PuzzleGame {...gameProps} puzzleOverride={puzzleOverride} />; break;
-      case 'knots': gameComponent = <KnotsGame {...gameProps} override={knotsOverride} />; break;
-      case 'specialtytrail': gameComponent = <SpecialtyTrailGame {...gameProps} override={specialtyTrailOverride} />; break;
-      case 'scrambledverse': gameComponent = <ScrambledVerseGame {...gameProps} override={scrambledVerseOverride} />; break;
-      case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} />; break;
-      case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} />; break;
+      case 'threeclues': gameComponent = <ThreeCluesGame {...gameProps} override={threeCluesOverride} allowedDay={threeCluesAllowedDay} />; break;
+      case 'puzzle': gameComponent = <PuzzleGame {...gameProps} puzzleOverride={puzzleOverride} allowedDay={puzzleAllowedDay} />; break;
+      case 'knots': gameComponent = <KnotsGame {...gameProps} override={knotsOverride} allowedDay={knotsAllowedDay} />; break;
+      case 'specialtytrail': gameComponent = <SpecialtyTrailGame {...gameProps} override={specialtyTrailOverride} allowedDay={specialtyTrailAllowedDay} />; break;
+      case 'scrambledverse': gameComponent = <ScrambledVerseGame {...gameProps} override={scrambledVerseOverride} allowedDay={scrambledVerseAllowedDay} />; break;
+      case 'natureid': gameComponent = <NatureIdGame {...gameProps} override={natureIdOverride} allowedDay={natureIdAllowedDay} />; break;
+      case 'firstaid': gameComponent = <FirstAidGame {...gameProps} override={firstAidOverride} allowedDay={firstAidAllowedDay} />; break;
       case 'mahjong': gameComponent = <MahjongGame {...gameProps} isDarkMode={isDarkMode} />; break;
       case 'brickbreaker': gameComponent = <BrickBreakerGame {...gameProps} isDarkMode={isDarkMode} />; break;
       default: return null;

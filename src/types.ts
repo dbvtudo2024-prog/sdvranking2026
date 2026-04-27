@@ -236,18 +236,31 @@ export interface CounselorDB {
 export interface GameConfig {
   id: number;
   quiz_override: boolean;
+  quiz_allowed_day?: number | null; // 0=Domingo, 1=Segunda, etc. null/-1 = Todos os dias
   memory_override: boolean;
+  memory_allowed_day?: number | null;
   specialty_override: boolean;
+  specialty_allowed_day?: number | null;
   three_clues_override: boolean;
+  three_clues_allowed_day?: number | null;
   puzzle_override: boolean;
+  puzzle_allowed_day?: number | null;
   knots_override: boolean;
+  knots_allowed_day?: number | null;
   specialty_trail_override: boolean;
+  specialty_trail_allowed_day?: number | null;
   specialty_study_override?: boolean;
+  specialty_study_allowed_day?: number | null;
   scrambled_verse_override: boolean;
+  scrambled_verse_allowed_day?: number | null;
   nature_id_override: boolean;
+  nature_id_allowed_day?: number | null;
   first_aid_override: boolean;
+  first_aid_allowed_day?: number | null;
   brick_breaker_override: boolean;
+  brick_breaker_allowed_day?: number | null;
   mahjong_override: boolean;
+  mahjong_allowed_day?: number | null;
   last_monthly_award_month?: string; // "YYYY-MM"
 }
 

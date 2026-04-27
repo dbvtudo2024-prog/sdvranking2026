@@ -101,11 +101,24 @@ export const checkPlayedThisWeek = (member: Member | null | undefined, gameId: s
   });
 };
 
-export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key: string]: boolean }, gameId: string, user: AuthUser | null | undefined): boolean => {
+export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key: string]: boolean | any }, gameId: string, user: AuthUser | null | undefined): boolean => {
   if (checkIsAdmin(user)) return true;
-  if (overrides[gameId]) return true;
+  
+  // Se houver um override booleano simples marcado como true, libera sempre
+  if (overrides[gameId] === true) return true;
 
-  // Janela expandida: Domingo (12h) até Sábado (23:59)
+  // Se houver uma restrição de dia específico na config (através do objeto overrides ou config global)
+  // Nota: gameId pode vir como 'quiz', 'threeClues', etc. 
+  // No GameConfig as chaves são quiz_allowed_day, etc.
+  const allowedDayKey = `${gameId}_allowed_day`;
+  const allowedDay = overrides[allowedDayKey];
+
+  if (allowedDay !== undefined && allowedDay !== null && allowedDay !== -1) {
+    if (day === Number(allowedDay)) return true; // Se o admin escolheu este dia, libera totalmente neste dia
+    return false; // Se o admin escolheu um dia diferente, bloqueia
+  }
+
+  // Janela padrão expandida: Domingo (12h) até Sábado (23:59)
   if (day === 0) return hour >= 12;
   if (day >= 1 && day <= 6) return true;
   

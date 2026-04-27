@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, supabase } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
@@ -52,6 +52,34 @@ interface AdminManagementProps {
   onToggleBrickBreakerOverride: () => void;
   mahjongOverride: boolean;
   onToggleMahjongOverride: () => void;
+  quizAllowedDay?: number | null;
+  onSetQuizAllowedDay: (day: number | null) => void;
+  memoryAllowedDay?: number | null;
+  onSetMemoryAllowedDay: (day: number | null) => void;
+  specialtyAllowedDay?: number | null;
+  onSetSpecialtyAllowedDay: (day: number | null) => void;
+  threeCluesAllowedDay?: number | null;
+  onSetThreeCluesAllowedDay: (day: number | null) => void;
+  puzzleAllowedDay?: number | null;
+  onSetPuzzleAllowedDay: (day: number | null) => void;
+  knotsAllowedDay?: number | null;
+  onSetKnotsAllowedDay: (day: number | null) => void;
+  specialtyTrailAllowedDay?: number | null;
+  onSetSpecialtyTrailAllowedDay: (day: number | null) => void;
+  scrambledVerseAllowedDay?: number | null;
+  onSetScrambledVerseAllowedDay: (day: number | null) => void;
+  natureIdAllowedDay?: number | null;
+  onSetNatureIdAllowedDay: (day: number | null) => void;
+  firstAidAllowedDay?: number | null;
+  onSetFirstAidAllowedDay: (day: number | null) => void;
+  brickBreakerAllowedDay?: number | null;
+  onSetBrickBreakerAllowedDay: (day: number | null) => void;
+  mahjongAllowedDay?: number | null;
+  onSetMahjongAllowedDay: (day: number | null) => void;
+  specialtyStudyOverride: boolean;
+  onToggleSpecialtyStudyOverride: () => void;
+  specialtyStudyAllowedDay?: number | null;
+  onSetSpecialtyStudyAllowedDay: (day: number | null) => void;
   onProcessMonthlyAwards?: () => Promise<void>;
   isDarkMode?: boolean;
 }
@@ -99,6 +127,34 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   onToggleBrickBreakerOverride,
   mahjongOverride,
   onToggleMahjongOverride,
+  quizAllowedDay,
+  onSetQuizAllowedDay,
+  memoryAllowedDay,
+  onSetMemoryAllowedDay,
+  specialtyAllowedDay,
+  onSetSpecialtyAllowedDay,
+  threeCluesAllowedDay,
+  onSetThreeCluesAllowedDay,
+  puzzleAllowedDay,
+  onSetPuzzleAllowedDay,
+  knotsAllowedDay,
+  onSetKnotsAllowedDay,
+  specialtyTrailAllowedDay,
+  onSetSpecialtyTrailAllowedDay,
+  scrambledVerseAllowedDay,
+  onSetScrambledVerseAllowedDay,
+  natureIdAllowedDay,
+  onSetNatureIdAllowedDay,
+  firstAidAllowedDay,
+  onSetFirstAidAllowedDay,
+  brickBreakerAllowedDay,
+  onSetBrickBreakerAllowedDay,
+  mahjongAllowedDay,
+  onSetMahjongAllowedDay,
+  specialtyStudyOverride,
+  onToggleSpecialtyStudyOverride,
+  specialtyStudyAllowedDay,
+  onSetSpecialtyStudyAllowedDay,
   onProcessMonthlyAwards,
   isDarkMode
 }) => {
@@ -387,19 +443,51 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
-  const GameLockButton = ({ label, active, onToggle, icon: Icon }: any) => (
-    <button 
-      onClick={onToggle}
-      className={`w-full ${active 
-        ? (isDarkMode ? 'bg-blue-600 text-white border-blue-500' : 'bg-blue-600 text-white border-blue-500') 
-        : (isDarkMode ? 'bg-slate-900/50 text-slate-500 border-slate-800' : 'bg-white text-slate-400 border-slate-100')} 
-        aspect-square rounded-[2rem] flex flex-col items-center justify-center gap-2 shadow-sm border uppercase text-[9px] font-black tracking-widest active:scale-95 transition-all`}
-    >
-      <Icon size={22} />
-      {label}
-      <span className="text-[7px] opacity-70">{active ? 'LIBERADO' : 'BLOQUEADO'}</span>
-    </button>
-  );
+  const GameLockButton = ({ label, active, onToggle, allowedDay, onSetAllowedDay, icon: Icon }: any) => {
+    const days = [
+      { v: -1, l: 'Todos os Dias' },
+      { v: 0, l: 'Domingo' },
+      { v: 1, l: 'Segunda' },
+      { v: 2, l: 'Terça' },
+      { v: 3, l: 'Quarta' },
+      { v: 4, l: 'Quinta' },
+      { v: 5, l: 'Sexta' },
+      { v: 6, l: 'Sábado' },
+    ];
+
+    return (
+      <div className="flex flex-col gap-2">
+        <button 
+          onClick={onToggle}
+          className={`w-full ${active 
+            ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20' 
+            : (isDarkMode ? 'bg-slate-900/50 text-slate-500 border-slate-800' : 'bg-white text-slate-300 border-slate-100')} 
+            aspect-square rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-sm border uppercase text-[8px] font-black tracking-widest active:scale-95 transition-all overflow-hidden relative group`}
+        >
+          <div className={`absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity`} />
+          <Icon size={20} strokeWidth={active ? 3 : 2} className={active ? 'animate-pulse' : ''} />
+          <span className="leading-tight text-center px-1">{label}</span>
+          <span className={`text-[6px] font-bold ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+            {active ? 'LIBERADO (OVERRIDE)' : (allowedDay === null || allowedDay === -1 ? 'HORÁRIO PADRÃO' : 'DIA RESTRITO')}
+          </span>
+        </button>
+        
+        <select
+          value={allowedDay ?? -1}
+          onChange={(e) => onSetAllowedDay(Number(e.target.value))}
+          className={`w-full text-[8px] font-black uppercase tracking-tight py-2 px-1 rounded-xl border ${
+            isDarkMode 
+              ? 'bg-slate-900/40 border-slate-700 text-slate-400' 
+              : 'bg-white border-slate-100 text-slate-500'
+          } outline-none focus:border-blue-500 transition-all appearance-none text-center cursor-pointer`}
+        >
+          {days.map(d => (
+            <option key={d.v} value={d.v}>{d.l}</option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   return (
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'} overflow-y-auto`}>
@@ -412,17 +500,21 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             <p className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-600' : 'text-slate-300'}`}>Liberação Manual de Jogos</p>
           </div>
           
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} icon={Zap} />
-            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} icon={Gamepad2} />
-            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} icon={Medal} />
-            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} icon={HelpCircle} />
-            <GameLockButton label="Quebra-C" active={puzzleOverride} onToggle={onTogglePuzzleOverride} icon={Shuffle} />
-            <GameLockButton label="Nós" active={knotsOverride} onToggle={onToggleKnotsOverride} icon={Anchor} />
-            <GameLockButton label="Trilha" active={specialtyTrailOverride} onToggle={onToggleSpecialtyTrailOverride} icon={Map} />
-            <GameLockButton label="Versículo" active={scrambledVerseOverride} onToggle={onToggleScrambledVerseOverride} icon={Type} />
-            <GameLockButton label="Natureza" active={natureIdOverride} onToggle={onToggleNatureIdOverride} icon={Leaf} />
-            <GameLockButton label="Socorro" active={firstAidOverride} onToggle={onToggleFirstAidOverride} icon={HeartPulse} />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} allowedDay={quizAllowedDay} onSetAllowedDay={onSetQuizAllowedDay} icon={Zap} />
+            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} allowedDay={memoryAllowedDay} onSetAllowedDay={onSetMemoryAllowedDay} icon={Gamepad2} />
+            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} allowedDay={specialtyAllowedDay} onSetAllowedDay={onSetSpecialtyAllowedDay} icon={Medal} />
+            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} allowedDay={threeCluesAllowedDay} onSetAllowedDay={onSetThreeCluesAllowedDay} icon={HelpCircle} />
+            <GameLockButton label="Quebra-C" active={puzzleOverride} onToggle={onTogglePuzzleOverride} allowedDay={puzzleAllowedDay} onSetAllowedDay={onSetPuzzleAllowedDay} icon={Shuffle} />
+            <GameLockButton label="Nós" active={knotsOverride} onToggle={onToggleKnotsOverride} allowedDay={knotsAllowedDay} onSetAllowedDay={onSetKnotsAllowedDay} icon={Anchor} />
+            <GameLockButton label="Trilha" active={specialtyTrailOverride} onToggle={onToggleSpecialtyTrailOverride} allowedDay={specialtyTrailAllowedDay} onSetAllowedDay={onSetSpecialtyTrailAllowedDay} icon={Map} />
+            <GameLockButton label="Versículo" active={scrambledVerseOverride} onToggle={onToggleScrambledVerseOverride} allowedDay={scrambledVerseAllowedDay} onSetAllowedDay={onSetScrambledVerseAllowedDay} icon={Type} />
+            <GameLockButton label="Natureza" active={natureIdOverride} onToggle={onToggleNatureIdOverride} allowedDay={natureIdAllowedDay} onSetAllowedDay={onSetNatureIdAllowedDay} icon={Leaf} />
+            <GameLockButton label="Socorro" active={firstAidOverride} onToggle={onToggleFirstAidOverride} allowedDay={firstAidAllowedDay} onSetAllowedDay={onSetFirstAidAllowedDay} icon={HeartPulse} />
+            <GameLockButton label="Duelo 1x1" active={false} onToggle={() => {}} allowedDay={null} onSetAllowedDay={() => {}} icon={Sword} />
+            <GameLockButton label="Mahjong" active={mahjongOverride} onToggle={onToggleMahjongOverride} allowedDay={mahjongAllowedDay} onSetAllowedDay={onSetMahjongAllowedDay} icon={Grid3X3} />
+            <GameLockButton label="Blocos" active={brickBreakerOverride} onToggle={onToggleBrickBreakerOverride} allowedDay={brickBreakerAllowedDay} onSetAllowedDay={onSetBrickBreakerAllowedDay} icon={Square} />
+            <GameLockButton label="Estudos" active={specialtyStudyOverride} onToggle={onToggleSpecialtyStudyOverride} allowedDay={specialtyStudyAllowedDay} onSetAllowedDay={onSetSpecialtyStudyAllowedDay} icon={BookOpen} />
           </div>
         </div>
 

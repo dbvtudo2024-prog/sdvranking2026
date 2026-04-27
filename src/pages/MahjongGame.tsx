@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tent, Compass, Flame, Map, Anchor, HeartPulse, Shield, Sword, 
   Music, Medal, Users, TreePine, Mountain, Sun, Moon, CloudRain,
-  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock, Star, CheckCircle2, Home
+  Wind, Zap, Thermometer, Stethoscope, ArrowLeft, RefreshCw, Trophy, Clock, Star, CheckCircle2, Home, User
 } from 'lucide-react';
 import { AuthUser, Member, Score } from '@/types';
 import GameHeader from '@/components/GameHeader';
+import { calculateSpecific } from '@/helpers/scoreHelpers';
+import { formatImageUrl } from '@/helpers/imageHelpers';
 
 interface MahjongGameProps {
   user: AuthUser;
@@ -68,6 +70,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   const [hintedPair, setHintedPair] = useState<number[]>([]);
   const [showMilestone, setShowMilestone] = useState<{title: string, msg: string, reward: string} | null>(null);
   const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
+  const [showRanking, setShowRanking] = useState(false);
 
   const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
 
@@ -629,6 +632,15 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
               >
                 {level > 1 ? `Continuar Nível ${level}` : 'Começar Nível 1'}
               </button>
+              
+              <button 
+                onClick={() => setShowRanking(true)}
+                className="w-full bg-amber-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Trophy size={20} />
+                Ranking Mahjong
+              </button>
+
               <button 
                 onClick={onBack}
                 className="w-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
@@ -761,6 +773,70 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
           </div>
         </footer>
       )}
+
+      <AnimatePresence>
+        {showRanking && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto"
+          >
+            <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
+              <div className="bg-blue-600 p-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Trophy className="text-white" size={24} />
+                  <h3 className="text-white font-black uppercase tracking-tight">Ranking Mahjong</h3>
+                </div>
+                <button onClick={() => setShowRanking(false)} className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors">
+                  <ArrowLeft size={20} />
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {[...members]
+                  .sort((a, b) => calculateSpecific(b, 'mahjongGame') - calculateSpecific(a, 'mahjongGame'))
+                  .filter(m => calculateSpecific(m, 'mahjongGame') > 0)
+                  .map((m, idx) => (
+                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                      <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
+                        {idx + 1}º
+                      </div>
+                      <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0">
+                        {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 mt-2.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-xs uppercase text-slate-800 dark:text-white truncate">{m.name}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">{m.unit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-blue-600 dark:text-blue-400 leading-none">
+                          {calculateSpecific(m, 'mahjongGame')}
+                        </p>
+                        <p className="text-[7px] font-black uppercase text-slate-400">Pontos</p>
+                      </div>
+                    </div>
+                  ))}
+                
+                {[...members].filter(m => calculateSpecific(m, 'mahjongGame') > 0).length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-slate-400 font-bold uppercase text-xs">Ninguém jogou ainda!</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                <button 
+                  onClick={() => setShowRanking(false)}
+                  className="w-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

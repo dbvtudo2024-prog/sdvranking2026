@@ -15,6 +15,7 @@ interface KnotsGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   override: boolean;
+  allowedDay?: number | null;
 }
 
 const KNOTS_DATA = [
@@ -26,7 +27,7 @@ const KNOTS_DATA = [
   { name: 'Oito', image: 'https://www.animatedknots.com/assets/images/figure-8-knot.jpg', description: 'Um nó de retenção simples para evitar que a corda deslize.' },
 ];
 
-const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, onBack, override, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [knots, setKnots] = useState(KNOTS_DATA);
   const [currentStep, setCurrentStep] = useState(0);
@@ -62,13 +63,13 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { knots: override }, 'knots', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { knots: override, knots_allowed_day: allowedDay }, 'knots', user);
     
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'knotsGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user]);
+  }, [override, allowedDay, isAdmin, members, user]);
 
   const currentKnot = questions[currentStep];
 

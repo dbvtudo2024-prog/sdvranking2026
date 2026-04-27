@@ -15,9 +15,10 @@ interface ThreeCluesGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   override: boolean;
+  allowedDay?: number | null;
 }
 
-const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdateMember, onBack, override }) => {
+const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdateMember, onBack, override, allowedDay }) => {
   const [questions, setQuestions] = useState<ThreeCluesQuestion[]>([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2 (as 3 dicas)
@@ -57,14 +58,14 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { threeClues: override }, 'threeClues', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { threeClues: override, threeClues_allowed_day: allowedDay }, 'threeClues', user);
     
     // Identificação usando normalização robusta
     const currentM = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentM, 'threeCluesGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user]);
+  }, [override, allowedDay, isAdmin, members, user]);
 
   if (!isAvailable && !isAdmin && !override) {
     return (

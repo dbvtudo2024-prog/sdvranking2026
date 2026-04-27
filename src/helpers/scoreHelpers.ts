@@ -4,7 +4,10 @@ import { Member, Score } from '@/types';
 export const GAME_KEYS = [
   'quiz', 'memoryGame', 'specialtyGame', 'threeCluesGame', 
   'puzzleGame', 'knotsGame', 'specialtyTrailGame', 
-  'scrambledVerseGame', 'natureIdGame', 'firstAidGame',
+  'scrambledVerseGame', 'natureIdGame', 'firstAidGame'
+];
+
+export const EXTRA_GAME_KEYS = [
   'brickBreakerGame', 'mahjongGame', 'challenge1x1'
 ];
 
@@ -19,7 +22,7 @@ export const GAMES_METADATA: { [key: string]: { label: string, shortLabel: strin
   scrambledVerseGame: { label: 'Versículo', shortLabel: 'V' },
   natureIdGame: { label: 'Natureza', shortLabel: 'Nat' },
   firstAidGame: { label: 'Socorros', shortLabel: 'Soc' },
-  brickBreakerGame: { label: 'Brick Breaker', shortLabel: 'BB' },
+  brickBreakerGame: { label: 'Blocos', shortLabel: 'BL' },
   mahjongGame: { label: 'Mahjong', shortLabel: 'MJ' },
   challenge1x1: { label: 'Duelo 1x1', shortLabel: '1x1' }
 };
@@ -75,6 +78,11 @@ export const calculateGamesTotal = (member: Member) => {
   
   // O total de jogos deve ser exatamente a soma dos jogos listados na imagem (GAME_KEYS)
   return GAME_KEYS.reduce((acc, key) => acc + calculateSpecific(member, key), 0);
+};
+
+export const calculateExtraGamesTotal = (member: Member) => {
+  if (!member || !member.scores || !Array.isArray(member.scores)) return 0;
+  return EXTRA_GAME_KEYS.reduce((acc, key) => acc + calculateSpecific(member, key), 0);
 };
 
 export const calculateMonthlySpecific = (member: Member, key: string, monthYear: string) => {

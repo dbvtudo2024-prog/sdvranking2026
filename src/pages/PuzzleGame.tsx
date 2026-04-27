@@ -15,6 +15,7 @@ interface PuzzleGameProps {
   onUpdateMember: (member: Member) => void;
   onBack: () => void;
   puzzleOverride: boolean;
+  allowedDay?: number | null;
 }
 
 interface Tile {
@@ -26,7 +27,7 @@ interface Tile {
 const GRID_SIZE = 4; // 4x4 grid
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
-const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, onBack, puzzleOverride }) => {
+const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, onBack, puzzleOverride, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [images, setImages] = useState<PuzzleImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<PuzzleImage | null>(null);
@@ -41,13 +42,13 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { puzzle: puzzleOverride }, 'puzzle', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { puzzle: puzzleOverride, puzzle_allowed_day: allowedDay }, 'puzzle', user);
 
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'puzzleGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [puzzleOverride, members, user, isAdmin]);
+  }, [puzzleOverride, allowedDay, members, user, isAdmin]);
 
   if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
     return (

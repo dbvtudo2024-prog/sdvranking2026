@@ -64,15 +64,31 @@ const App: React.FC = () => {
   const BRASAO_3D = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
 
   const [quizOverride, setQuizOverride] = useState(false);
+  const [quizAllowedDay, setQuizAllowedDay] = useState<number | null>(null);
   const [memoryOverride, setMemoryOverride] = useState(false);
+  const [memoryAllowedDay, setMemoryAllowedDay] = useState<number | null>(null);
   const [specialtyOverride, setSpecialtyOverride] = useState(false);
+  const [specialtyAllowedDay, setSpecialtyAllowedDay] = useState<number | null>(null);
   const [threeCluesOverride, setThreeCluesOverride] = useState(false);
+  const [threeCluesAllowedDay, setThreeCluesAllowedDay] = useState<number | null>(null);
   const [puzzleOverride, setPuzzleOverride] = useState(false);
+  const [puzzleAllowedDay, setPuzzleAllowedDay] = useState<number | null>(null);
   const [knotsOverride, setKnotsOverride] = useState(false);
+  const [knotsAllowedDay, setKnotsAllowedDay] = useState<number | null>(null);
   const [specialtyTrailOverride, setSpecialtyTrailOverride] = useState(false);
+  const [specialtyTrailAllowedDay, setSpecialtyTrailAllowedDay] = useState<number | null>(null);
   const [scrambledVerseOverride, setScrambledVerseOverride] = useState(false);
+  const [scrambledVerseAllowedDay, setScrambledVerseAllowedDay] = useState<number | null>(null);
   const [natureIdOverride, setNatureIdOverride] = useState(false);
+  const [natureIdAllowedDay, setNatureIdAllowedDay] = useState<number | null>(null);
   const [firstAidOverride, setFirstAidOverride] = useState(false);
+  const [firstAidAllowedDay, setFirstAidAllowedDay] = useState<number | null>(null);
+  const [brickBreakerOverride, setBrickBreakerOverride] = useState(false);
+  const [brickBreakerAllowedDay, setBrickBreakerAllowedDay] = useState<number | null>(null);
+  const [mahjongOverride, setMahjongOverride] = useState(false);
+  const [mahjongAllowedDay, setMahjongAllowedDay] = useState<number | null>(null);
+  const [specialtyStudyOverride, setSpecialtyStudyOverride] = useState(false);
+  const [specialtyStudyAllowedDay, setSpecialtyStudyAllowedDay] = useState<number | null>(null);
 
   useEffect(() => {
     setIsGameActive(false);
@@ -149,15 +165,31 @@ const App: React.FC = () => {
       onGameConfigs: (config: GameConfig) => {
         console.log("[App] Configs de jogo recebidas");
         setQuizOverride(config.quiz_override);
+        setQuizAllowedDay(config.quiz_allowed_day ?? null);
         setMemoryOverride(config.memory_override);
+        setMemoryAllowedDay(config.memory_allowed_day ?? null);
         setSpecialtyOverride(config.specialty_override);
+        setSpecialtyAllowedDay(config.specialty_allowed_day ?? null);
         setThreeCluesOverride(config.three_clues_override);
+        setThreeCluesAllowedDay(config.three_clues_allowed_day ?? null);
         setPuzzleOverride(config.puzzle_override);
+        setPuzzleAllowedDay(config.puzzle_allowed_day ?? null);
         setKnotsOverride(config.knots_override);
+        setKnotsAllowedDay(config.knots_allowed_day ?? null);
         setSpecialtyTrailOverride(config.specialty_trail_override);
+        setSpecialtyTrailAllowedDay(config.specialty_trail_allowed_day ?? null);
         setScrambledVerseOverride(config.scrambled_verse_override);
+        setScrambledVerseAllowedDay(config.scrambled_verse_allowed_day ?? null);
         setNatureIdOverride(config.nature_id_override);
+        setNatureIdAllowedDay(config.nature_id_allowed_day ?? null);
         setFirstAidOverride(config.first_aid_override);
+        setFirstAidAllowedDay(config.first_aid_allowed_day ?? null);
+        setBrickBreakerOverride(config.brick_breaker_override ?? false);
+        setBrickBreakerAllowedDay(config.brick_breaker_allowed_day ?? null);
+        setMahjongOverride(config.mahjong_override ?? false);
+        setMahjongAllowedDay(config.mahjong_allowed_day ?? null);
+        setSpecialtyStudyOverride(config.specialty_study_override ?? false);
+        setSpecialtyStudyAllowedDay(config.specialty_study_allowed_day ?? null);
       },
       onMembers: (data) => {
         console.log("[App] Membros recebidos:", data.length);
@@ -906,10 +938,21 @@ const App: React.FC = () => {
       case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} />;
-      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} quizOverride={quizOverride} memoryOverride={memoryOverride} specialtyOverride={specialtyOverride} threeCluesOverride={threeCluesOverride} puzzleOverride={puzzleOverride} knotsOverride={knotsOverride} specialtyTrailOverride={specialtyTrailOverride} scrambledVerseOverride={scrambledVerseOverride} natureIdOverride={natureIdOverride} firstAidOverride={firstAidOverride} isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
+      case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} 
+        quizOverride={quizOverride} quizAllowedDay={quizAllowedDay}
+        memoryOverride={memoryOverride} memoryAllowedDay={memoryAllowedDay}
+        specialtyOverride={specialtyOverride} specialtyAllowedDay={specialtyAllowedDay}
+        threeCluesOverride={threeCluesOverride} threeCluesAllowedDay={threeCluesAllowedDay}
+        puzzleOverride={puzzleOverride} puzzleAllowedDay={puzzleAllowedDay}
+        knotsOverride={knotsOverride} knotsAllowedDay={knotsAllowedDay}
+        specialtyTrailOverride={specialtyTrailOverride} specialtyTrailAllowedDay={specialtyTrailAllowedDay}
+        scrambledVerseOverride={scrambledVerseOverride} scrambledVerseAllowedDay={scrambledVerseAllowedDay}
+        natureIdOverride={natureIdOverride} natureIdAllowedDay={natureIdAllowedDay}
+        firstAidOverride={firstAidOverride} firstAidAllowedDay={firstAidAllowedDay}
+        isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'badges': return <Badges user={user!} members={members} isDarkMode={isDarkMode} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
-      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
+      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} userEmail={user!.email} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
@@ -931,16 +974,19 @@ const App: React.FC = () => {
       onGoToAdminFirstAid={() => { setAdminQuizCategory('Primeiros Socorros'); setCurrentPage('admin_quiz'); }}
       onGoToAdminSpecialtyTrail={() => { setAdminQuizCategory('Especialidades'); setCurrentPage('admin_quiz'); }}
       counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} 
-      quizOverride={quizOverride} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} 
-      memoryOverride={memoryOverride} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} 
-      specialtyOverride={specialtyOverride} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} 
-      threeCluesOverride={threeCluesOverride} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} 
-      puzzleOverride={puzzleOverride} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} 
-      knotsOverride={knotsOverride} onToggleKnotsOverride={async () => { const nv = !knotsOverride; setKnotsOverride(nv); await DatabaseService.updateGameConfig({ knots_override: nv }); }}
-      specialtyTrailOverride={specialtyTrailOverride} onToggleSpecialtyTrailOverride={async () => { const nv = !specialtyTrailOverride; setSpecialtyTrailOverride(nv); await DatabaseService.updateGameConfig({ specialty_trail_override: nv }); }}
-      scrambledVerseOverride={scrambledVerseOverride} onToggleScrambledVerseOverride={async () => { const nv = !scrambledVerseOverride; setScrambledVerseOverride(nv); await DatabaseService.updateGameConfig({ scrambled_verse_override: nv }); }}
-      natureIdOverride={natureIdOverride} onToggleNatureIdOverride={async () => { const nv = !natureIdOverride; setNatureIdOverride(nv); await DatabaseService.updateGameConfig({ nature_id_override: nv }); }}
-      firstAidOverride={firstAidOverride} onToggleFirstAidOverride={async () => { const nv = !firstAidOverride; setFirstAidOverride(nv); await DatabaseService.updateGameConfig({ first_aid_override: nv }); }}
+      quizOverride={quizOverride} quizAllowedDay={quizAllowedDay} onSetQuizAllowedDay={async (d) => { setQuizAllowedDay(d); await DatabaseService.updateGameConfig({ quiz_allowed_day: d }); }} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} 
+      memoryOverride={memoryOverride} memoryAllowedDay={memoryAllowedDay} onSetMemoryAllowedDay={async (d) => { setMemoryAllowedDay(d); await DatabaseService.updateGameConfig({ memory_allowed_day: d }); }} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} 
+      specialtyOverride={specialtyOverride} specialtyAllowedDay={specialtyAllowedDay} onSetSpecialtyAllowedDay={async (d) => { setSpecialtyAllowedDay(d); await DatabaseService.updateGameConfig({ specialty_allowed_day: d }); }} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} 
+      threeCluesOverride={threeCluesOverride} threeCluesAllowedDay={threeCluesAllowedDay} onSetThreeCluesAllowedDay={async (d) => { setThreeCluesAllowedDay(d); await DatabaseService.updateGameConfig({ three_clues_allowed_day: d }); }} onToggleThreeCluesOverride={async () => { const nv = !threeCluesOverride; setThreeCluesOverride(nv); await DatabaseService.updateGameConfig({ three_clues_override: nv }); }} 
+      puzzleOverride={puzzleOverride} puzzleAllowedDay={puzzleAllowedDay} onSetPuzzleAllowedDay={async (d) => { setPuzzleAllowedDay(d); await DatabaseService.updateGameConfig({ puzzle_allowed_day: d }); }} onTogglePuzzleOverride={async () => { const nv = !puzzleOverride; setPuzzleOverride(nv); await DatabaseService.updateGameConfig({ puzzle_override: nv }); }} 
+      knotsOverride={knotsOverride} knotsAllowedDay={knotsAllowedDay} onSetKnotsAllowedDay={async (d) => { setKnotsAllowedDay(d); await DatabaseService.updateGameConfig({ knots_allowed_day: d }); }} onToggleKnotsOverride={async () => { const nv = !knotsOverride; setKnotsOverride(nv); await DatabaseService.updateGameConfig({ knots_override: nv }); }}
+      specialtyTrailOverride={specialtyTrailOverride} specialtyTrailAllowedDay={specialtyTrailAllowedDay} onSetSpecialtyTrailAllowedDay={async (d) => { setSpecialtyTrailAllowedDay(d); await DatabaseService.updateGameConfig({ specialty_trail_allowed_day: d }); }} onToggleSpecialtyTrailOverride={async () => { const nv = !specialtyTrailOverride; setSpecialtyTrailOverride(nv); await DatabaseService.updateGameConfig({ specialty_trail_override: nv }); }}
+      scrambledVerseOverride={scrambledVerseOverride} scrambledVerseAllowedDay={scrambledVerseAllowedDay} onSetScrambledVerseAllowedDay={async (d) => { setScrambledVerseAllowedDay(d); await DatabaseService.updateGameConfig({ scrambled_verse_allowed_day: d }); }} onToggleScrambledVerseOverride={async () => { const nv = !scrambledVerseOverride; setScrambledVerseOverride(nv); await DatabaseService.updateGameConfig({ scrambled_verse_override: nv }); }}
+      natureIdOverride={natureIdOverride} natureIdAllowedDay={natureIdAllowedDay} onSetNatureIdAllowedDay={async (d) => { setNatureIdAllowedDay(d); await DatabaseService.updateGameConfig({ nature_id_allowed_day: d }); }} onToggleNatureIdOverride={async () => { const nv = !natureIdOverride; setNatureIdOverride(nv); await DatabaseService.updateGameConfig({ nature_id_override: nv }); }}
+      firstAidOverride={firstAidOverride} firstAidAllowedDay={firstAidAllowedDay} onSetFirstAidAllowedDay={async (d) => { setFirstAidAllowedDay(d); await DatabaseService.updateGameConfig({ first_aid_allowed_day: d }); }} onToggleFirstAidOverride={async () => { const nv = !firstAidOverride; setFirstAidOverride(nv); await DatabaseService.updateGameConfig({ first_aid_override: nv }); }}
+      brickBreakerOverride={brickBreakerOverride} brickBreakerAllowedDay={brickBreakerAllowedDay} onSetBrickBreakerAllowedDay={async (d) => { setBrickBreakerAllowedDay(d); await DatabaseService.updateGameConfig({ brick_breaker_allowed_day: d }); }} onToggleBrickBreakerOverride={async () => { const nv = !brickBreakerOverride; setBrickBreakerOverride(nv); await DatabaseService.updateGameConfig({ brick_breaker_override: nv }); }}
+      mahjongOverride={mahjongOverride} mahjongAllowedDay={mahjongAllowedDay} onSetMahjongAllowedDay={async (d) => { setMahjongAllowedDay(d); await DatabaseService.updateGameConfig({ mahjong_allowed_day: d }); }} onToggleMahjongOverride={async () => { const nv = !mahjongOverride; setMahjongOverride(nv); await DatabaseService.updateGameConfig({ mahjong_override: nv }); }}
+      specialtyStudyOverride={specialtyStudyOverride} specialtyStudyAllowedDay={specialtyStudyAllowedDay} onSetSpecialtyStudyAllowedDay={async (d) => { setSpecialtyStudyAllowedDay(d); await DatabaseService.updateGameConfig({ specialty_study_allowed_day: d }); }} onToggleSpecialtyStudyOverride={async () => { const nv = !specialtyStudyOverride; setSpecialtyStudyOverride(nv); await DatabaseService.updateGameConfig({ specialty_study_override: nv }); }}
       isDarkMode={isDarkMode} />;
       default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
     }

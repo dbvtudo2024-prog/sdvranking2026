@@ -14,6 +14,7 @@ interface MemoryGameProps {
   onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
   memoryOverride: boolean;
+  allowedDay?: number | null;
 }
 
 interface Card {
@@ -45,7 +46,7 @@ const CARD_IMAGES = [
 
 import { isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser, safeAddScore } from '@/utils/gameUtils';
 
-const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onUpdateStats, onBack, memoryOverride }) => {
+const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onUpdateStats, onBack, memoryOverride, allowedDay }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard' | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -60,12 +61,12 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { memory: memoryOverride }, 'memory', user);
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { memory: memoryOverride, memory_allowed_day: allowedDay }, 'memory', user);
     const currentMember = findMemberForUser(members, user);
     const played = !isAdmin && checkPlayedThisWeek(currentMember, 'memoryGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [memoryOverride, members, user, isAdmin]);
+  }, [memoryOverride, allowedDay, members, user, isAdmin]);
 
   if (hasPlayedThisWeek && !isAdmin && !memoryOverride) {
     return (
