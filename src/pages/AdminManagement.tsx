@@ -112,7 +112,20 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
     const results = [];
-    const tables = ['members', 'announcements', 'conselheiros', 'specialty_studies', 'game_configs', 'three_clues_questions', 'scrambled_verse_questions'];
+    const tables = [
+      'members', 
+      'announcements', 
+      'conselheiros', 
+      'specialty_studies', 
+      'devotionals', 
+      'game_configs', 
+      'three_clues_questions', 
+      'quiz_questions',
+      'puzzle_images',
+      'game_assets',
+      'scrambled_verses',
+      'EspecialidadesDBV'
+    ];
     
     for (const table of tables) {
       try {
@@ -124,8 +137,15 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
           
           let alertMsg = 'OK';
-          if (table === 'specialty_studies' && !columns.includes('scheduled_for')) {
-            alertMsg = 'Faltando coluna scheduled_for';
+          if (table === 'specialty_studies' || table === 'devotionals') {
+            const { error: colError } = await supabase.from(table).select('scheduled_for').limit(0);
+            if (colError) {
+              if (colError.message.includes('scheduled_for') || colError.code === 'PGRST102' || colError.code === 'PGRST100') {
+                alertMsg = 'Faltando coluna scheduled_for';
+              } else {
+                alertMsg = `Erro Coluna: ${colError.message} (${colError.code})`;
+              }
+            }
           }
 
           results.push({ 
@@ -290,6 +310,69 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       alert(`❌ ERRO: Falha ao adicionar novas questões. Detalhes: ${errorMsg}`);
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const [migrationStatus, setMigrationStatus] = useState<string>('');
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const handleMigrateData = async () => {
+    if (!window.confirm("Isso irá copiar todos os dados do banco antigo para o novo. Certifique-se de que o banco novo está pronto para receber os dados. Deseja continuar?")) return;
+    
+    setIsMigrating(true);
+    setMigrationStatus('Iniciando conexão com banco antigo...');
+
+    const OLD_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
+    const OLD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM';
+    
+    // Create temporary old client
+    const { createClient } = await import('@supabase/supabase-js');
+    const oldSupabase = createClient(OLD_URL, OLD_KEY);
+
+    const tables = [
+      'conselheiros', 
+      'announcements', 
+      'members', 
+      'quiz_questions', 
+      'three_clues_questions', 
+      'puzzle_images', 
+      'scrambled_verses', 
+      'EspecialidadesDBV',
+      'specialty_studies',
+      'specialty_study_questions',
+      'devotionals'
+    ];
+
+    try {
+      for (const table of tables) {
+        setMigrationStatus(`Migrando tabela: ${table.toUpperCase()}...`);
+        
+        // 1. Fetch from old
+        const { data: oldData, error: fetchError } = await oldSupabase.from(table).select('*');
+        if (fetchError) throw new Error(`Erro ao buscar ${table}: ${fetchError.message}`);
+        
+        if (!oldData || oldData.length === 0) {
+          setMigrationStatus(`Tabela ${table} está vazia. Pulando...`);
+          continue;
+        }
+
+        // 2. Insert into new (current)
+        // Note: Using current databaseService via the already initialized local client
+        // We use the supabase client directly for raw migration
+        const { error: insertError } = await (DatabaseService as any).supabase.from(table).upsert(oldData);
+        if (insertError) throw new Error(`Erro ao inserir em ${table}: ${insertError.message}`);
+        
+        setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
+      }
+      
+      alert("🚀 MIGRAÇÃO CONCLUÍDA! Todos os dados foram transferidos.");
+      setMigrationStatus('Migração finalizada com sucesso.');
+    } catch (error: any) {
+      console.error("Erro na migração:", error);
+      alert(`❌ ERRO NA MIGRAÇÃO: ${error.message}`);
+      setMigrationStatus(`ERRO: ${error.message}`);
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -570,6 +653,31 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                   </div>
                 )}
               </button>
+
+              <div className={`p-6 rounded-[2rem] border mt-4 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Database size={16} className="text-blue-500" />
+                  Migração de Banco de Dados
+                </h3>
+                <p className="text-[10px] mb-4 opacity-70 font-medium">
+                  Use esta ferramenta para copiar os dados do banco antigo para o novo. 
+                  Isso irá sobrescrever dados com o mesmo ID.
+                </p>
+                <button 
+                  onClick={handleMigrateData}
+                  disabled={isMigrating}
+                  className={`w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isMigrating ? 'bg-slate-200 text-slate-400' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95'}`}
+                >
+                  {isMigrating ? 'MIGRANDO...' : 'INICIAR MIGRAÇÃO'}
+                </button>
+                {migrationStatus && (
+                  <div className="mt-4 p-3 bg-white/5 dark:bg-black/20 rounded-lg border border-slate-200/10">
+                    <p className="text-[9px] font-mono leading-none break-words">
+                      {migrationStatus}
+                    </p>
+                  </div>
+                )}
+              </div>
               <button 
                 onClick={async () => {
                   if (onProcessMonthlyAwards) {
@@ -617,6 +725,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                    <p className="text-[9px] font-bold text-amber-600/70 mb-3">Execute este comando na aba SQL EDITOR do seu Supabase Dashboard para ativar o agendamento:</p>
                    <code className="block p-3 bg-black/20 rounded-xl text-[8px] font-mono text-amber-500 break-all select-all">
                      ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
+                     ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
                    </code>
                 </div>
               )}
