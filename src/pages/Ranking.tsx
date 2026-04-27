@@ -53,15 +53,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
   }, [members, currentMonth]);
 
   const sortedData = useMemo(() => {
-    let data = Array.isArray(members) ? [...members] : [];
-    
-    // Garantir unicidade por ID para evitar erro de chaves duplicadas no React
-    const seenIds = new Set();
-    data = data.filter(m => {
-      if (seenIds.has(m.id)) return false;
-      seenIds.add(m.id);
-      return true;
-    });
+    const data = Array.isArray(members) ? [...members] : [];
     
     if (tab === 'games') {
       if (gameTab === 'total') {
@@ -166,11 +158,8 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
               const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
               
-              const uniqueMonthMembers = Array.from(
-                new Set(members.filter(m => calculateMonthlyGamesTotal(m, mStr) > 0).map(m => m.id))
-              ).map(id => members.find(m => m.id === id)!);
-
-              const monthChampions = uniqueMonthMembers
+              const monthChampions = [...members]
+                .filter(m => calculateMonthlyGamesTotal(m, mStr) > 0)
                 .sort((a, b) => {
                   const scoreB = calculateMonthlyGamesTotal(b, mStr);
                   const scoreA = calculateMonthlyGamesTotal(a, mStr);

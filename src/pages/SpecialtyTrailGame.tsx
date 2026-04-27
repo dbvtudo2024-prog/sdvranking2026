@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Map, Trophy, ChevronRight, Star, RefreshCcw, Flag, Lock } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
-import { safeAddScore } from '@/utils/gameUtils';
+import { safeAddScore, isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser } from '@/utils/gameUtils';
 import { Score } from '@/types';
 import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, UserRole, BadgeLevel, UserStats } from '@/types';
@@ -75,14 +75,10 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
   };
 
   const saveScore = () => {
-    // Find member again to ensure we have latest data
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const memberToUpdate = findMemberForUser(members, user);
     if (!memberToUpdate) return;
 
     if (onUpdateStats) onUpdateStats({ totalGames: 1 });
-
-    const todayStr = new Date().toISOString();
-    const updatedScores = [...(memberToUpdate.scores || [])];
 
     const finalScore = score;
 
@@ -103,54 +99,17 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     onUpdateMember({ ...memberToUpdate, scores: safeAddScore(memberToUpdate.scores || [], newScore) });
   };
 
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    // Standard availability: Sunday (0) to Thursday (4)
-    const available = (day >= 0 && day <= 4) || override || isAdmin;
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialtyTrail: override }, 'specialtyTrail', user);
 
-    let played = false;
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-    
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        const matchesGame = s.gameId === 'specialtyTrailGame' || (s as any).specialtyTrailGame !== undefined;
-        return d >= cycleStart && matchesGame;
-      });
-    }
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyTrailGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user.id, user.name, cycleStart]);
+  }, [override, isAdmin, members, user]);
 
   if (!isAvailable && !isAdmin && !override) {
     return (

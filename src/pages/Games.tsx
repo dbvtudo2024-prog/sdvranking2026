@@ -15,7 +15,7 @@ import NatureIdGame from '@/pages/NatureIdGame';
 import FirstAidGame from '@/pages/FirstAidGame';
 import MahjongGame from '@/pages/MahjongGame';
 import BrickBreakerGame from '@/pages/BrickBreakerGame';
-import { isGameTimeAvailable, getCycleStart, parseScoreDate, checkPlayedThisWeek } from '@/utils/gameUtils';
+import { isGameTimeAvailable, getCycleStart, parseScoreDate, checkPlayedThisWeek, checkIsAdmin, findMemberForUser } from '@/utils/gameUtils';
 
 interface GamesProps {
   user: AuthUser;
@@ -63,17 +63,16 @@ const Games: React.FC<GamesProps> = ({
     return () => onGameActiveChange?.(false);
   }, [activeGame, onGameActiveChange]);
 
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-  const isMaster = user.email === 'ronaldosonic@gmail.com';
+  const isAdmin = checkIsAdmin(user);
 
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-  }, [members, user.id, user.name]);
+    return findMemberForUser(members, user);
+  }, [members, user]);
 
   const isGameDay = useMemo(() => {
     const now = new Date();
-    return isGameTimeAvailable(now.getDay(), now.getHours(), {}, 'global', false);
-  }, []);
+    return isGameTimeAvailable(now.getDay(), now.getHours(), {}, 'global', user);
+  }, [user]);
 
   const cycleStart = useMemo(() => getCycleStart(), []);
 
@@ -92,7 +91,7 @@ const Games: React.FC<GamesProps> = ({
 
   const getGameStatus = (gameId: string, overrideKey: string, dbGameId: string) => {
     const now = new Date();
-    const clubUnlocked = isGameTimeAvailable(now.getDay(), now.getHours(), overrides, overrideKey, false);
+    const clubUnlocked = isGameTimeAvailable(now.getDay(), now.getHours(), overrides, overrideKey, user);
     const unlocked = clubUnlocked || isAdmin;
     
     let alreadyPlayed = false;
@@ -125,9 +124,8 @@ const Games: React.FC<GamesProps> = ({
     const hour = now.getHours();
 
     if (day === 0 && hour < 12) return "Abre hoje ao meio-dia";
-    if (day === 5) return "Abre Domingo ao meio-dia";
     if (day === 6) return "Abre Amanhã ao meio-dia";
-    return "Bloqueado";
+    return "Abre Domingo ao meio-dia";
   };
 
   const renderActiveGame = () => {

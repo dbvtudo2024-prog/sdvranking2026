@@ -6,7 +6,7 @@ import { ArrowLeft, Timer, Trophy, Lock, Calendar, Loader2, BookOpen, Image, Ref
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { getCycleStart, checkPlayedThisWeek, safeAddScore } from '@/utils/gameUtils';
+import { checkPlayedThisWeek, checkIsAdmin, findMemberForUser, isGameTimeAvailable, safeAddScore } from '@/utils/gameUtils';
 
 interface SpecialtyGameProps {
   user: AuthUser;
@@ -78,49 +78,17 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     prepareGame();
   }, []);
 
-  const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-  }, [members, user.id, user.name]);
-
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialty: specialtyOverride }, 'specialty', user);
     
-    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
-    const available = (day >= 0 && day <= 4) || specialtyOverride || isAdmin;
-    
-    // Calculate start of current week (Sunday)
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
-
-    let played = false;
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        // Handle ISO and DD/MM/YYYY formats
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        return d >= sunday && (s.gameId === 'specialtyGame' || s.specialtyGame !== undefined);
-      });
-    }
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [specialtyOverride, currentMember, isAdmin]);
+  }, [specialtyOverride, members, user, isAdmin]);
 
   const startTimer = (limit?: number) => {
     stopTimer();
@@ -177,7 +145,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
       try {
         hasSavedRef.current = true;
         // Find member again to ensure we have latest data
-        const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+        const memberToUpdate = findMemberForUser(members, user);
         
         if (memberToUpdate) {
           const points = score;
@@ -197,7 +165,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
         console.error("Erro ao salvar pontuação:", err);
       }
     }
-  }, [gameState, score, members, user.id, user.name, onUpdateMember]);
+  }, [gameState, score, members, user, onUpdateMember]);
 
   if (loading) return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
@@ -218,7 +186,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
             <Check size={40} />
           </div>
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Concluído</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
         </div>
       </div>
     );
@@ -233,7 +201,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
             <Calendar size={40} />
           </div>
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 uppercase">Indisponível</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Os desafios estão bloqueados hoje. Volte amanhã!</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm">Os desafios estão bloqueados hoje. Volte no domingo ao meio-dia!</p>
         </div>
       </div>
     );

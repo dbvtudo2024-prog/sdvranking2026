@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Database } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, supabase } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
@@ -112,57 +112,31 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
     const results = [];
-    const tables = [
-      'members', 
-      'announcements', 
-      'conselheiros', 
-      'specialty_studies', 
-      'devotionals', 
-      'game_configs', 
-      'three_clues_questions', 
-      'quiz_questions',
-      'puzzle_images',
-      'game_assets',
-      'scrambled_verses',
-      'EspecialidadesDBV'
-    ];
+    const tables = ['members', 'announcements', 'conselheiros', 'specialty_studies', 'game_configs', 'three_clues_questions', 'scrambled_verse_questions'];
     
     for (const table of tables) {
       try {
         const { data, error } = await supabase.from(table).select('*').limit(1);
         if (error) {
-          // Se a tabela não existe ou deu erro de permissão
+          results.push({ table, count: -1, status: `Erro: ${error.message}`, columns: [] });
+        } else {
+          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+          const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
+          
+          let alertMsg = 'OK';
+          if (table === 'specialty_studies' && !columns.includes('scheduled_for')) {
+            alertMsg = 'Faltando coluna scheduled_for';
+          }
+
           results.push({ 
             table, 
-            count: 0, 
-            status: `Faltando/Erro: ${error.code === '42P01' ? 'Tabela Não Existe' : error.message}`, 
-            columns: [] 
+            count: count || 0, 
+            status: alertMsg, 
+            columns 
           });
-          continue;
         }
-        
-        const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
-        const columns = data && data.length > 0 ? Object.keys(data[0]) : [];
-        
-        let alertMsg = 'OK';
-        // Verificação específica de coluna
-        if (table === 'specialty_studies' || table === 'devotionals') {
-          const { error: colError } = await supabase.from(table).select('scheduled_for').limit(0);
-          if (colError) {
-            if (colError.message.includes('scheduled_for') || colError.code === 'PGRST102' || colError.code === 'PGRST100') {
-              alertMsg = 'Faltando coluna scheduled_for';
-            }
-          }
-        }
-
-        results.push({ 
-          table, 
-          count: count || 0, 
-          status: alertMsg, 
-          columns 
-        });
       } catch (e: any) {
-        results.push({ table, count: 0, status: `EXCEÇÃO: ${e.message}`, columns: [] });
+        results.push({ table, count: -1, status: `Exceção: ${e.message}`, columns: [] });
       }
     }
     setDiagnosticResults(results);
@@ -316,188 +290,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       alert(`❌ ERRO: Falha ao adicionar novas questões. Detalhes: ${errorMsg}`);
     } finally {
       setIsSeeding(false);
-    }
-  };
-
-  const [migrationStatus, setMigrationStatus] = useState<string>('');
-  const [isMigrating, setIsMigrating] = useState(false);
-
-  const handleMigrateData = async () => {
-    if (!window.confirm("Isso irá copiar todos os dados do banco antigo para o novo. Certifique-se de que o banco novo está pronto para receber os dados. Deseja continuar?")) return;
-    
-    setIsMigrating(true);
-    setMigrationStatus('Iniciando conexão com banco antigo...');
-
-    const OLD_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
-    const OLD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM';
-    
-    // Create temporary old client
-    const { createClient } = await import('@supabase/supabase-js');
-    const oldSupabase = createClient(OLD_URL, OLD_KEY);
-
-    const tables = [
-      'users',
-      'members', 
-      'conselheiros', 
-      'announcements', 
-      'messages',
-      'devotionals',
-      'specialty_studies',
-      'specialty_study_questions',
-      'quiz_questions', 
-      'three_clues_questions', 
-      'who_am_i_questions',
-      'puzzle_images', 
-      'scrambled_verses', 
-      'EspecialidadesDBV',
-      'game_configs',
-      'game_assets',
-      'desbravadores',
-      'especialidades',
-      'quizzes',
-      'Biblia_Completa'
-    ];
-
-    try {
-      for (const table of tables) {
-        setMigrationStatus(`Migrando tabela: ${table.toUpperCase()}...`);
-        
-        // 0. CHECK IF TABLE EXISTS IN THE OLD DATABASE FIRST to avoid crashes
-        const { error: checkError } = await oldSupabase.from(table).select('id').limit(1);
-        if (checkError && (checkError.code === '42P01' || checkError.message.includes('schema cache'))) {
-          setMigrationStatus(`Tabela ${table} não existe no banco antigo. Pulando...`);
-          console.warn(`Tabela ${table} não existe no banco antigo.`);
-          continue;
-        }
-
-        // 1. Fetch from old
-        const { data: oldData, error: fetchError } = await oldSupabase.from(table).select('*');
-        if (fetchError) {
-          console.warn(`Erro ao buscar dados de ${table}: ${fetchError.message}`);
-          continue; // Skip the table instead of crashing
-        }
-        
-        if (!oldData || oldData.length === 0) {
-          setMigrationStatus(`Tabela ${table} está vazia no banco antigo. Pulando...`);
-          continue;
-        }
-
-          // 2. Prepare data for insert: filter out sensitive/problematic columns
-        const dataToInsert = oldData.map(item => {
-          let newItem = { ...item };
-          if ('created_at' in newItem) delete newItem.created_at;
-          
-          // Field Mapping Compatibility (Specific per context)
-          if (table === 'users') {
-            if ('password' in newItem) delete newItem.password;
-            if ('Nome' in newItem && !newItem.full_name) newItem.full_name = newItem.Nome;
-            if ('full_name' in newItem) newItem.name = newItem.full_name;
-            else if ('name' in newItem) newItem.full_name = newItem.name;
-
-            // STRICT SANITIZATION for users
-            const allowed = ['id', 'email', 'full_name', 'name', 'avatar_url', 'role', 'password'];
-            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
-          }
-
-          if (table === 'members') {
-            if ('name' in newItem && !('full_name' in newItem)) newItem.full_name = newItem.name;
-            if ('full_name' in newItem && !('name' in newItem)) newItem.name = newItem.full_name;
-            const allowed = ['id', 'name', 'full_name', 'unit', 'birth_date', 'phone', 'email', 'role', 'active'];
-            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
-          }
-
-          if (table === 'specialty_studies') {
-            // Mapping logic based on user's screenshot
-            if ('pdf_url' in newItem && !('pdfurl' in newItem)) newItem.pdfurl = newItem.pdf_url;
-            if ('video_url_link' in newItem && !('video_url' in newItem)) newItem.video_url = newItem.video_url_link;
-            
-            // Ensure title/name consistency for backwards compatibility with UI
-            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
-            if ('name' in newItem) newItem.title = newItem.name; 
-            
-            // Handle questions: if they exist as a separate table, they might be merged later, 
-            // but for now we expect them in the 'questions' JSONB field in the record if available.
-            
-            // STRICT SANITIZATION for specialty_studies
-            const allowed = ['id', 'name', 'pdfurl', 'category', 'questions', 'puzzle_image_url', 'specialty_image_url', 'video_url', 'content', 'scheduled_for', 'title'];
-            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
-          }
-
-          if (table === 'EspecialidadesDBV') {
-            if ('Nome' in newItem) { newItem.name = newItem.Nome; newItem.title = newItem.Nome; }
-            if ('Imagem' in newItem) newItem.image_url = newItem.Imagem;
-            if ('Categoria' in newItem) newItem.category = newItem.Categoria;
-            const allowed = ['id', 'name', 'title', 'image_url', 'category', 'Nome', 'Imagem', 'Categoria'];
-            Object.keys(newItem).forEach(k => { if (!allowed.includes(k)) delete newItem[k]; });
-          }
-
-          if (table === 'quizzes') {
-            if ('score' in newItem && !('points' in newItem)) newItem.points = newItem.score;
-            if ('points' in newItem && !('score' in newItem)) newItem.score = newItem.points;
-          }
-
-          if (table === 'who_am_i_questions' || table === 'three_clues_questions') {
-             if ('correct_answer' in newItem && !('answer' in newItem) && typeof newItem.correct_answer === 'string') newItem.answer = newItem.correct_answer;
-             if ('answer' in newItem && !('correct_answer' in newItem)) newItem.correct_answer = newItem.answer;
-          }
-
-          // Generic cleanup for common content tables
-          const contentTables = ['devotionals', 'announcements', 'especialidades', 'puzzle_images'];
-          if (contentTables.includes(table)) {
-            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
-            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
-          }
-
-          // Handle ID Mismatch
-          const tablesUsingUUID = ['members', 'users', 'specialty_studies', 'specialty_study_questions'];
-          const isTargetUUID = tablesUsingUUID.includes(table);
-          
-          if (!isTargetUUID && newItem.id !== undefined) {
-             if (typeof newItem.id === 'string' && newItem.id.includes('-')) {
-               delete newItem.id;
-             }
-          }
-          
-          // Convert numeric strings to numbers
-          const numericKeys = ['score', 'points', 'chapter', 'verse', 'study_id', 'correct_answer'];
-          numericKeys.forEach(key => {
-            if (key in newItem && typeof newItem[key] === 'string' && !isNaN(Number(newItem[key]))) {
-              newItem[key] = Number(newItem[key]);
-            }
-          });
-
-          return newItem;
-        });
-
-        // 3. Insert into new (current) in SINGLE batches with delay to avoid timeouts
-        const BATCH_SIZE = 1; 
-        for (let i = 0; i < dataToInsert.length; i += BATCH_SIZE) {
-          const batch = dataToInsert.slice(i, i + BATCH_SIZE);
-          
-          // Use upsert to avoid duplicate errors on retry
-          const { error: upsertError } = await supabase.from(table).upsert(batch, { onConflict: table === 'game_configs' ? 'key' : 'id' });
-          
-          if (upsertError) {
-             console.error(`Erro no registro ${i} de ${table}:`, upsertError.message);
-             // Special case: if error is column not found, we might need a more aggressive cleanup
-             throw new Error(`Erro fatal em ${table} (registro ${i}): ${upsertError.message}`);
-          }
-          
-          setMigrationStatus(`⏳ Migrando ${table}... (${Math.min(i + BATCH_SIZE, dataToInsert.length)}/${dataToInsert.length})`);
-          await new Promise(resolve => setTimeout(resolve, 800)); // Larger delay for absolute stability
-        }
-        
-        setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
-      }
-      
-      alert("🚀 MIGRAÇÃO CONCLUÍDA! Todos os dados foram transferidos.");
-      setMigrationStatus('Migração finalizada com sucesso.');
-    } catch (error: any) {
-      console.error("Erro na migração:", error);
-      alert(`❌ ERRO NA MIGRAÇÃO: ${error.message}`);
-      setMigrationStatus(`ERRO: ${error.message}`);
-    } finally {
-      setIsMigrating(false);
     }
   };
 
@@ -778,31 +570,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                   </div>
                 )}
               </button>
-
-              <div className={`p-6 rounded-[2rem] border mt-4 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
-                <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Database size={16} className="text-blue-500" />
-                  Migração de Banco de Dados
-                </h3>
-                <p className="text-[10px] mb-4 opacity-70 font-medium">
-                  Use esta ferramenta para copiar os dados do banco antigo para o novo. 
-                  Isso irá sobrescrever dados com o mesmo ID.
-                </p>
-                <button 
-                  onClick={handleMigrateData}
-                  disabled={isMigrating}
-                  className={`w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isMigrating ? 'bg-slate-200 text-slate-400' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95'}`}
-                >
-                  {isMigrating ? 'MIGRANDO...' : 'INICIAR MIGRAÇÃO'}
-                </button>
-                {migrationStatus && (
-                  <div className="mt-4 p-3 bg-white/5 dark:bg-black/20 rounded-lg border border-slate-200/10">
-                    <p className="text-[9px] font-mono leading-none break-words">
-                      {migrationStatus}
-                    </p>
-                  </div>
-                )}
-              </div>
               <button 
                 onClick={async () => {
                   if (onProcessMonthlyAwards) {
@@ -841,134 +608,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           </button>
 
           {diagnosticResults.length > 0 && (
-            <div className="space-y-4 mt-6">
-              {/* Painel de Correção SQL */}
-              <div className={`p-6 rounded-[2.5rem] border-2 ${isDarkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-900 border-slate-800'} overflow-hidden shadow-2xl`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Database size={18} className="text-amber-400" />
-                  <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Comandos de Reparo (SQL Editor)</h4>
+            <div className="space-y-3 mt-4">
+              {diagnosticResults.some(r => r.status.includes('Faltando')) && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4">
+                   <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                     <AlertTriangle size={14} /> Atualização Necessária
+                   </p>
+                   <p className="text-[9px] font-bold text-amber-600/70 mb-3">Execute este comando na aba SQL EDITOR do seu Supabase Dashboard para ativar o agendamento:</p>
+                   <code className="block p-3 bg-black/20 rounded-xl text-[8px] font-mono text-amber-500 break-all select-all">
+                     ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS scheduled_for timestamp with time zone;
+                   </code>
                 </div>
-                <p className="text-[9px] text-slate-400 mb-4 leading-relaxed uppercase font-black opacity-70">
-                  Copie o código abaixo e cole no SQL EDITOR do seu Supabase Dashboard para criar as tabelas que estão faltando nas suas imagens:
-                </p>
-                <div className="bg-black/40 p-4 rounded-3xl border border-slate-700/50">
-                  <pre className="text-[8px] font-mono text-green-400 overflow-x-auto custom-scrollbar select-all leading-tight">
-{`-- 1. ESTRUTURA COMPLETA (SCRIPT MESTRE)
-CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT auth.uid(), email TEXT, full_name TEXT, name TEXT, avatar_url TEXT, role TEXT DEFAULT 'user', password TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, full_name TEXT, unit TEXT, birth_date DATE, phone TEXT, email TEXT, role TEXT, active BOOLEAN DEFAULT true, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS messages (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, sender_id UUID, content TEXT, role TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS announcements (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, title TEXT, name TEXT, content TEXT, schedule_date TIMESTAMP WITH TIME ZONE, priority TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS devotionals (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, title TEXT, name TEXT, content TEXT, link TEXT, scheduled_for TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS specialty_studies (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
-  name TEXT, 
-  title TEXT,
-  pdfurl TEXT, 
-  category TEXT, 
-  questions JSONB, 
-  puzzle_image_url TEXT, 
-  specialty_image_url TEXT, 
-  video_url TEXT, 
-  content TEXT,
-  scheduled_for TIMESTAMP WITH TIME ZONE, 
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-CREATE TABLE IF NOT EXISTS specialty_study_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, study_id UUID REFERENCES specialty_studies(id) ON DELETE CASCADE, question TEXT, options JSONB, correct_answer INTEGER);
-CREATE TABLE IF NOT EXISTS quiz_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, question TEXT, options JSONB, correct_answer INTEGER, category TEXT, difficulty TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS who_am_i_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, content TEXT, correct_answer TEXT, answer TEXT, clues JSONB, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS three_clues_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, content TEXT, answer TEXT, correct_answer TEXT, clues JSONB, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS scrambled_verses (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, verse TEXT, reference TEXT, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS puzzle_images (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, url TEXT, title TEXT, name TEXT, category TEXT, difficulty TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS "EspecialidadesDBV" (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, "Nome" TEXT, name TEXT, title TEXT, "Imagem" TEXT, image_url TEXT, "Categoria" TEXT, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS game_configs (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, key TEXT UNIQUE, value JSONB, updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS game_assets (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, game_type TEXT, name TEXT, url TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS desbravadores (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, full_name TEXT, unit TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS especialidades (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, title TEXT, category TEXT, image_url TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS conselheiros (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, full_name TEXT, unit TEXT, phone TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS quizzes (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, user_id UUID, score INTEGER, points INTEGER, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS "Biblia_Completa" (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, "testament" TEXT, "book" TEXT, "chapter" INTEGER, "verse" INTEGER, "text" TEXT);
-
--- 2. GARANTIR TODAS AS COLUNAS POSSÍVEIS (CORREÇÃO EM MASSA)
-DO $$ 
-BEGIN
-    -- users
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
-        ALTER TABLE users ALTER COLUMN password DROP NOT NULL;
-    END IF;
-    
-    -- devotionals
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'devotionals') THEN
-        ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS title TEXT;
-        ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS name TEXT;
-    END IF;
-
-    -- specialty_studies
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'specialty_studies') THEN
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS name TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS title TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS pdfurl TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS category TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS questions JSONB;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS puzzle_image_url TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS specialty_image_url TEXT;
-        ALTER TABLE specialty_studies ADD COLUMN IF NOT EXISTS video_url TEXT;
-    END IF;
-
-    -- EspecialidadesDBV
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = '"EspecialidadesDBV"') THEN
-        ALTER TABLE "EspecialidadesDBV" ADD COLUMN IF NOT EXISTS name TEXT;
-        ALTER TABLE "EspecialidadesDBV" ADD COLUMN IF NOT EXISTS title TEXT;
-        ALTER TABLE "EspecialidadesDBV" ADD COLUMN IF NOT EXISTS image_url TEXT;
-        ALTER TABLE "EspecialidadesDBV" ADD COLUMN IF NOT EXISTS category TEXT;
-    END IF;
-END $$;
-
--- 3. PERMISSÕES ACESSO PÚBLICO
-DO $$ 
-DECLARE
-    t TEXT;
-    tables TEXT[] := ARRAY['devotionals', 'quizzes', 'who_am_i_questions', 'three_clues_questions', 'quiz_questions', 'EspecialidadesDBV', 'game_configs', 'game_assets', 'members', 'messages', 'announcements', 'specialty_studies', 'specialty_study_questions', 'scrambled_verses', 'puzzle_images', 'users', 'desbravadores', 'especialidades', 'conselheiros', 'Biblia_Completa'];
-BEGIN
-    FOREACH t IN ARRAY tables LOOP
-        EXECUTE 'ALTER TABLE IF EXISTS "' || t || '" ENABLE ROW LEVEL SECURITY';
-        EXECUTE 'DROP POLICY IF EXISTS "Public Full Access" ON "' || t || '"';
-        EXECUTE 'CREATE POLICY "Public Full Access" ON "' || t || '" FOR ALL USING (true) WITH CHECK (true)';
-    END LOOP;
-END $$;`}
-                  </pre>
-                </div>
-                <div className="mt-4 p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                  <p className="text-[8px] font-bold text-blue-400 uppercase leading-none text-center">
-                    Dica: Após rodar no SQL Editor, clique em "EXECUTAR DIAGNÓSTICO" novamente.
-                  </p>
-                </div>
-              </div>
-
-              {/* Lista de Resultados */}
-              <div className="grid grid-cols-1 gap-3">
-                {diagnosticResults.map(res => (
-                  <div key={res.table} className={`p-5 rounded-[2rem] border-2 transition-all ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-center mb-2">
-                       <div className="flex flex-col">
-                         <span className="font-black text-[11px] uppercase tracking-tighter text-blue-500">{res.table}</span>
-                         <span className={`text-[7px] font-black uppercase opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Total: {res.count} registros</span>
-                       </div>
-                       <span className={`px-2.5 py-1 rounded-lg font-black text-[9px] uppercase tracking-widest ${
-                         res.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                       }`}>{res.status}</span>
-                    </div>
-                    {res.columns.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1">
-                        {res.columns.map(col => (
-                          <span key={col} className={`text-[6px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>{col}</span>
-                        ))}
-                      </div>
-                    )}
+              )}
+              {diagnosticResults.map(res => (
+                <div key={res.table} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">{res.table}</span>
+                    <span className={`font-black text-[10px] uppercase ${res.status === 'OK' ? 'text-emerald-500' : 'text-red-500'}`}>{res.status}</span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Registros: {res.count}</span>
+                  </div>
+                  {res.columns.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {res.columns.map(col => (
+                        <span key={col} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

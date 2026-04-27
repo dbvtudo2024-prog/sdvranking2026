@@ -7,7 +7,7 @@ import { ArrowLeft, Lightbulb, Trophy, Send, CheckCircle2, XCircle, HelpCircle, 
 import GameHeader from '@/components/GameHeader';
 import GameInstructions from '@/components/GameInstructions';
 import GameStatsBar from '@/components/GameStatsBar';
-import { safeAddScore } from '@/utils/gameUtils';
+import { isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser, safeAddScore } from '@/utils/gameUtils';
 
 interface ThreeCluesGameProps {
   user: AuthUser;
@@ -53,47 +53,17 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   const normalize = (str: string) => 
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-  const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { threeClues: override }, 'threeClues', user);
     
-    // Standard availability: Open Sunday (0) to Thursday (4). Locked Friday (5) and Saturday (6).
-    const available = (day >= 0 && day <= 4) || override || isAdmin;
-    
-    // Calculate start of current week (Sunday)
-    const diff = day;
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - diff);
-    sunday.setHours(0, 0, 0, 0);
-
-    let played = false;
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-    
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        // Handle ISO and DD/MM/YYYY formats
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        return d >= sunday && ((s as any).threeCluesGame !== undefined || s.gameId === 'threeCluesGame');
-      });
-    }
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'threeCluesGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user.id, user.name]);
+  }, [override, isAdmin, members, user]);
 
   if (!isAvailable && !isAdmin && !override) {
     return (

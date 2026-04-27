@@ -7,6 +7,7 @@ import GameStatsBar from '@/components/GameStatsBar';
 import { AuthUser, Member, QuizQuestion, Score, UserRole } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DatabaseService } from '@/db';
+import { isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser, safeAddScore } from '@/utils/gameUtils';
 
 interface NatureIdGameProps {
   user: AuthUser;
@@ -25,54 +26,17 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    // Standard availability: Sunday (0) to Thursday (4)
-    const available = (day >= 0 && day <= 4) || override || isAdmin;
-
-    let played = false;
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { natureId: override }, 'natureId', user);
     
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        const matchesGame = s.gameId === 'natureIdGame' || (s as any).natureIdGame !== undefined;
-        return d >= cycleStart && matchesGame;
-      });
-    }
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'natureIdGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [override, isAdmin, members, user.id, user.name, cycleStart]);
+  }, [override, isAdmin, members, user]);
 
   useEffect(() => {
     if (hasPlayedThisWeek && !isAdmin) return;
@@ -121,22 +85,20 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
   };
 
   const saveScore = () => {
-    const currentMember = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const currentMember = findMemberForUser(members, user);
     if (!currentMember) return;
 
     const newScore: Score = {
       type: 'game',
       gameId: 'natureIdGame',
       points: score,
-      date: new Date().toLocaleDateString('pt-BR')
+      date: new Date().toISOString()
     };
 
-    const updatedMember = {
+    onUpdateMember({
       ...currentMember,
-      scores: [...(currentMember.scores || []), newScore]
-    };
-
-    onUpdateMember(updatedMember);
+      scores: safeAddScore(currentMember.scores || [], newScore)
+    });
   };
 
   if (!isAvailable && !isAdmin && !override) {

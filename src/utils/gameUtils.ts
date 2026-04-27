@@ -1,5 +1,14 @@
 
-import { Member, Score } from '../types';
+import { Member, Score, AuthUser, UserRole } from '../types';
+
+export const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
+
+export const checkIsAdmin = (user: AuthUser | null | undefined): boolean => {
+  if (!user) return false;
+  const isLeadership = user.role === UserRole.LEADERSHIP;
+  const isMasterEmail = user.email?.toLowerCase().trim() === ADMIN_MASTER_EMAIL.toLowerCase();
+  return isLeadership || isMasterEmail;
+};
 
 export const parseScoreDate = (dateStr: string): Date | null => {
   if (!dateStr) return null;
@@ -40,6 +49,14 @@ export const getCycleStart = (): Date => {
   return start;
 };
 
+export const findMemberForUser = (members: Member[], user: AuthUser | null | undefined): Member | undefined => {
+  if (!user) return undefined;
+  return members.find(m => 
+    String(m.id) === String(user.id) || 
+    m.name.toLowerCase().trim() === user.name?.toLowerCase().trim()
+  );
+};
+
 export const checkPlayedThisWeek = (member: Member | null | undefined, gameId: string, category?: string): boolean => {
   if (!member || !member.scores) return false;
   
@@ -62,13 +79,13 @@ export const checkPlayedThisWeek = (member: Member | null | undefined, gameId: s
   });
 };
 
-export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key: string]: boolean }, gameId: string, isAdmin: boolean): boolean => {
-  if (isAdmin) return true;
+export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key: string]: boolean }, gameId: string, user: AuthUser | null | undefined): boolean => {
+  if (checkIsAdmin(user)) return true;
   if (overrides[gameId]) return true;
 
-  // Regra padrão: Domingo (12h) até Quarta (23:59)
+  // Janela expandida: Domingo (12h) até Sexta (23:59)
   if (day === 0) return hour >= 12;
-  if (day >= 1 && day <= 3) return true;
+  if (day >= 1 && day <= 5) return true;
   
   return false;
 };

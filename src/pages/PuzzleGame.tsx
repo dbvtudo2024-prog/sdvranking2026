@@ -7,7 +7,7 @@ import { ArrowLeft, RefreshCw, Trophy, Lock, Timer, Zap, Shuffle, Calendar, Imag
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { safeAddScore } from '@/utils/gameUtils';
+import { isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser, safeAddScore } from '@/utils/gameUtils';
 
 interface PuzzleGameProps {
   user: AuthUser;
@@ -37,56 +37,17 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
   const [isStarted, setIsStarted] = useState(false);
   const timerRef = useRef<number | null>(null);
 
-  const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-  }, [members, user.id, user.name]);
-
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-
-  const cycleStart = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const start = new Date(now);
-    if (day === 0 && hour < 12) {
-      start.setDate(now.getDate() - 7);
-    } else {
-      start.setDate(now.getDate() - day);
-    }
-    start.setHours(12, 0, 0, 0);
-    return start;
-  }, []);
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    // Standard availability: Sunday (0) to Thursday (4)
-    const available = (day >= 0 && day <= 4) || puzzleOverride || isAdmin;
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { puzzle: puzzleOverride }, 'puzzle', user);
 
-    let played = false;
-    if (currentMember && !isAdmin) {
-      played = (currentMember.scores || []).some(s => {
-        const scoreDate = new Date(s.date);
-        
-        let d: Date;
-        if (isNaN(scoreDate.getTime())) {
-          const parts = s.date.split('/');
-          if (parts.length === 3) {
-            d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          } else {
-            return false;
-          }
-        } else {
-          d = scoreDate;
-        }
-        
-        const matchesGame = s.gameId === 'puzzleGame' || (s as any).puzzleGame !== undefined;
-        return d >= cycleStart && matchesGame;
-      });
-    }
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'puzzleGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [puzzleOverride, currentMember, isAdmin, cycleStart]);
+  }, [puzzleOverride, members, user, isAdmin]);
 
   if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
     return (
@@ -241,30 +202,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     return Math.max(15, Math.floor(basePoints * multiplier * 1.5));
   };
 
-  const handleFinish = () => {
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-    
-    if (memberToUpdate) {
-      const points = calculatePoints();
-      const newScore: Score = {
-        type: 'game',
-        gameId: 'puzzleGame',
-        points: points,
-        date: new Date().toISOString()
-      };
-      
-      onUpdateMember({
-        ...memberToUpdate,
-        scores: safeAddScore(memberToUpdate.scores || [], newScore)
-      });
-    }
-    onBack();
-  };
-
   const hasSavedRef = useRef(false);
 
   const saveScoreToProfile = useCallback(() => {
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const memberToUpdate = findMemberForUser(members, user);
     
     if (memberToUpdate && !hasSavedRef.current) {
       hasSavedRef.current = true;
@@ -281,39 +222,13 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         scores: safeAddScore(memberToUpdate.scores || [], newScore)
       });
     }
-  }, [calculatePoints, members, user.id, user.name, onUpdateMember]);
+  }, [calculatePoints, members, user, onUpdateMember]);
 
   useEffect(() => {
     if (isGameOver) {
       saveScoreToProfile();
     }
   }, [isGameOver, saveScoreToProfile]);
-
-  if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
-        <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
-          <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6"><Lock size={40} /></div>
-          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Concluído</h2>
-          <p className="text-slate-500 mb-8 text-sm">Você já completou este desafio esta semana. Volte no próximo sábado!</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAvailable && !isAdmin && !puzzleOverride) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
-        <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
-          <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#0061f2] mb-6"><Calendar size={40} /></div>
-          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Indisponível</h2>
-          <p className="text-slate-500 mb-8 text-sm">Os jogos estão bloqueados hoje. Volte amanhã!</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isGameOver) {
     const points = calculatePoints();

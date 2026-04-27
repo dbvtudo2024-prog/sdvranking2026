@@ -6,19 +6,20 @@ import { Check, X, Trophy, Loader2, HelpCircle, CheckCircle2 } from 'lucide-reac
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { safeAddScore, checkPlayedThisWeek } from '@/utils/gameUtils';
+import { safeAddScore, checkPlayedThisWeek, checkIsAdmin, findMemberForUser } from '@/utils/gameUtils';
 
 interface QuizGameProps {
   category: 'Desbravadores' | 'Bíblia';
   user: AuthUser;
   member?: Member;
+  members: Member[]; // Added members prop
   onUpdateMember: (member: Member) => void;
   onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
   onUpdateStats?: (stats: Partial<UserStats>) => void;
   onBack: () => void;
 }
 
-const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMember, onAwardBadge, onUpdateStats, onBack }) => {
+const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, members, onUpdateMember, onAwardBadge, onUpdateStats, onBack }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -68,11 +69,20 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
 
   const hasSavedRef = React.useRef(false);
 
+  const isAdmin = checkIsAdmin(user);
+
+  const currentMember = useMemo(() => findMemberForUser(members, user), [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    if (isAdmin) return false;
+    return checkPlayedThisWeek(currentMember || member, 'quiz', category);
+  }, [currentMember, member, isAdmin, category]);
+
   const saveScoreToProfile = useCallback(() => {
-    if (member && !hasSavedRef.current) {
+    const targetMember = currentMember || member;
+    if (targetMember && !hasSavedRef.current) {
       hasSavedRef.current = true;
       // AWARD BADGE - Knowledge (Mestre do Quiz)
-      // Max score: 10 questions * 2 points = 20
       if (onAwardBadge) {
         if (score === 20) onAwardBadge('mestre_quiz', BadgeLevel.GOLD);
         else if (score >= 18) onAwardBadge('mestre_quiz', BadgeLevel.SILVER);
@@ -86,28 +96,21 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, onUpdateMem
         gameId: 'quiz',
         points: score,
         quizCategory: category,
-        date: new Date().toISOString() // Use ISO for consistency
+        date: new Date().toISOString()
       };
       
       onUpdateMember({
-        ...member,
-        scores: safeAddScore(member.scores || [], newScore)
+        ...targetMember,
+        scores: safeAddScore(targetMember.scores || [], newScore)
       });
     }
-  }, [score, category, member, onUpdateMember, onAwardBadge, onUpdateStats]);
+  }, [score, category, member, currentMember, onUpdateMember, onAwardBadge, onUpdateStats]);
 
   useEffect(() => {
     if (showResult) {
       saveScoreToProfile();
     }
   }, [showResult, saveScoreToProfile]);
-
-  const isAdmin = user.role === 'leadership' || user.email === 'ronaldosonic@gmail.com';
-
-  const hasPlayedThisWeek = useMemo(() => {
-    if (isAdmin) return false;
-    return checkPlayedThisWeek(member, 'quiz', category);
-  }, [member, isAdmin, category]);
 
   if (loading) {
     return (

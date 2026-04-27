@@ -42,22 +42,15 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
 
-    const birthdays = safeMembers.filter(m => {
+    return safeMembers.filter(m => {
       if (!m.birthday) return false;
       const [y, mStr, dStr] = m.birthday.split('-');
       return parseInt(mStr) - 1 === currentMonth && parseInt(dStr) === currentDay;
     });
-
-    const seen = new Set();
-    return birthdays.filter(m => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
   }, [safeMembers]);
 
   const filteredMembers = useMemo(() => {
-    const list = safeMembers.filter(m => {
+    return safeMembers.filter(m => {
       if (!m.birthday) return false;
       
       const month = m.birthday.includes('-') 
@@ -69,13 +62,6 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
                            m.unit.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesMonth && matchesSearch;
-    });
-
-    const seen = new Set();
-    return list.filter(m => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
     }).sort((a, b) => {
       const dayA = a.birthday?.includes('-') ? parseInt(a.birthday.split('-')[2]) : new Date(a.birthday!).getDate();
       const dayB = b.birthday?.includes('-') ? parseInt(b.birthday.split('-')[2]) : new Date(b.birthday!).getDate();

@@ -15,24 +15,22 @@ interface QuizSelectionProps {
   quizOverride: boolean;
 }
 
-import { checkPlayedThisWeek } from '@/utils/gameUtils';
+import { checkPlayedThisWeek, checkIsAdmin, findMemberForUser, isGameTimeAvailable } from '@/utils/gameUtils';
 
 const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMember, onAwardBadge, onBack, quizOverride }) => {
   const [playingCategory, setPlayingCategory] = useState<'Desbravadores' | 'Bíblia' | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
 
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-  }, [members, user.id, user.name]);
+    return findMemberForUser(members, user);
+  }, [members, user]);
 
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
+  const isAdmin = checkIsAdmin(user);
 
   const isAvailable = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    // Aberto de Domingo (0) até Quinta (4). Bloqueado na Sexta (5) e Sábado (6).
-    return (day >= 0 && day <= 4) || quizOverride || isAdmin; 
-  }, [quizOverride, isAdmin]);
+    return isGameTimeAvailable(now.getDay(), now.getHours(), { quiz: quizOverride }, 'quiz', user);
+  }, [quizOverride, user]);
 
   const hasPlayedThisWeek = (category: 'Desbravadores' | 'Bíblia') => {
     if (isAdmin) return false;
@@ -41,9 +39,9 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
 
   const getBestScore = (category: 'Desbravadores' | 'Bíblia') => {
     if (!currentMember) return 0;
-    const quizScores = currentMember.scores
-      .filter(s => s.quiz !== undefined && s.quizCategory === category)
-      .map(s => s.quiz || 0);
+    const quizScores = (currentMember.scores || [])
+      .filter(s => (s.gameId === 'quiz' || (s as any).quiz !== undefined) && s.quizCategory === category)
+      .map(s => s.points ?? (s as any).quiz ?? 0);
     return quizScores.length > 0 ? Math.max(...quizScores) : 0;
   };
 
@@ -52,7 +50,8 @@ const QuizSelection: React.FC<QuizSelectionProps> = ({ user, members, onUpdateMe
       <QuizGame 
         category={playingCategory} 
         user={user} 
-        member={currentMember}
+        member={currentMember || undefined}
+        members={members}
         onUpdateMember={onUpdateMember}
         onBack={() => setPlayingCategory(null)} 
       />

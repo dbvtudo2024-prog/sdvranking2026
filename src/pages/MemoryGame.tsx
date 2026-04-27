@@ -43,7 +43,7 @@ const CARD_IMAGES = [
   { type: 'apito', url: 'https://api.iconify.design/fluent-emoji:whistle.svg' }
 ];
 
-import { getCycleStart, checkPlayedThisWeek, safeAddScore } from '@/utils/gameUtils';
+import { isGameTimeAvailable, checkPlayedThisWeek, checkIsAdmin, findMemberForUser, safeAddScore } from '@/utils/gameUtils';
 
 const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, onUpdateStats, onBack, memoryOverride }) => {
   const [showInstructions, setShowInstructions] = useState(true);
@@ -56,23 +56,16 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   const [isGameOver, setIsGameOver] = useState(false);
   const timerRef = useRef<number | null>(null);
 
-  const currentMember = useMemo(() => {
-    return members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
-  }, [members, user.id, user.name]);
-
-  const isAdmin = user.role === UserRole.LEADERSHIP || user.email === 'ronaldosonic@gmail.com';
-
-  const cycleStart = useMemo(() => getCycleStart(), []);
+  const isAdmin = checkIsAdmin(user);
 
   const { isAvailable, hasPlayedThisWeek } = useMemo(() => {
     const now = new Date();
-    const day = now.getDay();
-    // Standard availability: Sunday (0) to Thursday (4)
-    const available = (day >= 0 && day <= 4) || memoryOverride || isAdmin;
-    const played = checkPlayedThisWeek(currentMember, 'memoryGame');
+    const available = isGameTimeAvailable(now.getDay(), now.getHours(), { memory: memoryOverride }, 'memory', user);
+    const currentMember = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'memoryGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
-  }, [memoryOverride, currentMember, isAdmin, cycleStart]);
+  }, [memoryOverride, members, user, isAdmin]);
 
   if (hasPlayedThisWeek && !isAdmin && !memoryOverride) {
     return (
