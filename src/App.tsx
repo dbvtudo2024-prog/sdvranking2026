@@ -161,11 +161,28 @@ const App: React.FC = () => {
       },
       onMembers: (data) => {
         console.log("[App] Membros recebidos:", data.length);
-        setMembers(data);
+        
+        // Deduplication Logic
+        const uniqueEntries = new Map<string, Member>();
+        data.forEach(m => {
+          if (m && m.id) {
+            const id = String(m.id);
+            if (!uniqueEntries.has(id)) {
+              uniqueEntries.set(id, m);
+            } else {
+              const existing = uniqueEntries.get(id)!;
+              const existingCount = (existing.scores?.length || 0) + (existing.badges?.length || 0);
+              const newCount = (m.scores?.length || 0) + (m.badges?.length || 0);
+              if (newCount > existingCount) uniqueEntries.set(id, m);
+            }
+          }
+        });
+        const deduplicated = Array.from(uniqueEntries.values());
+        setMembers(deduplicated);
         
         // Sincronizar o estado do usuário logado se ele estiver na lista de membros
         if (user) {
-          const me = data.find(m => String(m.id) === String(user.id));
+          const me = deduplicated.find(m => String(m.id) === String(user.id));
           if (me) {
             setUser(prev => {
               if (!prev) return null;

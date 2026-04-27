@@ -203,7 +203,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   };
 
   const handleFinish = () => {
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const memberToUpdate = findMemberForUser(members, user);
     
     if (memberToUpdate) {
       const points = calculatePoints();
@@ -225,7 +225,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   const hasSavedRef = useRef(false);
 
   const saveScoreToProfile = useCallback(() => {
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const memberToUpdate = findMemberForUser(members, user);
     
     if (memberToUpdate && !hasSavedRef.current) {
       hasSavedRef.current = true;

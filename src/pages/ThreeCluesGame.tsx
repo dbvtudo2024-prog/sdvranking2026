@@ -59,8 +59,9 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     const now = new Date();
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { threeClues: override }, 'threeClues', user);
     
-    const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'threeCluesGame');
+    // Identificação usando normalização robusta
+    const currentM = findMemberForUser(members, user);
+    const played = !isAdmin && checkPlayedThisWeek(currentM, 'threeCluesGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, isAdmin, members, user]);
@@ -159,7 +160,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
   };
 
   const handleFinish = () => {
-    const memberToUpdate = members.find(m => m.id === user.id || m.name.toLowerCase().trim() === user.name.toLowerCase().trim());
+    const memberToUpdate = findMemberForUser(members, user);
     if (!memberToUpdate) return;
 
     const newScore: Score = {

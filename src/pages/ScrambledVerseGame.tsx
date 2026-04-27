@@ -257,7 +257,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
                   <motion.span 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    key={idx} 
+                    key={`selected-${word}-${idx}`} 
                     className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-sm border border-blue-100 dark:border-blue-800"
                   >
                     {word}
@@ -274,7 +274,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
               <div className="flex flex-wrap justify-center gap-3">
                 {availableWords.map((word, idx) => (
                   <button
-                    key={`${word}-${idx}`}
+                    key={`available-${word}-${idx}`}
                     onClick={() => handleWordClick(word, idx)}
                     className="px-5 py-3 bg-white dark:bg-slate-800 border-2 border-b-4 border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-slate-700 dark:text-slate-200 active:scale-90 transition-all shadow-sm hover:bg-slate-50"
                   >

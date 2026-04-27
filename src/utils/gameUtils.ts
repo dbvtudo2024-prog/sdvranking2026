@@ -49,12 +49,31 @@ export const getCycleStart = (): Date => {
   return start;
 };
 
+/**
+ * Normaliza strings para comparação (remove acentos, espaços extras e converte para minúsculo)
+ */
+export const normalizeString = (str: string): string => {
+  if (!str) return '';
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+};
+
 export const findMemberForUser = (members: Member[], user: AuthUser | null | undefined): Member | undefined => {
   if (!user) return undefined;
-  return members.find(m => 
-    String(m.id) === String(user.id) || 
-    m.name.toLowerCase().trim() === user.name?.toLowerCase().trim()
-  );
+  
+  // Prioridade 1: ID exato
+  const byId = members.find(m => String(m.id) === String(user.id));
+  if (byId) return byId;
+
+  // Prioridade 2: Nome normalizado
+  const normalizedUserName = normalizeString(user.name || '');
+  if (!normalizedUserName) return undefined;
+
+  return members.find(m => normalizeString(m.name) === normalizedUserName);
 };
 
 export const checkPlayedThisWeek = (member: Member | null | undefined, gameId: string, category?: string): boolean => {
@@ -63,13 +82,16 @@ export const checkPlayedThisWeek = (member: Member | null | undefined, gameId: s
   const cycleStart = getCycleStart();
   
   return member.scores.some(s => {
+    // Apenas pontos de JOGO (game) impedem nova jogada na semana
+    if (s.type !== 'game') return false;
+
     const d = parseScoreDate(s.date);
     if (!d) return false;
     
     // De acordo com o ID do jogo
     const isSameGame = s.gameId === gameId || (s as any)[gameId] !== undefined;
     
-    // Se for quiz, verifica também a categoria
+    // Se for quiz, verifica também a categoria (opcional)
     if (gameId === 'quiz' && category) {
       const isSameCategory = s.quizCategory === category || (s as any)[category] !== undefined;
       return d >= cycleStart && isSameGame && isSameCategory;
@@ -83,9 +105,9 @@ export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key
   if (checkIsAdmin(user)) return true;
   if (overrides[gameId]) return true;
 
-  // Janela expandida: Domingo (12h) até Sexta (23:59)
+  // Janela expandida: Domingo (12h) até Sábado (23:59)
   if (day === 0) return hour >= 12;
-  if (day >= 1 && day <= 5) return true;
+  if (day >= 1 && day <= 6) return true;
   
   return false;
 };
