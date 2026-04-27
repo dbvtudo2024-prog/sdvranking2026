@@ -449,7 +449,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         });
 
         // 3. Insert into new (current) in VERY small batches with delay
-        const BATCH_SIZE = 3; 
+        // Table-specific batch size to avoid timeouts
+        const getBatchSize = (t: string) => {
+          if (['messages', 'members', 'specialty_studies'].includes(t)) return 1;
+          return 2;
+        };
+
+        const BATCH_SIZE = getBatchSize(table);
         for (let i = 0; i < dataToInsert.length; i += BATCH_SIZE) {
           const batch = dataToInsert.slice(i, i + BATCH_SIZE);
           
@@ -457,14 +463,19 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           const { error: upsertError } = await supabase.from(table).upsert(batch, { onConflict: table === 'game_configs' ? 'key' : 'id' });
           
           if (upsertError) {
-             // Fallback: try removing ID entirely if upsert fails
-             const fallbackBatch = batch.map(b => { const { id, ...rest } = b; return rest; });
-             const { error: insertError } = await supabase.from(table).insert(fallbackBatch);
-             if (insertError) throw new Error(`Erro fatal em ${table} (lote ${i}): ${insertError.message}`);
+             // Fallback: try removing ID entirely if upsert fails (only if not a UUID table)
+             const tablesUsingUUID = ['members', 'users', 'specialty_studies'];
+             if (!tablesUsingUUID.includes(table)) {
+                const fallbackBatch = batch.map(b => { const { id, ...rest } = b; return rest; });
+                const { error: insertError } = await supabase.from(table).insert(fallbackBatch);
+                if (insertError) throw new Error(`Erro fatal em ${table} (lote ${i}): ${insertError.message}`);
+             } else {
+                throw new Error(`Erro fatal em ${table} (lote ${i}): ${upsertError.message}`);
+             }
           }
           
           setMigrationStatus(`⏳ Migrando ${table}... (${Math.min(i + BATCH_SIZE, dataToInsert.length)}/${dataToInsert.length})`);
-          await new Promise(resolve => setTimeout(resolve, 400));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
