@@ -377,39 +377,32 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           // Remove created_at to let new DB handle it
           if ('created_at' in newItem) delete newItem.created_at;
           
-          // Remove password/unsupported fields from users table
-          if (table === 'users') {
-            if ('password' in newItem) delete newItem.password;
-            // Map name/full_name to keep consistency in both ways
-            if ('name' in newItem) {
-              newItem.full_name = newItem.name;
-              // we keep both name and full_name for safety since we ensured both in SQL
-            } else if ('full_name' in newItem) {
-              newItem.name = newItem.full_name;
-            }
-          }
+          // Field Mapping Compatibility:
+          // Ensure common field Name/Title/FullName variations are synced
+          const syncFields = (f1: string, f2: string) => {
+            if (f1 in newItem && !(f2 in newItem)) newItem[f2] = newItem[f1];
+            if (f2 in newItem && !(f1 in newItem)) newItem[f1] = newItem[f2];
+          };
 
-          // Handle ID Mismatch: 
-          // If table uses BIGINT in new DB (most tables) but data has UUID string (old DB style)
-          // ONLY 'members' and 'users' use UUID in the new structure
+          syncFields('name', 'full_name');
+          syncFields('name', 'title');
+          syncFields('title', ' Nome'); // Case for EspecialidadesDBV
+          syncFields('answer', 'correct_answer');
+
+          // Remove password from users table
+          if (table === 'users' && 'password' in newItem) delete newItem.password;
+
+          // Handle ID Mismatch
           const tablesUsingUUID = ['members', 'users'];
           const isTargetUUID = tablesUsingUUID.includes(table);
           
           if (!isTargetUUID && newItem.id !== undefined) {
-             // If ID is string (UUID), we MUST remove it to let DB generate BIGINT
              if (typeof newItem.id === 'string' && newItem.id.includes('-')) {
                delete newItem.id;
              }
           }
           
-          // Field Mapping Compatibility for Content tables
-          const isContentTable = ['devotionals', 'specialty_studies', 'announcements'].includes(table);
-          if (isContentTable) {
-            if ('name' in newItem && !('title' in newItem)) newItem.title = newItem.name;
-            if ('title' in newItem && !('name' in newItem)) newItem.name = newItem.title;
-          }
-
-          // Safety: Convert any potential numeric strings back to numbers for specific columns
+          // Convert strings to numbers where expected
           const numericKeys = ['score', 'points', 'correct_answer', 'study_id', 'chapter', 'verse'];
           numericKeys.forEach(key => {
             if (key in newItem && typeof newItem[key] === 'string' && !isNaN(Number(newItem[key]))) {
@@ -420,21 +413,23 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           return newItem;
         });
 
-        // 3. Insert into new (current) in small batches with delay to avoid timeouts
-        const BATCH_SIZE = 5;
+        // 3. Insert into new (current) in VERY small batches with delay
+        const BATCH_SIZE = 3; 
         for (let i = 0; i < dataToInsert.length; i += BATCH_SIZE) {
           const batch = dataToInsert.slice(i, i + BATCH_SIZE);
-          // Try standard insert first (better for regenerated IDs)
-          const { error: insertError } = await supabase.from(table).insert(batch);
           
-          if (insertError) {
-             console.warn(`Tentando upsert para ${table} devido a erro:`, insertError.message);
-             const { error: upsertError } = await supabase.from(table).upsert(batch);
-             if (upsertError) throw new Error(`Erro fatal em ${table}: ${upsertError.message}`);
+          // Use upsert to avoid duplicate errors on retry
+          const { error: upsertError } = await supabase.from(table).upsert(batch, { onConflict: table === 'game_configs' ? 'key' : 'id' });
+          
+          if (upsertError) {
+             // Fallback: try removing ID entirely if upsert fails
+             const fallbackBatch = batch.map(b => { const { id, ...rest } = b; return rest; });
+             const { error: insertError } = await supabase.from(table).insert(fallbackBatch);
+             if (insertError) throw new Error(`Erro fatal em ${table} (lote ${i}): ${insertError.message}`);
           }
           
           setMigrationStatus(`⏳ Migrando ${table}... (${Math.min(i + BATCH_SIZE, dataToInsert.length)}/${dataToInsert.length})`);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 400));
         }
         
         setMigrationStatus(`✅ Tabela ${table} migrada com sucesso (${oldData.length} registros).`);
@@ -803,43 +798,40 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 </p>
                 <div className="bg-black/40 p-4 rounded-3xl border border-slate-700/50">
                   <pre className="text-[8px] font-mono text-green-400 overflow-x-auto custom-scrollbar select-all leading-tight">
-{`-- 1. ESTRUTURA COMPLETA
+{`-- 1. ESTRUTURA COMPLETA (SCRIPT MESTRE)
 CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT auth.uid(), email TEXT, full_name TEXT, name TEXT, avatar_url TEXT, role TEXT DEFAULT 'user', password TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, unit TEXT, birth_date DATE, phone TEXT, email TEXT, role TEXT, active BOOLEAN DEFAULT true, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, full_name TEXT, unit TEXT, birth_date DATE, phone TEXT, email TEXT, role TEXT, active BOOLEAN DEFAULT true, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS messages (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, sender_id UUID, content TEXT, role TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS announcements (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, title TEXT, name TEXT, content TEXT, schedule_date TIMESTAMP WITH TIME ZONE, priority TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS devotionals (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, title TEXT, name TEXT, content TEXT, link TEXT, scheduled_for TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS specialty_studies (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, title TEXT, name TEXT, content TEXT, video_url TEXT, scheduled_for TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS specialty_study_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, study_id BIGINT, question TEXT, options JSONB, correct_answer INTEGER);
 CREATE TABLE IF NOT EXISTS quiz_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, question TEXT, options JSONB, correct_answer INTEGER, category TEXT, difficulty TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS who_am_i_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, content TEXT, correct_answer TEXT, clues JSONB, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS who_am_i_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, content TEXT, correct_answer TEXT, answer TEXT, clues JSONB, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS three_clues_questions (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, content TEXT, answer TEXT, clues JSONB, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS scrambled_verses (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, verse TEXT, reference TEXT, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS puzzle_images (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, url TEXT, title TEXT, category TEXT, difficulty TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS "EspecialidadesDBV" (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, "Nome" TEXT, "Imagem" TEXT, "Categoria" TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS puzzle_images (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, url TEXT, title TEXT, name TEXT, category TEXT, difficulty TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS "EspecialidadesDBV" (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, "Nome" TEXT, name TEXT, title TEXT, "Imagem" TEXT, "Categoria" TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS game_configs (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, key TEXT UNIQUE, value JSONB, updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS game_assets (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, game_type TEXT, name TEXT, url TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS desbravadores (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, unit TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS especialidades (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, category TEXT, image_url TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS conselheiros (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, unit TEXT, phone TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS quizzes (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, user_id UUID, score INTEGER, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS desbravadores (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, full_name TEXT, unit TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS especialidades (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, title TEXT, category TEXT, image_url TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS conselheiros (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, name TEXT, full_name TEXT, unit TEXT, phone TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS quizzes (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, user_id UUID, score INTEGER, points INTEGER, category TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS "Biblia_Completa" (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, "testament" TEXT, "book" TEXT, "chapter" INTEGER, "verse" INTEGER, "text" TEXT);
 
--- 2. GARANTIR QUE COLUNAS EXISTAM NAS TABELAS
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS full_name TEXT;
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS role TEXT;
-ALTER TABLE IF EXISTS users ALTER COLUMN password DROP NOT NULL;
-ALTER TABLE IF EXISTS specialty_studies ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS specialty_studies ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE IF EXISTS devotionals ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS devotionals ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE IF EXISTS devotionals ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMP WITH TIME ZONE;
-ALTER TABLE IF EXISTS announcements ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS announcements ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE IF EXISTS three_clues_questions ADD COLUMN IF NOT EXISTS category TEXT;
-ALTER TABLE IF EXISTS "EspecialidadesDBV" ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- 2. GARANTIR TODAS AS COLUNAS POSSÍVEIS (CORREÇÃO EM MASSA)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
+        ALTER TABLE users ALTER COLUMN password DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'members') THEN
+        ALTER TABLE members ADD COLUMN IF NOT EXISTS full_name TEXT;
+    END IF;
+END $$;
 
 -- 3. PERMISSÕES ACESSO PÚBLICO
 DO $$ 
