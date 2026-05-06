@@ -63,12 +63,12 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     const now = new Date();
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { memory: memoryOverride, memory_allowed_day: allowedDay }, 'memory', user);
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'memoryGame');
+    const played = checkPlayedThisWeek(currentMember, 'memoryGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [memoryOverride, allowedDay, members, user, isAdmin]);
 
-  if (hasPlayedThisWeek && !isAdmin && !memoryOverride) {
+  if (hasPlayedThisWeek && !memoryOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />
@@ -83,7 +83,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
-  if (!isAvailable && !isAdmin && !memoryOverride) {
+  if (!isAvailable && !memoryOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />
@@ -99,11 +99,11 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
   }
 
   useEffect(() => {
-    if (isAvailable && (!hasPlayedThisWeek || isAdmin)) {
+    if (isAvailable && !hasPlayedThisWeek) {
       // Don't auto-initialize, let user pick difficulty
     }
     return () => stopTimer();
-  }, [isAvailable, hasPlayedThisWeek, isAdmin]);
+  }, [isAvailable, hasPlayedThisWeek]);
 
   const startTimer = () => {
     stopTimer();
@@ -252,7 +252,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     }
   }, [isGameOver, saveScoreToProfile]);
 
-  if (hasPlayedThisWeek && !isAdmin && !memoryOverride) {
+  if (hasPlayedThisWeek && !memoryOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />
@@ -265,7 +265,7 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
-  if (!isAvailable && !isAdmin && !memoryOverride) {
+  if (!isAvailable && !memoryOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Jogo da Memória" user={user} onBack={onBack} />

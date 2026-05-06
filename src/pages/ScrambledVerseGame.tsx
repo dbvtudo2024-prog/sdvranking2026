@@ -148,12 +148,12 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { scrambledVerse: override, scrambledVerse_allowed_day: allowedDay }, 'scrambledVerse', user);
 
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'scrambledVerseGame');
+    const played = checkPlayedThisWeek(currentMember, 'scrambledVerseGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
 
-  if (!isAvailable && !isAdmin && !override) {
+  if (!isAvailable && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Versículo" user={user} onBack={onBack} />
@@ -168,7 +168,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Versículo" user={user} onBack={onBack} />

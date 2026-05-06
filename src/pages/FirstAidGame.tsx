@@ -34,13 +34,13 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { firstAid: override, firstAid_allowed_day: allowedDay }, 'firstAid', user);
     
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'firstAidGame');
+    const played = checkPlayedThisWeek(currentMember, 'firstAidGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
 
   useEffect(() => {
-    if (hasPlayedThisWeek && !isAdmin) return;
+    if (hasPlayedThisWeek) return;
     DatabaseService.getQuizQuestions().then(data => {
       const firstAidQuestions = data.filter(q => q.category === 'Primeiros Socorros');
       if (firstAidQuestions.length > 0) {
@@ -102,7 +102,7 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
     });
   };
 
-  if (!isAvailable && !isAdmin && !override) {
+  if (!isAvailable && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Primeiros Socorros" user={user} onBack={onBack} />
@@ -117,7 +117,7 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Primeiros Socorros" user={user} onBack={onBack} />

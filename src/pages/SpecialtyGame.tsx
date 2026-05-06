@@ -86,7 +86,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialty: specialtyOverride, specialty_allowed_day: allowedDay }, 'specialty', user);
     
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyGame');
+    const played = checkPlayedThisWeek(currentMember, 'specialtyGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [specialtyOverride, allowedDay, members, user, isAdmin]);
@@ -178,7 +178,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     </div>
   );
 
-  if (hasPlayedThisWeek && !isAdmin && !specialtyOverride) {
+  if (hasPlayedThisWeek && !specialtyOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
         <GameHeader title="Especialidades" user={user} onBack={onBack} />
@@ -193,7 +193,7 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
     );
   }
 
-  if (!isAvailable && !isAdmin && !specialtyOverride) {
+  if (!isAvailable && !specialtyOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a]">
         <GameHeader title="Especialidades" user={user} onBack={onBack} />

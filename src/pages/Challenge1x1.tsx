@@ -5,12 +5,13 @@ import { QUIZ_QUESTIONS, UNIT_LOGOS } from '@/constants';
 import { DatabaseService, supabase } from '@/db';
 import { safeAddScore } from '@/utils/gameUtils';
 import { Score } from '@/types';
-import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords } from 'lucide-react';
+import { Sword, Users, X, Check, Timer, Trophy, ArrowLeft, Loader2, Zap, Cpu, Medal, User, RotateCcw, Heart, Info, Target, Swords, CheckCircle2 } from 'lucide-react';
 import GameInstructions from '@/components/GameInstructions';
 import GameHeader from '@/components/GameHeader';
 import { calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
+import { checkPlayedThisWeek } from '@/utils/gameUtils';
 
 interface Challenge1x1PageProps {
   user: AuthUser;
@@ -31,6 +32,10 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
   
   const machineTimerRef = useRef<number | null>(null);
   const myMember = useMemo(() => members.find(m => m.id === user.id), [members, user.id]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    return checkPlayedThisWeek(myMember, 'challenge1x1');
+  }, [myMember]);
 
   const duelRanking = useMemo(() => {
     return members
@@ -256,6 +261,77 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
     }
     return <div className="flex gap-1 mt-1">{hearts}</div>;
   };
+
+  if (hasPlayedThisWeek) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Duelo 1x1" user={user} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Duelo Concluído!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já participou da arena esta semana. Volte no próximo domingo ao meio-dia para novos combates!</p>
+          <button 
+            onClick={() => setShowRanking(true)}
+            className="mt-8 w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+          >
+            <Trophy size={20} />
+            Ver Ranking da Arena
+          </button>
+        </div>
+        
+        <AnimatePresence>
+          {showRanking && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+            >
+              <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
+                <div className="bg-red-600 p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Swords className="text-white" size={24} />
+                    <h3 className="text-white font-black uppercase tracking-tight">Ranking Da Arena</h3>
+                  </div>
+                  <button onClick={() => setShowRanking(false)} className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors">
+                    <ArrowLeft size={20} />
+                  </button>
+                </div>
+                
+                <div className="p-4 space-y-3">
+                  {duelRanking.map((m, idx) => (
+                      <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                        <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
+                          {idx + 1}º
+                        </div>
+                        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0">
+                          {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto text-slate-200 mt-2.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-xs uppercase text-slate-800 dark:text-white truncate">{m.name}</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">{m.unit}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-black text-red-600 dark:text-red-400 leading-none">
+                            {m.totalPoints}
+                          </p>
+                          <p className="text-[7px] font-black uppercase text-slate-400">Pontos</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                  <button onClick={() => setShowRanking(false)} className="w-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-4 rounded-2xl font-black uppercase tracking-widest text-xs">Voltar</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   if (showArena && activeChallenge && currentQuestionData) {
     const oppId = isMachineMode ? 'machine' : (activeChallenge.challengerId === user.id ? activeChallenge.challengedId : activeChallenge.challengerId);

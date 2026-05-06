@@ -316,14 +316,14 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         </div>
       </div>
 
-      {/* FLOATING ACTION BUTTON / ICON FOR CHECK-IN */}
-      <div className="fixed bottom-44 right-6 z-[100] flex flex-col items-end gap-3 pointer-events-none">
+      {/* FLOATING ACTION BUTTON / ICON FOR CHECK-IN - MOVIDO PARA O TOPO ESQUERDO */}
+      <div className="fixed top-8 left-6 z-[100] flex flex-col items-start gap-3 pointer-events-none">
         <AnimatePresence>
           {streak > 0 && (
             <motion.div 
-               initial={{ opacity: 0, scale: 0.8, x: 20 }}
+               initial={{ opacity: 0, scale: 0.8, x: -20 }}
                animate={{ opacity: 1, scale: 1, x: 0 }}
-               exit={{ opacity: 0, scale: 0.8, x: 20 }}
+               exit={{ opacity: 0, scale: 0.8, x: -20 }}
                onClick={() => setShowCheckInModal(true)}
                className={`flex items-center gap-2 px-4 py-3 rounded-2xl shadow-2xl border-2 cursor-pointer active:scale-95 transition-all pointer-events-auto ${isDarkMode ? 'bg-slate-900 border-orange-500/30 shadow-orange-950/20' : 'bg-white border-orange-100 shadow-orange-200/50'}`}
             >
@@ -334,7 +334,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
 
           {canCheckIn && (
             <motion.button 
-               initial={{ opacity: 0, scale: 0.8, y: 20 }}
+               initial={{ opacity: 0, scale: 0.8, y: -20 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
                whileHover={{ scale: 1.05 }}
                onClick={() => setShowCheckInModal(true)}

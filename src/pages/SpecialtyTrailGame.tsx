@@ -107,12 +107,12 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { specialtyTrail: override, specialtyTrail_allowed_day: allowedDay }, 'specialtyTrail', user);
 
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'specialtyTrailGame');
+    const played = checkPlayedThisWeek(currentMember, 'specialtyTrailGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
 
-  if (!isAvailable && !isAdmin && !override) {
+  if (!isAvailable && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Trilha de Especialidades" user={user} onBack={onBack} />
@@ -127,7 +127,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Trilha de Especialidades" user={user} onBack={onBack} />

@@ -10,6 +10,8 @@ import { calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { User } from 'lucide-react';
 
+import { checkPlayedThisWeek } from '@/utils/gameUtils';
+
 interface BrickBreakerGameProps {
   onBack: () => void;
   isDarkMode?: boolean;
@@ -47,6 +49,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   const currentMember = useMemo(() => 
     members.find(m => m.id === user?.id || (m.name.trim().toLowerCase() === user?.name?.trim().toLowerCase())),
   [members, user]);
+
+  const hasPlayedThisWeek = useMemo(() => {
+    return checkPlayedThisWeek(currentMember, 'brickBreakerGame');
+  }, [currentMember]);
 
   const isAdmin = useMemo(() => 
     user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldosonic@gmail.com',
@@ -449,6 +455,21 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
       resetBall();
     }
   }, [level, initBricks, resetBall, gameState]);
+
+  if (hasPlayedThisWeek && !override) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
+        <GameHeader title="Quebra-Tudo" user={user as AuthUser} onBack={onBack} />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-500 mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Missão Cumprida!</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Você já completou este desafio esta semana. Volte no próximo domingo ao meio-dia!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-white overflow-hidden">

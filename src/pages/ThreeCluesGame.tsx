@@ -62,12 +62,12 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     
     // Identificação usando normalização robusta
     const currentM = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentM, 'threeCluesGame');
+    const played = checkPlayedThisWeek(currentM, 'threeCluesGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
 
-  if (!isAvailable && !isAdmin && !override) {
+  if (!isAvailable && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="3 Dicas" user={user} onBack={onBack} />
@@ -82,7 +82,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="3 Dicas" user={user} onBack={onBack} />

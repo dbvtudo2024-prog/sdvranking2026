@@ -45,12 +45,12 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { puzzle: puzzleOverride, puzzle_allowed_day: allowedDay }, 'puzzle', user);
 
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'puzzleGame');
+    const played = checkPlayedThisWeek(currentMember, 'puzzleGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [puzzleOverride, allowedDay, members, user, isAdmin]);
 
-  if (hasPlayedThisWeek && !isAdmin && !puzzleOverride) {
+  if (hasPlayedThisWeek && !puzzleOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />
@@ -65,7 +65,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
     );
   }
 
-  if (!isAvailable && !isAdmin && !puzzleOverride) {
+  if (!isAvailable && !puzzleOverride) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Quebra-Cabeça" user={user} onBack={onBack} />

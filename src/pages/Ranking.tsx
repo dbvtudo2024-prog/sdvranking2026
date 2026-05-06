@@ -258,7 +258,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               </div>
               <div className="w-20 h-24 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center">
                 <span className={`text-[7px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
-                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                  {tab === 'games' ? 'Jogos Mensal' : 'Semanal'}
                 </span>
                 <span className={`text-xl font-black ${tab === 'games' ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`}>
                   {podiumSlots[1] ? getPoints(podiumSlots[1]) : 0}
@@ -295,7 +295,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               <div className="w-24 h-40 bg-gradient-to-b from-white to-yellow-50 dark:from-slate-800 dark:to-slate-900 rounded-t-[2.5rem] shadow-2xl border-t-2 border-yellow-100 dark:border-yellow-900/30 flex flex-col items-center justify-center p-2 text-center">
                 <Trophy size={24} className="text-yellow-400 mb-2" />
                 <span className={`text-[8px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
-                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                  {tab === 'games' ? 'Jogos Mensal' : 'Semanal'}
                 </span>
                 <span className={`text-3xl font-black ${tab === 'games' ? 'text-amber-500' : 'text-[#0061f2] dark:text-blue-400'}`}>
                    {podiumSlots[0] ? getPoints(podiumSlots[0]) : 0}
@@ -331,7 +331,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
               </div>
               <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-t-[2rem] shadow-2xl border-t border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center">
                 <span className={`text-[7px] font-black uppercase tracking-widest leading-none mb-1 ${tab === 'games' ? 'text-amber-500' : 'text-blue-500'}`}>
-                  {tab === 'games' ? 'Jogos' : 'Semanal'}
+                  {tab === 'games' ? 'Jogos Mensal' : 'Semanal'}
                 </span>
                 <span className={`text-xl font-black text-amber-500`}>
                   {podiumSlots[2] ? getPoints(podiumSlots[2]) : 0}
@@ -388,7 +388,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                         ? (isDarkMode ? 'text-amber-500' : 'text-amber-600')
                         : (isDarkMode ? 'text-blue-400' : 'text-blue-500')
                     }`}>
-                      {tab === 'games' ? 'Jogos' : 'Semanal'}
+                      {tab === 'games' ? 'Jogos Mensal' : 'Semanal'}
                     </span>
                     <span className={`text-base font-black leading-none ${
                       tab === 'games' 

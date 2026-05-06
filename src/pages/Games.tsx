@@ -128,9 +128,9 @@ const Games: React.FC<GamesProps> = ({
     if (gameId === 'quiz') {
       const playedDesb = checkPlayedThisWeek(currentMember, 'quiz', 'Desbravadores');
       const playedBiblia = checkPlayedThisWeek(currentMember, 'quiz', 'Bíblia');
-      alreadyPlayed = !isAdmin && playedDesb && playedBiblia;
+      alreadyPlayed = playedDesb && playedBiblia;
     } else {
-      alreadyPlayed = !isAdmin && checkPlayedThisWeek(currentMember, dbGameId);
+      alreadyPlayed = checkPlayedThisWeek(currentMember, dbGameId);
     }
     
     return { unlocked, clubUnlocked, alreadyPlayed };
@@ -146,6 +146,10 @@ const Games: React.FC<GamesProps> = ({
   const scrambledVerseStatus = useMemo(() => getGameStatus('scrambledVerse', 'scrambledVerse', 'scrambledVerseGame'), [currentMember, cycleStart, scrambledVerseOverride, scrambledVerseAllowedDay, isAdmin]);
   const natureIdStatus = useMemo(() => getGameStatus('natureId', 'natureId', 'natureIdGame'), [currentMember, cycleStart, natureIdOverride, natureIdAllowedDay, isAdmin]);
   const firstAidStatus = useMemo(() => getGameStatus('firstAid', 'firstAid', 'firstAidGame'), [currentMember, cycleStart, firstAidOverride, firstAidAllowedDay, isAdmin]);
+
+  const mahjongStatus = useMemo(() => getGameStatus('mahjong', 'mahjong', 'mahjongGame'), [currentMember, isAdmin]);
+  const duelStatus = useMemo(() => getGameStatus('1x1', '1x1', 'challenge1x1'), [currentMember, isAdmin]);
+  const brickStatus = useMemo(() => getGameStatus('brickbreaker', 'brick', 'brickBreakerGame'), [currentMember, isAdmin]);
 
   const getTimeToUnlock = () => {
     if (isGameDay) return "Disponível!";
@@ -237,45 +241,54 @@ const Games: React.FC<GamesProps> = ({
             {/* DUELO ARENA 1x1 */}
             <button 
               onClick={() => setActiveGame('1x1')} 
-              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-800 border-b-8 text-white shadow-2xl shadow-blue-500/30 active:scale-95 px-8 relative overflow-hidden group"
+              disabled={duelStatus.alreadyPlayed}
+              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-800 border-b-8 text-white shadow-2xl shadow-blue-500/30 active:scale-95 px-8 relative overflow-hidden group ${duelStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Sword size={100} />
               </div>
-              <Sword size={48} className="text-yellow-400 drop-shadow-lg animate-bounce-slow" />
+              {duelStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Sword size={48} className="text-yellow-400 drop-shadow-lg animate-bounce-slow" />}
               <div className="flex flex-col items-center text-center leading-tight">
                 <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Duelo 1x1</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
+                  {duelStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+                </span>
               </div>
             </button>
 
             {/* MAHJONG - AGORA PARA TODOS */}
             <button 
               onClick={() => setActiveGame('mahjong')} 
-              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group"
+              disabled={mahjongStatus.alreadyPlayed}
+              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group ${mahjongStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Gamepad2 size={100} />
               </div>
-              <Medal size={48} className="text-amber-400 animate-pulse" />
+              {mahjongStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Medal size={48} className="text-amber-400 animate-pulse" />}
               <div className="flex flex-col items-center text-center leading-tight">
                 <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Mahjong</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
+                  {mahjongStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+                </span>
               </div>
             </button>
 
             {/* BLOCOS - SEMPRE LIBERADO */}
             <button 
               onClick={() => setActiveGame('brickbreaker')} 
-              className="h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group"
+              disabled={brickStatus.alreadyPlayed}
+              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group ${brickStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Gamepad2 size={100} />
               </div>
-              <Gamepad2 size={48} className="text-orange-200 animate-pulse" />
+              {brickStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Gamepad2 size={48} className="text-orange-200 animate-pulse" />}
               <div className="flex flex-col items-center text-center leading-tight">
                 <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Blocos</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">Sempre disponível</span>
+                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
+                  {brickStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+                </span>
               </div>
             </button>
           </div>

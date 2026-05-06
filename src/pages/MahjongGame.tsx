@@ -11,6 +11,8 @@ import GameHeader from '@/components/GameHeader';
 import { calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 
+import { checkPlayedThisWeek } from '@/utils/gameUtils';
+
 interface MahjongGameProps {
   user: AuthUser;
   members: Member[];
@@ -93,8 +95,8 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
   }, []);
 
   const hasPlayedThisWeek = useMemo(() => {
-    return false; // Liberado para todos jogarem todos os dias
-  }, []);
+    return checkPlayedThisWeek(currentMember, 'mahjongGame');
+  }, [currentMember]);
 
   const scoreRef = useRef(score);
   const levelRef = useRef(level);
@@ -527,7 +529,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
 
   const noMovesLeft = isStarted && !isGameOver && tiles.some(t => !t.removed) && !checkPossibleMoves(tiles);
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Mahjong" user={user} onBack={onBack} />

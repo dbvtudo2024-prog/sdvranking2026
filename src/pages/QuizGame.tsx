@@ -74,9 +74,8 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, members, on
   const currentMember = useMemo(() => findMemberForUser(members, user), [members, user]);
 
   const hasPlayedThisWeek = useMemo(() => {
-    if (isAdmin) return false;
     return checkPlayedThisWeek(currentMember || member, 'quiz', category);
-  }, [currentMember, member, isAdmin, category]);
+  }, [currentMember, member, category]);
 
   const saveScoreToProfile = useCallback(() => {
     const targetMember = currentMember || member;
@@ -124,7 +123,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ category, user, member, members, on
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin) {
+  if (hasPlayedThisWeek) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title={`Quiz: ${category}`} user={user} onBack={onBack} />

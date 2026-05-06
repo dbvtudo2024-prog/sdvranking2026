@@ -34,13 +34,13 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { natureId: override, natureId_allowed_day: allowedDay }, 'natureId', user);
     
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'natureIdGame');
+    const played = checkPlayedThisWeek(currentMember, 'natureIdGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
 
   useEffect(() => {
-    if (hasPlayedThisWeek && !isAdmin) return;
+    if (hasPlayedThisWeek) return;
     DatabaseService.getQuizQuestions().then(data => {
       const natureQuestions = data.filter(q => q.category === 'Natureza');
       if (natureQuestions.length > 0) {
@@ -102,7 +102,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
     });
   };
 
-  if (!isAvailable && !isAdmin && !override) {
+  if (!isAvailable && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Identificador da Natureza" user={user} onBack={onBack} />
@@ -117,7 +117,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
     );
   }
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Identificador da Natureza" user={user} onBack={onBack} />

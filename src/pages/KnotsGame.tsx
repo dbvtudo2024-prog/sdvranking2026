@@ -66,7 +66,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     const available = isGameTimeAvailable(now.getDay(), now.getHours(), { knots: override, knots_allowed_day: allowedDay }, 'knots', user);
     
     const currentMember = findMemberForUser(members, user);
-    const played = !isAdmin && checkPlayedThisWeek(currentMember, 'knotsGame');
+    const played = checkPlayedThisWeek(currentMember, 'knotsGame');
     
     return { isAvailable: available, hasPlayedThisWeek: played };
   }, [override, allowedDay, isAdmin, members, user]);
@@ -80,7 +80,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
     return [...shuffledOthers, currentKnot].sort(() => Math.random() - 0.5);
   }, [currentKnot, knots]);
 
-  if (hasPlayedThisWeek && !isAdmin && !override) {
+  if (hasPlayedThisWeek && !override) {
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] overflow-hidden">
         <GameHeader title="Mestre dos Nós" user={user} onBack={onBack} />
