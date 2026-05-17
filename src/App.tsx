@@ -562,7 +562,7 @@ const App: React.FC = () => {
     if (!user) return;
     
     currentMembers.forEach(m => {
-      const completedCount = (m.scores || []).filter(s => s.specialtyStudyScore !== undefined && s.specialtyStudyScore >= 10).length;
+      const completedCount = (m.scores || []).filter(s => s.specialtyStudyScore !== undefined && s.specialtyStudyScore >= 7).length;
       if (completedCount < 10) return;
 
       const levels = [
@@ -830,9 +830,9 @@ const App: React.FC = () => {
           
           const expectedChamps = expectedChampionsByMonth[monthStr];
           if (!expectedChamps) {
-            console.log(`[Awards] Removendo badge de mês sem registro: ${b.badgeId} para ${m.name}`);
-            hasChanges = true;
-            return false; 
+            // Se não temos dados para esse mês na sessão atual, MANTEMOS a medalha.
+            // Somente removemos se tivermos certeza (dados presentes e vencedor diferente).
+            return true; 
           }
           
           const expectedChampIdAtPos = expectedChamps[pos - 1];

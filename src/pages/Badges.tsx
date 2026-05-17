@@ -22,14 +22,77 @@ const BADGE_ICONS: { [key: string]: any } = {
   'CheckCircle2': CheckCircle2
 };
 
+export const getBadgeLevelColorClass = (level: BadgeLevel) => {
+  switch (level) {
+    case BadgeLevel.BRONZE:
+      return 'bg-amber-600 shadow-amber-600/40';
+    case BadgeLevel.SILVER:
+      return 'bg-slate-400 shadow-slate-400/40';
+    case BadgeLevel.GOLD:
+      return 'bg-yellow-500 shadow-yellow-500/40';
+    case BadgeLevel.PLATINUM:
+      return 'bg-indigo-500 shadow-indigo-500/40';
+    case BadgeLevel.DIAMOND:
+      return 'bg-cyan-400 shadow-cyan-400/40';
+    case BadgeLevel.MASTER:
+      return 'bg-purple-600 shadow-purple-600/40';
+    case BadgeLevel.LEGENDARY:
+      return 'bg-rose-600 shadow-rose-600/40';
+    default:
+      return 'bg-blue-600 shadow-blue-600/40';
+  }
+};
+
+export const getBadgeLevelTextColorClass = (level: BadgeLevel) => {
+  switch (level) {
+    case BadgeLevel.BRONZE:
+      return 'text-amber-600 dark:text-amber-400';
+    case BadgeLevel.SILVER:
+      return 'text-slate-500 dark:text-slate-400';
+    case BadgeLevel.GOLD:
+      return 'text-yellow-600 dark:text-yellow-400';
+    case BadgeLevel.PLATINUM:
+      return 'text-indigo-600 dark:text-indigo-400';
+    case BadgeLevel.DIAMOND:
+      return 'text-cyan-600 dark:text-cyan-400';
+    case BadgeLevel.MASTER:
+      return 'text-purple-600 dark:text-purple-400';
+    case BadgeLevel.LEGENDARY:
+      return 'text-rose-600 dark:text-rose-400';
+    default:
+      return 'text-blue-800 dark:text-blue-400';
+  }
+};
+
+export const getStarLevelColorClass = (level: BadgeLevel) => {
+  switch (level) {
+    case BadgeLevel.BRONZE:
+      return 'bg-amber-600 text-amber-50';
+    case BadgeLevel.SILVER:
+      return 'bg-slate-300 text-slate-700';
+    case BadgeLevel.GOLD:
+      return 'bg-yellow-400 text-yellow-900';
+    case BadgeLevel.PLATINUM:
+      return 'bg-indigo-600 text-indigo-50';
+    case BadgeLevel.DIAMOND:
+      return 'bg-cyan-400 text-cyan-950';
+    case BadgeLevel.MASTER:
+      return 'bg-purple-600 text-purple-100';
+    case BadgeLevel.LEGENDARY:
+      return 'bg-rose-600 text-rose-50';
+    default:
+      return 'bg-blue-600 text-blue-100';
+  }
+};
+
 const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
   const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
   const [selectedMonthly, setSelectedMonthly] = useState<any | null>(null);
   
-  const currentMember = members.find(m => String(m.id) === String(user.id));
-  const userBadges = currentMember?.badges || [];
+  const userBadges = user.badges || [];
 
-  const getBadgeIcon = (iconName: string) => {
+  const getBadgeIcon = (iconName: string, badgeId?: string) => {
+    if (badgeId?.startsWith('specialty_master_')) return Medal;
     return BADGE_ICONS[iconName] || ShieldCheck;
   };
 
@@ -70,7 +133,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
             <div>
               <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Progresso Geral</p>
               <p className="text-white text-sm font-black leading-none">
-                <span className="text-yellow-400">{userBadges.length} de {BADGE_DEFINITIONS.length}</span> conquistadas
+                <span className="text-yellow-400">{userBadges.filter(b => !b.badgeId.startsWith('monthly_games_')).length} de {BADGE_DEFINITIONS.length}</span> conquistadas
               </p>
             </div>
           </div>
@@ -80,9 +143,12 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-10 pb-32">
         <div className="grid grid-cols-2 gap-4">
           {BADGE_DEFINITIONS.map(badge => {
-            const userBadge = userBadges.find(ub => ub.badgeId === badge.id);
+            const userBadge = userBadges.find(ub => 
+              ub.badgeId === badge.id || 
+              (badge.id === 'mestre_especialidade' && ub.badgeId.startsWith('specialty_master_'))
+            );
             const isUnlocked = !!userBadge;
-            const BadgeIcon = getBadgeIcon(badge.icon);
+            const BadgeIcon = getBadgeIcon(badge.icon, userBadge?.badgeId);
             
             return (
               <button 
@@ -96,9 +162,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
               >
                 <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-3 transition-transform ${
                   isUnlocked 
-                    ? (userBadge.level === BadgeLevel.GOLD ? 'bg-yellow-500 shadow-yellow-500/40' : 
-                       userBadge.level === BadgeLevel.SILVER ? 'bg-slate-400 shadow-slate-400/40' : 
-                       'bg-orange-700 shadow-orange-700/40')
+                    ? getBadgeLevelColorClass(userBadge.level)
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
                 } text-white shadow-xl`}>
                   <BadgeIcon size={32} />
@@ -106,17 +170,13 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
                 
                 <div className="text-center w-full">
                   <p className={`text-[11px] font-black uppercase leading-tight mb-1 truncate px-2 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badge.name}</p>
-                  <p className={`text-[8px] font-bold uppercase tracking-[0.1em] ${isUnlocked ? (userBadge.level === BadgeLevel.GOLD ? 'text-yellow-600' : userBadge.level === BadgeLevel.SILVER ? 'text-slate-500' : 'text-orange-800') : 'text-slate-400'}`}>
+                  <p className={`text-[8px] font-bold uppercase tracking-[0.1em] ${isUnlocked ? getBadgeLevelTextColorClass(userBadge.level) : 'text-slate-400'}`}>
                     {isUnlocked ? userBadge.level : badge.category}
                   </p>
                 </div>
 
                 {isUnlocked && (
-                  <div className={`absolute top-2 right-2 p-1 rounded-full shadow-lg border-2 border-white ${
-                    userBadge.level === BadgeLevel.GOLD ? 'bg-yellow-400 text-yellow-900' : 
-                    userBadge.level === BadgeLevel.SILVER ? 'bg-slate-200 text-slate-600' : 
-                    'bg-orange-300 text-orange-900'
-                  }`}>
+                  <div className={`absolute top-2 right-2 p-1 rounded-full shadow-lg border-2 border-white ${getStarLevelColorClass(userBadge.level)}`}>
                     <Star size={10} fill="currentColor" />
                   </div>
                 )}

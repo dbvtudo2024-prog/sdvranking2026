@@ -6,6 +6,7 @@ import { calculateWeeklyTotal, calculateGamesTotal, calculateExtraGamesTotal } f
 import { formatDate } from '@/helpers/dateHelpers';
 import { BADGE_DEFINITIONS } from '@/constants';
 import BadgeInfoModal from './BadgeInfoModal';
+import { getBadgeLevelColorClass } from '@/pages/Badges';
 
 const BADGE_ICONS: { [key: string]: any } = {
   'Shield': Shield,
@@ -209,7 +210,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                     if (!badgeDef) return null;
                     
                     const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
-                    const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
+                    const badgeName = badgeDef.name;
                     
                     return (
                       <div 
@@ -220,15 +221,15 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                         }}
                       >
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 shadow-lg relative transition-all group-hover:scale-110 ${
-                          ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
-                          ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
-                          ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
-                          'bg-blue-600'
+                          getBadgeLevelColorClass(ub.level)
                         } text-white border-2 border-white dark:border-slate-800`}>
                           <BadgeIcon size={24} />
                         </div>
-                        <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                          {badgeName.split(' ')[0]}
+                        <p className={`text-[8px] font-black uppercase text-center leading-[1.15] w-full px-0.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {badgeName}
+                        </p>
+                        <p className={`text-[6px] font-bold uppercase text-center opacity-60 truncate w-full ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {ub.level}
                         </p>
                       </div>
                     );
@@ -249,8 +250,8 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600 transition-all group-hover:opacity-100 group-hover:grayscale-0">
                         <BadgeIcon size={24} />
                       </div>
-                      <p className={`text-[8px] font-black uppercase text-center leading-tight truncate w-full ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {badge.name.split(' ')[0]}
+                      <p className={`text-[8px] font-black uppercase text-center leading-[1.15] w-full px-0.5 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {badge.name}
                       </p>
                     </div>
                   );

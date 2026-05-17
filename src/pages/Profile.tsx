@@ -6,6 +6,7 @@ import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, S
 import { motion, AnimatePresence } from 'motion/react';
 import { calculateWeeklyTotal, calculateGamesTotal, calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
+import { getBadgeLevelColorClass, getStarLevelColorClass } from './Badges';
 
 // ICON MAPPING FOR BADGES
 const BADGE_ICONS: { [key: string]: any } = {
@@ -493,7 +494,7 @@ const Profile: React.FC<ProfileProps> = ({
                   if (!badgeDef) return null;
                   
                   const BadgeIcon = isSpecialtyMaster ? Medal : (BADGE_ICONS[badgeDef.icon] || HelpCircle);
-                  const badgeName = isSpecialtyMaster ? `Mestre ${ub.level}` : badgeDef.name;
+                  const badgeName = badgeDef.name;
                   
                   return (
                     <div 
@@ -503,18 +504,15 @@ const Profile: React.FC<ProfileProps> = ({
                       }`}
                     >
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-transform scale-110 active:scale-125 ${
-                        ub.level === BadgeLevel.GOLD || ub.level === BadgeLevel.MASTER ? 'bg-yellow-500' : 
-                        ub.level === BadgeLevel.DIAMOND ? 'bg-blue-400' :
-                        ub.level === BadgeLevel.SILVER ? 'bg-slate-400' : 
-                        'bg-blue-600'
+                        getBadgeLevelColorClass(ub.level)
                       } text-white shadow-xl`}>
                         <BadgeIcon size={28} />
                       </div>
                       <p className={`text-[10px] font-black uppercase text-center leading-tight mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{badgeName}</p>
                       <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                        {badgeDef.category}
+                        {ub.level}
                       </p>
-                      <div className="absolute -top-2 -right-2 bg-yellow-400 text-blue-900 p-1 rounded-full shadow-lg border-2 border-white">
+                      <div className={`absolute -top-2 -right-2 p-1 rounded-full shadow-lg border-2 border-white ${getStarLevelColorClass(ub.level)}`}>
                         <Star size={10} fill="currentColor" />
                       </div>
                     </div>
