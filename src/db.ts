@@ -2,8 +2,64 @@
 import { createClient } from '@supabase/supabase-js';
 import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig } from '@/types';
 
-const SUPABASE_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM'; 
+declare global {
+  interface ImportMeta {
+    readonly env: Record<string, string | undefined>;
+  }
+}
+
+const DEFAULT_URL = 'https://lhcobtexredrovjbxaew.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY29idGV4cmVkcm92amJ4YWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTUzMTgsImV4cCI6MjA4NjQzMTMxOH0.Uas2nsjazqZtQjenkmLC3Abzr1zh4Xcye1VK-OKOhpM';
+
+const getValidSupabaseConfig = () => {
+  let url = import.meta.env.VITE_SUPABASE_URL;
+  let key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const extractRefFromJwt = (jwt: string): string | null => {
+    try {
+      if (jwt && jwt.includes('.')) {
+        const parts = jwt.split('.');
+        if (parts[1]) {
+          const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          const decoded = atob(payloadBase64);
+          const parsed = JSON.parse(decoded);
+          if (parsed && parsed.ref) {
+            return parsed.ref;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[getValidSupabaseConfig] Falha ao extrair projeto do JWT:", e);
+    }
+    return null;
+  };
+
+  let detectedRef = null;
+  if (key && key.includes('.')) {
+    detectedRef = extractRefFromJwt(key);
+  }
+  if (!detectedRef && url && url.includes('.')) {
+    detectedRef = extractRefFromJwt(url);
+    const temp = url;
+    url = key;
+    key = temp;
+  }
+
+  if (detectedRef) {
+    url = `https://${detectedRef}.supabase.co`;
+    console.log("[getValidSupabaseConfig] URL de banco autodetectada com sucesso:", url);
+  }
+
+  if (!url || typeof url !== 'string' || !url.trim().startsWith('http')) {
+    url = DEFAULT_URL;
+  }
+  if (!key || typeof key !== 'string' || key.trim() === '') {
+    key = DEFAULT_KEY;
+  }
+  return { url: url.trim(), key: key.trim() };
+};
+
+const { url: SUPABASE_URL, key: SUPABASE_ANON_KEY } = getValidSupabaseConfig();
 
 const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
   try {
@@ -267,7 +323,7 @@ export const DatabaseService = {
   },
 
   async addMember(member: Member) {
-    const payload = {
+    const payload: any = {
       id: member.id,
       name: member.name,
       role: member.role,
@@ -282,10 +338,27 @@ export const DatabaseService = {
       badges: member.badges,
       stats: member.stats
     };
-    const { error } = await supabase.from('members').insert([payload]);
-    if (error) {
-      console.error("Erro ao adicionar membro:", error);
-      throw error;
+    
+    try {
+      const { error } = await supabase.from('members').insert([payload]);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+          console.warn("Removendo colunas extras (badges/stats) por não existirem na tabela 'members':", error.message);
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.badges;
+          delete fallbackPayload.stats;
+          
+          const { error: retryError } = await supabase.from('members').insert([fallbackPayload]);
+          if (retryError) {
+            throw retryError;
+          }
+          return;
+        }
+        throw error;
+      }
+    } catch (e) {
+      console.error("Erro ao adicionar membro:", e);
+      throw e;
     }
   },
 
@@ -308,14 +381,26 @@ export const DatabaseService = {
     if (updates.badges) payload.badges = updates.badges;
     if (updates.stats) payload.stats = updates.stats;
 
-    const { error } = await supabase.from('members').update(payload).eq('id', id);
-    if (error) {
-      console.error("Erro ao atualizar membro no Supabase:", error);
-      // Se for erro de coluna inexistente, avisamos de forma amigável
-      if (error.code === 'PGRST204') {
-        console.warn("AVISO: Coluna 'badges' ou 'stats' está faltando na tabela 'members'. Execute o SQL de migração.");
+    try {
+      const { error } = await supabase.from('members').update(payload).eq('id', id);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+          console.warn("Removendo colunas extras (badges/stats) por não existirem na tabela 'members' no update:", error.message);
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.badges;
+          delete fallbackPayload.stats;
+          
+          const { error: retryError } = await supabase.from('members').update(fallbackPayload).eq('id', id);
+          if (retryError) {
+            throw retryError;
+          }
+          return;
+        }
+        throw error;
       }
-      throw error;
+    } catch (e) {
+      console.error("Erro ao atualizar membro no Supabase:", e);
+      throw e;
     }
   },
 
@@ -339,13 +424,28 @@ export const DatabaseService = {
       return p;
     });
 
-    const { error } = await supabase.from('members').upsert(payloads);
-    if (error) {
-      console.error("Erro ao atualizar múltiplos membros:", error);
-      if (error.code === 'PGRST204') {
-        console.warn("AVISO CRÍTICO: Colunas ausentes detectadas. O ranking e medalhas podem não salvar corretamente até a execução do SQL.");
+    try {
+      const { error } = await supabase.from('members').upsert(payloads);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+          console.warn("Removendo colunas extras (badges/stats) no upsert de múltiplos de 'members':", error.message);
+          const fallbackPayloads = payloads.map(p => {
+            const fp = { ...p };
+            delete fp.badges;
+            delete fp.stats;
+            return fp;
+          });
+          const { error: retryError } = await supabase.from('members').upsert(fallbackPayloads);
+          if (retryError) {
+            throw retryError;
+          }
+          return;
+        }
+        throw error;
       }
-      throw error;
+    } catch (e) {
+      console.error("Erro ao atualizar múltiplos membros:", e);
+      throw e;
     }
   },
 
@@ -770,7 +870,7 @@ export const DatabaseService = {
 
   async addUser(user: AuthUser) {
     // Save all fields to users table including stats and badges
-    const payload = {
+    const payload: any = {
       id: user.id,
       name: user.name,
       role: user.role,
@@ -785,10 +885,27 @@ export const DatabaseService = {
       stats: user.stats,
       badges: user.badges
     };
-    const { error } = await supabase.from('users').upsert([payload]);
-    if (error) {
-      console.error("Erro ao adicionar usuário:", error);
-      throw error;
+    
+    try {
+      const { error } = await supabase.from('users').upsert([payload]);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+          console.warn("Removendo colunas extras (badges/stats) por não existirem na tabela 'users':", error.message);
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.badges;
+          delete fallbackPayload.stats;
+          
+          const { error: retryError } = await supabase.from('users').upsert([fallbackPayload]);
+          if (retryError) {
+            throw retryError;
+          }
+          return;
+        }
+        throw error;
+      }
+    } catch (e) {
+      console.error("Erro ao adicionar usuário:", e);
+      throw e;
     }
   },
 

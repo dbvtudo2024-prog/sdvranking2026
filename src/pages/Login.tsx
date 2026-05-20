@@ -15,7 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Logo Interna Original
-  const LOGO_URL = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
+  const LOGO_URL = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

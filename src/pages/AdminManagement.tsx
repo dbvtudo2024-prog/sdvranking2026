@@ -165,6 +165,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isDiagnosticRunning, setIsDiagnosticRunning] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState<{table: string, count: number, status: string, columns: string[]}[]>([]);
 
+  // Estados para importação avançada de dados legados (CSV / JSON)
+  const [importTarget, setImportTarget] = useState<'members' | 'users'>('members');
+  const [importFormat, setImportFormat] = useState<'csv' | 'json'>('csv');
+  const [rawImportText, setRawImportText] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, success: 0, error: 0 });
+  const [importLogs, setImportLogs] = useState<string[]>([]);
+
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
     const results = [];
@@ -440,6 +448,213 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     } finally {
       setIsProcessing(false);
       setFixProgress(null);
+    }
+  };
+
+  const handleImportData = async () => {
+    if (!rawImportText.trim()) {
+      alert("Por favor, cole os dados CSV ou JSON primeiro!");
+      return;
+    }
+
+    setImportLogs([]);
+    setIsImporting(true);
+    setImportProgress({ current: 0, total: 0, success: 0, error: 0 });
+
+    try {
+      let items: any[] = [];
+
+      if (importFormat === 'json') {
+        try {
+          const parsed = JSON.parse(rawImportText);
+          items = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (jsonErr: any) {
+          throw new Error(`JSON Inválido: ${jsonErr.message}`);
+        }
+      } else {
+        // Parser simples de CSV
+        const lines = rawImportText.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) {
+          throw new Error("CSV precisa ter pelo menos 2 linhas (cabeçalho + conteúdo)");
+        }
+
+        // Descobre o separador (vírgula ou ponto-e-vírgula)
+        const headerLine = lines[0];
+        const separator = headerLine.includes(';') ? ';' : ',';
+        
+        // Extrai headers limpando aspas e espaços
+        const headers = headerLine.split(separator).map(h => h.replace(/^["']|["']$/g, '').trim());
+
+        for (let i = 1; i < lines.length; i++) {
+          const currentLine = lines[i];
+          const values = currentLine.split(separator).map(v => v.replace(/^["']|["']$/g, '').trim());
+          
+          if (values.length > 0) {
+            const rowObject: any = {};
+            headers.forEach((header, index) => {
+              if (header) {
+                rowObject[header] = values[index] !== undefined ? values[index] : '';
+              }
+            });
+            items.push(rowObject);
+          }
+        }
+      }
+
+      const total = items.length;
+      setImportProgress(p => ({ ...p, total }));
+      setImportLogs(prev => [...prev, `🔍 Total identificado: ${total} registros para processar.`]);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let index = 0; index < total; index++) {
+        const item = items[index];
+        const currentNum = index + 1;
+
+        setImportProgress(p => ({ ...p, current: currentNum }));
+
+        try {
+          // Sanitização comum de chaves primárias
+          const recordId = item.id || Math.random().toString(36).substring(2, 11);
+          const sanitizedItem: any = { ...item, id: recordId };
+
+          // Corrige campos complexos/numéricos
+          if (importTarget === 'members') {
+            sanitizedItem.age = parseInt(item.age, 10) || 0;
+            sanitizedItem.scores = [];
+            
+            if (item.scores && typeof item.scores === 'string') {
+              try {
+                sanitizedItem.scores = JSON.parse(item.scores);
+              } catch {
+                sanitizedItem.scores = [];
+              }
+            } else if (Array.isArray(item.scores)) {
+              sanitizedItem.scores = item.scores;
+            }
+
+            sanitizedItem.badges = [];
+            sanitizedItem.stats = {
+              gamesPlayed: 0,
+              correctAnswers: 0,
+              wrongAnswers: 0,
+              timeSpent: 0,
+              perfectGames: 0
+            };
+
+            if (item.badges) {
+              try { sanitizedItem.badges = typeof item.badges === 'string' ? JSON.parse(item.badges) : item.badges; } catch {}
+            }
+            if (item.stats) {
+              try { sanitizedItem.stats = typeof item.stats === 'string' ? JSON.parse(item.stats) : item.stats; } catch {}
+            }
+
+            const payload: any = {
+              id: sanitizedItem.id,
+              name: sanitizedItem.name || 'Membro Antigo',
+              role: sanitizedItem.role || 'Desbravador',
+              age: sanitizedItem.age,
+              className: sanitizedItem.className || 'Amigo',
+              joinedAt: sanitizedItem.joinedAt || new Date().toISOString(),
+              birthday: sanitizedItem.birthday || null,
+              counselor: sanitizedItem.counselor || '',
+              unit: sanitizedItem.unit || 'Sucessores',
+              scores: sanitizedItem.scores,
+              photoUrl: sanitizedItem.photoUrl || '',
+              badges: sanitizedItem.badges,
+              stats: sanitizedItem.stats
+            };
+
+            // Remove strings vazias de datas para evitar erros de cast do PostgreSQL
+            if (payload.birthday === '') payload.birthday = null;
+
+            const { error } = await supabase.from('members').upsert([payload]);
+            if (error) {
+              if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+                const fallbackPayload = { ...payload };
+                delete fallbackPayload.badges;
+                delete fallbackPayload.stats;
+                
+                const { error: retryError } = await supabase.from('members').upsert([fallbackPayload]);
+                if (retryError) throw retryError;
+              } else {
+                throw error;
+              }
+            }
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado com sucesso: membro "${payload.name}"`]);
+
+          } else {
+            // Importar Users
+            sanitizedItem.age = item.age ? parseInt(item.age, 10) : undefined;
+            
+            const payload: any = {
+              id: sanitizedItem.id,
+              name: sanitizedItem.name || 'Usuário Antigo',
+              role: sanitizedItem.role || 'Desbravador',
+              funcao: sanitizedItem.funcao || '',
+              unit: sanitizedItem.unit || '',
+              age: sanitizedItem.age || null,
+              birthday: sanitizedItem.birthday || null,
+              className: sanitizedItem.className || '',
+              email: sanitizedItem.email || '',
+              password: sanitizedItem.password || '123456',
+              photoUrl: sanitizedItem.photoUrl || '',
+              badges: [],
+              stats: {
+                gamesPlayed: 0,
+                correctAnswers: 0,
+                wrongAnswers: 0,
+                timeSpent: 0,
+                perfectGames: 0
+              }
+            };
+
+            if (payload.birthday === '') payload.birthday = null;
+
+            if (item.badges) {
+              try { payload.badges = typeof item.badges === 'string' ? JSON.parse(item.badges) : item.badges; } catch {}
+            }
+            if (item.stats) {
+              try { payload.stats = typeof item.stats === 'string' ? JSON.parse(item.stats) : item.stats; } catch {}
+            }
+
+            const { error } = await supabase.from('users').upsert([payload]);
+            if (error) {
+              if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+                const fallbackPayload = { ...payload };
+                delete fallbackPayload.badges;
+                delete fallbackPayload.stats;
+                const { error: retryError } = await supabase.from('users').upsert([fallbackPayload]);
+                if (retryError) throw retryError;
+              } else {
+                throw error;
+              }
+            }
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado com sucesso: usuário "${payload.name}" (${payload.email})`]);
+          }
+
+        } catch (itemErr: any) {
+          errorCount++;
+          setImportProgress(p => ({ ...p, error: errorCount }));
+          setImportLogs(prev => [...prev, `❌ [${currentNum}/${total}] Falha no registro: "${item.name || 'Sem Nome'}". Motivo: ${itemErr.message || JSON.stringify(itemErr)}`]);
+        }
+      }
+
+      setImportLogs(prev => [...prev, `\n🏁 Processamento concluído! SUCESSOS: ${successCount} | FALHAS: ${errorCount}`]);
+      alert(`Migração Concluída!\nSucessos: ${successCount}\nFalhas: ${errorCount}`);
+
+    } catch (err: any) {
+      alert(`Erro Geral na Migração: ${err.message}`);
+      setImportLogs(prev => [...prev, `🚨 ERRO GERAL: ${err.message}`]);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -734,7 +949,143 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           )}
         </div>
 
-        {/* 5. ZERAR RANKING (PAINEL MASTER) */}
+        {/* IMPORTADOR DE DADOS LEGADOS */}
+        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} p-10 rounded-[3.5rem] border shadow-xl space-y-6 mt-6 backdrop-blur-sm`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Plus size={24} className="text-emerald-500" />
+            <h4 className={`text-[12px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Importar Dados da Planilha Antiga</h4>
+          </div>
+          
+          <p className={`text-[9.5px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-widest leading-relaxed mb-4`}>
+            Cole seu CSV ou JSON para importar membros e usuários de forma segura. O sistema cuida da sanitização automática e realiza fallbacks se colunas antigas não existirem.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Destino */}
+            <div>
+              <label className={`block text-[8px] font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Tabela de Destino</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setImportTarget('members')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
+                    importTarget === 'members'
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : isDarkMode ? 'bg-slate-900/40 text-slate-500 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}
+                >
+                  Membros (members)
+                </button>
+                <button
+                  onClick={() => setImportTarget('users')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
+                    importTarget === 'users'
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : isDarkMode ? 'bg-slate-900/40 text-slate-500 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}
+                >
+                  Usuários (users)
+                </button>
+              </div>
+            </div>
+
+            {/* Formato */}
+            <div>
+              <label className={`block text-[8px] font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Formato dos Dados</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setImportFormat('csv')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
+                    importFormat === 'csv'
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : isDarkMode ? 'bg-slate-900/40 text-slate-500 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}
+                >
+                  Colar arquivo CSV
+                </button>
+                <button
+                  onClick={() => setImportFormat('json')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
+                    importFormat === 'json'
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : isDarkMode ? 'bg-slate-900/40 text-slate-500 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}
+                >
+                  Colar arquivo JSON
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className={`p-4 rounded-2xl text-[9px] space-y-1 font-mono leading-relaxed ${isDarkMode ? 'bg-slate-950/40 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+            <p className="font-black uppercase tracking-widest text-[10px] text-blue-500">Cabeçalhos Esperados:</p>
+            {importTarget === 'members' ? (
+              <p>Membros (CSV / JSON): <span className="font-bold underline">id</span>, <span className="font-bold underline">name</span>, age, className, joinedAt, birthday, counselor, unit, photoUrl</p>
+            ) : (
+              <p>Usuários (CSV / JSON): <span className="font-bold underline">id</span>, <span className="font-bold underline">name</span>, <span className="font-bold underline">email</span>, <span className="font-bold underline">password</span>, role, funcao, unit, age, birthday, className</p>
+            )}
+            <p className="text-amber-500 font-bold">* Dica: Se não fornecer "id", o sistema gerará chaves únicas automaticamente.</p>
+          </div>
+
+          <div>
+            <label className={`block text-[8px] font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Dados para Importar</label>
+            <textarea
+              className={`w-full h-48 p-4 rounded-3xl font-mono text-xs ${
+                isDarkMode ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-700'
+              } border outline-none focus:border-blue-500 transition-all`}
+              placeholder={
+                importFormat === 'csv'
+                  ? "id,name,role,age,className,unit\n1,Davi de Pin,Desbravador,12,Lider,Sucessores\na2,Ronaldo Sonic,Líder,24,Guia,Sucessores"
+                  : '[\n  { "name": "Davi de Pin", "role": "Desbravador", "age": 12 },\n  { "name": "Ronaldo Sonic", "role": "Líder", "age": 24 }\n]'
+              }
+              value={rawImportText}
+              onChange={e => setRawImportText(e.target.value)}
+              disabled={isImporting}
+            />
+          </div>
+
+          {isImporting && (
+            <div className="space-y-2 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-blue-500">
+                <span>Processando Linhas: {importProgress.current} de {importProgress.total}</span>
+                <span>{Math.round((importProgress.current / importProgress.total) * 100 || 0)}%</span>
+              </div>
+              <div className="h-2 w-full bg-slate-200/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-1 text-[9px] font-bold uppercase tracking-widest">
+                <span className="text-emerald-500">Sucessos: {importProgress.success}</span>
+                <span className="text-red-500">Falhas: {importProgress.error}</span>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleImportData}
+            disabled={isImporting}
+            className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-md ${
+              isImporting
+                ? 'bg-slate-700 text-slate-400 border border-slate-800'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/15'
+            }`}
+          >
+            {isImporting ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} />}
+            {isImporting ? 'IMPORTANDO DADOS...' : 'INICIAR IMPORTAÇÃO EM LOTE'}
+          </button>
+
+          {importLogs.length > 0 && (
+            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-black/40 border-slate-800' : 'bg-slate-50 border-slate-200'} space-y-2`}>
+              <p className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Logs da Importação:</p>
+              <div className="max-h-40 overflow-y-auto pr-1 custom-scrollbar text-[8.5px] font-mono space-y-1 text-slate-400">
+                {importLogs.map((log, i) => (
+                  <p key={i} className={log.includes('✅') ? 'text-emerald-500/90' : log.includes('❌') ? 'text-red-400' : 'text-slate-400'}>{log}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         {userEmail === ADMIN_MASTER_EMAIL && (
           <div className={`${isDarkMode ? 'bg-red-950/20 border-red-900/30' : 'bg-[#fff1f1] border-red-100'} p-10 rounded-[3.5rem] border shadow-xl shadow-red-900/5 space-y-6 mt-6`}>
             <div className="text-center">

@@ -18,7 +18,7 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge, onUpdateStats }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
-  const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
+  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
   // Check-in logic
   const today = new Date().toISOString().split('T')[0];

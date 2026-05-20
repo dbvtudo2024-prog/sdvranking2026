@@ -60,8 +60,8 @@ const App: React.FC = () => {
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
   const [showUpdateNotice, setShowUpdateNotice] = useState(false);
 
-  const LOGO_APP = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
-  const BRASAO_3D = "https://lhcobtexredrovjbxaew.supabase.co/storage/v1/object/public/Imagens/app/brasao3d.PNG";
+  const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
+  const BRASAO_3D = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
 
   const [quizOverride, setQuizOverride] = useState(false);
   const [quizAllowedDay, setQuizAllowedDay] = useState<number | null>(null);
