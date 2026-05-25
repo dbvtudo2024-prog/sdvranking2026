@@ -7,7 +7,7 @@ import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
 
-import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS } from '@/seedData';
+import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS, DEFAULT_DEVOTIONALS } from '@/seedData';
 
 export const SUPABASE_SETUP_SQL = `-- ====================================================================
 -- SCRIPT DE CONFIGURAÇÃO DE NOVO BANCO DE DADOS (SUPABASE)
@@ -620,7 +620,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       await DatabaseService.seedAnnouncements(DEFAULT_ANNOUNCEMENTS);
       await DatabaseService.seedSpecialtyStudies(DEFAULT_SPECIALTY_STUDIES);
       await DatabaseService.seedMembers(DEFAULT_MEMBERS);
-      console.log("Assets semeados.");
+      await DatabaseService.seedDevotionals(DEFAULT_DEVOTIONALS);
+      console.log("Assets e devocionais semeados.");
       alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");
     } catch (error: any) {
       console.error("Erro detalhado ao semear dados:", error);

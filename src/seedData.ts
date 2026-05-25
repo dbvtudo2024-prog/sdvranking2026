@@ -124,3 +124,24 @@ export const DEFAULT_MEMBERS = [
   { name: 'João Silva', unit: UnitName.AGUIA_DOURADA, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2010-05-15', age: 15, className: 'Amigo', joinedAt: '2023-01-01', counselor: 'Carlos' },
   { name: 'Maria Oliveira', unit: UnitName.GUERREIROS, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2011-08-20', age: 14, className: 'Companheiro', joinedAt: '2023-01-01', counselor: 'Ana' }
 ];
+
+export const DEFAULT_DEVOTIONALS = [
+  {
+    title: "Firmes Como a Rocha",
+    content: "Como desbravadores, somos chamados a estar firmes nas verdades de Deus. Em Mateus 7:24, Jesus diz que aquele que ouve Suas palavras e as pratica é como o homem prudente que edificou sua casa sobre a rocha. Diante das tempestades da vida ou de decisões difíceis na escola e no dia a dia, lembre-se de que a nossa única base segura é Jesus Cristo. Permaneça firme na oração e no estudo da Bíblia hoje!",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date().toISOString()
+  },
+  {
+    title: "O Guia do Caminho",
+    content: "Lâmpada para os meus pés é a tua palavra e luz, para o meu caminho (Salmo 119:105). Imagine fazer uma trilha na floresta à noite sem nenhuma luz - seria impossível não tropeçar! Muitas vezes tentamos caminhar pelas nossas próprias forças sem consultar a Deus. A Bíblia é o mapa supremo e a luz de navegação que Ele nos deu. Antes de iniciar qualquer atividade no dia de hoje, abra o Mapa e peça direção de Deus.",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    title: "O Escudo da Fé",
+    content: "Em Efésios 6:16, a Bíblia nos incentiva a tomar o escudo da fé, com o qual poderemos apagar todos os dardos inflamados do maligno. Um desbravador preparado sabe que o escudo da fé não vem de nossa própria justiça, mas sim de confiar inteiramente no Senhor. Exercite sua fé hoje compartilhando bondade e mantendo seus pensamentos focados em coisas elevadas e puras.",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];

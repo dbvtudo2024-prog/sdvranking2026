@@ -21,8 +21,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   
   // Estados para sincronização do storage de imagens
   const [showStorageModal, setShowStorageModal] = useState(false);
-  const [bucketName, setBucketName] = useState('Imagens');
-  const [folderName, setFolderName] = useState('especialidades');
+  const [bucketName, setBucketName] = useState('imagens');
+  const [folderName, setFolderName] = useState('Especialidades');
   const [storageFiles, setStorageFiles] = useState<{ name: string; url: string; matchedSpecialtyId?: number }[]>([]);
   const [isScanningStorage, setIsScanningStorage] = useState(false);
   const [storageStatusMessage, setStorageStatusMessage] = useState('');
@@ -46,39 +46,75 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     setStorageFiles([]);
     
     try {
-      // Lista itens do bucket e da pasta
-      const { data, error } = await supabase.storage.from(bucketName).list(folderName || '', {
-        limit: 1000,
+      const parentFolder = folderName.trim().replace(/\/+$/, ''); // limpa barras no final
+      
+      // 1. Lista a pasta pai
+      const { data: parentItems, error: parentError } = await supabase.storage.from(bucketName).list(parentFolder, {
+        limit: 100, // número de subpastas/categorias (geralmente < 20)
         sortBy: { column: 'name', order: 'asc' }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (parentError) throw parentError;
 
-      if (!data || data.length === 0) {
-        setStorageStatusMessage(`Nenhum arquivo encontrado no bucket "${bucketName}" na pasta "${folderName}".`);
+      if (!parentItems || parentItems.length === 0) {
+        setStorageStatusMessage(`Nenhum arquivo ou pasta encontrado no bucket "${bucketName}" na pasta "${parentFolder}".`);
         return;
       }
 
       const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'];
-      const fileItems = data.filter(item => {
-        const lowerName = item.name.toLowerCase();
-        return imageExtensions.some(ext => lowerName.endsWith(ext));
-      });
+      let allFoundFiles: { name: string; path: string }[] = [];
 
-      if (fileItems.length === 0) {
-        setStorageStatusMessage(`Foram listados ${data.length} arquivos, mas nenhum deles é uma imagem válida (.png, .jpg, etc).`);
+      // Percorre todos os itens encontrados na pasta pai
+      for (const item of parentItems) {
+        const isImage = imageExtensions.some(ext => item.name.toLowerCase().endsWith(ext));
+        
+        if (isImage) {
+          // É uma imagem direta na pasta pai
+          allFoundFiles.push({
+            name: item.name,
+            path: parentFolder ? `${parentFolder}/${item.name}` : item.name
+          });
+        } else if (item.id === null || !item.metadata || Object.keys(item.metadata).length === 0 || !item.name.includes('.')) {
+          // Trata como uma subpasta (como ADRA, Artes e Habilidades Manuais, etc)
+          const subFolderPath = parentFolder ? `${parentFolder}/${item.name}` : item.name;
+          setStorageStatusMessage(`Escaneando subpasta: ${item.name}...`);
+          
+          try {
+            const { data: subItems, error: subError } = await supabase.storage.from(bucketName).list(subFolderPath, {
+              limit: 500,
+              sortBy: { column: 'name', order: 'asc' }
+            });
+            
+            if (!subError && subItems) {
+              for (const subItem of subItems) {
+                const isSubImage = imageExtensions.some(ext => subItem.name.toLowerCase().endsWith(ext));
+                if (isSubImage) {
+                  allFoundFiles.push({
+                    name: subItem.name,
+                    path: `${subFolderPath}/${subItem.name}`
+                  });
+                }
+              }
+            }
+          } catch (subErr) {
+            console.warn(`Erro ao listar subpasta ${subFolderPath}:`, subErr);
+          }
+        }
+      }
+
+      if (allFoundFiles.length === 0) {
+        setStorageStatusMessage(`O escaneamento foi concluído, mas nenhuma imagem válida foi encontrada nas pastas listadas.`);
         return;
       }
 
-      const mapped = fileItems.map(item => {
-        const filePath = folderName ? `${folderName}/${item.name}` : item.name;
-        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+      setStorageStatusMessage(`Mapeando ${allFoundFiles.length} imagens encontradas para especialidades...`);
+
+      const mapped = allFoundFiles.map(file => {
+        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(file.path);
         const publicUrl = urlData?.publicUrl || '';
 
         // Match inteligente de especialidade baseando-se no nome do arquivo
-        const cleanFileName = item.name.toLowerCase()
+        const cleanFileName = file.name.toLowerCase()
           .replace(/\.[^/.]+$/, "") // remove extensao
           .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove acentos
           .replace(/[^a-z0-9]/g, ""); // strip
@@ -96,8 +132,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
         if (directMatch) {
           bestMatchId = directMatch.id;
         } else {
-          // 2. Procura com base nas iniciais / códigos que o usuário citou (ex: "HM 024", "HM_002", etc)
-          const lowerNameString = item.name.toLowerCase();
+          // 2. Procura com base nas iniciais / códigos
+          const lowerNameString = file.name.toLowerCase();
           
           bestMatchId = specialties.find(spec => {
             const specLower = spec.Nome.toLowerCase();
@@ -123,12 +159,12 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               return lowerNameString.includes("gato") || (lowerNameString.includes("en") && lowerNameString.includes("26"));
             }
             // Cães
-            if (specLower.includes("caes") || specLower.includes("cães") || specLower.includes("cao")) {
+            if (specLower.includes("caes") || specLower.includes("caes") || specLower.includes("cães") || specLower.includes("cao")) {
               return lowerNameString.includes("caes") || lowerNameString.includes("dog") || (lowerNameString.includes("en") && lowerNameString.includes("20"));
             }
             // Aves
             if (specLower.includes("aves") || specLower.includes("ave")) {
-              return lowerNameString.includes("aves") || lowerNameString.includes("pássaro") || (lowerNameString.includes("en") && lowerNameString.includes("05"));
+              return lowerNameString.includes("aves") || lowerNameString.includes("passaro") || lowerNameString.includes("pássaro") || (lowerNameString.includes("en") && lowerNameString.includes("05"));
             }
             // Computação I
             if (specLower.includes("computacao") || specLower.includes("computação")) {
@@ -143,7 +179,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
         }
 
         return {
-          name: item.name,
+          name: file.name,
           url: publicUrl,
           matchedSpecialtyId: bestMatchId
         };
@@ -153,7 +189,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       setStorageStatusMessage(`Sucesso! Encontradas ${mapped.length} imagens.`);
     } catch (err: any) {
       console.error(err);
-      setStorageStatusMessage(`Erro: ${err.message || err}. Verifique as permissões de acesso público do Storage.`);
+      setStorageStatusMessage(`Erro: ${err.message || err}. Verifique as configurações de acesso ao Storage.`);
     } finally {
       setIsScanningStorage(false);
     }

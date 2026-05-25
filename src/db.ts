@@ -73,6 +73,105 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Pr
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const FALLBACK_BIBLE: Record<string, Record<number, { Versiculo: number; Texto: string }[]>> = {
+  "Gênesis": {
+    1: [
+      { Versiculo: 1, Texto: "No princípio, criou Deus os céus e a terra." },
+      { Versiculo: 2, Texto: "E a terra era sem forma e vazia; e havia trevas sobre a face do abismo; e o Espírito de Deus se movia sobre a face das águas." },
+      { Versiculo: 3, Texto: "E disse Deus: Haja luz. E houve luz." },
+      { Versiculo: 4, Texto: "E viu Deus que era boa a luz; e fez Deus separação entre a luz e as trevas." },
+      { Versiculo: 5, Texto: "E Deus chamou à luz Dia; e às trevas chamou Noite. E foi a tarde e a manhã: o dia primeiro." }
+    ]
+  },
+  "Salmos": {
+    23: [
+      { Versiculo: 1, Texto: "O Senhor é o meu pastor; nada me faltará." },
+      { Versiculo: 2, Texto: "Deitar-me faz em verdes pastos, guia-me mansamente a águas tranquilas." },
+      { Versiculo: 3, Texto: "Refrigera a minha alma; guia-me pelas veredas da justiça por amor do seu nome." },
+      { Versiculo: 4, Texto: "Ainda que eu andasse pelo vale da sombra da morte, não temeria mal algum, porque tu estás comigo; a tua vara e o teu cajado me consolam." },
+      { Versiculo: 5, Texto: "Preparas uma mesa perante mim na presença dos meus inimigos, unges a minha cabeça com óleo, o meu cálice transborda." },
+      { Versiculo: 6, Texto: "Certamente que a bondade e a misericórdia me seguirão todos os dias da minha vida; e habitarei na Casa do Senhor por longos dias." }
+    ],
+    46: [
+      { Versiculo: 1, Texto: "Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia." },
+      { Versiculo: 10, Texto: "Aquietai-vos e sabei que eu sou Deus; serei exaltado entre as nações, serei exaltado na terra." }
+    ],
+    119: [
+      { Versiculo: 9, Texto: "Como purificará o jovem o seu caminho? Observando-o conforme a tua palavra." },
+      { Versiculo: 11, Texto: "Escondi a tua palavra no meu coração, para não pecar contra ti." },
+      { Versiculo: 105, Texto: "Lâmpada para os meus pés é tua palavra e luz, para o meu caminho." }
+    ]
+  },
+  "Mateus": {
+    1: [
+      { Versiculo: 1, Texto: "Livro da geração de Jesus Cristo, Filho de Davi, Filho de Abraão." }
+    ],
+    5: [
+      { Versiculo: 1, Texto: "E Jesus, vendo a multidão, subiu a um monte, e, assentando-se, aproximaram-se dele os seus discípulos;" },
+      { Versiculo: 2, Texto: "e, abrindo a boca, os ensinava, dizendo:" },
+      { Versiculo: 3, Texto: "Bem-aventurados os pobres de espírito, porque deles é o Reino dos céus;" },
+      { Versiculo: 4, Texto: "bem-aventurados os que choram, porque eles serão consolados;" },
+      { Versiculo: 5, Texto: "bem-aventurados os mansos, porque eles herdarão a terra;" },
+      { Versiculo: 6, Texto: "bem-aventurados os que têm fome e sede de justiça, porque eles serão fartos;" },
+      { Versiculo: 7, Texto: "bem-aventurados os misericordiosos, porque eles alcançarão misericórdia;" },
+      { Versiculo: 8, Texto: "bem-aventurados os limpos de coração, porque eles verão a Deus;" },
+      { Versiculo: 9, Texto: "bem-aventurados os pacificadores, porque eles serão chamados filhos de Deus;" },
+      { Versiculo: 10, Texto: "bem-aventurados os que sofrem perseguição por causa da justiça, porque deles é o Reino dos céus." }
+    ]
+  },
+  "João": {
+    1: [
+      { Versiculo: 1, Texto: "No princípio era o Verbo, e o Verbo estava com Deus, e o Verbo era Deus." },
+      { Versiculo: 2, Texto: "Ele estava no princípio com Deus." },
+      { Versiculo: 3, Texto: "Todas as coisas foram feitas por ele, e sem ele nada do que foi feito se fez." },
+      { Versiculo: 4, Texto: "Nele estava a vida, e a vida era a luz dos homens;" },
+      { Versiculo: 14, Texto: "E o Verbo se fez carne e habitou entre nós, e vimos a sua glória, como a glória do Unigênito do Pai, cheio de graça e de verdade." }
+    ],
+    3: [
+      { Versiculo: 16, Texto: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna." }
+    ],
+    14: [
+      { Versiculo: 1, Texto: "Não se turbe o vosso coração; credes em Deus, crede também em mim." },
+      { Versiculo: 6, Texto: "Disse-lhe Jesus: Eu sou o caminho, e a verdade, e a vida. Ninguém vem ao Pai senão por mim." }
+    ]
+  }
+};
+
+const FALLBACK_DEVOTIONALS: Devotional[] = [
+  {
+    id: -1,
+    title: "Firmes Como a Rocha",
+    content: "Como desbravadores, somos chamados a estar firmes nas verdades de Deus. Em Mateus 7:24, Jesus diz que aquele que ouve Suas palavras e as pratica é como o homem prudente que edificou sua casa sobre a rocha. Diante das tempestades da vida ou de decisões difíceis na escola e no dia a dia, lembre-se de que a nossa única base segura é Jesus Cristo. Permaneça firme na oração e no estudo da Bíblia hoje!",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  },
+  {
+    id: -2,
+    title: "O Guia do Caminho",
+    content: "Lâmpada para os meus pés é a tua palavra e luz, para o meu caminho (Salmo 119:105). Imagine fazer uma trilha na floresta à noite sem nenhuma luz - seria impossível não tropeçar! Muitas vezes tentamos caminhar pelas nossas próprias forças sem consultar a Deus. A Bíblia é o mapa supremo e a luz de navegação que Ele nos deu. Antes de iniciar qualquer atividade no dia de hoje, abra o Mapa e peça direção de Deus.",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    created_at: new Date().toISOString()
+  },
+  {
+    id: -3,
+    title: "O Escudo da Fé",
+    content: "Em Efésios 6:16, a Bíblia nos incentiva a tomar o escudo da fé, com o qual poderemos apagar todos os dardos inflamados do maligno. Um desbravador preparado sabe que o escudo da fé não vem de nossa própria justiça, mas sim de confiar inteiramente no Senhor. Exercite sua fé hoje compartilhando bondade e mantendo seus pensamentos focados em coisas elevadas e puras.",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: new Date().toISOString()
+  },
+  {
+    id: -4,
+    title: "Uma Mensagem a Compartilhar",
+    content: "Ide por todo o mundo, pregai o evangelho a toda criatura (Marcos 16:15). Ser desbravador é também ser um mensageiro. O triângulo em nosso uniforme nos desafia a desenvolver as áreas física, mental e espiritual para servir. Compartilhe hoje uma palavra de esperança com um amigo ou familiar que esteja passando por dificuldades. A mensagem do advento deve ser levada a todo o mundo em nossa geração!",
+    link: "https://www.adventistas.org/pt/desbravadores/",
+    scheduled_for: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: new Date().toISOString()
+  }
+];
+
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
@@ -997,84 +1096,184 @@ export const DatabaseService = {
 
   // --- BÍBLIA COMPLETA ---
   async getBibleBooks(): Promise<string[]> {
-    // Querying only the first verse of the first chapter of each book to get the list of books efficiently
-    const { data, error } = await supabase
-      .from('Biblia_Completa')
-      .select('book_name')
-      .eq('chapter', '1')
-      .eq('verse_number', '1')
-      .order('id', { ascending: true });
-    
-    if (error) {
-      console.error("Erro ao buscar livros:", error);
-      return [];
-    }
-    if (!data) return [];
-    return data.map(d => d.book_name);
+    return [
+      "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", "Rute",
+      "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", "Esdras", "Neemias",
+      "Ester", "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares", "Isaías", "Jeremias",
+      "Lamentações", "Ezequiel", "Daniel", "Oseias", "Joel", "Amós", "Obadias", "Jonas",
+      "Miqueias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias",
+      "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios",
+      "Gálatas", "Efésios", "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses",
+      "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro",
+      "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+    ];
   },
 
   async getBibleChapters(book: string): Promise<number[]> {
-    const { data, error } = await supabase
-      .from('Biblia_Completa')
-      .select('chapter')
-      .eq('book_name', book)
-      .eq('verse_number', '1') // One row per chapter
-      .order('id', { ascending: true });
-    
-    if (error) {
-      console.error("Erro ao buscar capítulos:", error);
-      return [];
+    try {
+      const { data: colsData, error: colsErr } = await supabase
+        .from('Biblia_Completa')
+        .select('*')
+        .limit(1);
+
+      let bookKey = 'book_name';
+      let chapterKey = 'chapter';
+      let verseKey = 'verse_number';
+
+      if (!colsErr && colsData && colsData.length > 0) {
+        const row = colsData[0];
+        const keys = Object.keys(row);
+        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
+        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
+        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
+        if (b) bookKey = b;
+        if (c) chapterKey = c;
+        if (v) verseKey = v;
+      }
+
+      // Tenta recuperar no banco
+      const { data, error } = await supabase
+        .from('Biblia_Completa')
+        .select(chapterKey)
+        .eq(bookKey, book);
+
+      if (!error && data && data.length > 0) {
+        const chapters = data.map(d => parseInt(d[chapterKey]));
+        const uniqueChapters = Array.from(new Set(chapters)).filter(n => !isNaN(n)).sort((a, b) => a - b);
+        if (uniqueChapters.length > 0) {
+          return uniqueChapters;
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao buscar capítulos dinamicamente:", err);
     }
-    if (!data) return [];
-    const chapters = data.map(d => parseInt(d.chapter));
-    return Array.from(new Set(chapters)).sort((a, b) => a - b);
+
+    // Fallback se falhar ou estiver vazio
+    if (FALLBACK_BIBLE[book]) {
+      const chapters = Object.keys(FALLBACK_BIBLE[book]).map(Number);
+      return chapters.sort((a, b) => a - b);
+    }
+    return Array.from({ length: 28 }, (_, i) => i + 1);
   },
 
   async getBibleVerses(book: string, chapter: number): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('Biblia_Completa')
-      .select('verse_number, text')
-      .eq('book_name', book)
-      .eq('chapter', String(chapter))
-      .order('id', { ascending: true });
-    
-    if (error) {
-      console.error("Erro ao buscar versículos:", error);
-      return [];
+    try {
+      const { data: colsData, error: colsErr } = await supabase
+        .from('Biblia_Completa')
+        .select('*')
+        .limit(1);
+
+      let bookKey = 'book_name';
+      let chapterKey = 'chapter';
+      let verseKey = 'verse_number';
+      let textKey = 'text';
+
+      if (!colsErr && colsData && colsData.length > 0) {
+        const row = colsData[0];
+        const keys = Object.keys(row);
+        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
+        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
+        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
+        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
+        if (b) bookKey = b;
+        if (c) chapterKey = c;
+        if (v) verseKey = v;
+        if (t) textKey = t;
+      }
+
+      // Busca versículos
+      const { data, error } = await supabase
+        .from('Biblia_Completa')
+        .select(`${verseKey}, ${textKey}`)
+        .eq(bookKey, book)
+        .or(`${chapterKey}.eq.${chapter},${chapterKey}.eq."${chapter}"`);
+
+      if (!error && data && data.length > 0) {
+        return data.map(v => ({
+          Versiculo: parseInt(v[verseKey]),
+          Texto: v[textKey]
+        })).sort((a, b) => a.Versiculo - b.Versiculo);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar versículos dinamicamente:", e);
     }
-    return (data || []).map(v => ({
-      Versiculo: parseInt(v.verse_number),
-      Texto: v.text
-    }));
+
+    const fbBook = FALLBACK_BIBLE[book];
+    if (fbBook && fbBook[chapter]) {
+      return fbBook[chapter];
+    }
+    return [];
   },
 
   async searchBible(term: string): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('Biblia_Completa')
-      .select('book_name, chapter, verse_number, text')
-      .ilike('text', `%${term}%`)
-      .limit(50);
-    
-    if (error) {
-      console.error("Erro na busca bíblica:", error);
-      return [];
+    try {
+      const { data: colsData, error: colsErr } = await supabase
+        .from('Biblia_Completa')
+        .select('*')
+        .limit(1);
+
+      let bookKey = 'book_name';
+      let chapterKey = 'chapter';
+      let verseKey = 'verse_number';
+      let textKey = 'text';
+
+      if (!colsErr && colsData && colsData.length > 0) {
+        const row = colsData[0];
+        const keys = Object.keys(row);
+        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
+        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
+        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
+        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
+        if (b) bookKey = b;
+        if (c) chapterKey = c;
+        if (v) verseKey = v;
+        if (t) textKey = t;
+      }
+
+      const { data, error } = await supabase
+        .from('Biblia_Completa')
+        .select(`${bookKey}, ${chapterKey}, ${verseKey}, ${textKey}`)
+        .ilike(textKey, `%${term}%`)
+        .limit(50);
+
+      if (!error && data && data.length > 0) {
+        return data.map(v => ({
+          Livro: v[bookKey],
+          Capitulo: parseInt(v[chapterKey]),
+          Versiculo: parseInt(v[verseKey]),
+          Texto: v[textKey]
+        }));
+      }
+    } catch (e) {
+      console.error("Erro ao buscar termo na Bíblia:", e);
     }
-    return (data || []).map(v => ({
-      Livro: v.book_name,
-      Capitulo: parseInt(v.chapter),
-      Versiculo: parseInt(v.verse_number),
-      Texto: v.text
-    }));
+
+    // Fallback local search
+    const results: any[] = [];
+    const lowerTerm = term.toLowerCase();
+    for (const [bName, chaps] of Object.entries(FALLBACK_BIBLE)) {
+      for (const [cNum, vers] of Object.entries(chaps)) {
+        for (const vObj of vers) {
+          if (vObj.Texto.toLowerCase().includes(lowerTerm)) {
+            results.push({
+              Livro: bName,
+              Capitulo: Number(cNum),
+              Versiculo: vObj.Versiculo,
+              Texto: vObj.Texto
+            });
+            if (results.length >= 50) return results;
+          }
+        }
+      }
+    }
+    return results;
   },
 
   async getVerseOfTheDay(): Promise<any> {
-    // Deterministic seed based on date (changes at 7 AM)
     const now = new Date();
-    // Adjust by 7 hours so it changes at 7 AM
     const adjusted = new Date(now.getTime() - (7 * 60 * 60 * 1000));
     const dateStr = adjusted.toISOString().split('T')[0];
     
-    // Simple hash of the date string to get a deterministic number
     let hash = 0;
     for (let i = 0; i < dateStr.length; i++) {
       hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
@@ -1082,26 +1281,76 @@ export const DatabaseService = {
     }
     const seed = Math.abs(hash);
 
-    // Get total count of verses
-    const { count } = await supabase
-      .from('Biblia_Completa')
-      .select('*', { count: 'exact', head: true });
-    
-    const total = count || 31102;
-    const offset = seed % total;
+    try {
+      const { data: colsData, error: colsErr } = await supabase
+        .from('Biblia_Completa')
+        .select('*')
+        .limit(1);
 
-    // Fetch the verse at that offset
-    const { data } = await supabase
-      .from('Biblia_Completa')
-      .select('book_name, chapter, verse_number, text')
-      .range(offset, offset);
-    
-    if (data && data.length > 0) {
+      let bookKey = 'book_name';
+      let chapterKey = 'chapter';
+      let verseKey = 'verse_number';
+      let textKey = 'text';
+
+      if (!colsErr && colsData && colsData.length > 0) {
+        const row = colsData[0];
+        const keys = Object.keys(row);
+        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
+        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
+        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
+        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
+        if (b) bookKey = b;
+        if (c) chapterKey = c;
+        if (v) verseKey = v;
+        if (t) textKey = t;
+      }
+
+      // Get count
+      const { count } = await supabase
+        .from('Biblia_Completa')
+        .select('*', { count: 'exact', head: true });
+
+      if (count && count > 0) {
+        const offset = seed % count;
+        const { data, error } = await supabase
+          .from('Biblia_Completa')
+          .select(`${bookKey}, ${chapterKey}, ${verseKey}, ${textKey}`)
+          .range(offset, offset);
+
+        if (!error && data && data.length > 0) {
+          return {
+            livro: data[0][bookKey],
+            cap: parseInt(data[0][chapterKey]),
+            ver: parseInt(data[0][verseKey]),
+            texto: data[0][textKey]
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao carregar versículo do dia dinamicamente:", e);
+    }
+
+    // Fallback se falhar
+    const allVerses: { bName: string; cNum: number; ver: number; text: string }[] = [];
+    for (const [bName, chaps] of Object.entries(FALLBACK_BIBLE)) {
+      for (const [cNum, vers] of Object.entries(chaps)) {
+        for (const v of vers) {
+          allVerses.push({
+            bName,
+            cNum: Number(cNum),
+            ver: v.Versiculo,
+            text: v.Texto
+          });
+        }
+      }
+    }
+    if (allVerses.length > 0) {
+      const selected = allVerses[seed % allVerses.length];
       return {
-        livro: data[0].book_name,
-        cap: parseInt(data[0].chapter),
-        ver: parseInt(data[0].verse_number),
-        texto: data[0].text
+        livro: selected.bName,
+        cap: selected.cNum,
+        ver: selected.ver,
+        texto: selected.text
       };
     }
     return null;
@@ -1109,32 +1358,51 @@ export const DatabaseService = {
 
   async getDevotional(): Promise<Devotional | null> {
     const now = new Date().toISOString();
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('devotionals')
       .select('*')
       .lte('scheduled_for', now)
       .order('scheduled_for', { ascending: false })
       .limit(1);
     
-    if (error) {
-      console.error("Erro ao buscar devocional:", error);
-      return null;
+    // Se a consulta por data falhar ou retornar vazia (pelo fuso estar um pouco diferente do local),
+    // busca do banco o devocional mais recente cadastrado, de forma a nunca deixar vazio se houver devocionais!
+    if (error || !data || data.length === 0) {
+      const { data: fallbackData, error: fbError } = await supabase
+        .from('devotionals')
+        .select('*')
+        .order('scheduled_for', { ascending: false })
+        .limit(1);
+        
+      if (!fbError && fallbackData && fallbackData.length > 0) {
+        return fallbackData[0];
+      }
+      return FALLBACK_DEVOTIONALS[0] || null;
     }
-    return data && data.length > 0 ? data[0] : null;
+    return data[0];
   },
 
   async getDevotionalHistory(limit: number = 10): Promise<Devotional[]> {
     const now = new Date().toISOString();
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('devotionals')
       .select('*')
       .lte('scheduled_for', now)
       .order('scheduled_for', { ascending: false })
       .limit(limit);
     
-    if (error) {
-      console.error("Erro ao buscar histórico de devocionais:", error);
-      return [];
+    // Se vier vazio, tenta buscar sem o limite rígido de data para garantir que os devocionais do usuário apareçam!
+    if (error || !data || data.length === 0) {
+      const { data: fallbackData, error: fbError } = await supabase
+        .from('devotionals')
+        .select('*')
+        .order('scheduled_for', { ascending: false })
+        .limit(limit);
+        
+      if (!fbError && fallbackData && fallbackData.length > 0) {
+        return fallbackData;
+      }
+      return FALLBACK_DEVOTIONALS;
     }
     return data || [];
   },
@@ -1145,9 +1413,8 @@ export const DatabaseService = {
       .select('*')
       .order('scheduled_for', { ascending: false });
     
-    if (error) {
-      console.error("Erro ao buscar todos os devocionais:", error);
-      return [];
+    if (error || !data || data.length === 0) {
+      return FALLBACK_DEVOTIONALS;
     }
     return data || [];
   },
@@ -1621,6 +1888,25 @@ export const DatabaseService = {
       }
     } catch (error) {
       console.error("Erro no seedScrambledVerses:", error);
+      throw error;
+    }
+  },
+
+  async seedDevotionals(devotionals: Omit<Devotional, 'id' | 'created_at'>[]) {
+    try {
+      const { data: existing, error: fetchError } = await supabase.from('devotionals').select('title');
+      if (fetchError) throw fetchError;
+
+      const existingSet = new Set((existing || []).map(e => e.title.trim().toLowerCase()));
+
+      const toInsert = devotionals.filter(v => !existingSet.has(v.title.trim().toLowerCase()));
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('devotionals').insert(toInsert);
+        if (insertError) throw insertError;
+      }
+    } catch (error) {
+      console.error("Erro no seedDevotionals:", error);
       throw error;
     }
   },
