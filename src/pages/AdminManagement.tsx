@@ -735,6 +735,18 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     setIsImporting(true);
     setImportProgress({ current: 0, total: 0, success: 0, error: 0 });
 
+    const getValueWithAliases = (obj: any, aliases: string[], defaultValue: any = '') => {
+      for (const alias of aliases) {
+        if (obj[alias] !== undefined) return obj[alias];
+      }
+      const objKeys = Object.keys(obj);
+      for (const alias of aliases) {
+        const matchedKey = objKeys.find(k => k.toLowerCase() === alias.toLowerCase());
+        if (matchedKey && obj[matchedKey] !== undefined) return obj[matchedKey];
+      }
+      return defaultValue;
+    };
+
     try {
       let items: any[] = [];
 
@@ -746,8 +758,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           throw new Error(`JSON Inválido: ${jsonErr.message}`);
         }
       } else {
-        // Parser simples de CSV
-        const lines = rawImportText.split('\n').map(l => l.trim()).filter(Boolean);
+        // Parser robusto de CSV que respeita aspas e nested JSON/vírgulas
+        const lines = rawImportText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
         if (lines.length < 2) {
           throw new Error("CSV precisa ter pelo menos 2 linhas (cabeçalho + conteúdo)");
         }
@@ -756,12 +768,40 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         const headerLine = lines[0];
         const separator = headerLine.includes(';') ? ';' : ',';
         
-        // Extrai headers limpando aspas e espaços
-        const headers = headerLine.split(separator).map(h => h.replace(/^["']|["']$/g, '').trim());
+        const parseCSVLine = (line: string, sep: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+              if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                // Aspas duplas escapadas dentro de um campo aspeado: "" -> "
+                current += '"';
+                i++; // Pula a próxima aspa
+              } else {
+                // Alterna estado de aspas
+                inQuotes = !inQuotes;
+              }
+            } else if (char === sep && !inQuotes) {
+              result.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          return result.map(v => v.trim());
+        };
+
+        // Extrai headers usando o parser robusto
+        const headers = parseCSVLine(headerLine, separator).map(h => h.replace(/^["']|["']$/g, '').trim());
 
         for (let i = 1; i < lines.length; i++) {
           const currentLine = lines[i];
-          const values = currentLine.split(separator).map(v => v.replace(/^["']|["']$/g, '').trim());
+          const values = parseCSVLine(currentLine, separator);
           
           if (values.length > 0) {
             const rowObject: any = {};
@@ -790,54 +830,72 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
         try {
           // Sanitização comum de chaves primárias
-          const recordId = item.id || Math.random().toString(36).substring(2, 11);
-          const sanitizedItem: any = { ...item, id: recordId };
+          const recordId = getValueWithAliases(item, ['id', 'ID'], '') || Math.random().toString(36).substring(2, 11);
 
           // Corrige campos complexos/numéricos
           if (importTarget === 'members') {
-            sanitizedItem.age = parseInt(item.age, 10) || 0;
-            sanitizedItem.scores = [];
+            const rawAge = getValueWithAliases(item, ['age', 'Age', 'idade', 'Idade'], '0');
+            const ageVal = parseInt(rawAge, 10) || 0;
             
-            if (item.scores && typeof item.scores === 'string') {
-              try {
-                sanitizedItem.scores = JSON.parse(item.scores);
-              } catch {
-                sanitizedItem.scores = [];
+            const rawScores = getValueWithAliases(item, ['scores', 'Scores', 'pontos', 'Pontos', 'pontuacoes', 'Pontuações', 'score', 'Score'], null);
+            let parsedScores: any[] = [];
+            if (rawScores) {
+              if (typeof rawScores === 'string') {
+                try {
+                  parsedScores = JSON.parse(rawScores);
+                } catch {
+                  parsedScores = [];
+                }
+              } else if (Array.isArray(rawScores)) {
+                parsedScores = rawScores;
               }
-            } else if (Array.isArray(item.scores)) {
-              sanitizedItem.scores = item.scores;
             }
 
-            sanitizedItem.badges = [];
-            sanitizedItem.stats = {
+            const rawBadges = getValueWithAliases(item, ['badges', 'Badges', 'medalhas', 'Medalhas', 'conquistas'], null);
+            let parsedBadges: any[] = [];
+            if (rawBadges) {
+              try {
+                parsedBadges = typeof rawBadges === 'string' ? JSON.parse(rawBadges) : rawBadges;
+              } catch {}
+            }
+
+            const rawStats = getValueWithAliases(item, ['stats', 'Stats', 'estatisticas', 'Estatísticas'], null);
+            let parsedStats: any = {
               gamesPlayed: 0,
               correctAnswers: 0,
               wrongAnswers: 0,
               timeSpent: 0,
               perfectGames: 0
             };
+            if (rawStats) {
+              try {
+                parsedStats = typeof rawStats === 'string' ? JSON.parse(rawStats) : rawStats;
+              } catch {}
+            }
 
-            if (item.badges) {
-              try { sanitizedItem.badges = typeof item.badges === 'string' ? JSON.parse(item.badges) : item.badges; } catch {}
-            }
-            if (item.stats) {
-              try { sanitizedItem.stats = typeof item.stats === 'string' ? JSON.parse(item.stats) : item.stats; } catch {}
-            }
+            const nameVal = getValueWithAliases(item, ['name', 'Name', 'nome', 'Nome'], 'Membro Antigo');
+            const roleVal = getValueWithAliases(item, ['role', 'Role', 'cargo', 'Cargo', 'funcao', 'Função'], 'Desbravador');
+            const classNameVal = getValueWithAliases(item, ['className', 'ClassName', 'class_name', 'classe', 'Classe'], 'Amigo');
+            const joinedAtVal = getValueWithAliases(item, ['joinedAt', 'JoinedAt', 'joined_at', 'entrada', 'Entrada'], new Date().toISOString());
+            const birthdayVal = getValueWithAliases(item, ['birthday', 'Birthday', 'nascimento', 'Nascimento', 'aniversario', 'Aniversário'], null);
+            const counselorVal = getValueWithAliases(item, ['counselor', 'Counselor', 'conselheiro', 'Conselheiro'], '');
+            const unitVal = getValueWithAliases(item, ['unit', 'Unit', 'unidade', 'Unidade'], 'Sucessores');
+            const photoUrlVal = getValueWithAliases(item, ['photoUrl', 'PhotoUrl', 'photo_url', 'foto', 'Foto', 'fotoUrl', 'FotoUrl'], '');
 
             const payload: any = {
-              id: sanitizedItem.id,
-              name: sanitizedItem.name || 'Membro Antigo',
-              role: sanitizedItem.role || 'Desbravador',
-              age: sanitizedItem.age,
-              className: sanitizedItem.className || 'Amigo',
-              joinedAt: sanitizedItem.joinedAt || new Date().toISOString(),
-              birthday: sanitizedItem.birthday || null,
-              counselor: sanitizedItem.counselor || '',
-              unit: sanitizedItem.unit || 'Sucessores',
-              scores: sanitizedItem.scores,
-              photoUrl: sanitizedItem.photoUrl || '',
-              badges: sanitizedItem.badges,
-              stats: sanitizedItem.stats
+              id: recordId,
+              name: nameVal,
+              role: roleVal,
+              age: ageVal,
+              className: classNameVal,
+              joinedAt: joinedAtVal,
+              birthday: birthdayVal,
+              counselor: counselorVal,
+              unit: unitVal,
+              scores: parsedScores,
+              photoUrl: photoUrlVal,
+              badges: parsedBadges,
+              stats: parsedStats
             };
 
             // Remove strings vazias de datas para evitar erros de cast do PostgreSQL
@@ -863,20 +921,31 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
           } else {
             // Importar Users
-            sanitizedItem.age = item.age ? parseInt(item.age, 10) : undefined;
+            const rawAge = getValueWithAliases(item, ['age', 'Age', 'idade', 'Idade'], null);
+            const ageVal = rawAge ? parseInt(rawAge, 10) : null;
             
+            const nameVal = getValueWithAliases(item, ['name', 'Name', 'nome', 'Nome'], 'Usuário Antigo');
+            const roleVal = getValueWithAliases(item, ['role', 'Role', 'cargo', 'Cargo'], 'Desbravador');
+            const funcaoVal = getValueWithAliases(item, ['funcao', 'Função', 'função', 'funcao', 'role_detail'], '');
+            const unitVal = getValueWithAliases(item, ['unit', 'Unit', 'unidade', 'Unidade'], '');
+            const birthdayVal = getValueWithAliases(item, ['birthday', 'Birthday', 'nascimento', 'Nascimento', 'aniversario', 'Aniversário'], null);
+            const classNameVal = getValueWithAliases(item, ['className', 'ClassName', 'class_name', 'classe', 'Classe'], '');
+            const emailVal = getValueWithAliases(item, ['email', 'Email', 'e-mail', 'E-mail'], '');
+            const passwordVal = getValueWithAliases(item, ['password', 'Password', 'senha', 'Senha'], '123456');
+            const photoUrlVal = getValueWithAliases(item, ['photoUrl', 'PhotoUrl', 'photo_url', 'foto', 'Foto', 'fotoUrl', 'FotoUrl'], '');
+
             const payload: any = {
-              id: sanitizedItem.id,
-              name: sanitizedItem.name || 'Usuário Antigo',
-              role: sanitizedItem.role || 'Desbravador',
-              funcao: sanitizedItem.funcao || '',
-              unit: sanitizedItem.unit || '',
-              age: sanitizedItem.age || null,
-              birthday: sanitizedItem.birthday || null,
-              className: sanitizedItem.className || '',
-              email: sanitizedItem.email || '',
-              password: sanitizedItem.password || '123456',
-              photoUrl: sanitizedItem.photoUrl || '',
+              id: recordId,
+              name: nameVal,
+              role: roleVal,
+              funcao: funcaoVal,
+              unit: unitVal,
+              age: ageVal,
+              birthday: birthdayVal,
+              className: classNameVal,
+              email: emailVal,
+              password: passwordVal,
+              photoUrl: photoUrlVal,
               badges: [],
               stats: {
                 gamesPlayed: 0,
@@ -889,11 +958,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
             if (payload.birthday === '') payload.birthday = null;
 
-            if (item.badges) {
-              try { payload.badges = typeof item.badges === 'string' ? JSON.parse(item.badges) : item.badges; } catch {}
+            const rawBadges = getValueWithAliases(item, ['badges', 'Badges', 'medalhas', 'Medalhas', 'conquistas'], null);
+            if (rawBadges) {
+              try { payload.badges = typeof rawBadges === 'string' ? JSON.parse(rawBadges) : rawBadges; } catch {}
             }
-            if (item.stats) {
-              try { payload.stats = typeof item.stats === 'string' ? JSON.parse(item.stats) : item.stats; } catch {}
+            const rawStats = getValueWithAliases(item, ['stats', 'Stats', 'estatisticas', 'Estatísticas'], null);
+            if (rawStats) {
+              try { payload.stats = typeof rawStats === 'string' ? JSON.parse(rawStats) : rawStats; } catch {}
             }
 
             const { error } = await supabase.from('users').upsert([payload]);
