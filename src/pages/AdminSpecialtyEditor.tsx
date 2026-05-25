@@ -89,22 +89,26 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
 
   const getNormalizedCategory = (category: string, type: 'none' | 'no-accents' | 'hyphens' | 'underscores') => {
     if (!category) return '';
-    if (type === 'none') {
-      return category.endsWith('/') ? category : `${category}/`;
+    let processed = category;
+    if (type !== 'none') {
+      const withoutAccents = category.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+      if (type === 'no-accents') {
+        processed = withoutAccents;
+      } else {
+        let base = withoutAccents.toLowerCase();
+        if (type === 'hyphens') {
+          base = base.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        } else if (type === 'underscores') {
+          base = base.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        }
+        processed = base;
+      }
     }
     
-    const withoutAccents = category.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-    if (type === 'no-accents') {
-      return withoutAccents.endsWith('/') ? withoutAccents : `${withoutAccents}/`;
-    }
-    
-    let base = withoutAccents.toLowerCase();
-    if (type === 'hyphens') {
-      base = base.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    } else if (type === 'underscores') {
-      base = base.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    }
-    return `${base}/`;
+    // Codifica caracteres especiais do nome da pasta para serem válidos em URLs (ex: espaços para %20)
+    const parts = processed.split('/').map(part => encodeURIComponent(part));
+    const finalCategory = parts.join('/');
+    return finalCategory.endsWith('/') ? finalCategory : `${finalCategory}/`;
   };
 
   const getNormalizedName = (
@@ -119,21 +123,31 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     const siglaLower = rawSigla.toLowerCase();
     const siglaUpper = rawSigla.toUpperCase();
 
-    if (type === 'sigla') return `${siglaLower}${normalizedExtension}`;
-    if (type === 'sigla_upper') return `${siglaUpper}${normalizedExtension}`;
-    if (type === 'imagem_sigla') return `imagem@${siglaLower}${normalizedExtension}`;
-    if (type === 'exact') return `${spec.Nome}${normalizedExtension}`;
-    
-    const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    let base = norm;
-    if (type === 'none') {
-      base = norm.replace(/[^a-z0-9]/g, '');
-    } else if (type === 'hyphens') {
-      base = norm.replace(/[^a-z0-9]+/g, '-');
-    } else if (type === 'underscores') {
-      base = norm.replace(/[^a-z0-9]+/g, '_');
+    let filename = '';
+    if (type === 'sigla') {
+      filename = `${siglaLower}${normalizedExtension}`;
+    } else if (type === 'sigla_upper') {
+      filename = `${siglaUpper}${normalizedExtension}`;
+    } else if (type === 'imagem_sigla') {
+      filename = `imagem@${siglaLower}${normalizedExtension}`;
+    } else if (type === 'exact') {
+      filename = `${spec.Nome}${normalizedExtension}`;
+    } else {
+      const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      let base = norm;
+      if (type === 'none') {
+        base = norm.replace(/[^a-z0-9]/g, '');
+      } else if (type === 'hyphens') {
+        base = norm.replace(/[^a-z0-9]+/g, '-');
+      } else if (type === 'underscores') {
+        base = norm.replace(/[^a-z0-9]+/g, '_');
+      }
+      filename = `${base}${normalizedExtension}`;
     }
-    return `${base}${normalizedExtension}`;
+
+    // Codifica caracteres especiais do nome do arquivo para URL
+    const parts = filename.split('/').map(part => encodeURIComponent(part));
+    return parts.join('/');
   };
 
   const openStorageModal = () => {
