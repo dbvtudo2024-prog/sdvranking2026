@@ -68,6 +68,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   // Novos estados para o Gerenciador de Imagens Inteligente / Edição em Massa
   const [syncTab, setSyncTab] = useState<'bulk' | 'scan'>('bulk');
   const [bulkBaseUrl, setBulkBaseUrl] = useState('');
+  const [inferredFromDB, setInferredFromDB] = useState('');
   const [bulkPattern, setBulkPattern] = useState<'hyphens' | 'none' | 'underscores' | 'exact' | 'sigla' | 'sigla_upper' | 'imagem_sigla'>('imagem_sigla');
   const [bulkExtension, setBulkExtension] = useState('png');
   const [bulkUseCategory, setBulkUseCategory] = useState(true);
@@ -171,11 +172,12 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
         }
       }
     }
-    if (!inferred) {
-      inferred = 'https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/';
-    }
     
-    setBulkBaseUrl(inferred);
+    setInferredFromDB(inferred);
+    
+    // Forçamos o novo bucket do usuário que ele pediu como padrão imediato!
+    const defaultNewBucket = 'https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/';
+    setBulkBaseUrl(defaultNewBucket);
     
     const initialMap: { [id: number]: string } = {};
     specialties.forEach(spec => {
@@ -621,6 +623,27 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                         value={bulkBaseUrl}
                         onChange={e => setBulkBaseUrl(e.target.value)}
                       />
+                      
+                      {/* Atalhos rápidos para alternar entre Buckets */}
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span className="text-[9px] font-black text-slate-500 uppercase">Atalhos Rápidos:</span>
+                        <button
+                          type="button"
+                          onClick={() => setBulkBaseUrl('https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/')}
+                          className="px-2.5 py-1 text-[9px] font-black uppercase bg-blue-500/15 hover:bg-blue-500/25 text-blue-500 rounded-lg transition-all border border-blue-500/20 shadow-sm"
+                        >
+                          ✨ Novo Bucket (heuotluvniqozsuwcnpi)
+                        </button>
+                        {inferredFromDB && inferredFromDB !== 'https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/' && (
+                          <button
+                            type="button"
+                            onClick={() => setBulkBaseUrl(inferredFromDB)}
+                            className="px-2.5 py-1 text-[9px] font-black uppercase bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 rounded-lg transition-all border border-slate-500/15"
+                          >
+                            🔄 Recuperar do Banco ({inferredFromDB.includes('qfpyjavbncijowjvznkg') ? 'Banco Atual' : 'Original'})
+                          </button>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Extensão */}
@@ -656,8 +679,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                         value={bulkCategoryNormalization}
                         onChange={e => setBulkCategoryNormalization(e.target.value as any)}
                       >
-                        <option value="none">Original (Ex: "Estudo da Natureza")</option>
-                        <option value="no-accents">Sem Acentos (Ex: "Estudo da Natureza")</option>
+                        <option value="none">Original com %20 (Ex: "Artes%20e%20Habilidades%20Manuais")</option>
+                        <option value="no-accents">Sem Acentos com %20 (Ex: "Ciencia%20e%20Tecnologia")</option>
                         <option value="hyphens">Hífens (Ex: "estudo-da-natureza")</option>
                         <option value="underscores">Sublinhados (Ex: "estudo_da_natureza")</option>
                       </select>
