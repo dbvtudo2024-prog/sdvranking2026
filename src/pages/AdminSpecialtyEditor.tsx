@@ -69,7 +69,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const [syncTab, setSyncTab] = useState<'bulk' | 'scan'>('bulk');
   const [bulkBaseUrl, setBulkBaseUrl] = useState('');
   const [inferredFromDB, setInferredFromDB] = useState('');
-  const [bulkPattern, setBulkPattern] = useState<'hyphens' | 'none' | 'underscores' | 'exact' | 'sigla' | 'sigla_upper' | 'imagem_sigla'>('imagem_sigla');
+  const [bulkPattern, setBulkPattern] = useState<string>('imagem_sigla');
+  const [customPattern, setCustomPattern] = useState('imagem@[NOME_HIFENS]');
   const [bulkExtension, setBulkExtension] = useState('png');
   const [bulkUseCategory, setBulkUseCategory] = useState(true);
   const [bulkCategoryNormalization, setBulkCategoryNormalization] = useState<'none' | 'no-accents' | 'hyphens' | 'underscores'>('none');
@@ -114,7 +115,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
 
   const getNormalizedName = (
     spec: SpecialtyDBV, 
-    type: 'hyphens' | 'none' | 'underscores' | 'exact' | 'sigla' | 'sigla_upper' | 'imagem_sigla', 
+    type: string, 
     ext: string
   ) => {
     const normalizedExtension = ext.startsWith('.') ? ext : `.${ext}`;
@@ -125,6 +126,44 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     const siglaLower = rawSigla.toLowerCase();
     const siglaUpper = rawSigla.toUpperCase();
 
+    // Função interna para obter o sequencial dinâmico correto por categoria
+    const getSequentialCode = (sObj: SpecialtyDBV) => {
+      const cat = sObj.Categoria || 'Geral';
+      
+      // Abreviação padrão da categoria (Sigla)
+      let abbrev = 'gr';
+      const normCat = cat.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      
+      if (normCat.includes('natureza')) {
+        abbrev = 'en'; // Estudo da Natureza
+      } else if (normCat.includes('recreativa')) {
+        abbrev = 'ar'; // Atividades Recreativas
+      } else if (normCat.includes('domestica') || (normCat.includes('manual') && normCat.includes('arte'))) {
+        abbrev = 'ad'; // Atividades Domésticas
+      } else if (normCat.includes('missionaria')) {
+        abbrev = 'am'; // Atividades Missionárias
+      } else if (normCat.includes('habilidade') || normCat.includes('manual')) {
+        abbrev = 'hm'; // Habilidades Manuais
+      } else if (normCat.includes('ciencia') || normCat.includes('saude') || normCat.includes('saúde')) {
+        abbrev = 'sa'; // Saúde e Ciência / Saúde
+      } else if (normCat.includes('comercio') || normCat.includes('economia')) {
+        abbrev = 'co'; // Comércio e Economia
+      } else if (normCat.includes('tecnologia') || normCat.includes('computa')) {
+        abbrev = 'ci'; // Ciência e Tecnologia
+      } else {
+        const cleaned = normCat.replace(/[^a-z]/g, '');
+        abbrev = cleaned.substring(0, 2) || 'sp';
+      }
+      
+      const sameCategory = specialties
+        .filter(s => (s.Categoria || 'Geral') === cat)
+        .sort((a, b) => a.Nome.localeCompare(b.Nome, 'pt-BR'));
+        
+      const index = sameCategory.findIndex(s => s.id === sObj.id);
+      const num = String(index !== -1 ? index + 1 : 1).padStart(3, '0');
+      return `${abbrev}${num}`;
+    };
+
     let filename = '';
     if (type === 'sigla') {
       filename = `${siglaLower}${normalizedExtension}`;
@@ -132,8 +171,57 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       filename = `${siglaUpper}${normalizedExtension}`;
     } else if (type === 'imagem_sigla') {
       filename = `imagem@${siglaLower}${normalizedExtension}`;
+    } else if (type === 'imagem_nome_hyphens') {
+      const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const base = norm.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      filename = `imagem@${base}${normalizedExtension}`;
+    } else if (type === 'imagem_nome_underscores') {
+      const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const base = norm.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      filename = `imagem@${base}${normalizedExtension}`;
+    } else if (type === 'imagem_nome_none') {
+      const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const base = norm.replace(/[^a-z0-9]/g, '');
+      filename = `imagem@${base}${normalizedExtension}`;
+    } else if (type === 'imagem_sequencial') {
+      const seq = getSequentialCode(spec);
+      filename = `imagem@${seq}${normalizedExtension}`;
+    } else if (type === 'sequencial') {
+      const seq = getSequentialCode(spec);
+      filename = `${seq}${normalizedExtension}`;
+    } else if (type === 'sequencial_upper') {
+      const seq = getSequentialCode(spec).toUpperCase();
+      filename = `${seq}${normalizedExtension}`;
     } else if (type === 'exact') {
       filename = `${spec.Nome}${normalizedExtension}`;
+    } else if (type === 'custom') {
+      const normName = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const nameHyphens = normName.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const nameUnderscores = normName.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const nameSeco = normName.replace(/[^a-z0-9]/g, '');
+      
+      const catNorm = (spec.Categoria || 'Geral').normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const catHyphens = catNorm.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const catUnderscores = catNorm.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      
+      const seqCode = getSequentialCode(spec);
+      const seqNum = seqCode.replace(/[^0-9]/g, '');
+      
+      let res = customPattern;
+      res = res.replace(/\[NOME_HIFENS\]/g, nameHyphens);
+      res = res.replace(/\[NOME_SUBLINHADO\]/g, nameUnderscores);
+      res = res.replace(/\[NOME_SECO\]/g, nameSeco);
+      res = res.replace(/\[NOME\]/g, spec.Nome);
+      res = res.replace(/\[SIGLA\]/g, siglaLower);
+      res = res.replace(/\[SIGLA_UPPER\]/g, siglaUpper);
+      res = res.replace(/\[CATEGORIA_HIFENS\]/g, catHyphens);
+      res = res.replace(/\[CATEGORIA_SUBLINHADO\]/g, catUnderscores);
+      res = res.replace(/\[SEQUENCIAL\]/g, seqNum);
+      res = res.replace(/\[SIGLA_SEQUENCIAL\]/g, seqCode);
+      res = res.replace(/\[SIGLA_SEQUENCIAL_UPPER\]/g, seqCode.toUpperCase());
+      res = res.replace(/\[ID\]/g, String(spec.id || ''));
+      
+      filename = `${res}${normalizedExtension}`;
     } else {
       const norm = spec.Nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
       let base = norm;
@@ -693,15 +781,22 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                       <select 
                         className={inputClasses}
                         value={bulkPattern}
-                        onChange={e => setBulkPattern(e.target.value as any)}
+                        onChange={e => setBulkPattern(e.target.value)}
                       >
-                        <option value="imagem_sigla">imagem@sigla (Ex: imagem@ad001.png) [Recomendado]</option>
-                        <option value="sigla">sigla (Ex: ad001.png)</option>
-                        <option value="sigla_upper">SIGLA MAIÚSCULA (Ex: AD001.png)</option>
-                        <option value="hyphens">nome-com-hifens (Ex: arte-de-acampar.png)</option>
-                        <option value="underscores">nome_com_sublinhados (Ex: arte_de_acampar.png)</option>
-                        <option value="none">nomecompletosemespacobanco (Ex: artedeacampar.png)</option>
-                        <option value="exact">Nome Original do Banco (Ex: Arte de Acampar.png)</option>
+                        <option value="imagem_sequencial">🔢 imagem@sequencial (Ex: imagem@en001.png) [Recomendado]</option>
+                        <option value="sequencial">🔢 sequencial (Ex: en001.png)</option>
+                        <option value="sequencial_upper">🔢 SEQUENCIAL MAIÚSCULO (Ex: EN001.png)</option>
+                        <option value="imagem_sigla">🏷️ imagem@sigla (Ex: imagem@ad.png)</option>
+                        <option value="sigla">🏷️ sigla (Ex: ad.png)</option>
+                        <option value="sigla_upper">🏷️ SIGLA MAIÚSCULA (Ex: AD.png)</option>
+                        <option value="imagem_nome_hyphens">📌 imagem@nome-hifens (Ex: imagem@arte-de-acampar.png)</option>
+                        <option value="imagem_nome_underscores">📌 imagem@nome_sublinhado (Ex: imagem@arte_de_acampar.png)</option>
+                        <option value="imagem_nome_none">📌 imagem@nomesemespaco (Ex: imagem@artedeacampar.png)</option>
+                        <option value="hyphens">🔗 nome-com-hifens (Ex: arte-de-acampar.png)</option>
+                        <option value="underscores">🔗 nome_com_sublinhados (Ex: arte_de_acampar.png)</option>
+                        <option value="none">🔗 nomecompletosemespaco (Ex: artedeacampar.png)</option>
+                        <option value="exact">📝 Nome Original do Banco (Ex: Arte de Acampar.png)</option>
+                        <option value="custom">✍️ Padrão Personalizado (Placeholders...)</option>
                       </select>
                     </div>
 
@@ -715,6 +810,29 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                         Aplicar Padrão
                       </button>
                     </div>
+
+                    {/* Input de Padrão Personalizado */}
+                    {bulkPattern === 'custom' && (
+                      <div className="col-span-12 mt-2 p-4 rounded-2xl bg-slate-500/5 border border-slate-500/10">
+                        <label className={labelClasses}>
+                          Máscara do Nome do Arquivo (Placeholders suportados: 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[NOME]</span>, 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[NOME_HIFENS]</span>, 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[NOME_SUBLINHADO]</span>, 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[NOME_SECO]</span>, 
+                          <span className="text-blue-500 font-mono text-[10px] mx-1 font-bold">[SIGLA_SEQUENCIAL]</span> (Ex: en001), 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[SEQUENCIAL]</span> (Ex: 001), 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[SIGLA]</span>, 
+                          <span className="text-blue-500 font-mono text-[9px] mx-1 font-black">[CATEGORIA_HIFENS]</span>)
+                        </label>
+                        <input
+                          className={inputClasses}
+                          value={customPattern}
+                          onChange={e => setCustomPattern(e.target.value)}
+                          placeholder="Ex: imagem@[NOME_HIFENS] ou imagem@[SIGLA_SEQUENCIAL]"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
