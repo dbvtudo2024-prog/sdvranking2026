@@ -57,7 +57,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       if (parentError) throw parentError;
 
       if (!parentItems || parentItems.length === 0) {
-        setStorageStatusMessage(`Nenhum arquivo ou pasta encontrado no bucket "${bucketName}" na pasta "${parentFolder}".`);
+        setStorageStatusMessage(`Nenhum arquivo ou pasta encontrado no bucket "${bucketName}" na pasta "${parentFolder}". Certifique-se de que o bucket existe, que o nome está correto e que você liberou a política de acesso RLS para o correto funcionamento da listagem do Storage.`);
         return;
       }
 
@@ -103,7 +103,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       }
 
       if (allFoundFiles.length === 0) {
-        setStorageStatusMessage(`O escaneamento foi concluído, mas nenhuma imagem válida foi encontrada nas pastas listadas.`);
+        setStorageStatusMessage(`O escaneamento foi concluído, mas nenhuma imagem válida foi encontrada nas pastas listadas. Se as pastas existem, crie uma política de leitura pública (Select) para storage.objects no painel do Supabase.`);
         return;
       }
 
