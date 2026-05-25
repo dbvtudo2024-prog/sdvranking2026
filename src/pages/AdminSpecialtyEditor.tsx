@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { DatabaseService } from '@/db';
+import { DatabaseService, supabase } from '@/db';
 import { SpecialtyDBV } from '@/types';
 import { SPECIALTIES } from '@/constants';
-import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2, DownloadCloud } from 'lucide-react';
+import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2, DownloadCloud, Image as ImageIcon, Wand2, Link, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface AdminSpecialtyEditorProps {
   onBack: () => void;
@@ -19,6 +19,15 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   const [editItem, setEditItem] = useState<SpecialtyDBV | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Estados para sincronização do storage de imagens
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [bucketName, setBucketName] = useState('Imagens');
+  const [folderName, setFolderName] = useState('especialidades');
+  const [storageFiles, setStorageFiles] = useState<{ name: string; url: string; matchedSpecialtyId?: number }[]>([]);
+  const [isScanningStorage, setIsScanningStorage] = useState(false);
+  const [storageStatusMessage, setStorageStatusMessage] = useState('');
+  const [savingSync, setSavingSync] = useState(false);
+
   const [formData, setFormData] = useState<Partial<SpecialtyDBV>>({
     ID: '', Nome: '', Imagem: '', Categoria: '', Like: false
   });
@@ -30,6 +39,161 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     });
     return () => { if(channel) channel.unsubscribe(); };
   }, []);
+
+  const handleScanStorage = async () => {
+    setIsScanningStorage(true);
+    setStorageStatusMessage('Acessando o bucket do Supabase...');
+    setStorageFiles([]);
+    
+    try {
+      // Lista itens do bucket e da pasta
+      const { data, error } = await supabase.storage.from(bucketName).list(folderName || '', {
+        limit: 1000,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        setStorageStatusMessage(`Nenhum arquivo encontrado no bucket "${bucketName}" na pasta "${folderName}".`);
+        return;
+      }
+
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'];
+      const fileItems = data.filter(item => {
+        const lowerName = item.name.toLowerCase();
+        return imageExtensions.some(ext => lowerName.endsWith(ext));
+      });
+
+      if (fileItems.length === 0) {
+        setStorageStatusMessage(`Foram listados ${data.length} arquivos, mas nenhum deles é uma imagem válida (.png, .jpg, etc).`);
+        return;
+      }
+
+      const mapped = fileItems.map(item => {
+        const filePath = folderName ? `${folderName}/${item.name}` : item.name;
+        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+        const publicUrl = urlData?.publicUrl || '';
+
+        // Match inteligente de especialidade baseando-se no nome do arquivo
+        const cleanFileName = item.name.toLowerCase()
+          .replace(/\.[^/.]+$/, "") // remove extensao
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove acentos
+          .replace(/[^a-z0-9]/g, ""); // strip
+
+        let bestMatchId: number | undefined = undefined;
+
+        // 1. Tenta correspondência direta do nome
+        const directMatch = specialties.find(spec => {
+          const cleanSpecName = spec.Nome.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+          return cleanFileName.includes(cleanSpecName) || cleanSpecName.includes(cleanFileName);
+        });
+
+        if (directMatch) {
+          bestMatchId = directMatch.id;
+        } else {
+          // 2. Procura com base nas iniciais / códigos que o usuário citou (ex: "HM 024", "HM_002", etc)
+          const lowerNameString = item.name.toLowerCase();
+          
+          bestMatchId = specialties.find(spec => {
+            const specLower = spec.Nome.toLowerCase();
+            
+            // Nós e Amarras -> HM 032 ou HM 017 ou HM 022 ou similar
+            if (specLower.includes("nos") && specLower.includes("amarras")) {
+              return lowerNameString.includes("hm") && (lowerNameString.includes("32") || lowerNameString.includes("17") || lowerNameString.includes("22"));
+            }
+            // Acampamento
+            if (specLower.includes("acampamento")) {
+              return lowerNameString.includes("hm") && lowerNameString.includes("01");
+            }
+            // Primeiros Socorros
+            if (specLower.includes("socorros")) {
+              return lowerNameString.includes("hm") && lowerNameString.includes("35") || lowerNameString.includes("so") || lowerNameString.includes("ps");
+            }
+            // Astronomia
+            if (specLower.includes("astronomia")) {
+              return lowerNameString.includes("en") && lowerNameString.includes("03") || lowerNameString.includes("astro");
+            }
+            // Gatos
+            if (specLower.includes("gatos") || specLower.includes("gato")) {
+              return lowerNameString.includes("gato") || (lowerNameString.includes("en") && lowerNameString.includes("26"));
+            }
+            // Cães
+            if (specLower.includes("caes") || specLower.includes("cães") || specLower.includes("cao")) {
+              return lowerNameString.includes("caes") || lowerNameString.includes("dog") || (lowerNameString.includes("en") && lowerNameString.includes("20"));
+            }
+            // Aves
+            if (specLower.includes("aves") || specLower.includes("ave")) {
+              return lowerNameString.includes("aves") || lowerNameString.includes("pássaro") || (lowerNameString.includes("en") && lowerNameString.includes("05"));
+            }
+            // Computação I
+            if (specLower.includes("computacao") || specLower.includes("computação")) {
+              return lowerNameString.includes("comput") || lowerNameString.includes("ci") || lowerNameString.includes("pc");
+            }
+            // Culinária I
+            if (specLower.includes("culinaria") || specLower.includes("culinária")) {
+              return lowerNameString.includes("culin") || lowerNameString.includes("ad") || lowerNameString.includes("coz");
+            }
+            return false;
+          })?.id;
+        }
+
+        return {
+          name: item.name,
+          url: publicUrl,
+          matchedSpecialtyId: bestMatchId
+        };
+      });
+
+      setStorageFiles(mapped);
+      setStorageStatusMessage(`Sucesso! Encontradas ${mapped.length} imagens.`);
+    } catch (err: any) {
+      console.error(err);
+      setStorageStatusMessage(`Erro: ${err.message || err}. Verifique as permissões de acesso público do Storage.`);
+    } finally {
+      setIsScanningStorage(false);
+    }
+  };
+
+  const handleSaveSync = async () => {
+    const itemsToSync = storageFiles.filter(f => f.matchedSpecialtyId !== undefined);
+    if (itemsToSync.length === 0) {
+      alert("Nenhuma correspondência selecionada. Associe uma especialidade às imagens listadas do storage.");
+      return;
+    }
+
+    if (!confirm(`Sincronizar caminhos de ${itemsToSync.length} imagem(ns) no banco?`)) {
+      return;
+    }
+
+    setSavingSync(true);
+    let successCount = 0;
+    try {
+      for (const item of itemsToSync) {
+        const spec = specialties.find(s => s.id === item.matchedSpecialtyId);
+        if (spec) {
+          await DatabaseService.updateSpecialty({
+            ...spec,
+            Imagem: item.url
+          });
+          successCount++;
+        }
+      }
+      alert(`✅ Sucesso! ${successCount} especialidade(s) foram atualizadas com o link de imagem do novo storage.`);
+      setShowStorageModal(false);
+      // Recarrega especialidades de imediato
+      const refreshedSpec = await DatabaseService.getSpecialties();
+      setSpecialties(refreshedSpec);
+    } catch (err: any) {
+      alert(`Erro no processo de sincronização: ${err.message || err}`);
+    } finally {
+      setSavingSync(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +235,17 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   return (
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'} overflow-hidden`}>
       <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto pb-32">
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <button 
+            onClick={() => {
+              setShowStorageModal(true);
+              setStorageFiles([]);
+              setStorageStatusMessage('');
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-wider shadow-md active:scale-95 transition-all"
+          >
+            <ImageIcon size={16} /> Sincronizar Novo Storage
+          </button>
           <button 
             onClick={async () => {
               if (!confirm('Importar as especialidades padrão?')) return;
@@ -86,11 +260,14 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               finally { setIsSaving(false); }
             }}
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-50"
           >
             <DownloadCloud size={16} /> Importar Padrão
           </button>
-          <button onClick={() => { setEditItem(null); setFormData({ ID: '', Nome: '', Imagem: '', Categoria: '', Like: false }); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#0061f2] text-white rounded-2xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all">
+          <button 
+            onClick={() => { setEditItem(null); setFormData({ ID: '', Nome: '', Imagem: '', Categoria: '', Like: false }); setShowModal(true); }} 
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0061f2] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-wider shadow-md active:scale-95 transition-all"
+          >
             <Plus size={16} /> Nova Especialidade
           </button>
         </div>
@@ -153,6 +330,142 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                  {isSaving ? <Loader2 className="animate-spin mx-auto" /> : 'SALVAR NO BANCO'}
                </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showStorageModal && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className={`${isDarkMode ? 'bg-slate-800 border bg-slate-800/95 border-slate-700 text-slate-100' : 'bg-white text-slate-800'} w-full max-w-2xl rounded-[3rem] p-8 shadow-2xl space-y-6 animate-in zoom-in-95 flex flex-col max-h-[85vh]`}>
+            <div className="flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <Wand2 className="text-emerald-500 animate-pulse" size={24} />
+                <h3 className="text-lg font-black uppercase tracking-tight">Sincronizador Automático do Storage</h3>
+              </div>
+              <button onClick={() => setShowStorageModal(false)} className="text-slate-400 hover:text-red-400 p-1"><X size={28} /></button>
+            </div>
+
+            <div className="space-y-4 shrink-0">
+              <p className={`text-xs font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Ao trocar de banco, as especialidades perdem o caminho das imagens. Coloque abaixo o nome do seu <strong>Bucket de Storage</strong> do Supabase e a <strong>Pasta</strong> onde as imagens estão salvas para vinculá-las automaticamente com base na sigla/número ou nome do arquivo.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>Nome do Bucket</label>
+                  <input 
+                    className={inputClasses} 
+                    placeholder="Ex: Imagens" 
+                    value={bucketName} 
+                    onChange={e => setBucketName(e.target.value)} 
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>Pasta do Bucket (Opcional)</label>
+                  <input 
+                    className={inputClasses} 
+                    placeholder="Ex: especialidades" 
+                    value={folderName} 
+                    onChange={e => setFolderName(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={handleScanStorage} 
+                disabled={isScanningStorage || !bucketName}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest py-4 rounded-[1.2rem] flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/10 active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {isScanningStorage ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Escaneando Storage...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} />
+                    Buscar Imagens no Storage
+                  </>
+                )}
+              </button>
+
+              {storageStatusMessage && (
+                <div className={`p-4 rounded-[1.5rem] flex items-start gap-2.5 border text-xs font-bold uppercase tracking-wider ${
+                  storageStatusMessage.toLowerCase().includes('erro') || storageStatusMessage.toLowerCase().includes('nenhum')
+                    ? 'bg-red-500/10 border-red-500/20 text-red-400' 
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                }`}>
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{storageStatusMessage}</span>
+                </div>
+              )}
+            </div>
+
+            {storageFiles.length > 0 && (
+              <div className="flex-1 overflow-y-auto pr-2 gap-3 flex flex-col min-h-0 py-2 border-y border-dashed border-slate-700/50">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2] block ml-1 mb-1">Mapeamento de Imagens encontradas:</span>
+                {storageFiles.map((file, idx) => (
+                  <div key={idx} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-100'} gap-4`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl border p-1 shrink-0 bg-white flex items-center justify-center overflow-hidden">
+                        <img src={file.url} className="w-full h-full object-contain" alt={file.name} referrerPolicy="no-referrer" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black truncate max-w-[200px]" title={file.name}>{file.name}</p>
+                        <span className="text-[9px] font-semibold text-slate-500 truncate block">Novo Link Públicizado pronto</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0 hidden md:inline">Vincular a:</span>
+                      <select 
+                        className={`p-2.5 rounded-xl text-xs font-bold outline-none border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-700'} max-w-[220px]`}
+                        value={file.matchedSpecialtyId || ''}
+                        onChange={(e) => {
+                          const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                          const updated = [...storageFiles];
+                          updated[idx].matchedSpecialtyId = val;
+                          setStorageFiles(updated);
+                        }}
+                      >
+                        <option value="">[ Ignorar / Não vincular ]</option>
+                        {specialties.map(spec => (
+                          <option key={spec.id} value={spec.id}>{spec.Nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {storageFiles.length > 0 && (
+              <div className="shrink-0 pt-2 flex gap-4">
+                <button 
+                  onClick={() => setShowStorageModal(false)}
+                  className={`flex-1 py-4 rounded-[1.2rem] text-xs font-black uppercase border ${isDarkMode ? 'border-slate-700 hover:bg-slate-700 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} transition-all`}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSaveSync}
+                  disabled={savingSync}
+                  className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-[1.2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all border-b-4 border-emerald-800 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {savingSync ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      Sincronizando Banco...
+                    </>
+                  ) : (
+                    <>
+                      <Link size={16} />
+                      Gravar Vínculos no Banco
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
