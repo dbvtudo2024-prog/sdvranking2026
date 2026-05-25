@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, supabase } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
@@ -412,6 +412,40 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, success: 0, error: 0 });
   const [importLogs, setImportLogs] = useState<string[]>([]);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      readImportFile(file);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      readImportFile(file);
+    }
+  };
+
+  const readImportFile = (file: File) => {
+    if (file.name.endsWith('.json')) {
+      setImportFormat('json');
+    } else if (file.name.endsWith('.csv')) {
+      setImportFormat('csv');
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        setRawImportText(event.target.result);
+        alert(`Arquivo "${file.name}" carregado com sucesso (${(event.target.result.length / 1024).toFixed(1)} KB)!`);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
@@ -1313,10 +1347,68 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             <p className="text-amber-500 font-bold">* Dica: Se não fornecer "id", o sistema gerará chaves únicas automaticamente.</p>
           </div>
 
+          {/* Caixa de Upload Real por Drag & Drop / Clique */}
+          <div className="space-y-4">
+            <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+              Enviar Arquivo CSV ou JSON
+            </label>
+            <div
+              onDragEnter={() => setIsDragActive(true)}
+              onDragLeave={() => setIsDragActive(false)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleFileDrop}
+              className={`cursor-pointer border-2 border-dashed rounded-3xl p-6 text-center transition-all duration-200 ${
+                isDragActive
+                  ? 'border-blue-500 bg-blue-500/10 scale-[0.99] shadow-inner'
+                  : isDarkMode
+                  ? 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
+                  : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100/50'
+              }`}
+            >
+              <input
+                type="file"
+                accept=".csv,.json"
+                onChange={handleFileChange}
+                id="file-import-input"
+                className="hidden"
+                disabled={isImporting}
+              />
+              <label htmlFor="file-import-input" className="cursor-pointer space-y-2 block">
+                <div className="flex justify-center">
+                  <Upload
+                    size={32}
+                    className={`transition-transform duration-200 ${
+                      isDragActive ? 'text-blue-500 scale-125 animate-bounce' : isDarkMode ? 'text-slate-500' : 'text-slate-400'
+                    }`}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Arraste & Solte seu arquivo aqui
+                  </p>
+                  <p className={`text-[8.5px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    Ou clique para navegar no seu computador
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <div>
-            <label className={`block text-[8px] font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Dados para Importar</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Conteúdo Carregado / Visualização</label>
+              {rawImportText && (
+                <button
+                  type="button"
+                  onClick={() => setRawImportText('')}
+                  className="text-[8px] font-black uppercase tracking-widest text-red-500 hover:underline"
+                >
+                  Limpar Dados
+                </button>
+              )}
+            </div>
             <textarea
-              className={`w-full h-48 p-4 rounded-3xl font-mono text-xs ${
+              className={`w-full h-32 p-4 rounded-3xl font-mono text-xs ${
                 isDarkMode ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-700'
               } border outline-none focus:border-blue-500 transition-all`}
               placeholder={
