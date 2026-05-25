@@ -119,8 +119,9 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   ) => {
     const normalizedExtension = ext.startsWith('.') ? ext : `.${ext}`;
     
-    // Obtém o código / sigla mais representativo do modelo
-    const rawSigla = spec.Sigla || spec.ID || '';
+    // Obtém o código / ID mais representativo do modelo (Preferimos o ID sobre o Sigla, e limpamos hífens/espaços)
+    let rawSigla = spec.ID || spec.Sigla || '';
+    rawSigla = rawSigla.replace(/[^a-zA-Z0-9]/g, '');
     const siglaLower = rawSigla.toLowerCase();
     const siglaUpper = rawSigla.toUpperCase();
 
