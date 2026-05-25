@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-const DEFAULT_URL = 'https://heuotluvniqoztswcnpi.supabase.co';
+const DEFAULT_URL = 'https://heuotluvniqozswcnpi.supabase.co';
 const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhldW90bHV2bmlxb3pzdXdjbnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTg5NDcsImV4cCI6MjA4ODgzNDk0N30.IPeNpraSXp_Zup8Lc57LaOcchqt7SVkPk0Crozvr1Jk';
 
 const getValidSupabaseConfig = () => {
