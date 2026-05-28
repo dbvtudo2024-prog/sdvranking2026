@@ -489,6 +489,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [devotionalScheduledFor, setDevotionalScheduledFor] = useState(new Date().toISOString().slice(0, 16));
   const [isSavingDevotional, setIsSavingDevotional] = useState(false);
   const [allDevotionals, setAllDevotionals] = useState<Devotional[]>([]);
+  const [editingDevotional, setEditingDevotional] = useState<Devotional | null>(null);
   const [showDevotionalList, setShowDevotionalList] = useState(false);
   const [showAssetsModal, setShowAssetsModal] = useState(false);
   const [gameAssets, setGameAssets] = useState<any[]>([]);
@@ -547,25 +548,69 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     setIsSavingDevotional(true);
     try {
       const scheduledDate = new Date(devotionalScheduledFor);
-      const isNow = scheduledDate <= new Date();
 
-      await DatabaseService.createDevotional({
-        link: devotionalLink,
-        title: finalTitle,
-        content: devotionalContent,
-        scheduled_for: scheduledDate.toISOString()
-      });
+      if (editingDevotional && editingDevotional.id) {
+        await DatabaseService.updateDevotional(editingDevotional.id, {
+          link: devotionalLink,
+          title: finalTitle,
+          content: devotionalContent,
+          scheduled_for: scheduledDate.toISOString()
+        });
+        alert("✅ Devocional editado com sucesso!");
+        setEditingDevotional(null);
+      } else {
+        await DatabaseService.createDevotional({
+          link: devotionalLink,
+          title: finalTitle,
+          content: devotionalContent,
+          scheduled_for: scheduledDate.toISOString()
+        });
+        alert("✅ Devocional agendado com sucesso!");
+      }
 
-      alert("✅ Devocional agendado com sucesso!");
+      // Calcula o próximo dia com base na data que foi salva
+      const nextDay = new Date(scheduledDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const yyyy = nextDay.getFullYear();
+      const mm = String(nextDay.getMonth() + 1).padStart(2, '0');
+      const dd = String(nextDay.getDate()).padStart(2, '0');
+      const hh = String(nextDay.getHours()).padStart(2, '0');
+      const min = String(nextDay.getMinutes()).padStart(2, '0');
+      const nextDayStr = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+
       setDevotionalLink('');
       setDevotionalTitle('');
       setDevotionalContent('');
+      setDevotionalScheduledFor(nextDayStr);
       loadDevotionals();
     } catch (err) {
       alert("❌ Erro ao salvar devocional.");
     } finally {
       setIsSavingDevotional(false);
     }
+  };
+
+  const handleEditDevotional = (dev: Devotional) => {
+    setEditingDevotional(dev);
+    setDevotionalTitle(dev.title);
+    setDevotionalLink(dev.link);
+    setDevotionalContent(dev.content);
+    const d = new Date(dev.scheduled_for);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    setDevotionalScheduledFor(`${yyyy}-${mm}-${dd}T${hh}:${min}`);
+    setShowDevotionalList(false);
+  };
+
+  const handleCancelEditDevotional = () => {
+    setEditingDevotional(null);
+    setDevotionalTitle('');
+    setDevotionalLink('');
+    setDevotionalContent('');
+    setDevotionalScheduledFor(new Date().toISOString().slice(0, 16));
   };
 
   const handleDeleteDevotional = async (id: number) => {
@@ -1692,15 +1737,17 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 <BookOpen size={24} className="text-emerald-600" />
                 <h3 className={`text-xl font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-800'} uppercase tracking-tight`}>Gestão de Devocionais</h3>
               </div>
-              <button onClick={() => setShowDevotionalModal(false)} className="text-slate-300 hover:text-slate-500 transition-colors"><X size={24} /></button>
+              <button onClick={() => { setShowDevotionalModal(false); handleCancelEditDevotional(); }} className="text-slate-300 hover:text-slate-500 transition-colors">
+                <X size={24} />
+              </button>
             </div>
-
+            
             <div className={`flex p-1 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'} rounded-2xl shrink-0`}>
               <button 
                 onClick={() => setShowDevotionalList(false)}
                 className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${!showDevotionalList ? (isDarkMode ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'bg-white text-emerald-600 shadow-sm') : 'text-slate-400'}`}
               >
-                Novo Devocional
+                {editingDevotional ? 'Editar Devocional' : 'Novo Devocional'}
               </button>
               <button 
                 onClick={() => setShowDevotionalList(true)}
@@ -1757,14 +1804,34 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                     </div>
                   </div>
 
-                  <button 
-                    onClick={handleSaveDevotional}
-                    disabled={isSavingDevotional}
-                    className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-md uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {isSavingDevotional ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
-                    AGENDAR DEVOCIONAL
-                  </button>
+                  {editingDevotional ? (
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={handleSaveDevotional}
+                        disabled={isSavingDevotional}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-md uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {isSavingDevotional ? <Loader2 className="animate-spin" size={24} /> : <Check size={24} />}
+                        SALVAR ALTERAÇÕES
+                      </button>
+                      <button 
+                        onClick={handleCancelEditDevotional}
+                        className="flex-1 bg-slate-500 hover:bg-slate-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-md uppercase text-xs tracking-widest active:scale-95 transition-all"
+                      >
+                        <X size={24} />
+                        CANCELAR
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleSaveDevotional}
+                      disabled={isSavingDevotional}
+                      className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-md uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {isSavingDevotional ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
+                      AGENDAR DEVOCIONAL
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3 animate-in fade-in duration-300">
@@ -1781,12 +1848,22 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                             {new Date(dev.scheduled_for).toLocaleString('pt-BR')}
                           </p>
                         </div>
-                        <button 
-                          onClick={() => handleDeleteDevotional(dev.id!)}
-                          className="p-2 text-red-300 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleEditDevotional(dev)}
+                            className="p-2 text-slate-400 hover:text-emerald-500 transition-colors"
+                            title="Editar devocional"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteDevotional(dev.id!)}
+                            className="p-2 text-red-300 hover:text-red-500 transition-colors"
+                            title="Excluir devocional"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

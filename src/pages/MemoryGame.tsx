@@ -300,9 +300,15 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
                <span>Movimentos: {moves}</span>
              </div>
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse mb-6">
             Sua pontuação foi salva automaticamente!
           </p>
+          <button 
+            onClick={onBack}
+            className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-xl shadow-blue-500/20"
+          >
+            CONFIRMAR E VOLTAR
+          </button>
         </div>
       </div>
     );

@@ -1142,7 +1142,7 @@ const App: React.FC = () => {
         </header>
       )}
       
-      {['chat', 'bible', 'devotional', 'specialty_study'].includes(currentPage) && <TickerBanner announcements={announcements} />}
+      {currentPage !== 'home' && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 

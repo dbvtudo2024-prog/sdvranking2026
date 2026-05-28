@@ -240,8 +240,17 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
               </div>
               <div className="bg-slate-50 dark:bg-slate-900 w-full p-6 rounded-3xl border-2 border-slate-100 dark:border-slate-800">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pontuação Final</p>
-                <p className="text-4xl font-black text-emerald-600">{score} PTS</p>
+                <p className="text-4xl font-black text-emerald-600 mb-4">{score} PTS</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                  Sua pontuação foi salva automaticamente!
+                </p>
               </div>
+              <button 
+                onClick={onBack}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-[2rem] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-500/10 text-xs"
+              >
+                CONFIRMAR E VOLTAR
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

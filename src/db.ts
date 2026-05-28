@@ -1480,6 +1480,15 @@ export const DatabaseService = {
     if (error) throw error;
   },
 
+  async updateDevotional(id: number, devotional: Partial<Omit<Devotional, 'id' | 'created_at'>>): Promise<void> {
+    const { error } = await supabase
+      .from('devotionals')
+      .update(devotional)
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
   // --- JOGO 3 DICAS ---
   async getThreeCluesQuestions(): Promise<ThreeCluesQuestion[]> {
     const { data } = await supabase.from('three_clues_questions').select('*').order('created_at', { ascending: false });

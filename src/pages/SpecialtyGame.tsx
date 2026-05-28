@@ -288,9 +288,15 @@ const SpecialtyGame: React.FC<SpecialtyGameProps> = ({ user, members, onUpdateMe
              <p className="text-6xl font-black text-[#0061f2] dark:text-blue-400">{score} <span className="text-xl">pts</span></p>
              <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase mt-2">Dificuldade: {timeLimit} segundos</p>
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse mb-6">
             Sua pontuação foi salva automaticamente!
           </p>
+          <button 
+            onClick={onBack}
+            className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-xl shadow-blue-500/20"
+          >
+            CONFIRMAR E VOLTAR
+          </button>
         </div>
       </div>
     );

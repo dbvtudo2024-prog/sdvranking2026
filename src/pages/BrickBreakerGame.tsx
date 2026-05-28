@@ -240,7 +240,8 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     }
 
     setGameState('finished');
-  }, [onUpdateStats, currentMember, score, onUpdateMember]);
+    onBack();
+  }, [onUpdateStats, currentMember, score, onUpdateMember, onBack]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -564,10 +565,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
                 >
                   {gameState === 'won_level' ? 'Próximo Nível' : 'Tentar Novamente'}
                 </button>
-                {(gameState === 'won' || gameState === 'won_level') && (
+                {(gameState === 'won' || gameState === 'won_level' || gameState === 'lost') && (
                   <button 
                     onClick={handleFinish}
-                    className="w-full py-3 bg-green-600 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
+                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all"
                   >
                     Salvar e Sair
                   </button>
