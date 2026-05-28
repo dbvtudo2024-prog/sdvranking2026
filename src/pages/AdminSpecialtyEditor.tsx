@@ -653,8 +653,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       )}
 
       {showStorageModal && (
-        <div className="fixed inset-0 bg-black/65 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className={`${isDarkMode ? 'bg-slate-800 border bg-slate-850/95 border-slate-700 text-slate-100' : 'bg-white text-slate-800'} w-full max-w-4xl rounded-[3rem] p-8 shadow-2xl space-y-6 animate-in zoom-in-95 flex flex-col max-h-[90vh]`}>
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-md z-[200] flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className={`${isDarkMode ? 'bg-slate-800 border bg-slate-850/95 border-slate-700 text-slate-100' : 'bg-white text-slate-800'} w-full max-w-4xl rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6 animate-in zoom-in-95 flex flex-col max-h-[96vh] md:max-h-[90vh] overflow-y-auto md:overflow-hidden`}>
             <div className="flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <Wand2 className="text-blue-500 animate-pulse" size={24} />
@@ -861,7 +861,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                 </div>
 
                 {/* Tabela planilha responsive scrollable */}
-                <div className="flex-1 overflow-y-auto border border-slate-700/30 rounded-[1.5rem] min-h-0 bg-slate-950/20">
+                <div className="h-[350px] md:h-auto md:flex-1 overflow-y-auto border border-slate-700/30 rounded-[1.5rem] min-h-0 bg-slate-950/20 shrink-0 md:shrink">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className={`border-b ${isDarkMode ? 'border-slate-800 bg-slate-900/60 text-slate-400' : 'bg-slate-100/50 text-slate-600'} font-black tracking-wider uppercase text-[8px]`}>
@@ -1002,7 +1002,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                 </div>
 
                 {storageFiles.length > 0 && (
-                  <div className="flex-1 overflow-y-auto pr-2 gap-3 flex flex-col min-h-0 py-2 border-y border-dashed border-slate-700/50">
+                  <div className="h-[350px] md:h-auto md:flex-1 overflow-y-auto pr-2 gap-3 flex flex-col min-h-0 py-2 border-y border-dashed border-slate-700/50 shrink-0 md:shrink">
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2] block ml-1 mb-1">Mapeamento de Imagens encontradas:</span>
                     {storageFiles.map((file, idx) => (
                       <div key={idx} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-100'} gap-4`}>
