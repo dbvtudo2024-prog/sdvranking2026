@@ -252,8 +252,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
                 {/* Info section */}
                 <div className="flex-1 min-w-0 pr-4">
-                  <div className="flex justify-between items-start mb-1 overflow-hidden">
-                    <h3 className={`text-base font-black uppercase leading-tight truncate pr-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className={`text-base font-black uppercase leading-tight break-words pr-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                       {member.name}
                     </h3>
                   </div>
@@ -423,7 +423,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 border-2 border-white dark:border-slate-700 shadow-sm">
                   <img src={historyMember.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${historyMember.id}`} className="w-full h-full object-cover" />
                 </div>
-                <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-100 uppercase truncate max-w-[150px]">{historyMember.name}</h3>
+                <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-100 uppercase break-words">{historyMember.name}</h3>
               </div>
               <button onClick={() => setSelectedMemberIdForHistory(null)} className="text-slate-300 hover:text-slate-500"><X size={28} /></button>
             </div>

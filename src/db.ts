@@ -175,55 +175,67 @@ const FALLBACK_DEVOTIONALS: Devotional[] = [
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('unit', unit)
-      .order('created_at', { ascending: false }) 
-      .limit(50);
-    
-    if (error) throw error;
-    // Reverse to show oldest first (standard chat behavior)
-    return ((data || []) as ChatMessage[]).reverse();
+    return withRetry(async () => {
+      console.log(`[DB] Buscando mensagens para a unidade: ${unit}...`);
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('unit', unit)
+        .order('created_at', { ascending: false }) 
+        .limit(50);
+      
+      if (error) {
+        console.error("[DB] Erro ao carregar mensagens:", error);
+        throw error;
+      }
+      // Reverse to show oldest first (standard chat behavior)
+      return ((data || []) as ChatMessage[]).reverse();
+    });
   },
 
   async sendMessage(msg: ChatMessage) {
-    const payload = {
-      sender_id: String(msg.sender_id),
-      sender_name: msg.sender_name,
-      sender_photo: msg.sender_photo || '',
-      text: msg.text,
-      unit: msg.unit,
-      created_at: new Date().toISOString()
-    };
+    return withRetry(async () => {
+      const payload = {
+        sender_id: String(msg.sender_id),
+        sender_name: msg.sender_name,
+        sender_photo: msg.sender_photo || '',
+        text: msg.text,
+        unit: msg.unit,
+        created_at: new Date().toISOString()
+      };
 
-    const { error } = await supabase.from('messages').insert([payload]);
-    if (error) {
-      console.error("Erro ao enviar:", error);
-      throw error;
-    }
+      const { error } = await supabase.from('messages').insert([payload]);
+      if (error) {
+        console.error("[DB] Erro ao enviar mensagem:", error);
+        throw error;
+      }
+    });
   },
 
-  // Escuta mensagens filtradas por unidade ou todas
+  // Escuta mensagens filtradas por unidade ou todas de forma resiliente via filtro local
   subscribeMessages(unit: string | null, callback: (msg: ChatMessage) => void) {
     const channelId = `chat_${unit || 'all'}_${Math.random().toString(36).substring(7)}`;
-    const filter = unit ? { table: 'messages', filter: `unit=eq.${unit}` } : { table: 'messages' };
     
+    // Filtro no lado do cliente é infinitamente mais robusto do que dependência da infraestrutura de replicação do Supabase Realtime
     return supabase
       .channel(channelId)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        ...filter
+        table: 'messages'
       }, payload => {
-        callback(payload.new as ChatMessage);
+        const newMsg = payload.new as ChatMessage;
+        if (!unit || newMsg.unit === unit) {
+          console.log(`[Realtime - Chat] Nova mensagem correspondente para a unidade ${unit}:`, newMsg);
+          callback(newMsg);
+        }
       })
       .subscribe();
   },
 
-  // Escuta TODAS as mensagens e deixa o App filtrar
+  // Escuta TODAS as mensagens e deixa o App filtrar de forma resiliente
   subscribeAllMessages(callback: (msg: ChatMessage) => void, onStatus?: (status: string) => void) {
-    const channelId = `chat_${Math.random().toString(36).substring(7)}`;
+    const channelId = `chat_all_global_${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
       .on('postgres_changes', { 
@@ -231,11 +243,12 @@ export const DatabaseService = {
         schema: 'public', 
         table: 'messages' 
       }, payload => {
-        console.log("Evento Postgres recebido!", payload);
-        callback(payload.new as ChatMessage);
+        const newMsg = payload.new as ChatMessage;
+        console.log("[Realtime - Chat Global] Mudança percebida em messages:", newMsg);
+        callback(newMsg);
       })
       .subscribe((status) => {
-        console.log(`Status da Conexão Realtime (${channelId}):`, status);
+        console.log(`Status da Conexão Realtime Chat Global (${channelId}):`, status);
         if (onStatus) onStatus(status);
       });
       
