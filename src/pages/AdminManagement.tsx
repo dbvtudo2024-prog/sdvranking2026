@@ -484,7 +484,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [devotionalLink, setDevotionalLink] = useState('');
-  const [devotionalTitle, setDevotionalTitle] = useState('Devocional Diário');
+  const [devotionalTitle, setDevotionalTitle] = useState('');
   const [devotionalContent, setDevotionalContent] = useState('');
   const [devotionalScheduledFor, setDevotionalScheduledFor] = useState(new Date().toISOString().slice(0, 16));
   const [isSavingDevotional, setIsSavingDevotional] = useState(false);
@@ -537,10 +537,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   };
 
   const handleSaveDevotional = async () => {
-    if (!devotionalTitle.trim()) {
-      alert("Preencha ao menos o título.");
+    const finalTitle = devotionalTitle.trim() || 'Devocional Diário';
+    
+    if (!devotionalContent.trim() && !devotionalLink.trim()) {
+      alert("Preencha ao menos o texto ou o link do devocional.");
       return;
     }
+    
     setIsSavingDevotional(true);
     try {
       const scheduledDate = new Date(devotionalScheduledFor);
@@ -548,14 +551,14 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
       await DatabaseService.createDevotional({
         link: devotionalLink,
-        title: devotionalTitle,
+        title: finalTitle,
         content: devotionalContent,
         scheduled_for: scheduledDate.toISOString()
       });
 
       alert("✅ Devocional agendado com sucesso!");
       setDevotionalLink('');
-      setDevotionalTitle('Devocional Diário');
+      setDevotionalTitle('');
       setDevotionalContent('');
       loadDevotionals();
     } catch (err) {
