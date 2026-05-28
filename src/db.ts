@@ -709,8 +709,37 @@ export const DatabaseService = {
 
   // --- CONFIGURAÇÕES DE JOGOS ---
   async getGameConfigs(): Promise<GameConfig | null> {
-    const { data } = await supabase.from('game_configs').select('*').eq('id', 1).single();
-    if (!data) return null;
+    const { data, error } = await supabase.from('game_configs').select('*').eq('id', 1).maybeSingle();
+    if (error || !data) {
+      return {
+        id: 1,
+        quiz_override: false,
+        quiz_allowed_day: null,
+        memory_override: false,
+        memory_allowed_day: null,
+        specialty_override: false,
+        specialty_allowed_day: null,
+        three_clues_override: false,
+        three_clues_allowed_day: null,
+        puzzle_override: false,
+        puzzle_allowed_day: null,
+        knots_override: false,
+        knots_allowed_day: null,
+        specialty_trail_override: false,
+        specialty_trail_allowed_day: null,
+        scrambled_verse_override: false,
+        scrambled_verse_allowed_day: null,
+        nature_id_override: false,
+        nature_id_allowed_day: null,
+        first_aid_override: false,
+        first_aid_allowed_day: null,
+        brick_breaker_override: false,
+        brick_breaker_allowed_day: null,
+        mahjong_override: false,
+        mahjong_allowed_day: null,
+        last_monthly_award_month: null
+      } as GameConfig;
+    }
     return {
       ...data,
       quiz_override: data.quiz_override ?? false,
@@ -956,14 +985,16 @@ export const DatabaseService = {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .ilike('email', email)
-        .maybeSingle();
+        .ilike('email', email);
       
       if (error) {
         console.error("Erro ao buscar usuário por e-mail:", error);
         throw error;
       }
-      return data as AuthUser | null;
+      if (data && data.length > 0) {
+        return data[0] as AuthUser;
+      }
+      return null;
     });
   },
 
