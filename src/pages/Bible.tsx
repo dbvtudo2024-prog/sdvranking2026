@@ -14,6 +14,7 @@ interface BibleProps {
 
 export interface BibleHandle {
   goBack: () => boolean;
+  jumpToBook: (book: string, chapter?: number) => void;
 }
 
 interface MarkedVerse {
@@ -54,6 +55,9 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
         return true;
       }
       return false; // Already at menu, let App handle it
+    },
+    jumpToBook: (book: string, chapter: number = 1) => {
+      jumpToVerse(book, chapter);
     }
   }));
 
@@ -338,29 +342,35 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => setView('books')}
-                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700/60 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all hover:border-blue-200 dark:hover:border-blue-900/50 group"
               >
-                <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="bg-blue-50 dark:bg-blue-900/40 p-4 rounded-2.5xl text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
                   <Book size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Bíblia</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Leitura</span>
               </button>
 
               <button 
                 onClick={onGoToReadingPlan}
-                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-purple-100 dark:hover:border-purple-900 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700/60 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all hover:border-purple-200 dark:hover:border-purple-900/50 group"
               >
-                <div className="bg-purple-50 p-4 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                  <History size={24} />
+                <div className="bg-purple-50 dark:bg-purple-900/40 p-4 rounded-2.5xl flex items-center justify-center w-[56px] h-[56px] shadow-inner transition-all group-hover:bg-purple-600/10">
+                  {/* Digital representation of the chronological booklet's geometric priorities */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></div>
+                    <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[9px] border-b-blue-500"></div>
+                    <div className="w-2.5 h-2.5 bg-amber-500 rounded-t-full rotate-90"></div>
+                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div>
+                  </div>
                 </div>
-                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Plano</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Plano Chrono</span>
               </button>
 
               <button 
                 onClick={onGoToDevotional}
-                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-amber-100 dark:hover:border-amber-900 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700/60 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all hover:border-amber-200 dark:hover:border-amber-900/50 group"
               >
-                <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                <div className="bg-amber-50 dark:bg-amber-900/40 p-4 rounded-2.5xl text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-inner">
                   <BookOpen size={24} />
                 </div>
                 <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Devocional</span>
@@ -368,9 +378,9 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
 
               <button 
                 onClick={() => setView('marked')}
-                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-emerald-100 dark:hover:border-emerald-900 group"
+                className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700/60 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all hover:border-emerald-200 dark:hover:border-emerald-900/50 group"
               >
-                <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <div className="bg-emerald-50 dark:bg-emerald-900/40 p-4 rounded-2.5xl text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-inner">
                   <Bookmark size={24} />
                 </div>
                 <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Marcados</span>

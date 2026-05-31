@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
   const bibleRef = useRef<BibleHandle>(null);
+  const bibleReadingRef = useRef<{ goBack: () => boolean }>(null);
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   const birthdaysRef = useRef<BirthdaysRef>(null);
   
@@ -528,7 +529,10 @@ const App: React.FC = () => {
       const handled = specialtyStudyRef.current?.goBack();
       if (!handled) setCurrentPage('home');
     }
-    else if (currentPage === 'bible_reading') setCurrentPage('bible');
+    else if (currentPage === 'bible_reading') {
+      const handled = bibleReadingRef.current?.goBack();
+      if (!handled) setCurrentPage('bible');
+    }
     else if (currentPage === 'devotional') setCurrentPage('bible');
     else if (currentPage === 'birthdays') {
       const handled = birthdaysRef.current?.goBack();
@@ -936,7 +940,12 @@ const App: React.FC = () => {
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible': return <Bible ref={bibleRef} onViewChange={(title, subtitle) => { setBibleTitle(title); setBibleSubtitle(subtitle); }} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
-      case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
+      case 'bible_reading': return <BibleReading ref={bibleReadingRef} user={user!} onViewChange={(title, subtitle) => { setBibleTitle(title); setBibleSubtitle(subtitle); }} onBack={() => setCurrentPage('bible')} onJumpToBible={(book, chapter) => {
+        setCurrentPage('bible');
+        setTimeout(() => {
+          bibleRef.current?.jumpToBook(book, chapter);
+        }, 150);
+      }} isDarkMode={isDarkMode} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} />;
@@ -1125,12 +1134,12 @@ const App: React.FC = () => {
             )}
             <div className="flex flex-col">
               <h1 className="font-black uppercase tracking-tight text-base leading-tight">
-                {currentPage === 'bible' ? bibleTitle : getPageTitle()}
+                {['bible', 'bible_reading'].includes(currentPage) ? bibleTitle : getPageTitle()}
               </h1>
               <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                {currentPage === 'bible' 
+                {['bible', 'bible_reading'].includes(currentPage) 
                   ? bibleSubtitle 
-                  : currentPage === 'bible_reading' || currentPage === 'devotional'
+                  : currentPage === 'devotional'
                     ? 'Bíblia Sagrada'
                     : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
               </p>
