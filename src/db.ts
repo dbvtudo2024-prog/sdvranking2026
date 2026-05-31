@@ -172,6 +172,57 @@ const FALLBACK_DEVOTIONALS: Devotional[] = [
   }
 ];
 
+// Caches locais para otimização extrema e redução de carga no banco de dados (Supabase)
+let cachedBibleKeys: { bookKey: string; chapterKey: string; verseKey: string; textKey: string } | null = null;
+const bibleChaptersCache: Record<string, number[]> = {};
+const bibleVersesCache: Record<string, any[]> = {};
+
+async function detectBibleKeys(): Promise<{ bookKey: string; chapterKey: string; verseKey: string; textKey: string }> {
+  if (cachedBibleKeys) return cachedBibleKeys;
+  
+  const localKeys = localStorage.getItem('supabase_bible_detected_keys');
+  if (localKeys) {
+    try {
+      cachedBibleKeys = JSON.parse(localKeys);
+      return cachedBibleKeys!;
+    } catch (e) {
+      console.warn("Erro ao ler chaves da Bíblia no localStorage:", e);
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('Biblia_Completa')
+      .select('*')
+      .limit(1);
+
+    let bookKey = 'book_name';
+    let chapterKey = 'chapter';
+    let verseKey = 'verse_number';
+    let textKey = 'text';
+
+    if (!error && data && data.length > 0) {
+      const row = data[0];
+      const keys = Object.keys(row);
+      const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
+      const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
+      const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
+      const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
+      if (b) bookKey = b;
+      if (c) chapterKey = c;
+      if (v) verseKey = v;
+      if (t) textKey = t;
+    }
+
+    cachedBibleKeys = { bookKey, chapterKey, verseKey, textKey };
+    localStorage.setItem('supabase_bible_detected_keys', JSON.stringify(cachedBibleKeys));
+    return cachedBibleKeys;
+  } catch (err) {
+    console.error("Erro ao detectar chaves da Bíblia:", err);
+    return { bookKey: 'book_name', chapterKey: 'chapter', verseKey: 'verse_number', textKey: 'text' };
+  }
+}
+
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
@@ -1154,28 +1205,28 @@ export const DatabaseService = {
   },
 
   async getBibleChapters(book: string): Promise<number[]> {
-    try {
-      const { data: colsData, error: colsErr } = await supabase
-        .from('Biblia_Completa')
-        .select('*')
-        .limit(1);
+    // Tentar ler do cache em memória
+    if (bibleChaptersCache[book]) {
+      return bibleChaptersCache[book];
+    }
 
-      let bookKey = 'book_name';
-      let chapterKey = 'chapter';
-      let verseKey = 'verse_number';
-
-      if (!colsErr && colsData && colsData.length > 0) {
-        const row = colsData[0];
-        const keys = Object.keys(row);
-        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
-        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
-        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
-        if (b) bookKey = b;
-        if (c) chapterKey = c;
-        if (v) verseKey = v;
+    // Tentar ler do localStorage
+    const cachedLocal = localStorage.getItem(`bible_chapters_${book}`);
+    if (cachedLocal) {
+      try {
+        const parsed = JSON.parse(cachedLocal);
+        bibleChaptersCache[book] = parsed;
+        return parsed;
+      } catch (e) {
+        console.warn("Erro ao ler capítulos cacheado:", e);
       }
+    }
 
-      // Tenta recuperar no banco
+    try {
+      const keys = await detectBibleKeys();
+      const bookKey = keys.bookKey;
+      const chapterKey = keys.chapterKey;
+
       const { data, error } = await supabase
         .from('Biblia_Completa')
         .select(chapterKey)
@@ -1185,6 +1236,8 @@ export const DatabaseService = {
         const chapters = data.map(d => parseInt(d[chapterKey]));
         const uniqueChapters = Array.from(new Set(chapters)).filter(n => !isNaN(n)).sort((a, b) => a - b);
         if (uniqueChapters.length > 0) {
+          bibleChaptersCache[book] = uniqueChapters;
+          localStorage.setItem(`bible_chapters_${book}`, JSON.stringify(uniqueChapters));
           return uniqueChapters;
         }
       }
@@ -1201,31 +1254,18 @@ export const DatabaseService = {
   },
 
   async getBibleVerses(book: string, chapter: number): Promise<any[]> {
+    const cacheKey = `${book}_${chapter}`;
+    if (bibleVersesCache[cacheKey]) {
+      return bibleVersesCache[cacheKey];
+    }
+
     try {
-      const { data: colsData, error: colsErr } = await supabase
-        .from('Biblia_Completa')
-        .select('*')
-        .limit(1);
+      const keys = await detectBibleKeys();
+      const bookKey = keys.bookKey;
+      const chapterKey = keys.chapterKey;
+      const verseKey = keys.verseKey;
+      const textKey = keys.textKey;
 
-      let bookKey = 'book_name';
-      let chapterKey = 'chapter';
-      let verseKey = 'verse_number';
-      let textKey = 'text';
-
-      if (!colsErr && colsData && colsData.length > 0) {
-        const row = colsData[0];
-        const keys = Object.keys(row);
-        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
-        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
-        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
-        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
-        if (b) bookKey = b;
-        if (c) chapterKey = c;
-        if (v) verseKey = v;
-        if (t) textKey = t;
-      }
-
-      // Busca versículos
       const { data, error } = await supabase
         .from('Biblia_Completa')
         .select(`${verseKey}, ${textKey}`)
@@ -1233,10 +1273,14 @@ export const DatabaseService = {
         .or(`${chapterKey}.eq.${chapter},${chapterKey}.eq."${chapter}"`);
 
       if (!error && data && data.length > 0) {
-        return data.map(v => ({
+        const formatted = data.map(v => ({
           Versiculo: parseInt(v[verseKey]),
           Texto: v[textKey]
         })).sort((a, b) => a.Versiculo - b.Versiculo);
+
+        // Armazenar apenas em memória de sessão rápida para otimizar UI sem estourar cota de localStorage
+        bibleVersesCache[cacheKey] = formatted;
+        return formatted;
       }
     } catch (e) {
       console.error("Erro ao buscar versículos dinamicamente:", e);
@@ -1251,28 +1295,11 @@ export const DatabaseService = {
 
   async searchBible(term: string): Promise<any[]> {
     try {
-      const { data: colsData, error: colsErr } = await supabase
-        .from('Biblia_Completa')
-        .select('*')
-        .limit(1);
-
-      let bookKey = 'book_name';
-      let chapterKey = 'chapter';
-      let verseKey = 'verse_number';
-      let textKey = 'text';
-
-      if (!colsErr && colsData && colsData.length > 0) {
-        const row = colsData[0];
-        const keys = Object.keys(row);
-        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
-        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
-        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
-        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
-        if (b) bookKey = b;
-        if (c) chapterKey = c;
-        if (v) verseKey = v;
-        if (t) textKey = t;
-      }
+      const keys = await detectBibleKeys();
+      const bookKey = keys.bookKey;
+      const chapterKey = keys.chapterKey;
+      const verseKey = keys.verseKey;
+      const textKey = keys.textKey;
 
       const { data, error } = await supabase
         .from('Biblia_Completa')
@@ -1318,6 +1345,17 @@ export const DatabaseService = {
     const adjusted = new Date(now.getTime() - (7 * 60 * 60 * 1000));
     const dateStr = adjusted.toISOString().split('T')[0];
     
+    // Tenta ler do cache do localStorage primeiro para economizar requisições do dia
+    const dateCacheKey = `bible_verse_of_the_day_${dateStr}`;
+    const cachedDayVerse = localStorage.getItem(dateCacheKey);
+    if (cachedDayVerse) {
+      try {
+        return JSON.parse(cachedDayVerse);
+      } catch (e) {
+        console.warn("Erro ao desserializar versículo do dia cacheado:", e);
+      }
+    }
+
     let hash = 0;
     for (let i = 0; i < dateStr.length; i++) {
       hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
@@ -1326,28 +1364,11 @@ export const DatabaseService = {
     const seed = Math.abs(hash);
 
     try {
-      const { data: colsData, error: colsErr } = await supabase
-        .from('Biblia_Completa')
-        .select('*')
-        .limit(1);
-
-      let bookKey = 'book_name';
-      let chapterKey = 'chapter';
-      let verseKey = 'verse_number';
-      let textKey = 'text';
-
-      if (!colsErr && colsData && colsData.length > 0) {
-        const row = colsData[0];
-        const keys = Object.keys(row);
-        const b = keys.find(k => k.toLowerCase() === 'book_name' || k.toLowerCase() === 'livro' || k.toLowerCase() === 'book');
-        const c = keys.find(k => k.toLowerCase() === 'chapter' || k.toLowerCase() === 'capitulo');
-        const v = keys.find(k => k.toLowerCase() === 'verse_number' || k.toLowerCase() === 'versiculo' || k.toLowerCase() === 'verse');
-        const t = keys.find(k => k.toLowerCase() === 'text' || k.toLowerCase() === 'texto');
-        if (b) bookKey = b;
-        if (c) chapterKey = c;
-        if (v) verseKey = v;
-        if (t) textKey = t;
-      }
+      const keys = await detectBibleKeys();
+      const bookKey = keys.bookKey;
+      const chapterKey = keys.chapterKey;
+      const verseKey = keys.verseKey;
+      const textKey = keys.textKey;
 
       // Get count
       const { count } = await supabase
@@ -1362,12 +1383,14 @@ export const DatabaseService = {
           .range(offset, offset);
 
         if (!error && data && data.length > 0) {
-          return {
+          const dayVerse = {
             livro: data[0][bookKey],
             cap: parseInt(data[0][chapterKey]),
             ver: parseInt(data[0][verseKey]),
             texto: data[0][textKey]
           };
+          localStorage.setItem(dateCacheKey, JSON.stringify(dayVerse));
+          return dayVerse;
         }
       }
     } catch (e) {
@@ -1390,12 +1413,15 @@ export const DatabaseService = {
     }
     if (allVerses.length > 0) {
       const selected = allVerses[seed % allVerses.length];
-      return {
+      const dayVerse = {
         livro: selected.bName,
         cap: selected.cNum,
         ver: selected.ver,
         texto: selected.text
       };
+      // Guarda em cache de fallback
+      localStorage.setItem(dateCacheKey, JSON.stringify(dayVerse));
+      return dayVerse;
     }
     return null;
   },

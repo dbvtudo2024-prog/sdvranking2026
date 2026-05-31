@@ -242,8 +242,8 @@ const App: React.FC = () => {
                 const updated = { ...prev, badges: me.badges || [], scores: me.scores || [], stats: statsToUse };
                 localStorage.setItem('sentinelas_user', JSON.stringify(updated));
                 
-                // Persistência Tripla: Garantir que medalhas atribuídas 'offline' ou via ranking persistam na tabela users (para login)
-                DatabaseService.addUser(updated).catch(e => console.error("Erro ao sincronizar login pós-update externo:", e));
+                // Removido para evitar loop de gravação concorrente que sobrecarrega e trava o banco de dados
+                // DatabaseService.addUser(updated).catch(e => console.error("Erro ao sincronizar login pós-update externo:", e));
                 
                 return updated;
               }
