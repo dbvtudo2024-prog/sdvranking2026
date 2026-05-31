@@ -315,7 +315,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Book size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bíblia</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Bíblia</span>
               </button>
 
               <button 
@@ -325,7 +325,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <div className="bg-purple-50 p-4 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                   <History size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Plano</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Plano</span>
               </button>
 
               <button 
@@ -335,7 +335,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                   <BookOpen size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Devocional</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Devocional</span>
               </button>
 
               <button 
@@ -345,7 +345,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                 <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <Bookmark size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Marcados</span>
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Marcados</span>
               </button>
             </div>
 
@@ -355,11 +355,11 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
               {recentReading ? (
                 <button 
                   onClick={() => jumpToVerse(recentReading.book, recentReading.chapter)}
-                  className="w-full bg-blue-50 p-6 rounded-[1.5rem] border border-blue-100 flex items-center justify-between group active:scale-95 transition-all"
+                  className="w-full bg-blue-50 dark:bg-blue-950/20 p-6 rounded-[1.5rem] border border-blue-100 dark:border-blue-900/50 flex items-center justify-between group active:scale-95 transition-all"
                 >
                   <div className="text-left">
-                    <p className="text-sm font-black text-blue-700 uppercase">{recentReading.book}</p>
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Capítulo {recentReading.chapter}</p>
+                    <p className="text-sm font-black text-blue-700 dark:text-blue-300 uppercase">{recentReading.book}</p>
+                    <p className="text-[10px] font-bold text-blue-400 dark:text-blue-400 uppercase tracking-widest mt-1">Capítulo {recentReading.chapter}</p>
                   </div>
                   <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
                     <ChevronRight size={16} />
@@ -403,7 +403,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                   className="bg-white dark:bg-slate-800 p-4 rounded-3xl border-2 border-slate-50 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900"
                 >
                   <BookOpen size={20} className="text-blue-200 mb-2" />
-                  <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{bookName}</span>
+                  <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{bookName}</span>
                 </button>
               ))}
             </div>
@@ -420,7 +420,7 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
                   onClick={() => handleSelectChapter(chapter)}
                   className="bg-white dark:bg-slate-800 aspect-square rounded-2xl border-2 border-slate-50 dark:border-slate-700 shadow-sm flex items-center justify-center active:scale-95 transition-all hover:border-blue-100 dark:hover:border-blue-900"
                 >
-                  <span className="text-sm font-black text-slate-700">{chapter}</span>
+                  <span className="text-sm font-black text-slate-700 dark:text-slate-200">{chapter}</span>
                 </button>
               ))}
             </div>
