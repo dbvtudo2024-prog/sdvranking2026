@@ -9,6 +9,7 @@ interface BibleProps {
   onGoToDevotional: () => void;
   onBackToHome: () => void;
   isDarkMode?: boolean;
+  onViewChange?: (title: string, subtitle: string) => void;
 }
 
 export interface BibleHandle {
@@ -22,7 +23,7 @@ interface MarkedVerse {
   text: string;
 }
 
-const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDevotional, onBackToHome, isDarkMode }, ref) => {
+const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDevotional, onBackToHome, isDarkMode, onViewChange }, ref) => {
   const [view, setView] = useState<'menu' | 'books' | 'chapters' | 'verses' | 'search' | 'marked'>('menu');
   const [books, setBooks] = useState<string[]>([]);
   const [selectedTestament, setSelectedTestament] = useState<'VT' | 'NT'>('VT');
@@ -62,6 +63,33 @@ const Bible = forwardRef<BibleHandle, BibleProps>(({ onGoToReadingPlan, onGoToDe
     loadRecentReading();
     loadMarkedVerses();
   }, []);
+
+  useEffect(() => {
+    if (!onViewChange) return;
+
+    switch (view) {
+      case 'menu':
+        onViewChange('Bíblia Sagrada', 'Início');
+        break;
+      case 'books':
+        onViewChange('Bíblia Sagrada', 'Selecionar Livro');
+        break;
+      case 'chapters':
+        onViewChange(selectedBook, 'Selecione o Capítulo');
+        break;
+      case 'verses':
+        onViewChange(selectedBook, `Capítulo ${selectedChapter}`);
+        break;
+      case 'search':
+        onViewChange('Pesquisa Bíblica', searchTerm ? `Termo: "${searchTerm}"` : 'Busca');
+        break;
+      case 'marked':
+        onViewChange('Bíblia Sagrada', 'Versículos Marcados');
+        break;
+      default:
+        onViewChange('Bíblia Sagrada', '');
+    }
+  }, [view, selectedBook, selectedChapter, searchTerm, onViewChange]);
 
   const loadRecentReading = () => {
     const saved = localStorage.getItem('bible_recent_reading');

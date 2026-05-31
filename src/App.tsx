@@ -59,6 +59,8 @@ const App: React.FC = () => {
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
   const [showUpdateNotice, setShowUpdateNotice] = useState(false);
+  const [bibleTitle, setBibleTitle] = useState('Bíblia Sagrada');
+  const [bibleSubtitle, setBibleSubtitle] = useState('Início');
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
   const BRASAO_3D = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
@@ -933,7 +935,7 @@ const App: React.FC = () => {
       case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
-      case 'bible': return <Bible ref={bibleRef} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
+      case 'bible': return <Bible ref={bibleRef} onViewChange={(title, subtitle) => { setBibleTitle(title); setBibleSubtitle(subtitle); }} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'bible_reading': return <BibleReading user={user!} onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
@@ -1122,9 +1124,15 @@ const App: React.FC = () => {
               />
             )}
             <div className="flex flex-col">
-              <h1 className="font-black uppercase tracking-tight text-base leading-tight">{getPageTitle()}</h1>
+              <h1 className="font-black uppercase tracking-tight text-base leading-tight">
+                {currentPage === 'bible' ? bibleTitle : getPageTitle()}
+              </h1>
               <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                {activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user.funcao || user.role}`}
+                {currentPage === 'bible' 
+                  ? bibleSubtitle 
+                  : currentPage === 'bible_reading' || currentPage === 'devotional'
+                    ? 'Bíblia Sagrada'
+                    : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
               </p>
             </div>
           </div>
@@ -1147,7 +1155,7 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
       {/* FLOATING CHAT BUTTON */}
-      {user && currentPage !== 'chat' && !isGameActive && (
+      {user && currentPage !== 'chat' && !['bible', 'bible_reading', 'devotional'].includes(currentPage) && !isGameActive && (
         <button 
           onClick={() => setCurrentPage('chat')}
           className={`fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-[90] transition-all active:scale-90 hover:scale-105 ${
