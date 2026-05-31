@@ -126,29 +126,47 @@ export const isGameTimeAvailable = (day: number, hour: number, overrides: { [key
 };
 
 /**
- * Adiciona uma pontuação de forma segura, evitando duplicatas no mesmo ciclo
+ * Adiciona uma pontuação de forma segura, mantendo a melhor pontuação no ciclo atual se o jogo for repetido
  */
 export const safeAddScore = (currentScores: Score[], newScore: Score): Score[] => {
   const cycleStart = getCycleStart();
   
-  // Verifica se já existe uma pontuação para este jogo/categoria dentro deste ciclo
-  const alreadyExists = currentScores.some(s => {
+  let existingIndex = -1;
+  const alreadyExists = currentScores.some((s, idx) => {
     const d = parseScoreDate(s.date);
     if (!d) return false;
     
-    const isSameGame = s.gameId === newScore.gameId || (s as any)[newScore.gameId!] !== undefined;
+    const isSameGame = s.gameId === newScore.gameId || 
+                       (newScore.gameId && (s as any)[newScore.gameId] !== undefined);
     
+    let match = false;
     if (newScore.gameId === 'quiz' && newScore.quizCategory) {
       const isSameCategory = s.quizCategory === newScore.quizCategory || (s as any)[newScore.quizCategory] !== undefined;
-      return d >= cycleStart && isSameGame && isSameCategory;
+      match = d >= cycleStart && isSameGame && isSameCategory;
+    } else {
+      match = d >= cycleStart && isSameGame;
     }
-    
-    return d >= cycleStart && isSameGame;
+
+    if (match) {
+      existingIndex = idx;
+    }
+    return match;
   });
 
-  if (alreadyExists) {
-    console.warn(`[GameUtils] Tentativa de duplicar pontuação para ${newScore.gameId} ignorada.`);
-    return currentScores;
+  if (alreadyExists && existingIndex !== -1) {
+    const existingScore = currentScores[existingIndex];
+    const existingPoints = Number(existingScore.points) || Number((existingScore as any)[newScore.gameId!] || 0);
+    const newPoints = Number(newScore.points) || Number((newScore as any)[newScore.gameId!] || 0);
+    
+    if (newPoints > existingPoints) {
+      console.log(`[GameUtils] ID do Jogo: ${newScore.gameId}. Melhorando pontuação existente de ${existingPoints} para ${newPoints}.`);
+      const updatedScores = [...currentScores];
+      updatedScores[existingIndex] = newScore;
+      return updatedScores;
+    } else {
+      console.warn(`[GameUtils] Nova pontuação (${newPoints}) não supera a pontuação máxima anterior (${existingPoints}).`);
+      return currentScores;
+    }
   }
 
   return [...currentScores, newScore];

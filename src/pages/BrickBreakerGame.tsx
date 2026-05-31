@@ -5,12 +5,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AuthUser, Member, Score, UserRole, BadgeLevel, UserStats } from '@/types';
 import GameHeader from '@/components/GameHeader';
 import GameStatsBar from '@/components/GameStatsBar';
-import { safeAddScore } from '@/utils/gameUtils';
+import { safeAddScore, findMemberForUser, checkPlayedThisWeek } from '@/utils/gameUtils';
 import { calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { User } from 'lucide-react';
-
-import { checkPlayedThisWeek } from '@/utils/gameUtils';
 
 interface BrickBreakerGameProps {
   onBack: () => void;
@@ -47,7 +45,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   const [showRanking, setShowRanking] = useState(false);
 
   const currentMember = useMemo(() => 
-    members.find(m => m.id === user?.id || (m.name.trim().toLowerCase() === user?.name?.trim().toLowerCase())),
+    findMemberForUser(members, user),
   [members, user]);
 
   const hasPlayedThisWeek = useMemo(() => {

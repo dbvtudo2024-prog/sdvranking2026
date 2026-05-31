@@ -71,7 +71,8 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
     setSelectedOption(index);
     const correct = index === currentItem.correct_answer;
     setIsCorrect(correct);
-    if (correct) setScore(prev => prev + 20);
+    const nextScore = correct ? score + 20 : score;
+    if (correct) setScore(nextScore);
 
     setTimeout(() => {
       if (currentStep < questions.length - 1) {
@@ -80,19 +81,19 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
         setIsCorrect(null);
       } else {
         setGameState('finished');
-        saveScore();
+        saveScore(nextScore);
       }
     }, 1500);
   };
 
-  const saveScore = () => {
+  const saveScore = (finalScore: number) => {
     const currentMember = findMemberForUser(members, user);
     if (!currentMember) return;
 
     const newScore: Score = {
       type: 'game',
       gameId: 'natureIdGame',
-      points: score,
+      points: finalScore,
       date: new Date().toISOString()
     };
 
