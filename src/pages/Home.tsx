@@ -309,7 +309,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         <div className="grid grid-cols-3 gap-4">
           <Shortcut icon={LayoutGrid} label="Unidades" page="units" color="#0061f2" />
           <Shortcut icon={Cake} label="Aniversários" page="birthdays" color="#ec4899" />
-          <Shortcut icon={BookOpen} label="Bíblia" page="bible" color="#8b5cf6" />
+          <Shortcut icon={BookOpen} label="Devocional" page="devotional" color="#8b5cf6" />
           <Shortcut icon={Trophy} label="Ranking" page="ranking" color="#f59e0b" />
           <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
           <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />

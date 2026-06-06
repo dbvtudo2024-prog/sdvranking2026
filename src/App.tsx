@@ -8,8 +8,6 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Home from '@/pages/Home';
 import Units from '@/pages/Units';
-import Bible, { BibleHandle } from '@/pages/Bible';
-import BibleReading from '@/pages/BibleReading';
 import Devotional from '@/pages/Devotional';
 import UnitDetail from '@/pages/UnitDetail';
 import Ranking from '@/pages/Ranking';
@@ -45,11 +43,9 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
-  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'profile' | 'games' | 'badges' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'bible_reading' | 'bible' | 'devotional' | 'birthdays'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'profile' | 'games' | 'badges' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'devotional' | 'birthdays'>('home');
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
   const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
-  const bibleRef = useRef<BibleHandle>(null);
-  const bibleReadingRef = useRef<{ goBack: () => boolean }>(null);
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   const birthdaysRef = useRef<BirthdaysRef>(null);
   
@@ -60,8 +56,6 @@ const App: React.FC = () => {
   const [lastNotification, setLastNotification] = useState<ChatMessage | null>(null);
   const [challengeNotification, setChallengeNotification] = useState<Challenge1x1 | null>(null);
   const [showUpdateNotice, setShowUpdateNotice] = useState(false);
-  const [bibleTitle, setBibleTitle] = useState('Bíblia Sagrada');
-  const [bibleSubtitle, setBibleSubtitle] = useState('Início');
 
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
   const BRASAO_3D = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
@@ -496,8 +490,6 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home': return 'Sentinelas da Verdade';
       case 'units': return 'Unidades do Clube';
-      case 'bible': return 'Bíblia Sagrada';
-      case 'bible_reading': return 'Plano de Leitura';
       case 'ranking': return 'Ranking Geral';
       case 'birthdays': return 'Aniversariantes';
       case 'profile': return 'Meu Perfil';
@@ -521,19 +513,11 @@ const App: React.FC = () => {
 
   const handleBack = () => {
     if (currentPage === 'unit_detail') setCurrentPage('units');
-    else if (currentPage === 'bible') {
-      const handled = bibleRef.current?.goBack();
-      if (!handled) setCurrentPage('home');
-    }
     else if (currentPage === 'specialty_study') {
       const handled = specialtyStudyRef.current?.goBack();
       if (!handled) setCurrentPage('home');
     }
-    else if (currentPage === 'bible_reading') {
-      const handled = bibleReadingRef.current?.goBack();
-      if (!handled) setCurrentPage('bible');
-    }
-    else if (currentPage === 'devotional') setCurrentPage('bible');
+    else if (currentPage === 'devotional') setCurrentPage('home');
     else if (currentPage === 'birthdays') {
       const handled = birthdaysRef.current?.goBack();
       if (!handled) setCurrentPage('home');
@@ -727,15 +711,22 @@ const App: React.FC = () => {
   }, [user]);
 
   const isProcessingAwards = useRef(false);
-  const processAutomatedAwards = useCallback(async () => {
+  const processAutomatedAwards = useCallback(async (forceAll: boolean = false) => {
     if (!user || isProcessingAwards.current) return;
     if (!members || members.length === 0) return;
 
-    // Hash mais sensível: agora considera a soma total de pontos para detectar mudanças nos placares
+    // Se forceAll for falso, calculamos um hash de estado específico do usuário logado local.
+    // Isso evita processamento redundante em plano de fundo quando outros usuários pontuam.
+    const userBadgesHash = (user?.badges || []).map(b => b.badgeId).join(':');
+    const userMember = members.find(m => String(m.id) === String(user.id));
+    const userScores = userMember?.scores || [];
+    const userScoresHash = userScores.length + '-' + userScores.reduce((acc, s) => acc + (Number((s as any).points) || 0), 0);
+    const userHash = `user-${user?.id}-${userBadgesHash}-${userScoresHash}`;
+
+    // Hash geral (sensível a mudanças de toda a tabela, usado apenas no forceAll da área de Admin)
     const totalBadges = members.reduce((acc, m) => acc + (m.badges?.length || 0), 0);
     const totalScores = members.reduce((acc, m) => acc + (m.scores?.length || 0), 0);
     const totalPoints = members.reduce((acc, m) => acc + (m.scores?.reduce((sacc, s) => {
-      // Considera pontos de registros históricos também na hash
       const scoreObj = s as any;
       let points = Number(scoreObj.points) || 0;
       if (points === 0) {
@@ -743,19 +734,19 @@ const App: React.FC = () => {
       }
       return sacc + points;
     }, 0) || 0), 0);
-    const userBadgesHash = (user?.badges || []).map(b => b.badgeId).join(':');
-    // Hash mais detalhado para detectar mudanças em IDs de medalhas ou conteúdos
     const badgesFingerprint = members.map(m => (m.badges || []).map(b => `${b.badgeId}-${b.level}`).join('|')).join('##');
-    const stateHash = `v16-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${user?.id}-${userBadgesHash}-${badgesFingerprint}`;
+
+    const stateHash = forceAll 
+      ? `v16-all-${members.length}-${totalBadges}-${totalScores}-${totalPoints}-${badgesFingerprint}`
+      : `v16-local-${userHash}`;
     
     if (lastProcessedRef.current === stateHash) {
-      if (members.length > 0) console.log("[Awards] Nenhuma mudança detectada na hash de estado.");
       return;
     }
     
     lastProcessedRef.current = stateHash;
     isProcessingAwards.current = true;
-    console.log(`[Awards] Iniciando re-processamento automático de medalhas (v16)...`);
+    console.log(`[Awards] Iniciando re-processamento automático de medalhas (v16, forceAll: ${forceAll})...`);
     
     try {
       const now = new Date();
@@ -814,8 +805,14 @@ const App: React.FC = () => {
 
       const updatesToProcess: { [memberId: string]: Member } = {};
 
-      // RECONCILIAÇÃO: Para cada membro, verificar se as medalhas atuais batem com as esperadas
-      members.forEach(m => {
+      // ISOLAMENTO DE IMPACTO: Se não for manual/forceAll, processamos apenas o próprio usuário logado.
+      // Isso impede que um cliente escreva repetidamente linhas de outros cliques devido a eventos de tempo real.
+      const membersToProcess = forceAll 
+        ? members 
+        : members.filter(m => String(m.id) === String(user.id));
+
+      // RECONCILIAÇÃO: Para os membros filtrados, verificar se as medalhas atuais batem com as esperadas
+      membersToProcess.forEach(m => {
         let hasChanges = false;
         
         // CRITICAL: Se o membro for o usuário logado, use o objeto 'user' para preservar stats recentes
@@ -829,15 +826,13 @@ const App: React.FC = () => {
           
           // ID format: monthly_games_YYYY-MM_Pos
           const parts = b.badgeId.split('_');
-          if (parts.length < 4) return false; // ID inválido, remove
+          if (parts.length < 4) return false; 
           
           const monthStr = parts[2]; // format: YYYY-MM
           const pos = parseInt(parts[3]);
           
           const expectedChamps = expectedChampionsByMonth[monthStr];
           if (!expectedChamps) {
-            // Se não temos dados para esse mês na sessão atual, MANTEMOS a medalha.
-            // Somente removemos se tivermos certeza (dados presentes e vencedor diferente).
             return true; 
           }
           
@@ -899,10 +894,10 @@ const App: React.FC = () => {
       });
 
       // 2. Processar Mestres de Especialidades
-      await processSpecialtyAwards(members, updatesToProcess);
+      await processSpecialtyAwards(membersToProcess, updatesToProcess);
       
       // 3. Processar Insígnias baseadas em Pontos Históricos e Stats
-      await processScoreBasedAwards(members, updatesToProcess);
+      await processScoreBasedAwards(membersToProcess, updatesToProcess);
 
       const entries = Object.values(updatesToProcess);
       if (entries.length > 0) {
@@ -939,14 +934,7 @@ const App: React.FC = () => {
       case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
-      case 'bible': return <Bible ref={bibleRef} onViewChange={(title, subtitle) => { setBibleTitle(title); setBibleSubtitle(subtitle); }} onGoToReadingPlan={() => setCurrentPage('bible_reading')} onGoToDevotional={() => setCurrentPage('devotional')} onBackToHome={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
-      case 'bible_reading': return <BibleReading ref={bibleReadingRef} user={user!} onViewChange={(title, subtitle) => { setBibleTitle(title); setBibleSubtitle(subtitle); }} onBack={() => setCurrentPage('bible')} onJumpToBible={(book, chapter) => {
-        setCurrentPage('bible');
-        setTimeout(() => {
-          bibleRef.current?.jumpToBook(book, chapter);
-        }, 150);
-      }} isDarkMode={isDarkMode} />;
-      case 'devotional': return <Devotional onBack={() => setCurrentPage('bible')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
+      case 'devotional': return <Devotional onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
       case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} 
@@ -973,7 +961,7 @@ const App: React.FC = () => {
       case 'admin_scrambled_verse': return <AdminScrambledVerseEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
       case 'specialty_study': return <SpecialtyStudyArea ref={specialtyStudyRef} user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onBack={() => setCurrentPage('home')} onStudyStateChange={handleStudyStateChange} isDarkMode={isDarkMode} />;
       case 'admin_management': return <AdminManagement members={members} userEmail={user!.email} onBack={() => setCurrentPage('profile')} 
-      onProcessMonthlyAwards={processAutomatedAwards}
+      onProcessMonthlyAwards={() => processAutomatedAwards(true)}
       onGoToAdminAvisos={() => setCurrentPage('admin_announcements')} 
       onGoToAdminQuiz={() => { setAdminQuizCategory('Todas'); setCurrentPage('admin_quiz'); }} 
       onGoToAdminSpecialty={() => setCurrentPage('admin_specialty')} 
@@ -1015,7 +1003,7 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 
-  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'bible_reading', 'bible', 'devotional', 'birthdays'].includes(currentPage);
+  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'devotional', 'birthdays'].includes(currentPage);
 
   return (
     <div className={`flex flex-col h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -1134,14 +1122,12 @@ const App: React.FC = () => {
             )}
             <div className="flex flex-col">
               <h1 className="font-black uppercase tracking-tight text-base leading-tight">
-                {['bible', 'bible_reading'].includes(currentPage) ? bibleTitle : getPageTitle()}
+                {getPageTitle()}
               </h1>
               <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                {['bible', 'bible_reading'].includes(currentPage) 
-                  ? bibleSubtitle 
-                  : currentPage === 'devotional'
-                    ? 'Bíblia Sagrada'
-                    : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
+                {currentPage === 'devotional'
+                  ? 'Informativo Diário'
+                  : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
               </p>
             </div>
           </div>
@@ -1159,12 +1145,12 @@ const App: React.FC = () => {
         </header>
       )}
       
-      {currentPage !== 'home' && !['bible', 'bible_reading', 'devotional'].includes(currentPage) && <TickerBanner announcements={announcements} />}
+      {currentPage !== 'home' && !['devotional'].includes(currentPage) && <TickerBanner announcements={announcements} />}
       
       <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
       {/* FLOATING CHAT BUTTON */}
-      {user && currentPage !== 'chat' && !['bible', 'bible_reading', 'devotional'].includes(currentPage) && !isGameActive && (
+      {user && currentPage !== 'chat' && !['devotional'].includes(currentPage) && !isGameActive && (
         <button 
           onClick={() => setCurrentPage('chat')}
           className={`fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-[90] transition-all active:scale-90 hover:scale-105 ${
