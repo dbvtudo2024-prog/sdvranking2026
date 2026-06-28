@@ -4,7 +4,6 @@ import { QuizQuestion, SpecialtyDBV } from '@/types';
 import { QUIZ_QUESTIONS } from '@/constants';
 import { DatabaseService } from '@/db';
 import { Edit2, Trash2, Check, X, ChevronDown, Save, Search, Filter, ChevronLeft, Plus, DownloadCloud, Loader2, Sparkles, Wand2 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
 
 interface AdminQuizEditorProps {
   onBack: () => void;
@@ -119,32 +118,47 @@ const AdminQuizEditor: React.FC<AdminQuizEditorProps> = ({ onBack, onLogout, isD
         }
       }
 
-      const ai = new GoogleGenAI({ apiKey: apiKey || '' });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: `Gere 5 perguntas de múltipla escolha para a especialidade de Desbravadores: "${specialtyName}". 
-        Retorne APENAS o JSON puro, sem blocos de código markdown.
-        Formato: um array de objetos com as propriedades: 
-        "question" (string), "options" (array de 4 strings), "correct_answer" (number 0-3), "tip" (string curta).`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                question: { type: Type.STRING },
-                options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                correct_answer: { type: Type.INTEGER },
-                tip: { type: Type.STRING }
-              },
-              required: ["question", "options", "correct_answer", "tip"]
-            }
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: `Gere 5 perguntas de múltipla escolha para a especialidade de Desbravadores: "${specialtyName}". 
+Retorne APENAS um array JSON puro (sem markdown, sem blocos \`\`\`json).
+Formato esperado:
+[
+  {
+    "question": "texto da pergunta",
+    "options": ["opção A", "opção B", "opção C", "opção D"],
+    "correct_answer": 0,
+    "tip": "dica curta"
+  }
+]`
+              }
+            ]
           }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
         }
+      };
+
+      const response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
 
-      const text = response.text || '';
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const resData = await response.json();
+      const text = resData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
       
       let generated;

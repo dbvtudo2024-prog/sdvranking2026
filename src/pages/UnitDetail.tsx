@@ -19,7 +19,7 @@ const BADGE_ICONS: { [key: string]: any } = {
 };
 
 interface UnitDetailProps {
-  unitName: UnitName;
+  unitName: UnitName | string;
   members: Member[];
   onBack: () => void;
   onLogout: () => void;
@@ -216,7 +216,11 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
         <div className="flex justify-between items-center mb-8 bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm min-h-[80px]">
             <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 px-2">
               <div className="w-16 h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" style={{ width: '64px', height: '64px' }}>
-                <img src={UNIT_LOGOS[unitName]} alt="Brasão" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                {(UNIT_LOGOS as any)[unitName] ? (
+                  <img src={(UNIT_LOGOS as any)[unitName]} alt="Brasão" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <Shield size={32} className="text-blue-500" />
+                )}
               </div>
               <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}</span>
             </div>

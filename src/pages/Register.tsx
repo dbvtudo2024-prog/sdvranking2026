@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserRole, AuthUser, UnitName, Member } from '@/types';
+import { UserRole, AuthUser, UnitName, Member, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, isLeadershipUnit } from '@/types';
 import { DatabaseService } from '@/db';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES } from '@/constants';
 import { ChevronDown, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
@@ -9,9 +9,10 @@ interface RegisterProps {
   onRegister: (user: AuthUser, member?: Member) => void;
   onBack: () => void;
   counselorList?: string[];
+  unitsList?: ClubUnit[];
 }
 
-const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList = [] }) => {
+const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList = [], unitsList = DEFAULT_UNITS }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -229,12 +230,15 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
               <select 
                 className={inputClasses}
                 value={formData.unit}
-                onChange={e => setFormData({...formData, unit: e.target.value as UnitName})}
+                onChange={e => setFormData({...formData, unit: e.target.value})}
               >
                 <option value="" disabled>Selecione a unidade</option>
-                <option value={UnitName.AGUIA_DOURADA}>Águia Dourada</option>
-                <option value={UnitName.GUERREIROS}>Guerreiros</option>
-                {isLeadership && <option value={UnitName.LIDERANCA}>Liderança</option>}
+                {sortUnitsWithLeadershipLast(unitsList)
+                  .filter(u => isLeadership || !isLeadershipUnit(u.name))
+                  .map(u => (
+                    <option key={u.id || u.name} value={u.name}>{u.name}</option>
+                  ))
+                }
               </select>
               <ChevronDown className="absolute right-3 bottom-3 text-gray-400 pointer-events-none" size={18} />
             </div>

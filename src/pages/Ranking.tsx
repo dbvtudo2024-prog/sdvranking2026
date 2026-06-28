@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Member, UnitName } from '@/types';
+import { Member, UnitName, ClubUnit, DEFAULT_UNITS } from '@/types';
 import { UNIT_LOGOS } from '@/constants';
 import { Trophy, User, Shield, Gamepad2 } from 'lucide-react';
 import { calculateSpecific, calculateGamesTotal, calculateWeeklyTotal, calculateMonthlyGamesTotal, calculateMonthlySpecific, GAME_KEYS, GAMES_METADATA, EXTRA_GAME_KEYS } from '@/helpers/scoreHelpers';
@@ -11,12 +11,13 @@ import { motion, AnimatePresence } from 'motion/react';
 interface RankingProps {
   members: Member[];
   isDarkMode?: boolean;
+  unitsList?: ClubUnit[];
 }
 
 type TabType = 'members' | 'units' | 'games' | 'hall';
 type GameTabType = 'total' | 'quiz' | 'memory' | 'specialty' | 'threeclues' | 'puzzle' | 'knots' | 'specialtytrail' | 'scrambledverse' | 'natureid' | 'firstaid';
 
-const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
+const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFAULT_UNITS }) => {
   const [tab, setTab] = useState<TabType>('members');
   const [gameTab, setGameTab] = useState<GameTabType>('total');
   const [selectedProfile, setSelectedProfile] = useState<Member | null>(null);
@@ -405,15 +406,18 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
         </div>
       ) : (
         <div className="space-y-4 px-4 pb-24">
-          {[UnitName.AGUIA_DOURADA, UnitName.GUERREIROS, UnitName.LIDERANCA]
-            .map(unit => {
-              const unitMembers = members.filter(m => m.unit === unit);
+          {unitsList
+            .map(unitObj => {
+              const unitName = unitObj.name;
+              const unitMembers = members.filter(m => (m.unit || '').trim().toLowerCase() === unitName.trim().toLowerCase());
               const weekly = unitMembers.reduce((acc, m) => acc + calculateWeeklyTotal(m), 0);
               const games = unitMembers.reduce((acc, m) => acc + calculateGamesTotal(m), 0);
-              return { unit, weekly, games, memberCount: unitMembers.length };
+              const logo = unitObj.logoUrl || (UNIT_LOGOS as any)[unitName];
+              const color = unitObj.color || '#0061f2';
+              return { unit: unitName, unitObj, logo, color, weekly, games, memberCount: unitMembers.length };
             })
             .sort((a, b) => b.weekly - a.weekly)
-            .map(({ unit, weekly, games, memberCount }) => (
+            .map(({ unit, logo, color, weekly, games, memberCount }) => (
               <div 
                 key={`rank-unit-${unit}`} 
                 className={`flex items-center gap-5 p-5 rounded-[2.5rem] border transition-all ${
@@ -425,7 +429,16 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode }) => {
                 <div className={`w-16 h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border transition-transform duration-500 overflow-hidden shadow-inner ${
                   isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
                 }`} style={{ width: '64px', height: '64px' }}>
-                  <img src={UNIT_LOGOS[unit] || undefined} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  {logo ? (
+                    <img src={logo} alt={unit} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div 
+                      className="w-full h-full flex flex-col items-center justify-center rounded-xl text-white font-black text-xs"
+                      style={{ backgroundColor: color }}
+                    >
+                      <Shield size={20} />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className={`text-base font-black uppercase leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{unit}</h3>

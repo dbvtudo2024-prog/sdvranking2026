@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats } from '@/types';
+import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
 import { DatabaseService } from '@/db';
 import { calculateMonthlyGamesTotal, GAME_KEYS } from '@/helpers/scoreHelpers';
 import { APP_VERSION } from '@/constants';
@@ -45,7 +45,71 @@ const App: React.FC = () => {
   const [counselorsData, setCounselorsData] = useState<CounselorDB[]>([]);
   const [currentPage, setCurrentPage] = useState<'home' | 'units' | 'ranking' | 'profile' | 'games' | 'badges' | 'unit_detail' | 'register' | 'admin_announcements' | 'admin_quiz' | 'admin_specialty' | 'admin_three_clues' | 'admin_specialty_study' | 'admin_puzzle' | 'admin_scrambled_verse' | 'specialty_study' | 'admin_management' | 'chat' | 'devotional' | 'birthdays'>('home');
   const [adminQuizCategory, setAdminQuizCategory] = useState<'Todas' | 'Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades'>('Todas');
-  const [selectedUnit, setSelectedUnit] = useState<UnitName | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitName | string | null>(null);
+  const [unitsList, setUnitsList] = useState<ClubUnit[]>(() => {
+    try {
+      const backup = localStorage.getItem('sentinelas_units_backup');
+      return backup ? sortUnitsWithLeadershipLast(JSON.parse(backup)) : DEFAULT_UNITS;
+    } catch {
+      return DEFAULT_UNITS;
+    }
+  });
+
+  const handleAddUnit = async (newUnit: ClubUnit) => {
+    try {
+      const saved = await DatabaseService.addUnit(newUnit);
+      setUnitsList(prev => {
+        if (prev.some(u => u.name.trim().toLowerCase() === saved.name.trim().toLowerCase())) return sortUnitsWithLeadershipLast(prev);
+        return sortUnitsWithLeadershipLast([...prev, saved]);
+      });
+    } catch (e) {
+      console.error("Erro ao adicionar unidade:", e);
+      throw e;
+    }
+  };
+
+  const handleUpdateUnit = async (oldUnit: ClubUnit, updatedUnit: ClubUnit) => {
+    try {
+      await DatabaseService.updateUnit(oldUnit, updatedUnit);
+      setUnitsList(prev => {
+        const next = prev.map(u => (u.id === oldUnit.id || u.name.toLowerCase() === oldUnit.name.toLowerCase()) ? updatedUnit : u);
+        return sortUnitsWithLeadershipLast(next);
+      });
+      // Se o nome da unidade foi alterado, sincroniza membros e usuário localmente
+      if (oldUnit.name.trim().toLowerCase() !== updatedUnit.name.trim().toLowerCase()) {
+        setMembers(prev => prev.map(m => (m.unit || '').trim().toLowerCase() === oldUnit.name.trim().toLowerCase() ? { ...m, unit: updatedUnit.name as UnitName } : m));
+        if (selectedUnit && (selectedUnit === oldUnit.name || (typeof selectedUnit === 'string' && selectedUnit.trim().toLowerCase() === oldUnit.name.trim().toLowerCase()))) {
+          setSelectedUnit(updatedUnit.name);
+        }
+        if (user && user.unit && user.unit.trim().toLowerCase() === oldUnit.name.trim().toLowerCase()) {
+          const updatedUser = { ...user, unit: updatedUnit.name as UnitName };
+          setUser(updatedUser);
+          try {
+            localStorage.setItem('sentinelas_user', JSON.stringify(updatedUser));
+          } catch (e) {
+            console.warn("Erro ao salvar user no localStorage:", e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao atualizar unidade:", e);
+      throw e;
+    }
+  };
+
+  const handleDeleteUnit = async (unitId: string, unitName: string) => {
+    try {
+      await DatabaseService.deleteUnit(unitId, unitName);
+      setUnitsList(prev => sortUnitsWithLeadershipLast(prev.filter(u => u.id !== unitId && u.name.trim().toLowerCase() !== unitName.trim().toLowerCase())));
+      if (selectedUnit && (selectedUnit === unitName || (typeof selectedUnit === 'string' && selectedUnit.trim().toLowerCase() === unitName.trim().toLowerCase()))) {
+        setSelectedUnit(null);
+        setCurrentPage('units');
+      }
+    } catch (e) {
+      console.error("Erro ao excluir unidade:", e);
+      throw e;
+    }
+  };
   const specialtyStudyRef = useRef<SpecialtyStudyHandle>(null);
   const birthdaysRef = useRef<BirthdaysRef>(null);
   
@@ -158,6 +222,12 @@ const App: React.FC = () => {
       onCounselors: (data) => {
         console.log("[App] Conselheiros recebidos:", data.length);
         setCounselorsData(data);
+      },
+      onUnits: (data) => {
+        console.log("[App] Unidades recebidas:", data.length);
+        if (data && data.length > 0) {
+          setUnitsList(sortUnitsWithLeadershipLast(data));
+        }
       },
       onGameConfigs: (config: GameConfig) => {
         console.log("[App] Configs de jogo recebidas");
@@ -925,18 +995,36 @@ const App: React.FC = () => {
     }
   }, [user, members, processSpecialtyAwards, processScoreBasedAwards]);
 
+  const hasProcessedAwards = useRef(false);
+
   useEffect(() => {
-    processAutomatedAwards();
-  }, [members, user?.role, processAutomatedAwards]);
+    if (user && members && members.length > 0 && !hasProcessedAwards.current) {
+      hasProcessedAwards.current = true;
+      processAutomatedAwards();
+    }
+  }, [members, user, processAutomatedAwards]);
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
-      case 'units': return <Units members={members} onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} onGoToBirthdays={() => setCurrentPage('birthdays')} isDarkMode={isDarkMode} />;
+      case 'units': return (
+        <Units 
+          members={members} 
+          onSelectUnit={(u) => { setSelectedUnit(u); setCurrentPage('unit_detail'); }} 
+          onGoToBirthdays={() => setCurrentPage('birthdays')} 
+          isDarkMode={isDarkMode}
+          role={user?.role}
+          userEmail={user?.email}
+          unitsList={unitsList}
+          onAddUnit={handleAddUnit}
+          onUpdateUnit={handleUpdateUnit}
+          onDeleteUnit={handleDeleteUnit}
+        />
+      );
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
-      case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} />;
-      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} />;
+      case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} unitsList={unitsList} />;
+      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} unitsList={unitsList} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} 
         quizOverride={quizOverride} quizAllowedDay={quizAllowedDay}
         memoryOverride={memoryOverride} memoryAllowedDay={memoryAllowedDay}
@@ -999,7 +1087,7 @@ const App: React.FC = () => {
       } else {
         setCurrentPage('home');
       }
-    }} onBack={() => setCurrentPage('home')} counselorList={counselorsData.map(c => c.name)} />;
+    }} onBack={() => setCurrentPage('home')} counselorList={counselorsData.map(c => c.name)} unitsList={unitsList} />;
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 

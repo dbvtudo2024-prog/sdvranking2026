@@ -10,13 +10,68 @@ export enum UnitName {
   LIDERANCA = 'Liderança'
 }
 
+export interface ClubUnit {
+  id: string;
+  name: string;
+  color?: string;
+  logoUrl?: string;
+  isCustom?: boolean;
+  created_at?: string;
+}
+
+export const DEFAULT_UNITS: ClubUnit[] = [
+  {
+    id: 'unit_aguia_dourada',
+    name: 'Águia Dourada',
+    color: '#FFD700',
+    logoUrl: 'https://lh3.googleusercontent.com/d/1dW1BIYPCcyzT2S2j_6P3L4pN0OeYy3Nk',
+    isCustom: false
+  },
+  {
+    id: 'unit_guerreiros',
+    name: 'Guerreiros',
+    color: '#0061f2',
+    logoUrl: 'https://lh3.googleusercontent.com/d/1a7KjLzygpkka-ryfEuf-uAVDe90aPVEm',
+    isCustom: false
+  },
+  {
+    id: 'unit_lideranca',
+    name: 'Liderança',
+    color: '#1e293b',
+    logoUrl: 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx',
+    isCustom: false
+  }
+];
+
+export const isLeadershipUnit = (nameOrId?: string): boolean => {
+  if (!nameOrId) return false;
+  const n = nameOrId.trim().toLowerCase();
+  return n === 'liderança' || n === 'lideranca' || n === 'unit_lideranca' || n === 'lider' || n === 'líder';
+};
+
+export const sortUnitsWithLeadershipLast = (units: ClubUnit[]): ClubUnit[] => {
+  if (!Array.isArray(units)) return [];
+  const leadershipUnits: ClubUnit[] = [];
+  const regularUnits: ClubUnit[] = [];
+
+  units.forEach(u => {
+    if (isLeadershipUnit(u.name) || isLeadershipUnit(u.id)) {
+      leadershipUnits.push(u);
+    } else {
+      regularUnits.push(u);
+    }
+  });
+
+  return [...regularUnits, ...leadershipUnits];
+};
+
 export interface ChatMessage {
   id?: string | number;
   sender_id: string;
   sender_name: string;
   sender_photo?: string;
   text: string;
-  unit: 'Geral' | UnitName;
+  unit: 'Geral' | UnitName | string;
   created_at: string;
 }
 
@@ -72,7 +127,7 @@ export interface Member {
   joinedAt: string;
   birthday?: string;
   counselor: string;
-  unit: UnitName;
+  unit: UnitName | string;
   scores: Score[];
   photoUrl?: string;
   badges?: UserBadge[];
@@ -124,7 +179,7 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   funcao?: string;
-  unit?: UnitName;
+  unit?: UnitName | string;
   age?: number;
   birthday?: string;
   className?: string;

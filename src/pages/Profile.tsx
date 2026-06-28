@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory, BadgeLevel } from '@/types';
+import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory, BadgeLevel, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, isLeadershipUnit } from '@/types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES, BADGE_DEFINITIONS } from '@/constants';
 import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -32,6 +32,7 @@ interface ProfileProps {
   onGoToBadges?: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  unitsList?: ClubUnit[];
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
@@ -44,7 +45,8 @@ const Profile: React.FC<ProfileProps> = ({
   onUpdateMember,
   onGoToBadges,
   isDarkMode,
-  onToggleDarkMode
+  onToggleDarkMode,
+  unitsList = DEFAULT_UNITS
 }) => {
   const [formData, setFormData] = useState<AuthUser>({ ...user });
   const [showToast, setShowToast] = useState(false);
@@ -779,9 +781,12 @@ const Profile: React.FC<ProfileProps> = ({
                     <div className="relative">
                       <label className={labelClasses}>Unidade</label>
                       <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.unit || ''} onChange={e => setFormData({...formData, unit: e.target.value as UnitName})}>
-                        <option value={UnitName.AGUIA_DOURADA}>Águia Dourada</option>
-                        <option value={UnitName.GUERREIROS}>Guerreiros</option>
-                        <option value={UnitName.LIDERANCA}>Liderança</option>
+                        {sortUnitsWithLeadershipLast(unitsList)
+                          .filter(u => isLeadership || !isLeadershipUnit(u.name))
+                          .map(u => (
+                            <option key={u.id || u.name} value={u.name}>{u.name}</option>
+                          ))
+                        }
                       </select>
                       <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={16} />
                     </div>
