@@ -196,10 +196,202 @@ const FALLBACK_DEVOTIONALS: Devotional[] = [
   }
 ];
 
-// Caches locais para otimização extrema e redução de carga no banco de dados (Supabase)
+// Caches locais para otimização extrema e redução de carga no banco de dados (Supabase / Cloudflare D1)
+const CLOUDFLARE_API_URL = (import.meta.env.VITE_CLOUDFLARE_API_URL || '').trim().replace(/\/+$/, '');
+
+export async function runD1Query<T = any>(query: string, params: any[] = []): Promise<T[]> {
+  if (!CLOUDFLARE_API_URL) return [];
+  try {
+    const res = await fetch(`${CLOUDFLARE_API_URL}/api/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, params })
+    });
+    if (!res.ok) {
+      console.warn(`[Cloudflare D1] Erro HTTP ${res.status} ao executar query`);
+      return [];
+    }
+    const json = await res.json();
+    if (Array.isArray(json.results)) return json.results;
+    if (Array.isArray(json)) return json;
+    return [];
+  } catch (err) {
+    console.warn('[Cloudflare D1] Falha de comunicação com o Worker:', err);
+    return [];
+  }
+}
+
+// Utilitário de Migração Integral para Cloudflare D1
+export async function migrateAllDataToCloudflareD1(): Promise<{
+  success: boolean;
+  counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number };
+  message: string;
+}> {
+  if (!CLOUDFLARE_API_URL) {
+    return {
+      success: false,
+      counts: { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0 },
+      message: "URL do Cloudflare Worker (VITE_CLOUDFLARE_API_URL) não configurada."
+    };
+  }
+
+  const counts = { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0 };
+
+  try {
+    // 1. Migrar Usuários
+    let usersList: AuthUser[] = [];
+    try {
+      const { data } = await supabase.from('users').select('*');
+      if (data && data.length > 0) usersList = data as AuthUser[];
+    } catch (e) {
+      console.warn("Falha ao ler usuários do Supabase, tentando backup local...");
+    }
+    if (usersList.length === 0) {
+      const cached = localStorage.getItem('sentinelas_users_backup');
+      if (cached) usersList = JSON.parse(cached);
+    }
+    for (const u of usersList) {
+      await runD1Query(
+        `INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          u.id,
+          u.email || u.id,
+          u.name,
+          u.role,
+          u.unit || '',
+          u.password || '123456',
+          1,
+          u.funcao || u.role,
+          JSON.stringify(u.badges || []),
+          u.photoUrl || ''
+        ]
+      );
+      counts.users++;
+    }
+
+    // 2. Migrar Membros
+    let membersList: Member[] = [];
+    try {
+      const { data } = await supabase.from('members').select('*');
+      if (data && data.length > 0) membersList = data as Member[];
+    } catch (e) {
+      console.warn("Falha ao ler membros do Supabase, tentando backup local...");
+    }
+    if (membersList.length === 0) {
+      const cached = localStorage.getItem('sentinelas_members_backup');
+      if (cached) membersList = JSON.parse(cached);
+    }
+    for (const m of membersList) {
+      await runD1Query(
+        `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          m.id,
+          m.name,
+          m.unit,
+          m.role,
+          m.className || '',
+          1,
+          m.birthday || '',
+          '',
+          JSON.stringify({ scores: m.scores || [], badges: m.badges || [], stats: m.stats || {}, counselor: m.counselor || '' })
+        ]
+      );
+      counts.members++;
+    }
+
+    // 3. Migrar Avisos
+    let announcementsList: Announcement[] = [];
+    try {
+      const { data } = await supabase.from('announcements').select('*');
+      if (data && data.length > 0) announcementsList = data as Announcement[];
+    } catch (e) {
+      console.warn("Falha ao ler avisos do Supabase, tentando backup local...");
+    }
+    if (announcementsList.length === 0) {
+      const cached = localStorage.getItem('sentinelas_announcements_backup');
+      if (cached) announcementsList = JSON.parse(cached);
+    }
+    for (const a of announcementsList) {
+      await runD1Query(
+        `INSERT OR REPLACE INTO announcements (id, title, content, date, author, target, pinned)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          a.id,
+          a.title,
+          a.content,
+          a.date,
+          'Liderança',
+          'all',
+          0
+        ]
+      );
+      counts.announcements++;
+    }
+
+    // 4. Migrar Especialidades
+    let specList: SpecialtyDBV[] = [];
+    try {
+      const { data } = await supabase.from('EspecialidadesDBV').select('*');
+      if (data && data.length > 0) specList = data as SpecialtyDBV[];
+    } catch (e) {
+      console.warn("Falha ao ler especialidades do Supabase...");
+    }
+    for (const s of specList) {
+      await runD1Query(
+        `INSERT OR REPLACE INTO EspecialidadesDBV (id, Nome, Area, badgeUrl)
+         VALUES (?, ?, ?, ?)`,
+        [
+          String(s.id || s.Nome),
+          s.Nome,
+          s.Categoria || 'Geral',
+          s.Imagem || ''
+        ]
+      );
+      counts.specialties++;
+    }
+
+    // 5. Migrar Configs de Jogos
+    try {
+      const { data: gConfig } = await supabase.from('game_configs').select('*').eq('id', 1).maybeSingle();
+      if (gConfig) {
+        await runD1Query(
+          `INSERT OR REPLACE INTO game_configs (id, type, config) VALUES (?, ?, ?)`,
+          ['1', 'game_configs', JSON.stringify(gConfig)]
+        );
+        counts.gameConfigs++;
+      }
+    } catch (e) {
+      console.warn("Aviso ao sincronizar game_configs para D1:", e);
+    }
+
+    return {
+      success: true,
+      counts,
+      message: `Migração concluída com sucesso para o Cloudflare D1!`
+    };
+  } catch (error: any) {
+    console.error("Erro durante a migração para Cloudflare D1:", error);
+    return {
+      success: false,
+      counts,
+      message: error?.message || "Erro desconhecido durante a migração."
+    };
+  }
+}
+
 let cachedBibleKeys: { bookKey: string; chapterKey: string; verseKey: string; textKey: string } | null = null;
 const bibleChaptersCache: Record<string, number[]> = {};
 const bibleVersesCache: Record<string, any[]> = {};
+
+// Cache em memória com expiração (TTL) para evitar chamadas excessivas e estouro de limites
+let memoryMembersCache: { data: Member[]; timestamp: number } | null = null;
+let memorySpecialtiesCache: { data: SpecialtyDBV[]; timestamp: number } | null = null;
+let memoryUsersCache: { data: AuthUser[]; timestamp: number } | null = null;
+let memoryGameConfigsCache: { data: GameConfig; timestamp: number } | null = null;
+let memoryAnnouncementsCache: { data: Announcement[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutos de cache para leituras repetitivas
 
 async function detectBibleKeys(): Promise<{ bookKey: string; chapterKey: string; verseKey: string; textKey: string }> {
   if (cachedBibleKeys) return cachedBibleKeys;
@@ -504,7 +696,11 @@ export const DatabaseService = {
   },
 
   // --- MEMBROS ---
-  async getMembers(): Promise<Member[]> {
+  async getMembers(forceRefresh = false): Promise<Member[]> {
+    if (!forceRefresh && memoryMembersCache && Date.now() - memoryMembersCache.timestamp < CACHE_TTL_MS) {
+      return memoryMembersCache.data;
+    }
+
     try {
       return await withRetry(async () => {
         console.log("[DB] Buscando membros...");
@@ -524,6 +720,8 @@ export const DatabaseService = {
           stats: m.stats || {}
         })) as Member[];
         
+        memoryMembersCache = { data: list, timestamp: Date.now() };
+
         try {
           localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
         } catch (e) {
@@ -532,11 +730,53 @@ export const DatabaseService = {
         return list;
       });
     } catch (error) {
-      console.warn("[DB] Falha de conexão ao buscar membros. Tentando backup local.");
+      console.warn("[DB] Falha de conexão ao buscar membros no Supabase. Tentando Cloudflare D1 e backup local.");
+      
+      // Tentativa de recuperação via Cloudflare D1
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM members WHERE active = 1');
+        if (d1Rows && d1Rows.length > 0) {
+          const list: Member[] = d1Rows.map(r => {
+            let statsData: any = {};
+            try {
+              statsData = typeof r.stats === 'string' ? JSON.parse(r.stats) : (r.stats || {});
+            } catch (e) {
+              statsData = {};
+            }
+            return {
+              id: r.id,
+              name: r.name,
+              role: r.role,
+              className: r.rank || '',
+              joinedAt: r.created_at || '',
+              birthday: r.birthDate || '',
+              counselor: statsData.counselor || '',
+              unit: r.unit,
+              scores: statsData.scores || [],
+              photoUrl: r.avatar || '',
+              badges: statsData.badges || [],
+              stats: statsData.stats || {}
+            } as Member;
+          });
+          memoryMembersCache = { data: list, timestamp: Date.now() };
+          try {
+            localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+          } catch (e) {}
+          return list;
+        }
+      } catch (e) {
+        console.warn("[getMembers] Falha ao consultar Cloudflare D1:", e);
+      }
+
+      if (memoryMembersCache && memoryMembersCache.data.length > 0) {
+        return memoryMembersCache.data;
+      }
       try {
         const cached = localStorage.getItem('sentinelas_members_backup');
         if (cached) {
-          return JSON.parse(cached) as Member[];
+          const parsed = JSON.parse(cached) as Member[];
+          memoryMembersCache = { data: parsed, timestamp: Date.now() };
+          return parsed;
         }
       } catch (e) {
         console.warn("[getMembers] Erro ao consultar backup local de membros:", e);
@@ -591,6 +831,7 @@ export const DatabaseService = {
       list = list.filter(m => String(m.id) !== String(member.id));
       list.push(member);
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+      memoryMembersCache = { data: list, timestamp: Date.now() };
     } catch (e) {
       console.warn("[addMember] Erro no backup local:", e);
     }
@@ -615,6 +856,25 @@ export const DatabaseService = {
     } catch (e) {
       console.error("Erro ao adicionar membro no Supabase:", e);
     }
+
+    // Gravação assíncrona paralela no Cloudflare D1
+    try {
+      runD1Query(
+        `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          member.id,
+          member.name,
+          member.unit,
+          member.role,
+          member.className || '',
+          1,
+          member.birthday || '',
+          '',
+          JSON.stringify({ scores: member.scores || [], badges: member.badges || [], stats: member.stats || {}, counselor: member.counselor || '' })
+        ]
+      ).catch(err => console.warn("[D1 Sync] Erro assíncrono ao sincronizar membro:", err));
+    } catch (e) {}
   },
 
   async updateMember(member: Member) {
@@ -642,6 +902,7 @@ export const DatabaseService = {
       let list: Member[] = cachedStr ? JSON.parse(cachedStr) : [];
       list = list.map(m => String(m.id) === String(id) ? { ...m, ...payload, id } : m);
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+      memoryMembersCache = { data: list, timestamp: Date.now() };
     } catch (e) {
       console.warn("[updateMember] Erro no backup local:", e);
     }
@@ -666,6 +927,25 @@ export const DatabaseService = {
     } catch (e) {
       console.error("Erro ao atualizar membro no Supabase:", e);
     }
+
+    // Gravação assíncrona paralela no Cloudflare D1
+    try {
+      runD1Query(
+        `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          member.id,
+          member.name,
+          member.unit,
+          member.role,
+          member.className || '',
+          1,
+          member.birthday || '',
+          '',
+          JSON.stringify({ scores: member.scores || [], badges: member.badges || [], stats: member.stats || {}, counselor: member.counselor || '' })
+        ]
+      ).catch(err => console.warn("[D1 Sync] Erro assíncrono ao sincronizar membro:", err));
+    } catch (e) {}
   },
 
   async updateMembers(members: Member[]) {
@@ -699,6 +979,7 @@ export const DatabaseService = {
         }
       });
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+      memoryMembersCache = { data: list, timestamp: Date.now() };
     } catch (e) {
       console.warn("[updateMembers] Erro no backup local:", e);
     }
@@ -728,7 +1009,21 @@ export const DatabaseService = {
   },
 
   async deleteMember(id: string) {
+    try {
+      const cachedStr = localStorage.getItem('sentinelas_members_backup');
+      if (cachedStr) {
+        let list: Member[] = JSON.parse(cachedStr);
+        list = list.filter(m => String(m.id) !== String(id));
+        localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+        memoryMembersCache = { data: list, timestamp: Date.now() };
+      }
+    } catch (e) {
+      console.warn("[deleteMember] Erro ao atualizar cache local:", e);
+    }
     await supabase.from('members').delete().eq('id', id);
+    try {
+      runD1Query('DELETE FROM members WHERE id = ?', [id]).catch(err => console.warn("[D1 Sync] Erro ao deletar membro no D1:", err));
+    } catch (e) {}
   },
 
   // --- CONSELHEIROS ---
@@ -1091,17 +1386,23 @@ export const DatabaseService = {
   },
 
   // --- ESPECIALIDADES ---
-  async getSpecialties(): Promise<SpecialtyDBV[]> {
+  async getSpecialties(forceRefresh = false): Promise<SpecialtyDBV[]> {
+    if (!forceRefresh && memorySpecialtiesCache && Date.now() - memorySpecialtiesCache.timestamp < CACHE_TTL_MS) {
+      return memorySpecialtiesCache.data;
+    }
+
     try {
       const { data, error } = await supabase.from('EspecialidadesDBV').select('*').order('Nome', { ascending: true });
       if (error) {
         console.warn("[DB] Aviso ao buscar especialidades:", error.message || error);
-        return [];
+        return memorySpecialtiesCache ? memorySpecialtiesCache.data : [];
       }
-      return (data || []) as SpecialtyDBV[];
+      const list = (data || []) as SpecialtyDBV[];
+      memorySpecialtiesCache = { data: list, timestamp: Date.now() };
+      return list;
     } catch (e) {
       console.warn("[getSpecialties] Falha ao consultar especialidades:", e);
-      return [];
+      return memorySpecialtiesCache ? memorySpecialtiesCache.data : [];
     }
   },
 
@@ -1435,7 +1736,11 @@ export const DatabaseService = {
 
 
   // --- USUÁRIOS ---
-  async getUsers(): Promise<AuthUser[]> {
+  async getUsers(forceRefresh = false): Promise<AuthUser[]> {
+    if (!forceRefresh && memoryUsersCache && Date.now() - memoryUsersCache.timestamp < CACHE_TTL_MS) {
+      return memoryUsersCache.data;
+    }
+
     try {
       return await withRetry(async () => {
         const { data, error } = await supabase.from('users').select('*');
@@ -1444,6 +1749,7 @@ export const DatabaseService = {
           throw error;
         }
         const usersList = (data || []) as AuthUser[];
+        memoryUsersCache = { data: usersList, timestamp: Date.now() };
         try {
           localStorage.setItem('sentinelas_users_backup', JSON.stringify(usersList));
         } catch (e) {
@@ -1453,10 +1759,15 @@ export const DatabaseService = {
       });
     } catch (err) {
       console.warn("[getUsers] Falha de conexão. Usando backup local de usuários se disponível.");
+      if (memoryUsersCache && memoryUsersCache.data.length > 0) {
+        return memoryUsersCache.data;
+      }
       try {
         const cached = localStorage.getItem('sentinelas_users_backup');
         if (cached) {
-          return JSON.parse(cached) as AuthUser[];
+          const parsed = JSON.parse(cached) as AuthUser[];
+          memoryUsersCache = { data: parsed, timestamp: Date.now() };
+          return parsed;
         }
       } catch (e) {
         console.error("[getUsers] Erro ao ler backup local de usuários:", e);
@@ -1495,7 +1806,38 @@ export const DatabaseService = {
         return null;
       });
     } catch (err) {
-      console.warn("[getUserByEmail] Falha ao consultar Supabase para email:", cleanEmail, ". Tentando backup local.");
+      console.warn("[getUserByEmail] Falha ao consultar Supabase para email:", cleanEmail, ". Tentando Cloudflare D1 e backup local.");
+      
+      // Tentativa de recuperação via Cloudflare D1
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(name) = ? LIMIT 1', [cleanEmail, cleanEmail]);
+        if (d1Rows && d1Rows.length > 0) {
+          const r = d1Rows[0];
+          let badges: any[] = [];
+          try {
+            badges = typeof r.monthlyMedals === 'string' ? JSON.parse(r.monthlyMedals) : (r.monthlyMedals || []);
+          } catch (e) {}
+          const user: AuthUser = {
+            id: r.id,
+            name: r.name,
+            role: r.role,
+            funcao: r.funcao || r.role,
+            unit: r.unit,
+            age: 14,
+            className: 'Desbravador',
+            birthday: '',
+            email: r.username || cleanEmail,
+            password: r.password || '123456',
+            photoUrl: r.avatar || '',
+            stats: { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
+            badges
+          };
+          return user;
+        }
+      } catch (e) {
+        console.warn("[getUserByEmail] Falha ao buscar no Cloudflare D1:", e);
+      }
+
       try {
         const cachedStr = localStorage.getItem('sentinelas_users_backup');
         if (cachedStr) {
@@ -1613,6 +1955,26 @@ export const DatabaseService = {
     } catch (e) {
       console.warn("Aviso ao adicionar usuário no Supabase:", e);
     }
+
+    // Gravação assíncrona paralela no Cloudflare D1
+    try {
+      runD1Query(
+        `INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          user.id,
+          user.email || user.id,
+          user.name,
+          user.role,
+          user.unit || '',
+          user.password || '123456',
+          1,
+          user.funcao || user.role,
+          JSON.stringify(user.badges || []),
+          user.photoUrl || ''
+        ]
+      ).catch(err => console.warn("[D1 Sync] Erro assíncrono ao sincronizar usuário:", err));
+    } catch (e) {}
   },
 
   async createChallenge(challenge: Challenge1x1) {

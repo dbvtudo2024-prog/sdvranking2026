@@ -1212,11 +1212,13 @@ const App: React.FC = () => {
               <h1 className="font-black uppercase tracking-tight text-base leading-tight">
                 {getPageTitle()}
               </h1>
-              <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                {currentPage === 'devotional'
-                  ? 'Informativo Diário'
-                  : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
-              </p>
+              {currentPage !== 'birthdays' && (
+                <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
+                  {currentPage === 'devotional'
+                    ? 'Informativo Diário'
+                    : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
+                </p>
+              )}
             </div>
           </div>
 

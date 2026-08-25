@@ -110,23 +110,14 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
       )}
 
       {/* VIEW SELECTOR & SEARCH */}
-      <div className="p-6 shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
-            {view === 'calendar' ? 'Calendário de Aniversários' : `Aniversariantes de ${monthNames[selectedMonth]}`}
-          </h2>
-          {view === 'list' && (
-            <button 
-              onClick={() => setView('calendar')}
-              className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-md text-[#0061f2] active:scale-90 transition-all border border-slate-100 dark:border-slate-700 flex items-center gap-2"
-            >
-              <ChevronLeft size={20} />
-              <span className="text-xs font-black uppercase">Voltar</span>
-            </button>
-          )}
-        </div>
+      {view === 'list' && (
+        <div className="px-6 pt-4 shrink-0">
+          <div className="mb-2">
+            <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+              {monthNames[selectedMonth]}
+            </h2>
+          </div>
 
-        {view === 'list' && (
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
@@ -137,11 +128,11 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto px-6 pb-32">
+      <div className={`flex-1 overflow-y-auto px-6 pb-32 ${view === 'calendar' && todayBirthdays.length === 0 ? 'pt-6' : view === 'calendar' ? 'pt-4' : 'pt-4'}`}>
         <AnimatePresence mode="wait">
           {view === 'calendar' ? (
             <motion.div 
