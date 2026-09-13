@@ -208,12 +208,61 @@ const FALLBACK_DEVOTIONALS: Devotional[] = [
 ];
 
 // Caches locais para otimização extrema e redução de carga no banco de dados (Supabase / Cloudflare D1)
-const CLOUDFLARE_API_URL = (import.meta.env.VITE_CLOUDFLARE_API_URL || '').trim().replace(/\/+$/, '');
+export const DEFAULT_CLOUDFLARE_API_URL = 'https://broken-sound-84bf.dbvtudo2024.workers.dev';
+
+export function getCloudflareApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('sentinelas_cloudflare_api_url');
+    if (local && local.trim().startsWith('http')) {
+      return local.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = (import.meta.env.VITE_CLOUDFLARE_API_URL || '').trim();
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return DEFAULT_CLOUDFLARE_API_URL;
+}
+
+export function setCloudflareApiUrl(url: string): void {
+  if (typeof window !== 'undefined') {
+    if (!url || !url.trim()) {
+      localStorage.removeItem('sentinelas_cloudflare_api_url');
+    } else {
+      localStorage.setItem('sentinelas_cloudflare_api_url', url.trim());
+    }
+  }
+}
+
+export async function testCloudflareConnection(customUrl?: string): Promise<{ success: boolean; message: string }> {
+  const apiUrl = (customUrl || getCloudflareApiUrl()).trim().replace(/\/+$/, '');
+  if (!apiUrl || !apiUrl.startsWith('http')) {
+    return { success: false, message: 'URL do Cloudflare Worker inválida ou não informada.' };
+  }
+  try {
+    const res = await fetch(`${apiUrl}/api/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'SELECT 1 as test' })
+    });
+    if (!res.ok) {
+      return { success: false, message: `Erro HTTP ${res.status}: ${res.statusText}` };
+    }
+    const json = await res.json();
+    if (json && (json.success || Array.isArray(json.results) || Array.isArray(json))) {
+      return { success: true, message: 'Conexão com Cloudflare D1 estabelecida com sucesso!' };
+    }
+    return { success: false, message: 'Resposta inesperada do Cloudflare Worker.' };
+  } catch (err: any) {
+    return { success: false, message: `Falha na conexão: ${err?.message || 'Erro desconhecido'}` };
+  }
+}
 
 export async function runD1Query<T = any>(query: string, params: any[] = []): Promise<T[]> {
-  if (!CLOUDFLARE_API_URL) return [];
+  const apiUrl = getCloudflareApiUrl();
+  if (!apiUrl) return [];
   try {
-    const res = await fetch(`${CLOUDFLARE_API_URL}/api/query`, {
+    const res = await fetch(`${apiUrl}/api/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, params })
@@ -238,7 +287,8 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
   counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number };
   message: string;
 }> {
-  if (!CLOUDFLARE_API_URL) {
+  const apiUrl = getCloudflareApiUrl();
+  if (!apiUrl) {
     return {
       success: false,
       counts: { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0 },

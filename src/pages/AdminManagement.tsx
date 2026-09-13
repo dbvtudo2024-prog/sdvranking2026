@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
-import { DatabaseService, supabase, migrateAllDataToCloudflareD1 } from '@/db';
+import { DatabaseService, supabase, migrateAllDataToCloudflareD1, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
@@ -400,6 +400,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [copiado, setCopiado] = useState(false);
 
   // Estados para migração para o Cloudflare D1
+  const [cfWorkerUrl, setCfWorkerUrl] = useState(() => getCloudflareApiUrl());
+  const [isTestingCf, setIsTestingCf] = useState(false);
+  const [cfTestStatus, setCfTestStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [isMigratingD1, setIsMigratingD1] = useState(false);
   const [d1MigrationResult, setD1MigrationResult] = useState<{
     success: boolean;
@@ -407,8 +410,28 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     message: string;
   } | null>(null);
 
+  const handleTestCf = async () => {
+    setIsTestingCf(true);
+    setCfTestStatus(null);
+    try {
+      const res = await testCloudflareConnection(cfWorkerUrl);
+      setCfTestStatus(res);
+    } catch (e: any) {
+      setCfTestStatus({ success: false, message: e?.message || 'Erro ao conectar' });
+    } finally {
+      setIsTestingCf(false);
+    }
+  };
+
+  const handleSaveCfUrl = (newUrl: string) => {
+    setCfWorkerUrl(newUrl);
+    setCloudflareApiUrl(newUrl);
+    setCfTestStatus(null);
+  };
+
   const handleMigrateToCloudflareD1 = async () => {
     if (!window.confirm("Deseja iniciar a migração automática de dados (Usuários, Membros, Avisos, Especialidades e Configs) para o Cloudflare D1?")) return;
+    setCloudflareApiUrl(cfWorkerUrl);
     setIsMigratingD1(true);
     setD1MigrationResult(null);
     try {
@@ -1427,6 +1450,60 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 Sincroniza todos os registros existentes para o banco de dados global distribuído do Cloudflare
               </p>
             </div>
+          </div>
+
+          {/* Configuração de URL do Worker */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-blue-100'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-[9px] font-black uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
+                <Zap size={12} /> URL do Gateway / Cloudflare Worker:
+              </label>
+              <button
+                type="button"
+                onClick={() => handleSaveCfUrl(DEFAULT_CLOUDFLARE_API_URL)}
+                className="text-[8px] font-black uppercase tracking-wider text-slate-400 hover:text-blue-400 underline transition-colors"
+              >
+                Restaurar URL Padrão
+              </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={cfWorkerUrl}
+                onChange={(e) => handleSaveCfUrl(e.target.value)}
+                placeholder="https://seu-worker.workers.dev"
+                className={`flex-1 px-4 py-2.5 rounded-xl border text-[10px] font-mono outline-none transition-all ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-700 text-slate-200 focus:border-blue-500' 
+                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={handleTestCf}
+                disabled={isTestingCf}
+                className={`px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm ${
+                  isTestingCf
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
+                }`}
+              >
+                {isTestingCf ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+                {isTestingCf ? 'Testando...' : 'Testar Conexão'}
+              </button>
+            </div>
+
+            {cfTestStatus && (
+              <div className={`p-2.5 rounded-xl text-[8.5px] font-bold uppercase tracking-wider flex items-center gap-2 ${
+                cfTestStatus.success
+                  ? (isDarkMode ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/50' : 'bg-emerald-50 text-emerald-800 border border-emerald-200')
+                  : (isDarkMode ? 'bg-red-950/40 text-red-300 border border-red-900/50' : 'bg-red-50 text-red-800 border border-red-200')
+              }`}>
+                {cfTestStatus.success ? <Check size={14} /> : <AlertTriangle size={14} />}
+                <span>{cfTestStatus.message}</span>
+              </div>
+            )}
           </div>
 
           <div className={`p-4 rounded-2xl border text-[9px] leading-relaxed ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-blue-100 text-slate-700'}`}>
