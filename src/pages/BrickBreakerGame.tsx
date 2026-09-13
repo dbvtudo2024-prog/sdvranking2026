@@ -601,7 +601,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
                   .sort((a, b) => calculateSpecific(b, 'brickBreakerGame') - calculateSpecific(a, 'brickBreakerGame'))
                   .filter(m => calculateSpecific(m, 'brickBreakerGame') > 0)
                   .map((m, idx) => (
-                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user?.id ? 'bg-blue-900/40 border-blue-800' : 'bg-slate-800 border-slate-700'}`}>
+                    <div key={`brick-rank-${m.id || idx}-${idx}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user?.id ? 'bg-blue-900/40 border-blue-800' : 'bg-slate-800 border-slate-700'}`}>
                       <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center font-black text-xs text-slate-500">
                         {idx + 1}º
                       </div>

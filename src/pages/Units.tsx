@@ -1,8 +1,8 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UnitName, Member, UserRole, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
-import { UNIT_LOGOS } from '@/constants';
-import { Users, Shield, Plus, Trash2, X, AlertTriangle, Upload, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, Pencil } from 'lucide-react';
+import { UNIT_LOGOS, PATHFINDER_CLASSES, LEADERSHIP_CLASSES, PATHFINDER_ROLES, LEADERSHIP_ROLES, getClassByAge } from '@/constants';
+import { Users, Shield, Plus, Trash2, X, AlertTriangle, Upload, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, Pencil, UserPlus, User, Calendar } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
 
 interface UnitsProps {
@@ -16,6 +16,8 @@ interface UnitsProps {
   onAddUnit?: (newUnit: ClubUnit) => Promise<void> | void;
   onUpdateUnit?: (oldUnit: ClubUnit, updatedUnit: ClubUnit) => Promise<void> | void;
   onDeleteUnit?: (unitId: string, unitName: string) => Promise<void> | void;
+  onAddMember?: (member: Member) => Promise<void> | void;
+  counselorList?: string[];
 }
 
 const PRESET_COLORS = [
@@ -41,16 +43,31 @@ const Units: React.FC<UnitsProps> = ({
   unitsList = DEFAULT_UNITS,
   onAddUnit,
   onUpdateUnit,
-  onDeleteUnit
+  onDeleteUnit,
+  onAddMember,
+  counselorList = []
 }) => {
   const safeMembers = Array.isArray(members) ? members : [];
   const isAdmin = role === UserRole.LEADERSHIP || userEmail?.toLowerCase() === 'ronaldosonic@gmail.com';
 
-  // Estados dos modais
+  // Estados dos modais de unidade
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState<ClubUnit | null>(null);
   const [unitToDelete, setUnitToDelete] = useState<ClubUnit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Estados do modal de novo membro
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [memberFormName, setMemberFormName] = useState('');
+  const [memberFormBirthday, setMemberFormBirthday] = useState('');
+  const [memberFormAge, setMemberFormAge] = useState<number>(10);
+  const [memberFormUnit, setMemberFormUnit] = useState<string>('');
+  const [memberFormClass, setMemberFormClass] = useState<string>('Amigo');
+  const [memberFormCounselor, setMemberFormCounselor] = useState<string>('');
+  const [memberFormPhoto, setMemberFormPhoto] = useState<string>('');
+  const [isSubmittingMember, setIsSubmittingMember] = useState(false);
+  const [memberErrorMessage, setMemberErrorMessage] = useState('');
+  const memberPhotoRef = useRef<HTMLInputElement>(null);
 
   // Formulário de unidade (adicionar/editar)
   const [formName, setFormName] = useState('');
@@ -190,31 +207,190 @@ const Units: React.FC<UnitsProps> = ({
     }
   };
 
+  // Funções para manipulação de Novo Membro
+  const handleOpenAddMemberModal = (preselectedUnit?: string) => {
+    const targetUnit = preselectedUnit || activeUnits[0]?.name || UnitName.AGUIA_DOURADA;
+    setMemberFormName('');
+    setMemberFormBirthday('');
+    const isLider = targetUnit === UnitName.LIDERANCA;
+    setMemberFormAge(isLider ? 16 : 10);
+    setMemberFormUnit(targetUnit);
+    setMemberFormClass(isLider ? 'Líder' : 'Amigo');
+    setMemberFormCounselor(isLider ? (LEADERSHIP_ROLES[0] || 'Instrutor (a)') : '');
+    setMemberFormPhoto('');
+    setMemberErrorMessage('');
+    setShowAddMemberModal(true);
+  };
+
+  useEffect(() => {
+    const handleUnitEvent = () => handleOpenAddModal();
+    const handleMemberEvent = (e: any) => handleOpenAddMemberModal(e?.detail?.unitName);
+    window.addEventListener('open-add-unit-modal', handleUnitEvent);
+    window.addEventListener('open-add-member-modal', handleMemberEvent);
+    return () => {
+      window.removeEventListener('open-add-unit-modal', handleUnitEvent);
+      window.removeEventListener('open-add-member-modal', handleMemberEvent);
+    };
+  }, [activeUnits]);
+
+  const handleMemberBirthdayChange = (birthdateStr: string) => {
+    setMemberFormBirthday(birthdateStr);
+    if (!birthdateStr) return;
+
+    const birth = new Date(birthdateStr);
+    const now = new Date();
+    if (!isNaN(birth.getTime())) {
+      let age = now.getFullYear() - birth.getFullYear();
+      const mDiff = now.getMonth() - birth.getMonth();
+      if (mDiff < 0 || (mDiff === 0 && now.getDate() < birth.getDate())) {
+        age--;
+      }
+      if (age >= 0 && age <= 120) {
+        setMemberFormAge(age);
+        if (memberFormUnit !== UnitName.LIDERANCA) {
+          const autoClass = getClassByAge(age);
+          if (autoClass) setMemberFormClass(autoClass);
+        }
+      }
+    }
+  };
+
+  const handleMemberUnitChange = (selectedUnitName: string) => {
+    setMemberFormUnit(selectedUnitName);
+    if (selectedUnitName === UnitName.LIDERANCA) {
+      if (memberFormAge < 16) setMemberFormAge(16);
+      setMemberFormClass('Líder');
+      setMemberFormCounselor(LEADERSHIP_ROLES[0] || 'Instrutor (a)');
+    } else {
+      const autoClass = getClassByAge(memberFormAge) || 'Amigo';
+      setMemberFormClass(autoClass);
+      setMemberFormCounselor('');
+    }
+  };
+
+  const handleMemberPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        setMemberErrorMessage('A foto deve ter no máximo 3MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setMemberFormPhoto(event.target?.result as string);
+        setMemberErrorMessage('');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmitMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!memberFormName.trim()) {
+      setMemberErrorMessage('Por favor, informe o nome do membro.');
+      return;
+    }
+    if (!memberFormUnit) {
+      setMemberErrorMessage('Por favor, selecione uma unidade.');
+      return;
+    }
+    if (!memberFormClass) {
+      setMemberErrorMessage('Por favor, selecione uma classe.');
+      return;
+    }
+
+    setIsSubmittingMember(true);
+    setMemberErrorMessage('');
+
+    const isLideranca = memberFormUnit === UnitName.LIDERANCA;
+    const newMember: Member = {
+      id: Math.random().toString(36).substring(2, 11),
+      name: memberFormName.trim(),
+      role: isLideranca ? UserRole.LEADERSHIP : UserRole.PATHFINDER,
+      age: Number(memberFormAge) || 10,
+      className: memberFormClass,
+      birthday: memberFormBirthday || new Date().toISOString().split('T')[0],
+      joinedAt: new Date().toISOString().split('T')[0],
+      counselor: memberFormCounselor || (isLideranca ? 'Instrutor (a)' : 'Sem Conselheiro'),
+      unit: memberFormUnit,
+      scores: [],
+      photoUrl: memberFormPhoto || undefined
+    };
+
+    try {
+      if (onAddMember) {
+        await onAddMember(newMember);
+      }
+      setShowAddMemberModal(false);
+    } catch (err: any) {
+      console.error('[Units] Erro ao cadastrar membro:', err);
+      setMemberErrorMessage(err?.message || 'Erro ao cadastrar novo membro.');
+    } finally {
+      setIsSubmittingMember(false);
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full animate-in fade-in duration-500 overflow-y-auto pb-24 pt-4 ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
       <div className="px-6 flex flex-col gap-4 mb-6">
         
         {/* Cabeçalho de Ações do Administrador */}
         {isAdmin && (
-          <div className="flex items-center justify-between gap-3 p-4 rounded-3xl border bg-gradient-to-r shadow-lg transition-all duration-300 ${isDarkMode ? 'from-blue-950/40 to-slate-900 border-blue-800/40' : 'from-blue-50 to-white border-blue-100'}">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-2xl ${isDarkMode ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-600 text-white'} shadow-md`}>
-                <Shield size={20} />
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl border shadow-xl transition-all duration-300 ${
+            isDarkMode 
+              ? 'bg-gradient-to-r from-blue-950/50 via-slate-900 to-slate-900 border-blue-800/40 shadow-blue-950/20' 
+              : 'bg-gradient-to-r from-blue-50/90 via-white to-white border-blue-100/80 shadow-blue-900/5'
+          }`}>
+            <div className="flex items-center gap-3.5">
+              <div className={`p-3 rounded-2xl ${
+                isDarkMode 
+                  ? 'bg-blue-600/30 text-blue-400 border border-blue-500/30' 
+                  : 'bg-blue-600 text-white shadow-blue-500/30'
+              } shadow-lg shrink-0`}>
+                <Shield size={22} strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Gestão de Unidades</h3>
-                <p className={`text-[10px] font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Adicione, edite ou remova unidades do clube</p>
+                <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  Gestão de Unidades & Membros
+                </h3>
+                <p className={`text-[10px] sm:text-xs font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Cadastre novos membros e gerencie as unidades do clube
+                </p>
               </div>
             </div>
 
-            <button
-              id="btn-add-unit"
-              onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-blue-500/20 transition-all cursor-pointer"
-            >
-              <Plus size={16} strokeWidth={3} />
-              <span>Nova Unidade</span>
-            </button>
+            {/* BOTÕES ESTILIZADOS E VIBRANTES */}
+            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+              {/* Botão + Novo Membro (Imagem 2) */}
+              <button
+                id="btn-add-member"
+                onClick={() => handleOpenAddMemberModal()}
+                className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#059669] hover:bg-[#047857] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
+                title="Cadastrar novo membro no clube"
+              >
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <UserPlus size={16} strokeWidth={2.5} className="text-white" />
+                </div>
+                <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                  NOVO MEMBRO
+                </span>
+              </button>
+
+              {/* Botão + Nova Unidade (Imagem 1) */}
+              <button
+                id="btn-add-unit"
+                onClick={handleOpenAddModal}
+                className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 border border-blue-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
+                title="Criar nova unidade"
+              >
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Plus size={18} strokeWidth={3} className="text-white" />
+                </div>
+                <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                  NOVA UNIDADE
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -230,55 +406,86 @@ const Units: React.FC<UnitsProps> = ({
                 key={unit.id || unit.name}
                 className="relative group"
               >
-                <button 
+                <div 
                   onClick={() => onSelectUnit(unit.name)}
-                  className={`relative flex items-center gap-4 sm:gap-5 p-4 sm:p-5 rounded-[2.25rem] border-2 transition-all active:scale-[0.98] w-full text-left shadow-xl ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      onSelectUnit(unit.name);
+                    }
+                  }}
+                  className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-[2.25rem] border-2 transition-all active:scale-[0.99] w-full text-left shadow-xl cursor-pointer ${
                     isDarkMode 
                       ? 'bg-slate-800 border-slate-700/80 hover:border-blue-700 shadow-blue-950/20' 
                       : 'bg-white border-slate-100 hover:border-blue-200 shadow-blue-900/5'
                   }`}
                 >
-                  {/* Logo / Brasão */}
-                  <div 
-                    className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border-2 transition-transform duration-500 group-hover:scale-105 overflow-hidden shadow-inner ${
-                      isDarkMode ? 'bg-slate-900/90 border-slate-700' : 'bg-slate-50 border-slate-100'
-                    }`}
-                  >
-                    {unitLogo ? (
-                      <img 
-                        src={unitLogo} 
-                        alt={`Logo ${unit.name}`} 
-                        className="w-full h-full object-contain" 
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div 
-                        className="w-full h-full flex flex-col items-center justify-center rounded-xl text-white font-black text-xs"
-                        style={{ backgroundColor: unitColor }}
-                      >
-                        <Shield size={22} className="mb-0.5" />
-                        <span className="text-[9px] uppercase leading-none font-black truncate max-w-full px-1">
-                          {unit.name.substring(0, 3)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Dados da Unidade */}
-                  <div className="flex-1 min-w-0 pr-2">
-                    <h4 className={`font-black text-base sm:text-lg uppercase tracking-tight leading-snug mb-1.5 truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {unit.name}
-                    </h4>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-slate-700/70 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                        <Users size={11} />
-                        <span className="text-[9px] font-black uppercase tracking-wider">{stats.count} Integrantes</span>
+                  {/* Bloco Esquerda: Logo / Brasão + Dados da Unidade */}
+                  <div className="flex items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                    <div 
+                      className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border-2 transition-transform duration-500 group-hover:scale-105 overflow-hidden shadow-inner ${
+                        isDarkMode ? 'bg-slate-900/90 border-slate-700' : 'bg-slate-50 border-slate-100'
+                      }`}
+                    >
+                      {unitLogo ? (
+                        <img 
+                          src={unitLogo} 
+                          alt={`Logo ${unit.name}`} 
+                          className="w-full h-full object-contain" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div 
+                          className="w-full h-full flex flex-col items-center justify-center rounded-xl text-white font-black text-xs"
+                          style={{ backgroundColor: unitColor }}
+                        >
+                          <Shield size={22} className="mb-0.5" />
+                          <span className="text-[9px] uppercase leading-none font-black truncate max-w-full px-1">
+                            {unit.name.substring(0, 3)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Dados da Unidade */}
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h4 className={`font-black text-base sm:text-lg uppercase tracking-tight leading-snug mb-1.5 truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        {unit.name}
+                      </h4>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-slate-700/70 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                          <Users size={11} />
+                          <span className="text-[9px] font-black uppercase tracking-wider">{stats.count} Integrantes</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Pontos Semanais */}
-                  <div className="flex flex-col items-end gap-1 shrink-0">
+                  {/* Bloco Direita: Botão NOVO MEMBRO (Imagem 2) no cabeçalho da unidade + Pontos Semanais */}
+                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 justify-between sm:justify-end z-10">
+                    {/* Botão NOVO MEMBRO no cabeçalho de cada unidade (Imagem 2) */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        id={`btn-unit-card-add-member-${unit.id || unit.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenAddMemberModal(unit.name);
+                        }}
+                        className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-[#059669] hover:bg-[#047857] active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
+                        title={`Adicionar novo membro na unidade ${unit.name}`}
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <UserPlus size={14} strokeWidth={2.5} className="text-white" />
+                        </div>
+                        <span className="font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap">
+                          NOVO MEMBRO
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Pontos Semanais */}
                     <div className={`flex flex-col items-center justify-center px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border-2 ${
                       isDarkMode ? 'bg-blue-900/20 border-blue-800/40' : 'bg-blue-50/70 border-blue-100'
                     }`}>
@@ -296,7 +503,7 @@ const Units: React.FC<UnitsProps> = ({
                     className="absolute right-0 top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-l-full" 
                     style={{ backgroundColor: unitColor }}
                   />
-                </button>
+                </div>
 
                 {/* Botões de Ação para Administrador (Editar e Excluir) */}
                 {isAdmin && (
@@ -426,9 +633,9 @@ const Units: React.FC<UnitsProps> = ({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {PRESET_COLORS.map(item => (
+                  {PRESET_COLORS.map((item, cIdx) => (
                     <button
-                      key={item.color}
+                      key={`preset-color-${item.color}-${cIdx}`}
                       type="button"
                       onClick={() => setFormColor(item.color)}
                       title={item.name}
@@ -580,9 +787,282 @@ const Units: React.FC<UnitsProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider shadow-md hover:shadow-blue-500/25 transition-all disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
                 >
                   {isSubmitting ? 'Salvando...' : (editingUnit ? 'Salvar Alterações' : 'Salvar Unidade')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADICIONAR NOVO MEMBRO */}
+      {/* ========================================================================= */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className={`w-full max-w-lg rounded-[2.5rem] border shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 ${
+              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-900'
+            }`}
+          >
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 shadow-sm">
+                  <UserPlus size={22} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base uppercase tracking-tight">Novo Membro</h3>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Cadastre um novo integrante para o clube
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddMemberModal(false)}
+                className={`p-2 rounded-2xl transition-all ${
+                  isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-400'
+                }`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {memberErrorMessage && (
+              <div className="mt-4 p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold flex items-center gap-2">
+                <AlertTriangle size={16} className="shrink-0" />
+                <span>{memberErrorMessage}</span>
+              </div>
+            )}
+
+            {/* Formulário */}
+            <form onSubmit={handleSubmitMember} className="flex flex-col gap-4 mt-4">
+              {/* Foto do Membro */}
+              <div className="flex flex-col items-center gap-3 p-3.5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-700 shadow-md bg-white dark:bg-slate-900 flex items-center justify-center">
+                  {memberFormPhoto ? (
+                    <img src={memberFormPhoto} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={32} className="text-slate-300 dark:text-slate-600" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={memberPhotoRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleMemberPhotoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => memberPhotoRef.current?.click()}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                      isDarkMode 
+                        ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-white hover:bg-slate-100 text-emerald-600 border border-emerald-200 shadow-sm'
+                    }`}
+                  >
+                    <Upload size={13} />
+                    <span>{memberFormPhoto ? 'Trocar Foto' : 'Carregar Foto'}</span>
+                  </button>
+                  {memberFormPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => setMemberFormPhoto('')}
+                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Nome */}
+              <div>
+                <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={memberFormName}
+                  onChange={(e) => setMemberFormName(e.target.value)}
+                  placeholder="Ex: Gabriel Silva"
+                  className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                    isDarkMode 
+                      ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                      : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                  }`}
+                />
+              </div>
+
+              {/* Data de Nascimento e Idade (com cálculo automático) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Data de Nascimento
+                  </label>
+                  <input
+                    type="date"
+                    value={memberFormBirthday}
+                    onChange={(e) => handleMemberBirthdayChange(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                      isDarkMode 
+                        ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Idade (Anos)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={memberFormAge}
+                    onChange={(e) => {
+                      const newAge = Number(e.target.value);
+                      setMemberFormAge(newAge);
+                      if (memberFormUnit !== UnitName.LIDERANCA) {
+                        const autoClass = getClassByAge(newAge);
+                        if (autoClass) setMemberFormClass(autoClass);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                      isDarkMode 
+                        ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Unidade */}
+              <div>
+                <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Unidade *
+                </label>
+                <select
+                  value={memberFormUnit}
+                  onChange={(e) => handleMemberUnitChange(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                    isDarkMode 
+                      ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                      : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                  }`}
+                >
+                  {activeUnits.map(unit => (
+                    <option key={unit.id || unit.name} value={unit.name}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Classe e Conselheiro / Função */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Classe
+                  </label>
+                  <select
+                    value={memberFormClass}
+                    onChange={(e) => setMemberFormClass(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                      isDarkMode 
+                        ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                    }`}
+                  >
+                    {memberFormUnit === UnitName.LIDERANCA ? (
+                      LEADERSHIP_CLASSES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))
+                    ) : (
+                      PATHFINDER_CLASSES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {memberFormUnit === UnitName.LIDERANCA ? 'Cargo / Função' : 'Conselheiro (a)'}
+                  </label>
+                  {memberFormUnit === UnitName.LIDERANCA ? (
+                    <select
+                      value={memberFormCounselor}
+                      onChange={(e) => setMemberFormCounselor(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                      }`}
+                    >
+                      {LEADERSHIP_ROLES.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {counselorList && counselorList.length > 0 ? (
+                        <select
+                          value={memberFormCounselor}
+                          onChange={(e) => setMemberFormCounselor(e.target.value)}
+                          className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                            isDarkMode 
+                              ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                              : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                          }`}
+                        >
+                          <option value="">Selecione ou deixe vazio</option>
+                          {counselorList.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={memberFormCounselor}
+                          onChange={(e) => setMemberFormCounselor(e.target.value)}
+                          placeholder="Ex: Ronaldo / Priscila"
+                          className={`w-full px-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
+                            isDarkMode 
+                              ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500' 
+                              : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                          }`}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Botões de Ação do Modal */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/60 dark:border-slate-800 mt-2">
+                <button
+                  type="button"
+                  disabled={isSubmittingMember}
+                  onClick={() => setShowAddMemberModal(false)}
+                  className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${
+                    isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingMember}
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Check size={16} strokeWidth={3} />
+                  <span>{isSubmittingMember ? 'Salvando...' : 'Cadastrar Membro'}</span>
                 </button>
               </div>
             </form>

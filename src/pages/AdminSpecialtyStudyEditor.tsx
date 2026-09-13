@@ -214,8 +214,8 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredStudies.map(s => (
-              <div key={`admin-study-${s.id}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex items-center justify-between gap-4`}>
+            {filteredStudies.map((s, sIdx) => (
+              <div key={`admin-study-${s.id || sIdx}-${sIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex items-center justify-between gap-4`}>
                 {s.specialty_image_url && (
                   <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center p-2 shrink-0 shadow-inner border border-slate-100 dark:border-slate-700/50">
                     <img 
@@ -287,9 +287,9 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                     <div className="max-h-60 overflow-y-auto">
                       {availableSpecialties
                         .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
-                        .map(spec => (
+                        .map((spec, specIdx) => (
                           <button
-                            key={spec.id}
+                            key={spec.id ? `study-spec-${spec.id}-${specIdx}` : `study-spec-${specIdx}`}
                             type="button"
                             onClick={() => handleSelectSpecialty(spec)}
                             className={`w-full p-3 text-left flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}

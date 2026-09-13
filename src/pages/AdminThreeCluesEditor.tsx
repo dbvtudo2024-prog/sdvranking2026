@@ -127,10 +127,10 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredQuestions.map(q => {
+            {filteredQuestions.map((q, qIdx) => {
               if (!q) return null;
               return (
-                <div key={q.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
+                <div key={`clues-q-${q.id || qIdx}-${qIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>{q.category}</span>
@@ -138,7 +138,7 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
                     <h4 className={`text-sm font-black leading-tight mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Resposta: {q.answer}</h4>
                     <div className="space-y-1">
                       {(q.clues || []).map((clue, idx) => (
-                        <p key={idx} className={`text-[10px] font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <p key={`clue-display-${q.id || ''}-${idx}`} className={`text-[10px] font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                           Dica {idx + 1}: {clue}
                         </p>
                       ))}
@@ -183,7 +183,7 @@ const AdminThreeCluesEditor: React.FC<AdminThreeCluesEditorProps> = ({ onBack, o
               <div className="space-y-3">
                 <p className={labelClasses}>Dicas</p>
                 {(editForm ? editForm.clues : newQuestion.clues).map((clue, i) => (
-                  <div key={i}>
+                  <div key={`form-clue-${i}`}>
                     <input 
                       required 
                       className={`${inputClasses} ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} 

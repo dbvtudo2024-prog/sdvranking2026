@@ -89,8 +89,8 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
                 <h3 className="text-[11px] font-black uppercase tracking-widest">Aniversariante(s) de Hoje!</h3>
               </div>
               <div className="flex flex-col gap-3">
-                {todayBirthdays.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                {todayBirthdays.map((m, mIdx) => (
+                  <div key={`today-bday-${m.id || mIdx}-${mIdx}`} className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
                     <div className="w-10 h-10 rounded-full border-2 border-white/40 overflow-hidden bg-white/20">
                       <img src={m.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} className="w-full h-full object-cover" />
                     </div>
@@ -176,13 +176,13 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
               className="space-y-4"
             >
               {filteredMembers.length > 0 ? (
-                filteredMembers.map((member) => {
+                filteredMembers.map((member, memIdx) => {
                   const day = member.birthday?.includes('-') ? member.birthday.split('-')[2] : new Date(member.birthday!).getDate();
                   const isToday = parseInt(day.toString()) === new Date().getDate() && selectedMonth === new Date().getMonth();
                   
                   return (
                     <div 
-                      key={member.id}
+                      key={`bday-member-${member.id || memIdx}-${memIdx}`}
                       className={`relative overflow-hidden p-4 rounded-[2rem] border-2 transition-all shadow-lg ${
                         isToday 
                           ? 'bg-gradient-to-br from-pink-50 to-white dark:from-pink-900/20 dark:to-slate-800 border-pink-200 dark:border-pink-800 shadow-pink-500/10' 

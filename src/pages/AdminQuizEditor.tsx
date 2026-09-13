@@ -233,9 +233,9 @@ Formato esperado:
                   <div className="max-h-60 overflow-y-auto">
                     {availableSpecialties
                       .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
-                      .map(spec => (
+                      .map((spec, sIdx) => (
                         <button
-                          key={spec.id}
+                          key={`quiz-spec-${spec.id || sIdx}-${sIdx}`}
                           onClick={() => generateWithAI(spec.Nome)}
                           className={`w-full p-3 text-left flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}
                         >
@@ -304,10 +304,10 @@ Formato esperado:
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredQuestions.map(q => {
+            {filteredQuestions.map((q, qIdx) => {
               if (!q) return null;
               return (
-                <div key={q.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
+                <div key={`quiz-q-${q.id || qIdx}-${qIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 transition-all flex justify-between items-start gap-4`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${q.category === 'Bíblia' ? (isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600') : (isDarkMode ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600')}`}>{q.category}</span>
@@ -320,7 +320,7 @@ Formato esperado:
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                       {(q.options || []).map((opt, idx) => (
-                        <p key={idx} className={`text-[10px] truncate ${idx === q.correct_answer ? 'text-green-500 font-black' : (isDarkMode ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium')}`}>
+                        <p key={`q-opt-display-${q.id || ''}-${idx}`} className={`text-[10px] truncate ${idx === q.correct_answer ? 'text-green-500 font-black' : (isDarkMode ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium')}`}>
                           {idx + 1}. {opt} {idx === q.correct_answer && '✓'}
                         </p>
                       ))}
@@ -382,7 +382,7 @@ Formato esperado:
               <div className="space-y-3">
                 <p className={labelClasses}>Opções de Resposta</p>
                 {(editForm ? (editForm.options || []) : (newQuestion.options || [])).map((opt, i) => (
-                  <div key={i} className="relative">
+                  <div key={`edit-opt-${i}`} className="relative">
                     <input 
                       required 
                       className={`${inputClasses} pr-12 ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} 
@@ -408,7 +408,7 @@ Formato esperado:
               <div className="relative">
                 <label className={labelClasses}>Resposta Correta</label>
                 <select className={`${inputClasses} appearance-none ${isDarkMode ? 'focus:bg-slate-900' : 'focus:bg-white'}`} value={editForm ? editForm.correct_answer : newQuestion.correct_answer} onChange={e => editForm ? setEditForm({...editForm, correct_answer: parseInt(e.target.value)}) : setNewQuestion({...newQuestion, correct_answer: parseInt(e.target.value)})}>
-                  {[0,1,2,3].map((i) => <option key={i} value={i}>Opção {i + 1}</option>)}
+                  {[0,1,2,3].map((i) => <option key={`correct-opt-${i}`} value={i}>Opção {i + 1}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
               </div>

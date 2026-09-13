@@ -107,6 +107,15 @@
             overscroll-behavior-y: contain;
             -webkit-tap-highlight-color: transparent;
         }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
         html, body {
             height: 100%;
             margin: 0;

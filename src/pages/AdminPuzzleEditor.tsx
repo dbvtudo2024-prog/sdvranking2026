@@ -122,9 +122,9 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout,
                   <div className="max-h-60 overflow-y-auto">
                     {availableSpecialties
                       .filter(s => s.Nome.toLowerCase().includes(specialtySearch.toLowerCase()))
-                      .map(spec => (
+                      .map((spec, sIdx) => (
                         <button
-                          key={spec.id}
+                          key={`puzzle-spec-${spec.id || sIdx}-${sIdx}`}
                           type="button"
                           onClick={() => handleSelectSpecialty(spec)}
                           className={`w-full p-3 text-left flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors border-b last:border-0 ${isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-600'}`}
@@ -182,8 +182,8 @@ const AdminPuzzleEditor: React.FC<AdminPuzzleEditorProps> = ({ onBack, onLogout,
         <div className="space-y-4">
           <h3 className={`font-black ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} text-[10px] uppercase tracking-[0.2em] ml-2`}>Imagens Cadastradas</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {images.map(img => (
-              <div key={img.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-4 rounded-[2rem] border shadow-sm flex flex-col gap-3`}>
+            {images.map((img, imgIdx) => (
+              <div key={`puzzle-img-${img.id || imgIdx}-${imgIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} p-4 rounded-[2rem] border shadow-sm flex flex-col gap-3`}>
                 <div className={`aspect-video rounded-xl overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-gray-100 border-gray-100'}`}>
                   <img src={formatImageUrl(img.url) || undefined} alt={img.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>

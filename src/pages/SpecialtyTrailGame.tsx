@@ -176,7 +176,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
         {/* BOARD VISUAL */}
         <div className="w-full flex justify-between items-center px-4 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
           {Array.from({ length: totalSteps }).map((_, i) => (
-            <div key={i} className="flex items-center flex-1 last:flex-none">
+            <div key={`trail-step-${i}`} className="flex items-center flex-1 last:flex-none">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all duration-500 
                 ${i === currentPos 
                   ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/20' 
@@ -219,7 +219,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
               <div className="grid grid-cols-1 gap-3">
                 {currentQuestion.options.map((opt, idx) => (
                   <button
-                    key={idx}
+                    key={`trail-opt-${currentPos}-${idx}`}
                     disabled={selectedOption !== null}
                     onClick={() => handleOptionSelect(idx)}
                     className={`w-full p-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between

@@ -447,13 +447,13 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
       <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in">
         <div className="p-6 space-y-4 overflow-y-auto pb-32">
           <div className="grid grid-cols-1 gap-4">
-            {filteredStudies.map(s => {
+            {filteredStudies.map((s, sIdx) => {
               const alreadyDone = currentMember?.scores?.some(score => score.specialtyStudyId === s.id);
               const bestScore = (currentMember?.scores?.filter(score => score.specialtyStudyId === s.id) || []).reduce((max, curr) => Math.max(max, curr.specialtyStudyScore || 0), 0);
               const isFuture = s.scheduled_for && new Date(s.scheduled_for) > new Date();
 
               return (
-                <div key={`study-item-${s.id}`} className={`bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all ${isFuture ? 'opacity-70 grayscale' : ''}`}>
+                <div key={`study-item-${s.id || sIdx}-${sIdx}`} className={`bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-lg shadow-blue-900/5 flex items-center justify-between group active:scale-[0.98] transition-all ${isFuture ? 'opacity-70 grayscale' : ''}`}>
                   {s.specialty_image_url && (
                     <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center p-2 mr-4 shrink-0 shadow-inner border border-slate-100 dark:border-slate-700/50">
                       <img 

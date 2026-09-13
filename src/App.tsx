@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
 import { DatabaseService } from '@/db';
 import { calculateMonthlyGamesTotal, GAME_KEYS } from '@/helpers/scoreHelpers';
-import { APP_VERSION } from '@/constants';
+import { APP_VERSION, BADGE_DEFINITIONS } from '@/constants';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Home from '@/pages/Home';
@@ -26,9 +26,10 @@ import Games from '@/pages/Games';
 import Chat from '@/pages/Chat';
 import Badges from '@/pages/Badges';
 import AppNavbar from '@/components/AppNavbar';
+import DesktopSidebar from '@/components/DesktopSidebar';
 import TickerBanner from '@/components/TickerBanner';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -1019,6 +1020,8 @@ const App: React.FC = () => {
           onAddUnit={handleAddUnit}
           onUpdateUnit={handleUpdateUnit}
           onDeleteUnit={handleDeleteUnit}
+          onAddMember={handleAddMember}
+          counselorList={counselorsData.map(c => c.name)}
         />
       );
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
@@ -1094,7 +1097,7 @@ const App: React.FC = () => {
   const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'devotional', 'birthdays'].includes(currentPage);
 
   return (
-    <div className={`flex flex-col h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`flex flex-col md:flex-row h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <style dangerouslySetInnerHTML={{ __html: `
         @media (max-height: 500px) and (orientation: landscape) {
           header { height: 3.5rem !important; }
@@ -1105,171 +1108,206 @@ const App: React.FC = () => {
           nav span { display: none !important; }
         }
       `}} />
-      {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
-      {lastNotification && (
-        <div 
-          onClick={() => {
-            if (lastNotification.sender_id === 'system_devotional') {
-              setCurrentPage('devotional');
-            } else {
-              setCurrentPage('chat');
-            }
-            setLastNotification(null);
-          }}
-          className="fixed top-24 inset-x-4 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
-        >
-          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 overflow-hidden shadow-inner">
-             <img src={lastNotification.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.sender_id}`} className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-             <div className="flex justify-between items-center mb-0.5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">{lastNotification.sender_name}</p>
-                <div className="flex items-center gap-1">
-                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                   <span className="text-[8px] font-bold opacity-70 uppercase">Mensagem Direta</span>
-                </div>
-             </div>
-             <p className="text-sm font-black truncate pr-4 text-white leading-tight">{lastNotification.text}</p>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-             <X size={20} />
-          </button>
-        </div>
-      )}
 
-      {/* NOTIFICAÇÃO DE DESAFIO 1X1 */}
-      {challengeNotification && (
-        <div 
-          onClick={() => {
-            setCurrentPage('games');
-            setChallengeNotification(null);
-          }}
-          className="fixed top-24 inset-x-4 z-[9999] bg-amber-500 text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
-        >
-          <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 flex items-center justify-center shadow-inner">
-             <Sword size={24} className="text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-             <div className="flex justify-between items-center mb-0.5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">Arena 1x1</p>
-                <div className="flex items-center gap-1">
-                   <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
-                   <span className="text-[8px] font-bold opacity-70 uppercase">Novo Desafio</span>
-                </div>
-             </div>
-             <p className="text-sm font-black truncate pr-4 text-white leading-tight">
-               {challengeNotification.challengerName} desafiou você!
-             </p>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); setChallengeNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-             <X size={20} />
-          </button>
-        </div>
-      )}
+      {/* MENU LATERAL ESQUERDO (Apenas na versão PC: md:flex) */}
+      <DesktopSidebar
+        user={user}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onLogout={handleLogout}
+      />
 
-      {/* AVISO DE ATUALIZAÇÃO */}
-      {showUpdateNotice && (
-        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-[#0061f2] flex flex-col items-center text-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[#0061f2]">
-              <Bell size={40} className="animate-bounce" />
+      {/* ÁREA DE CONTEÚDO PRINCIPAL */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 relative">
+        {/* BANNER DE NOTIFICAÇÃO MELHORADO */}
+        {lastNotification && (
+          <div 
+            onClick={() => {
+              if (lastNotification.sender_id === 'system_devotional') {
+                setCurrentPage('devotional');
+              } else {
+                setCurrentPage('chat');
+              }
+              setLastNotification(null);
+            }}
+            className="fixed top-24 inset-x-4 md:left-72 md:right-8 lg:left-80 z-[9999] bg-[#0061f2] text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 overflow-hidden shadow-inner">
+               <img src={lastNotification.sender_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lastNotification.sender_id}`} className="w-full h-full object-cover" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Nova Atualização!</h3>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                Uma nova versão do app está disponível para você. Para garantir que tudo funcione perfeitamente, por favor:
-              </p>
+            <div className="flex-1 min-w-0">
+               <div className="flex justify-between items-center mb-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">{lastNotification.sender_name}</p>
+                  <div className="flex items-center gap-1">
+                     <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                     <span className="text-[8px] font-bold opacity-70 uppercase">Mensagem Direta</span>
+                  </div>
+               </div>
+               <p className="text-sm font-black truncate pr-4 text-white leading-tight">{lastNotification.text}</p>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl w-full border-2 border-dashed border-slate-200 dark:border-slate-700">
-              <p className="text-xs font-black uppercase text-[#0061f2] dark:text-blue-400">Feche o app completamente e abra-o novamente.</p>
-            </div>
-            <button 
-              onClick={() => setShowUpdateNotice(false)}
-              className="w-full h-14 bg-[#0061f2] hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/25"
-            >
-              Entendi
+            <button onClick={(e) => { e.stopPropagation(); setLastNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+               <X size={20} />
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {currentPage !== 'home' && (
-        <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
-          <div className="flex items-center gap-3">
-            {isDetailPage ? (
-              <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
-                <ArrowLeft size={22} strokeWidth={3} />
-              </button>
-            ) : (
-              <img 
-                src={LOGO_APP} 
-                alt="Logo" 
-                className="w-12 h-12 object-contain" 
-                referrerPolicy="no-referrer"
-              />
-            )}
-            <div className="flex flex-col">
-              <h1 className="font-black uppercase tracking-tight text-base leading-tight">
-                {getPageTitle()}
-              </h1>
-              {currentPage !== 'birthdays' && (
-                <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
-                  {currentPage === 'devotional'
-                    ? 'Informativo Diário'
-                    : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
+        {/* NOTIFICAÇÃO DE DESAFIO 1X1 */}
+        {challengeNotification && (
+          <div 
+            onClick={() => {
+              setCurrentPage('games');
+              setChallengeNotification(null);
+            }}
+            className="fixed top-24 inset-x-4 md:left-72 md:right-8 lg:left-80 z-[9999] bg-amber-500 text-white p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex items-center gap-4 animate-in slide-in-from-top-20 duration-500 cursor-pointer border-2 border-white/30 active:scale-95 transition-all"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 border-2 border-white/40 flex items-center justify-center shadow-inner">
+               <Sword size={24} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+               <div className="flex justify-between items-center mb-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">Arena 1x1</p>
+                  <div className="flex items-center gap-1">
+                     <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+                     <span className="text-[8px] font-bold opacity-70 uppercase">Novo Desafio</span>
+                  </div>
+               </div>
+               <p className="text-sm font-black truncate pr-4 text-white leading-tight">
+                 {challengeNotification.challengerName} desafiou você!
+               </p>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); setChallengeNotification(null); }} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+               <X size={20} />
+            </button>
+          </div>
+        )}
+
+        {/* AVISO DE ATUALIZAÇÃO */}
+        {showUpdateNotice && (
+          <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-[#0061f2] flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[#0061f2]">
+                <Bell size={40} className="animate-bounce" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Nova Atualização!</h3>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  Uma nova versão do app está disponível para você. Para garantir que tudo funcione perfeitamente, por favor:
                 </p>
-              )}
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl w-full border-2 border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-xs font-black uppercase text-[#0061f2] dark:text-blue-400">Feche o app completamente e abra-o novamente.</p>
+              </div>
+              <button 
+                onClick={() => setShowUpdateNotice(false)}
+                className="w-full h-14 bg-[#0061f2] hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/25"
+              >
+                Entendi
+              </button>
             </div>
           </div>
+        )}
 
-          {activeSpecialtyImage && currentPage === 'specialty_study' && (
-            <div className="w-12 h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center animate-in zoom-in duration-300">
-              <img 
-                src={formatImageUrl(activeSpecialtyImage)} 
-                alt="Especialidade" 
-                className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-              />
+        {currentPage !== 'home' && (
+          <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
+            <div className="flex items-center gap-3">
+              {isDetailPage ? (
+                <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90">
+                  <ArrowLeft size={22} strokeWidth={3} />
+                </button>
+              ) : (
+                <img 
+                  src={LOGO_APP} 
+                  alt="Logo" 
+                  className="w-12 h-12 object-contain" 
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <div className="flex flex-col">
+                <h1 className="font-black uppercase tracking-tight text-base leading-tight">
+                  {getPageTitle()}
+                </h1>
+                {currentPage !== 'birthdays' && (
+                  <p className="text-[10px] font-bold uppercase opacity-80 leading-none mt-1">
+                    {currentPage === 'devotional'
+                      ? 'Informativo Diário'
+                      : activeSpecialtyName ? activeSpecialtyName : `${user.name} • ${user?.funcao || user?.role}`}
+                  </p>
+                )}
+              </div>
             </div>
-          )}
-        </header>
-      )}
-      
-      {currentPage !== 'home' && !['devotional'].includes(currentPage) && <TickerBanner announcements={announcements} />}
-      
-      <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
-      {/* FLOATING CHAT BUTTON */}
-      {user && currentPage !== 'chat' && !['devotional'].includes(currentPage) && !isGameActive && (
-        <button 
-          onClick={() => setCurrentPage('chat')}
-          className={`fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-[90] transition-all active:scale-90 hover:scale-105 ${
-            isDarkMode 
-              ? 'bg-blue-500 text-white shadow-blue-500/20 active:bg-blue-600' 
-              : 'bg-[#0061f2] text-white shadow-blue-600/30 active:bg-blue-700'
-          }`}
-        >
-          <div className="relative">
-            <MessageCircle size={28} strokeWidth={2.5} />
-            {unreadCount > 0 && (
-              <div className="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_15px_rgba(220,38,38,0.4)] animate-pulse">
-                {unreadCount > 9 ? '9+' : unreadCount}
+            {activeSpecialtyImage && currentPage === 'specialty_study' && (
+              <div className="w-12 h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center animate-in zoom-in duration-300">
+                <img 
+                  src={formatImageUrl(activeSpecialtyImage)} 
+                  alt="Especialidade" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </div>
             )}
-          </div>
-        </button>
-      )}
 
-      {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
-        <footer className="shrink-0 z-[100]">
-          <AppNavbar 
-            currentPage={currentPage as any} 
-            setCurrentPage={setCurrentPage as any} 
-            unreadCount={unreadCount}
-            isDarkMode={isDarkMode}
-          />
-        </footer>
-      )}
+            {/* PROGRESSO GERAL NA TELA DE INSÍGNIAS (À DIREITA DO CABEÇALHO) */}
+            {currentPage === 'badges' && (
+              <div className="flex items-center gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-inner shrink-0 animate-in fade-in duration-300">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                  <ShieldCheck className="text-white" size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest leading-none opacity-90">
+                    Progresso Geral
+                  </p>
+                  <p className="text-white text-xs font-black leading-tight mt-0.5 whitespace-nowrap">
+                    <span className="text-yellow-400 font-black">
+                      {(user.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).length} de {BADGE_DEFINITIONS.length}
+                    </span>{' '}
+                    <span className="font-bold opacity-90">conquistadas</span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </header>
+        )}
+        
+        {currentPage !== 'home' && !['devotional'].includes(currentPage) && <TickerBanner announcements={announcements} />}
+        
+        <main className="flex-1 overflow-hidden">{renderPage()}</main>
+
+        {/* FLOATING CHAT BUTTON */}
+        {user && currentPage !== 'chat' && !['devotional'].includes(currentPage) && !isGameActive && (
+          <button 
+            onClick={() => setCurrentPage('chat')}
+            className={`fixed bottom-24 md:bottom-8 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-[90] transition-all active:scale-90 hover:scale-105 ${
+              isDarkMode 
+                ? 'bg-blue-500 text-white shadow-blue-500/20 active:bg-blue-600' 
+                : 'bg-[#0061f2] text-white shadow-blue-600/30 active:bg-blue-700'
+            }`}
+          >
+            <div className="relative">
+              <MessageCircle size={28} strokeWidth={2.5} />
+              {unreadCount > 0 && (
+                <div className="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-[0_0_15px_rgba(220,38,38,0.4)] animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </div>
+              )}
+            </div>
+          </button>
+        )}
+
+        {/* MENU INFERIOR APENAS NO MOBILE (md:hidden) */}
+        {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
+          <footer className="shrink-0 z-[100] md:hidden">
+            <AppNavbar 
+              currentPage={currentPage as any} 
+              setCurrentPage={setCurrentPage as any} 
+              unreadCount={unreadCount}
+              isDarkMode={isDarkMode}
+            />
+          </footer>
+        )}
+      </div>
     </div>
   );
 };

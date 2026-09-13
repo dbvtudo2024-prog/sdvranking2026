@@ -1,5 +1,5 @@
 
-import { QuizQuestion, ThreeCluesQuestion, UserRole, UnitName } from './types';
+import { QuizQuestion, ThreeCluesQuestion, UserRole, UnitName, Member, BadgeLevel } from './types';
 
 export const NEW_QUIZ_QUESTIONS: Omit<QuizQuestion, 'id'>[] = [
   // Desbravadores
@@ -119,10 +119,11 @@ export const DEFAULT_SPECIALTY_STUDIES = [
   }
 ];
 
-export const DEFAULT_MEMBERS = [
-  { name: 'Ronaldo Sonic', unit: UnitName.LIDERANCA, role: UserRole.LEADERSHIP, scores: [], photoUrl: '', birthday: '1990-03-29', age: 35, className: 'Líder', joinedAt: '2020-01-01', counselor: 'N/A' },
-  { name: 'João Silva', unit: UnitName.AGUIA_DOURADA, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2010-05-15', age: 15, className: 'Amigo', joinedAt: '2023-01-01', counselor: 'Carlos' },
-  { name: 'Maria Oliveira', unit: UnitName.GUERREIROS, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2011-08-20', age: 14, className: 'Companheiro', joinedAt: '2023-01-01', counselor: 'Ana' }
+export const DEFAULT_MEMBERS: Member[] = [
+  { id: 'mem_davi', name: 'Davi de Pin', unit: UnitName.AGUIA_DOURADA, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2012-04-10', age: 12, className: 'Pesquisador', joinedAt: '2022-01-01', counselor: 'Carlos', badges: [{ badgeId: 'mestre_quiz', level: BadgeLevel.GOLD, monthLabel: '1º Lugar - Campeão dos Jogos', awardedAt: '2026-04-01' }] },
+  { id: 'mem_ronaldo', name: 'Ronaldo Sonic', unit: UnitName.LIDERANCA, role: UserRole.LEADERSHIP, scores: [], photoUrl: '', birthday: '1990-03-29', age: 35, className: 'Líder', joinedAt: '2020-01-01', counselor: 'N/A', badges: [] },
+  { id: 'mem_joao', name: 'João Silva', unit: UnitName.AGUIA_DOURADA, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2010-05-15', age: 15, className: 'Amigo', joinedAt: '2023-01-01', counselor: 'Carlos', badges: [] },
+  { id: 'mem_maria', name: 'Maria Oliveira', unit: UnitName.GUERREIROS, role: UserRole.PATHFINDER, scores: [], photoUrl: '', birthday: '2011-08-20', age: 14, className: 'Companheiro', joinedAt: '2023-01-01', counselor: 'Ana', badges: [] }
 ];
 
 export const DEFAULT_DEVOTIONALS = [

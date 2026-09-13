@@ -225,16 +225,25 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
               <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}</span>
             </div>
           {isProtectedAdmin && (
-            <button onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} className="bg-[#0061f2] text-white p-4 rounded-full sm:rounded-2xl font-black shadow-xl active:scale-95 transition-all">
-              <Plus size={24} strokeWidth={3} />
+            <button 
+              id="btn-unit-add-member"
+              onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} 
+              className="flex items-center gap-2 px-4 sm:px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/25 border border-emerald-400/30 hover:scale-105 transition-all duration-200 cursor-pointer group"
+              title="Adicionar Novo Membro nesta Unidade"
+            >
+              <div className="p-1 rounded-lg bg-white/20 group-hover:scale-110 transition-transform">
+                <Plus size={16} strokeWidth={3} />
+              </div>
+              <span className="hidden sm:inline">Novo Membro</span>
+              <span className="sm:hidden">Membro</span>
             </button>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
-          {filteredMembers.map(member => (
+          {filteredMembers.map((member, mIdx) => (
             <div 
-              key={member.id} 
+              key={member.id ? `unit-mem-${member.id}-${mIdx}` : `unit-mem-idx-${mIdx}`} 
               onClick={() => setSelectedMemberProfile(member)} 
               className={`group relative flex flex-col p-5 rounded-[2.5rem] border transition-all cursor-pointer active:scale-[0.98] ${
                 isDarkMode 
@@ -349,10 +358,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                 {isUserLeadership && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedMemberForPoints(member); }} 
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-md shadow-blue-500/25 border border-blue-400/30 active:scale-95 hover:scale-105 transition-all cursor-pointer"
                   >
                     <Plus size={14} strokeWidth={3} />
-                    Lançar Pontos
+                    <span>Lançar Pontos</span>
                   </button>
                 )}
               </div>
@@ -403,7 +412,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   </div>
                 ))}
               </div>
-              <button onClick={handleSaveScore} className="w-full bg-[#0061f2] text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2">
+              <button onClick={handleSaveScore} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-4 sm:py-5 rounded-2xl sm:rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all">
                 <Check size={20} strokeWidth={3} /> {editingScoreIndex !== null ? 'ATUALIZAR PONTUAÇÃO' : 'SALVAR PONTUAÇÃO'}
               </button>
             </div>
@@ -576,9 +585,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
               <button 
                 type="submit" 
-                className="w-full bg-[#2563eb] text-white py-4 rounded-[0.8rem] font-bold text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-all mt-2"
+                className="w-full bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white py-4 rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all mt-2 cursor-pointer"
               >
-                {isEditing ? 'Atualizar Dados' : 'Adicionar Membro'}
+                <Check size={18} strokeWidth={3} />
+                <span>{isEditing ? 'Atualizar Dados' : 'Adicionar Membro'}</span>
               </button>
             </form>
           </div>

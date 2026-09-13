@@ -181,7 +181,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                   
                   <div className="grid grid-cols-1 gap-3">
                     {monthChampions.map((champ, idx) => (
-                      <div key={`${mStr}-${champ.id}`} className={`flex items-center gap-4 p-5 rounded-[2.5rem] border ${
+                      <div key={`${mStr}-${champ.id || champ.name || idx}-${idx}`} className={`flex items-center gap-4 p-5 rounded-[2.5rem] border ${
                         idx === 0 ? 'bg-gradient-to-r from-yellow-50 to-white dark:from-yellow-900/10 dark:to-slate-900 border-yellow-200 dark:border-yellow-900/30' : 
                         isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
                       }`}>
@@ -201,7 +201,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                              <div className="flex -space-x-1">
                                {(champ.badges || []).slice(0, 3).map((ub, bidx) => (
                                  <div 
-                                   key={`hall-mini-badge-${champ.id}-${bidx}`}
+                                   key={`hall-mini-badge-${champ.id || 'champ'}-${bidx}`}
                                    className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
                                      ub.badgeId.startsWith('monthly_games_') ? 'bg-amber-400' : 'bg-blue-400'
                                    }`}
@@ -345,7 +345,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
           <div className="space-y-4 pb-24">
             {remaining.map((m, idx) => (
               <div 
-                key={`rank-member-${m.id}`} 
+                key={`rank-member-${m.id || m.name || idx}-${idx}`} 
                 onClick={() => setSelectedProfile(m)}
                 className={`group relative flex items-center gap-4 p-4 rounded-[2.2rem] border transition-all cursor-pointer active:scale-[0.98] ${
                   isDarkMode 
@@ -365,7 +365,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                     <div className="flex -space-x-1">
                       {(m.badges || []).slice(0, 3).map((ub, bidx) => (
                         <div 
-                          key={`mini-badge-${m.id}-${bidx}`}
+                          key={`mini-badge-${m.id || 'mem'}-${ub.badgeId || bidx}-${bidx}`}
                           className={`w-4 h-4 rounded-full border border-white dark:border-slate-800 flex items-center justify-center ${
                              ub.badgeId.startsWith('monthly_games_') ? 'bg-amber-400' : 'bg-blue-400'
                           }`}
@@ -417,9 +417,9 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
               return { unit: unitName, unitObj, logo, color, weekly, games, memberCount: unitMembers.length };
             })
             .sort((a, b) => b.weekly - a.weekly)
-            .map(({ unit, logo, color, weekly, games, memberCount }) => (
+            .map(({ unit, logo, color, weekly, games, memberCount }, uIdx) => (
               <div 
-                key={`rank-unit-${unit}`} 
+                key={`rank-unit-${unit}-${uIdx}`} 
                 className={`flex items-center gap-5 p-5 rounded-[2.5rem] border transition-all ${
                   isDarkMode 
                     ? 'bg-slate-800 border-slate-700 shadow-blue-900/10' 

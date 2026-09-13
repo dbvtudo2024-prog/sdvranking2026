@@ -31,7 +31,7 @@ interface ProfileProps {
   onUpdateMember?: (member: Member) => void;
   onGoToBadges?: () => void;
   isDarkMode: boolean;
-  onToggleDarkMode: () => void;
+  onToggleDarkMode?: () => void;
   unitsList?: ClubUnit[];
 }
 
@@ -216,7 +216,7 @@ const Profile: React.FC<ProfileProps> = ({
   const isLeadership = formData.role === UserRole.LEADERSHIP;
 
   return (
-    <div className="h-full overflow-y-auto pb-32 animate-in fade-in duration-500 scroll-smooth" style={{ overscrollBehaviorY: 'contain' }}>
+    <div className="h-full overflow-y-auto no-scrollbar pb-32 animate-in fade-in duration-500 scroll-smooth" style={{ overscrollBehaviorY: 'contain' }}>
       <div className="px-4 pt-8 space-y-6">
         {showToast && (
           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 duration-300">
@@ -226,65 +226,64 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         )}
 
-        {/* CABEÇALHO COM NOME E UNIDADE ABAIXO DA FOTO */}
-        <div className="text-center py-4">
-          <div className="relative inline-block">
-            <div className={`w-32 h-32 bg-gradient-to-br from-[#0061f2] to-[#0052cc] rounded-[2.5rem] mx-auto flex items-center justify-center text-white border-4 ${isDarkMode ? 'border-dark-border' : 'border-white'} shadow-2xl overflow-hidden`}>
-              {formData.photoUrl ? <img src={formData.photoUrl} alt="Perfil" className="w-full h-full object-cover" /> : <UserIcon size={64} />}
+        {/* CABEÇALHO COM FOTO À ESQUERDA E BOTÕES À DIREITA */}
+        <div className={`p-6 sm:p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} flex flex-col md:flex-row items-center justify-between gap-6`}>
+          {/* LADO ESQUERDO: FOTO + IDENTIFICAÇÃO */}
+          <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+            <div className="relative shrink-0">
+              <div className={`w-28 h-28 sm:w-32 sm:h-32 bg-gradient-to-br from-[#0061f2] to-[#0052cc] rounded-[2.5rem] flex items-center justify-center text-white border-4 ${isDarkMode ? 'border-slate-800' : 'border-white'} shadow-2xl overflow-hidden`}>
+                {formData.photoUrl ? <img src={formData.photoUrl} alt="Perfil" className="w-full h-full object-cover" /> : <UserIcon size={64} />}
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              <h2 className={`text-2xl sm:text-3xl font-black tracking-tight uppercase leading-tight ${isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'}`}>
+                {formData.name}
+              </h2>
+              <div className={`flex items-center justify-center sm:justify-start gap-1.5 font-bold uppercase text-[10px] sm:text-xs tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <Shield size={13} className={isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'} />
+                {formData.unit || 'Sem Unidade'}
+                {formData.funcao && <span className="opacity-70">• {formData.funcao}</span>}
+              </div>
             </div>
           </div>
-          
-          <div className="mt-6 space-y-1">
-            <h2 className={`text-2xl font-black tracking-tight uppercase leading-tight ${isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'}`}>{formData.name}</h2>
-            <div className={`flex items-center justify-center gap-1.5 font-bold uppercase text-[10px] tracking-[0.2em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              <Shield size={12} className={isDarkMode ? 'text-slate-600' : 'text-slate-300'} />
-              {formData.unit || 'Sem Unidade'}
-            </div>
-          </div>
-          
-          {isLeadership && (
-            <div className="mt-6 flex flex-col items-center gap-3">
-              <button onClick={onGoToAdminManagement} className={`w-full max-w-xs border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white' : 'bg-white border-[#0061f2] text-[#0061f2] hover:bg-[#0061f2] hover:text-white'}`}>
+
+          {/* LADO DIREITO: BOTÕES DE GESTÃO, EDITAR E SAIR */}
+          <div className="flex flex-col items-center sm:items-stretch md:items-end gap-3 w-full sm:w-72 md:w-80 shrink-0">
+            {isLeadership && (
+              <button 
+                onClick={onGoToAdminManagement} 
+                className={`w-full border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2 ${
+                  isDarkMode 
+                    ? 'bg-slate-800 border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white' 
+                    : 'bg-white border-[#0061f2] text-[#0061f2] hover:bg-[#0061f2] hover:text-white'
+                }`}
+              >
                 <ShieldCheck size={16} /> GESTÃO ADMINISTRATIVA
               </button>
-              
-              <button 
-                onClick={() => {
-                  setFormData({ ...user });
-                  setShowEditModal(true);
-                }}
-                className="w-full max-w-xs bg-[#0061f2] text-white px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Settings size={16} /> EDITAR PERFIL
-              </button>
+            )}
+            
+            <button 
+              onClick={() => {
+                setFormData({ ...user });
+                setShowEditModal(true);
+              }}
+              className="w-full bg-[#0061f2] text-white px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Settings size={16} /> EDITAR PERFIL
+            </button>
 
-              <button 
-                onClick={onLogout}
-                className={`w-full max-w-xs border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 border-red-900/30 text-red-400 hover:bg-red-900/20' : 'bg-white border-red-100 text-red-500 hover:bg-red-50'}`}>
-                <LogOut size={16} /> SAIR DA CONTA
-              </button>
-            </div>
-          )}
-
-          {!isLeadership && (
-            <div className="mt-6 flex flex-col items-center gap-3">
-              <button 
-                onClick={() => {
-                  setFormData({ ...user });
-                  setShowEditModal(true);
-                }}
-                className="w-full max-w-xs bg-[#0061f2] text-white px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#0052cc] transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Settings size={16} /> EDITAR PERFIL
-              </button>
-
-              <button 
-                onClick={onLogout}
-                className={`w-full max-w-xs border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 border-red-900/30 text-red-400 hover:bg-red-900/20' : 'bg-white border-red-100 text-red-500 hover:bg-red-50'}`}>
-                <LogOut size={16} /> SAIR DA CONTA
-              </button>
-            </div>
-          )}
+            <button 
+              onClick={onLogout}
+              className={`w-full border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                isDarkMode 
+                  ? 'bg-slate-800 border-red-900/30 text-red-400 hover:bg-red-900/20' 
+                  : 'bg-white border-red-200 text-red-500 hover:bg-red-50'
+              }`}
+            >
+              <LogOut size={16} /> SAIR DA CONTA
+            </button>
+          </div>
         </div>
 
         {/* RESUMO DE PONTUAÇÃO GERAL */}
@@ -309,34 +308,6 @@ const Profile: React.FC<ProfileProps> = ({
             <div className="w-20 h-20 rounded-[2rem] bg-white/20 flex items-center justify-center backdrop-blur-md border-2 border-white/30 shrink-0">
               <Star size={40} className="text-yellow-300" fill="currentColor" />
             </div>
-          </div>
-        </div>
-
-        {/* CONFIGURAÇÕES E PREFERÊNCIAS */}
-        <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 space-y-6`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-              <Settings size={20} />
-            </div>
-            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Configurações de Conta</h3>
-          </div>
-
-          <div className={`flex items-center justify-between p-5 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'} rounded-[2rem] border-2`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-100 text-amber-600'}`}>
-                {isDarkMode ? <Moon size={24} /> : <Sun size={24} />}
-              </div>
-              <div>
-                <p className={`text-xs font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>Modo de Exibição</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{isDarkMode ? 'Escuro Ativado' : 'Claro Ativado'}</p>
-              </div>
-            </div>
-            <button 
-              onClick={onToggleDarkMode}
-              className={`w-14 h-8 rounded-full p-1 transition-all duration-300 relative group ${isDarkMode ? 'bg-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-200'}`}
-            >
-              <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 transform ${isDarkMode ? 'translate-x-6' : 'translate-x-0'}`} />
-            </button>
           </div>
         </div>
 
@@ -367,7 +338,7 @@ const Profile: React.FC<ProfileProps> = ({
             {gameStats.study.history.length > 0 ? (
               <div className="space-y-3">
                 {gameStats.study.history.map((s, idx) => (
-                  <div key={idx} className={`flex justify-between items-center p-4 rounded-3xl border shadow-sm transition-all ${isDarkMode ? 'bg-slate-800/50 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-100 hover:bg-slate-50/50'}`}>
+                  <div key={`profile-study-hist-${s.specialtyStudyId || idx}-${idx}`} className={`flex justify-between items-center p-4 rounded-3xl border shadow-sm transition-all ${isDarkMode ? 'bg-slate-800/50 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-100 hover:bg-slate-50/50'}`}>
                     <div className="flex-1 min-w-0 pr-4">
                       <h4 className={`text-[11px] font-black uppercase truncate mb-0.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                         {s.specialtyStudyName || 'Especialidade'}
@@ -428,14 +399,14 @@ const Profile: React.FC<ProfileProps> = ({
                   }
                 }
                 
-                return uniqueBadges.map(ub => {
+                return uniqueBadges.map((ub, ubIdx) => {
                   const parts = (ub.monthLabel || '').split('-');
                   const positionLabel = parts[0]?.trim() || 'Campeão';
                   const monthYear = parts[1]?.trim() || 'Mensal';
 
                   return (
                     <div 
-                      key={ub.badgeId}
+                      key={`profile-monthly-${ub.badgeId || 'badge'}-${ub.monthLabel || ''}-${ubIdx}`}
                       className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
                         isDarkMode ? 'bg-yellow-900/10 border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'bg-yellow-50/50 border-yellow-200 shadow-lg shadow-yellow-500/10'
                       }`}
@@ -489,7 +460,7 @@ const Profile: React.FC<ProfileProps> = ({
                   }
                 }
 
-                return uniqueBadges.map(ub => {
+                return uniqueBadges.map((ub, ubIdx) => {
                   const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
                   const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                   
@@ -500,7 +471,7 @@ const Profile: React.FC<ProfileProps> = ({
                   
                   return (
                     <div 
-                      key={ub.badgeId}
+                      key={`profile-club-badge-${ub.badgeId || 'badge'}-${ubIdx}`}
                       className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
                         isDarkMode ? 'bg-blue-900/10 border-blue-500/50 shadow-lg shadow-blue-500/10' : 'bg-blue-50/50 border-blue-200 shadow-lg shadow-blue-500/10'
                       }`}
@@ -525,12 +496,12 @@ const Profile: React.FC<ProfileProps> = ({
               {/* Renderizar insígnias do clube que o usuário ainda NÃO conquistou */}
               {BADGE_DEFINITIONS
                 .filter(badge => !user.badges?.some(ub => ub.badgeId === badge.id || (ub.badgeId.startsWith('specialty_master_') && badge.id === 'mestre_especialidade')))
-                .map(badge => {
+                .map((badge, bIdx) => {
                 const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
                 
                 return (
                   <div 
-                    key={badge.id}
+                    key={`profile-unearned-${badge.id}-${bIdx}`}
                     className={`relative flex flex-col items-center p-5 rounded-[2.5rem] border-2 transition-all ${
                       isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-40' : 'bg-slate-50 border-slate-100 opacity-20 grayscale'
                     }`}
@@ -750,17 +721,52 @@ const Profile: React.FC<ProfileProps> = ({
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClasses}>Idade</label>
-                      <input type="number" className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'}`} value={formData.age || ''} onChange={e => {
-                        const val = parseInt(e.target.value);
-                        const newAge = isNaN(val) ? 0 : val;
-                        const newClass = formData.role === UserRole.PATHFINDER ? getClassByAge(newAge) : formData.className;
-                        setFormData({...formData, age: newAge, className: newClass});
-                      }} />
+                      <label className={labelClasses}>Nascimento</label>
+                      <input 
+                        type="date" 
+                        className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'}`} 
+                        value={formData.birthday || ''} 
+                        onChange={e => {
+                          const birthStr = e.target.value;
+                          let newAge = formData.age || 0;
+                          if (birthStr) {
+                            const parts = birthStr.split('-');
+                            if (parts.length === 3) {
+                              const year = parseInt(parts[0], 10);
+                              const month = parseInt(parts[1], 10) - 1;
+                              const day = parseInt(parts[2], 10);
+                              const birthDate = new Date(year, month, day);
+                              if (!isNaN(birthDate.getTime())) {
+                                const today = new Date();
+                                let age = today.getFullYear() - birthDate.getFullYear();
+                                const m = today.getMonth() - birthDate.getMonth();
+                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                                  age--;
+                                }
+                                if (age >= 0 && age <= 120) {
+                                  newAge = age;
+                                }
+                              }
+                            }
+                          }
+                          const newClass = formData.role === UserRole.PATHFINDER ? getClassByAge(newAge) : formData.className;
+                          setFormData({...formData, birthday: birthStr, age: newAge, className: newClass});
+                        }} 
+                      />
                     </div>
                     <div>
-                      <label className={labelClasses}>Nascimento</label>
-                      <input type="date" className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'}`} value={formData.birthday || ''} onChange={e => setFormData({...formData, birthday: e.target.value})} />
+                      <label className={labelClasses}>Idade</label>
+                      <input 
+                        type="number" 
+                        className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'}`} 
+                        value={formData.age || ''} 
+                        onChange={e => {
+                          const val = parseInt(e.target.value);
+                          const newAge = isNaN(val) ? 0 : val;
+                          const newClass = formData.role === UserRole.PATHFINDER ? getClassByAge(newAge) : formData.className;
+                          setFormData({...formData, age: newAge, className: newClass});
+                        }} 
+                      />
                     </div>
                   </div>
                   <div className="relative">

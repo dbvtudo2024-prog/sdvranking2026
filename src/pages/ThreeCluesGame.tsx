@@ -232,7 +232,7 @@ const ThreeCluesGame: React.FC<ThreeCluesGameProps> = ({ user, members, onUpdate
         <div className="w-full space-y-3">
           {Array.from({length: 3}).map((_, i) => (
             <div 
-              key={i} 
+              key={`clue-card-${currentQuestionIdx}-${i}`} 
               className={`p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-4
                 ${currentStep >= i 
                   ? 'bg-white border-blue-100 shadow-md text-slate-700 animate-in slide-in-from-left' 

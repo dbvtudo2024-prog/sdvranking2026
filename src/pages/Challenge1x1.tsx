@@ -253,7 +253,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       const isFull = i < (maxLives - hitsTaken);
       hearts.push(
         <Heart 
-          key={i} 
+          key={`heart-life-${i}`} 
           size={16} 
           className={`transition-all duration-300 ${isFull ? 'text-red-500 fill-red-500' : 'text-slate-300'}`} 
         />
@@ -302,7 +302,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
                 
                 <div className="p-4 space-y-3">
                   {duelRanking.map((m, idx) => (
-                      <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                      <div key={`arena-rank-${m.id || idx}-${idx}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
                         <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
                           {idx + 1}º
                         </div>
@@ -364,7 +364,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
                   <p className="text-[10px] font-black text-slate-400 uppercase">Você</p>
                   <div className="flex gap-0.5 mt-1 mb-2">
                      {Array.from({length: 5}).map((_, i) => (
-                       <Heart key={i} size={10} className={i < (5 - oppHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                       <Heart key={`duel-res-heart-user-${i}`} size={10} className={i < (5 - oppHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
                      ))}
                   </div>
                   <p className="text-3xl font-black text-blue-600">{5 - oppHitsDone}</p>
@@ -374,7 +374,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
                   <p className="text-[10px] font-black text-slate-400 uppercase">{isMachineMode ? 'Robô' : 'Oponente'}</p>
                   <div className="flex gap-0.5 mt-1 mb-2">
                      {Array.from({length: 5}).map((_, i) => (
-                       <Heart key={i} size={10} className={i < (5 - myHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
+                       <Heart key={`duel-res-heart-opp-${i}`} size={10} className={i < (5 - myHitsDone) ? 'text-red-500 fill-red-500' : 'text-slate-200'} />
                      ))}
                   </div>
                   <p className="text-3xl font-black text-red-600">{5 - myHitsDone}</p>
@@ -443,7 +443,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
           <div className="grid grid-cols-1 gap-3">
             {(currentQuestionData.options || []).map((opt, idx) => (
               <button 
-                key={idx}
+                key={`duel-opt-${activeChallenge.currentQuestion}-${idx}`}
                 disabled={answeredLocal}
                 onClick={() => handleAnswer(activeChallenge.currentQuestion, idx === currentQuestionData.correct_answer)}
                 className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all active:scale-[0.98] flex justify-between items-center
@@ -519,8 +519,8 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
              <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-2 flex items-center gap-2">
                <Zap size={14} /> Convites de Duelo
              </h3>
-             {pendingInvites.map(invite => (
-               <div key={invite.id} className="bg-blue-600 p-4 rounded-3xl text-white flex items-center justify-between shadow-xl animate-in slide-in-from-left duration-300">
+             {pendingInvites.map((invite, invIdx) => (
+               <div key={`invite-${invite.id || invIdx}-${invIdx}`} className="bg-blue-600 p-4 rounded-3xl text-white flex items-center justify-between shadow-xl animate-in slide-in-from-left duration-300">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold opacity-70 uppercase">Desafiado por:</span>
                     <span className="font-black text-sm">{invite.challengerName}</span>
@@ -539,8 +539,8 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
              <Users size={14} /> Desafiar Membro
            </h3>
            <div className="max-h-[280px] sm:max-h-[500px] overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-8">
-            {members.filter(m => m.id !== user.id).sort((a,b) => a.name.localeCompare(b.name)).map(member => (
-              <div key={member.id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 flex items-center justify-between group hover:border-blue-200 transition-all">
+            {members.filter(m => m.id !== user.id).sort((a,b) => a.name.localeCompare(b.name)).map((member, mIdx) => (
+              <div key={`challenge-mem-${member.id || mIdx}-${mIdx}`} className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-blue-900/5 flex items-center justify-between group hover:border-blue-200 transition-all">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700">
                     {member.photoUrl ? <img src={formatImageUrl(member.photoUrl)} className="w-full h-full object-cover" /> : <Users size={20} className="text-slate-300" />}
@@ -584,7 +584,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
               
               <div className="p-4 space-y-3">
                 {duelRanking.map((m, idx) => (
-                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                    <div key={`arena-modal-rank-${m.id || idx}-${idx}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
                       <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
                         {idx + 1}º
                       </div>

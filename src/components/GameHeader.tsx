@@ -36,7 +36,7 @@ const GameHeader: React.FC<GameHeaderProps> = ({ title, user, stats = [], onRefr
       <div className="flex items-center gap-4">
         <div className="hidden sm:flex gap-6 mr-4">
           {stats.map((stat, index) => (
-            <div key={index} className="flex flex-col items-end">
+            <div key={`header-stat-${stat.label || index}-${index}`} className="flex flex-col items-end">
               <span className="text-[8px] font-black text-white/60 uppercase tracking-widest leading-none mb-1">
                 {stat.label}
               </span>

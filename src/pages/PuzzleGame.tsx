@@ -299,9 +299,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {images.map(img => (
+            {images.map((img, imgIdx) => (
               <button 
-                key={img.id}
+                key={`puzzle-img-${img.id || imgIdx}-${imgIdx}`}
                 onClick={() => initializeGame(img)}
                 className="w-full bg-white border-2 border-slate-100 p-4 rounded-[2rem] shadow-xl shadow-blue-900/5 flex items-center gap-4 group active:scale-95 transition-all"
               >
@@ -371,7 +371,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
 
             return (
               <div 
-                key={`tile-${tile.id}`}
+                key={`tile-${tile.id}-pos-${pos}`}
                 onClick={() => handleTileClick(tile.id)}
                 className="relative cursor-pointer active:scale-95 transition-transform duration-200 overflow-hidden rounded-lg border border-white/20"
                 style={{

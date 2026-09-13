@@ -172,6 +172,9 @@ export interface Announcement {
   title: string;
   date: string;
   content: string;
+  author?: string;
+  target?: 'all' | UnitName | string;
+  pinned?: boolean | number;
 }
 
 export interface AuthUser {
@@ -189,6 +192,7 @@ export interface AuthUser {
   counselor?: string;
   badges?: UserBadge[];
   stats?: UserStats;
+  active?: number;
 }
 
 export interface BibleReadingProgress {

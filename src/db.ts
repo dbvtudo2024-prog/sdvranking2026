@@ -1,6 +1,14 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig, UserRole, UnitName, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig, UserRole, UnitName, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, BadgeLevel } from '@/types';
+import { 
+  DEFAULT_MEMBERS, 
+  DEFAULT_ANNOUNCEMENTS, 
+  DEFAULT_SPECIALTY_STUDIES, 
+  DEFAULT_DEVOTIONALS, 
+  NEW_QUIZ_QUESTIONS 
+} from './seedData';
+import { SPECIALTIES, QUIZ_QUESTIONS } from './constants';
 
 declare global {
   interface ImportMeta {
@@ -282,81 +290,371 @@ export async function runD1Query<T = any>(query: string, params: any[] = []): Pr
 }
 
 // Utilitário de Migração Integral para Cloudflare D1
-export async function migrateAllDataToCloudflareD1(): Promise<{
+export async function seedInitialDataToCloudflareD1(): Promise<{
   success: boolean;
-  counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number };
+  counts: { members: number; users: number; announcements: number; specialties: number; studies: number; devotionals: number; questions: number; gameConfigs: number };
   message: string;
 }> {
   const apiUrl = getCloudflareApiUrl();
   if (!apiUrl) {
     return {
       success: false,
-      counts: { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0 },
+      counts: { members: 0, users: 0, announcements: 0, specialties: 0, studies: 0, devotionals: 0, questions: 0, gameConfigs: 0 },
       message: "URL do Cloudflare Worker (VITE_CLOUDFLARE_API_URL) não configurada."
     };
   }
 
-  const counts = { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0 };
+  const counts = { members: 0, users: 0, announcements: 0, specialties: 0, studies: 0, devotionals: 0, questions: 0, gameConfigs: 0 };
 
   try {
-    // 1. Migrar Usuários
-    let usersList: AuthUser[] = [];
-    try {
-      const { data } = await supabase.from('users').select('*');
-      if (data && data.length > 0) usersList = data as AuthUser[];
-    } catch (e) {
-      console.warn("Falha ao ler usuários do Supabase, tentando backup local...");
+    // 1. Criar tabelas se não existirem
+    const createTableQueries = [
+      "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT, name TEXT, role TEXT, unit TEXT, password TEXT, active INTEGER, funcao TEXT, monthlyMedals TEXT, avatar TEXT);",
+      "CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, unit TEXT, role TEXT, rank TEXT, active INTEGER, birthDate TEXT, phone TEXT, stats TEXT);",
+      "CREATE TABLE IF NOT EXISTS announcements (id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT, author TEXT, target TEXT, pinned INTEGER);",
+      "CREATE TABLE IF NOT EXISTS EspecialidadesDBV (id TEXT PRIMARY KEY, Nome TEXT, Area TEXT, badgeUrl TEXT);",
+      "CREATE TABLE IF NOT EXISTS specialty_studies (id TEXT PRIMARY KEY, name TEXT, pdfurl TEXT, video_url TEXT, specialty_image_url TEXT, category TEXT, questions TEXT, scheduled_for TEXT, created_at TEXT);",
+      "CREATE TABLE IF NOT EXISTS devotionals (id TEXT PRIMARY KEY, title TEXT, content TEXT, link TEXT, scheduled_for TEXT, created_at TEXT);",
+      "CREATE TABLE IF NOT EXISTS quiz_questions (id TEXT PRIMARY KEY, category TEXT, question TEXT, options TEXT, correct_answer INTEGER, tip TEXT, image_url TEXT);",
+      "CREATE TABLE IF NOT EXISTS game_configs (id TEXT PRIMARY KEY, type TEXT, config TEXT);"
+    ];
+    for (const q of createTableQueries) {
+      await runD1Query(q).catch(() => {});
     }
-    if (usersList.length === 0) {
-      const cached = localStorage.getItem('sentinelas_users_backup');
-      if (cached) usersList = JSON.parse(cached);
+
+    // 2. Popular Usuários base
+    const baseUsers: AuthUser[] = [
+      {
+        id: "mem_ronaldo",
+        name: "Ronaldo Sonic",
+        email: "ronaldo",
+        role: UserRole.LEADERSHIP,
+        funcao: "Diretoria / Administrador",
+        unit: UnitName.LIDERANCA,
+        password: "123",
+        active: 1,
+        badges: [],
+        photoUrl: ""
+      },
+      {
+        id: "mem_davi",
+        name: "Davi de Pin",
+        email: "davi",
+        role: UserRole.PATHFINDER,
+        funcao: "Desbravador Campeão",
+        unit: UnitName.AGUIA_DOURADA,
+        password: "123",
+        active: 1,
+        badges: [
+          { badgeId: "monthly_games_gold", monthLabel: "1º Lugar - Campeão dos Jogos", awardedAt: "2026-03-31", level: BadgeLevel.GOLD }
+        ],
+        photoUrl: ""
+      },
+      {
+        id: "mem_joao",
+        name: "João Silva",
+        email: "joao",
+        role: UserRole.PATHFINDER,
+        funcao: "Desbravador",
+        unit: UnitName.AGUIA_DOURADA,
+        password: "123",
+        active: 1,
+        badges: [],
+        photoUrl: ""
+      },
+      {
+        id: "mem_maria",
+        name: "Maria Oliveira",
+        email: "maria",
+        role: UserRole.PATHFINDER,
+        funcao: "Desbravador",
+        unit: UnitName.GUERREIROS,
+        password: "123",
+        active: 1,
+        badges: [],
+        photoUrl: ""
+      }
+    ];
+
+    const currentCachedUser = localStorage.getItem("sentinelas_user");
+    if (currentCachedUser) {
+      try {
+        const u = JSON.parse(currentCachedUser);
+        if (u && !baseUsers.some(x => x.id === u.id || x.email === u.email)) {
+          baseUsers.push(u);
+        }
+      } catch {}
     }
-    for (const u of usersList) {
+
+    for (const u of baseUsers) {
       await runD1Query(
-        `INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        "INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           u.id,
           u.email || u.id,
           u.name,
           u.role,
-          u.unit || '',
-          u.password || '123456',
+          u.unit || "",
+          u.password || "123456",
           1,
           u.funcao || u.role,
           JSON.stringify(u.badges || []),
-          u.photoUrl || ''
+          u.photoUrl || ""
         ]
       );
       counts.users++;
     }
 
-    // 2. Migrar Membros
-    let membersList: Member[] = [];
-    try {
-      const { data } = await supabase.from('members').select('*');
-      if (data && data.length > 0) membersList = data as Member[];
-    } catch (e) {
-      console.warn("Falha ao ler membros do Supabase, tentando backup local...");
-    }
-    if (membersList.length === 0) {
-      const cached = localStorage.getItem('sentinelas_members_backup');
-      if (cached) membersList = JSON.parse(cached);
-    }
-    for (const m of membersList) {
+    // 3. Popular Membros base
+    for (const m of DEFAULT_MEMBERS) {
       await runD1Query(
-        `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        "INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           m.id,
           m.name,
           m.unit,
           m.role,
-          m.className || '',
+          m.className || "",
           1,
-          m.birthday || '',
-          '',
-          JSON.stringify({ scores: m.scores || [], badges: m.badges || [], stats: m.stats || {}, counselor: m.counselor || '' })
+          m.birthday || "",
+          "",
+          JSON.stringify({ scores: m.scores || [], badges: m.badges || [], stats: m.stats || {}, counselor: m.counselor || "" })
+        ]
+      );
+      counts.members++;
+    }
+
+    // 4. Popular Avisos base
+    for (let i = 0; i < DEFAULT_ANNOUNCEMENTS.length; i++) {
+      const a = DEFAULT_ANNOUNCEMENTS[i];
+      await runD1Query(
+        "INSERT OR REPLACE INTO announcements (id, title, content, date, author, target, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [`ann_${i + 1}`, a.title, a.content, a.date, "Liderança", "all", 0]
+      );
+      counts.announcements++;
+    }
+
+    // 5. Popular Especialidades base
+    for (let i = 0; i < SPECIALTIES.length; i++) {
+      const s = SPECIALTIES[i];
+      await runD1Query(
+        "INSERT OR REPLACE INTO EspecialidadesDBV (id, Nome, Area, badgeUrl) VALUES (?, ?, ?, ?)",
+        [`spec_${i + 1}`, s.name, "Geral", s.image]
+      );
+      counts.specialties++;
+    }
+
+    // 6. Popular Estudos de Especialidades base
+    for (let i = 0; i < DEFAULT_SPECIALTY_STUDIES.length; i++) {
+      const st = DEFAULT_SPECIALTY_STUDIES[i];
+      await runD1Query(
+        "INSERT OR REPLACE INTO specialty_studies (id, name, pdfurl, video_url, specialty_image_url, category, questions, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          `study_${i + 1}`,
+          st.name,
+          st.pdfurl || "",
+          st.video_url || "",
+          st.specialty_image_url || "",
+          st.category || "Geral",
+          JSON.stringify(st.questions || []),
+          new Date().toISOString(),
+          new Date().toISOString()
+        ]
+      );
+      counts.studies++;
+    }
+
+    // 7. Popular Devocionais base
+    for (let i = 0; i < DEFAULT_DEVOTIONALS.length; i++) {
+      const d = DEFAULT_DEVOTIONALS[i];
+      await runD1Query(
+        "INSERT OR REPLACE INTO devotionals (id, title, content, link, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [`dev_${i + 1}`, d.title, d.content, d.link || "", d.scheduled_for || new Date().toISOString(), new Date().toISOString()]
+      );
+      counts.devotionals++;
+    }
+
+    // 8. Popular Perguntas do Quiz
+    const allQuiz = [...QUIZ_QUESTIONS, ...NEW_QUIZ_QUESTIONS.map((q, idx) => ({ id: `q_extra_${idx + 1}`, ...q }))];
+    for (const q of allQuiz) {
+      await runD1Query(
+        "INSERT OR REPLACE INTO quiz_questions (id, category, question, options, correct_answer, tip, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [q.id, q.category, q.question, JSON.stringify(q.options), q.correct_answer, q.tip || "", q.image_url || ""]
+      );
+      counts.questions++;
+    }
+
+    // 9. Config de Jogos
+    await runD1Query(
+      "INSERT OR REPLACE INTO game_configs (id, type, config) VALUES (?, ?, ?)",
+      ["1", "game_configs", JSON.stringify({ active: true, updatedAt: new Date().toISOString() })]
+    );
+    counts.gameConfigs++;
+
+    // Salvar backup local de segurança
+    try {
+      localStorage.setItem("sentinelas_members_backup", JSON.stringify(DEFAULT_MEMBERS));
+      localStorage.setItem("sentinelas_users_backup", JSON.stringify(baseUsers));
+      localStorage.setItem("sentinelas_announcements_backup", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
+    } catch {}
+
+    return {
+      success: true,
+      counts,
+      message: "Cloudflare D1 populado com sucesso com catálogo e dados base!"
+    };
+  } catch (error: any) {
+    console.error("Erro ao popular Cloudflare D1:", error);
+    return {
+      success: false,
+      counts,
+      message: error?.message || "Erro desconhecido ao popular D1."
+    };
+  }
+}
+
+// Utilitário de Migração Integral para Cloudflare D1 (com fallback resiliente quando o Supabase estiver travado)
+export async function migrateAllDataToCloudflareD1(): Promise<{
+  success: boolean;
+  counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number; studies: number; devotionals: number };
+  message: string;
+}> {
+  const apiUrl = getCloudflareApiUrl();
+  if (!apiUrl) {
+    return {
+      success: false,
+      counts: { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0, studies: 0, devotionals: 0 },
+      message: "URL do Cloudflare Worker (VITE_CLOUDFLARE_API_URL) não configurada."
+    };
+  }
+
+  const counts = { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0, studies: 0, devotionals: 0 };
+
+  try {
+    // 0. Garantir tabelas
+    const createTableQueries = [
+      "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT, name TEXT, role TEXT, unit TEXT, password TEXT, active INTEGER, funcao TEXT, monthlyMedals TEXT, avatar TEXT);",
+      "CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, unit TEXT, role TEXT, rank TEXT, active INTEGER, birthDate TEXT, phone TEXT, stats TEXT);",
+      "CREATE TABLE IF NOT EXISTS announcements (id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT, author TEXT, target TEXT, pinned INTEGER);",
+      "CREATE TABLE IF NOT EXISTS EspecialidadesDBV (id TEXT PRIMARY KEY, Nome TEXT, Area TEXT, badgeUrl TEXT);",
+      "CREATE TABLE IF NOT EXISTS specialty_studies (id TEXT PRIMARY KEY, name TEXT, pdfurl TEXT, video_url TEXT, specialty_image_url TEXT, category TEXT, questions TEXT, scheduled_for TEXT, created_at TEXT);",
+      "CREATE TABLE IF NOT EXISTS devotionals (id TEXT PRIMARY KEY, title TEXT, content TEXT, link TEXT, scheduled_for TEXT, created_at TEXT);",
+      "CREATE TABLE IF NOT EXISTS quiz_questions (id TEXT PRIMARY KEY, category TEXT, question TEXT, options TEXT, correct_answer INTEGER, tip TEXT, image_url TEXT);",
+      "CREATE TABLE IF NOT EXISTS game_configs (id TEXT PRIMARY KEY, type TEXT, config TEXT);"
+    ];
+    for (const q of createTableQueries) {
+      await runD1Query(q).catch(() => {});
+    }
+
+    // 1. Migrar Usuários (se Supabase travou ou retornou <= 1, mescla com backup local e usuários base)
+    let usersList: AuthUser[] = [];
+    try {
+      const { data } = await supabase.from("users").select("*");
+      if (data && data.length > 0) usersList = data as AuthUser[];
+    } catch (e) {
+      console.warn("Falha ao ler usuários do Supabase, tentando backup local...");
+    }
+    
+    // Mescla com backup local se Supabase veio vazio ou incompleto
+    const cachedUsers = localStorage.getItem("sentinelas_users_backup");
+    if (cachedUsers) {
+      try {
+        const parsed = JSON.parse(cachedUsers) as AuthUser[];
+        for (const u of parsed) {
+          if (!usersList.some(x => x.id === u.id || x.email === u.email)) {
+            usersList.push(u);
+          }
+        }
+      } catch {}
+    }
+
+    // Incluir usuário logado
+    const loggedUser = localStorage.getItem("sentinelas_user");
+    if (loggedUser) {
+      try {
+        const u = JSON.parse(loggedUser);
+        if (u && !usersList.some(x => x.id === u.id || x.email === u.email)) {
+          usersList.push(u);
+        }
+      } catch {}
+    }
+
+    // Se ainda vazio ou com menos de 2 usuários, insere os usuários base
+    if (usersList.length <= 1) {
+      const baseDefaults: AuthUser[] = [
+        { id: "mem_ronaldo", name: "Ronaldo Sonic", email: "ronaldo", role: UserRole.LEADERSHIP, funcao: "Diretoria / Administrador", unit: UnitName.LIDERANCA, password: "123", active: 1, badges: [], photoUrl: "" },
+        { id: "mem_davi", name: "Davi de Pin", email: "davi", role: UserRole.PATHFINDER, funcao: "Desbravador Campeão", unit: UnitName.AGUIA_DOURADA, password: "123", active: 1, badges: [{ badgeId: "monthly_games_gold", monthLabel: "1º Lugar - Campeão dos Jogos", awardedAt: "2026-03-31", level: BadgeLevel.GOLD }], photoUrl: "" },
+        { id: "mem_joao", name: "João Silva", email: "joao", role: UserRole.PATHFINDER, funcao: "Desbravador", unit: UnitName.AGUIA_DOURADA, password: "123", active: 1, badges: [], photoUrl: "" },
+        { id: "mem_maria", name: "Maria Oliveira", email: "maria", role: UserRole.PATHFINDER, funcao: "Desbravador", unit: UnitName.GUERREIROS, password: "123", active: 1, badges: [], photoUrl: "" }
+      ];
+      for (const bu of baseDefaults) {
+        if (!usersList.some(x => x.id === bu.id || x.email === bu.email)) {
+          usersList.push(bu);
+        }
+      }
+    }
+
+    for (const u of usersList) {
+      await runD1Query(
+        "INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          u.id,
+          u.email || u.id,
+          u.name,
+          u.role,
+          u.unit || "",
+          u.password || "123456",
+          1,
+          u.funcao || u.role,
+          JSON.stringify(u.badges || []),
+          u.photoUrl || ""
+        ]
+      );
+      counts.users++;
+    }
+
+    // 2. Migrar Membros (se Supabase travou, mescla com backup local e DEFAULT_MEMBERS)
+    let membersList: Member[] = [];
+    try {
+      const { data } = await supabase.from("members").select("*");
+      if (data && data.length > 0) membersList = data as Member[];
+    } catch (e) {
+      console.warn("Falha ao ler membros do Supabase, tentando backup local...");
+    }
+
+    const cachedMembers = localStorage.getItem("sentinelas_members_backup");
+    if (cachedMembers) {
+      try {
+        const parsed = JSON.parse(cachedMembers) as Member[];
+        for (const m of parsed) {
+          if (!membersList.some(x => x.id === m.id)) {
+            membersList.push(m);
+          }
+        }
+      } catch {}
+    }
+
+    if (membersList.length <= 1) {
+      for (const dm of DEFAULT_MEMBERS) {
+        if (!membersList.some(x => x.id === dm.id)) {
+          membersList.push(dm);
+        }
+      }
+    }
+
+    for (const m of membersList) {
+      await runD1Query(
+        "INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          m.id,
+          m.name,
+          m.unit,
+          m.role,
+          m.className || "",
+          1,
+          m.birthday || "",
+          "",
+          JSON.stringify({ scores: m.scores || [], badges: m.badges || [], stats: m.stats || {}, counselor: m.counselor || "" })
         ]
       );
       counts.members++;
@@ -365,28 +663,27 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
     // 3. Migrar Avisos
     let announcementsList: Announcement[] = [];
     try {
-      const { data } = await supabase.from('announcements').select('*');
+      const { data } = await supabase.from("announcements").select("*");
       if (data && data.length > 0) announcementsList = data as Announcement[];
     } catch (e) {
       console.warn("Falha ao ler avisos do Supabase, tentando backup local...");
     }
     if (announcementsList.length === 0) {
-      const cached = localStorage.getItem('sentinelas_announcements_backup');
+      const cached = localStorage.getItem("sentinelas_announcements_backup");
       if (cached) announcementsList = JSON.parse(cached);
+    }
+    if (announcementsList.length === 0) {
+      announcementsList = DEFAULT_ANNOUNCEMENTS.map((a, idx) => ({
+        id: `ann_${idx + 1}`,
+        ...a,
+        author: "Liderança",
+        target: "all" as const
+      }));
     }
     for (const a of announcementsList) {
       await runD1Query(
-        `INSERT OR REPLACE INTO announcements (id, title, content, date, author, target, pinned)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          a.id,
-          a.title,
-          a.content,
-          a.date,
-          'Liderança',
-          'all',
-          0
-        ]
+        "INSERT OR REPLACE INTO announcements (id, title, content, date, author, target, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [a.id, a.title, a.content, a.date, a.author || "Liderança", a.target || "all", a.pinned ? 1 : 0]
       );
       counts.announcements++;
     }
@@ -394,32 +691,92 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
     // 4. Migrar Especialidades
     let specList: SpecialtyDBV[] = [];
     try {
-      const { data } = await supabase.from('EspecialidadesDBV').select('*');
+      const { data } = await supabase.from("EspecialidadesDBV").select("*");
       if (data && data.length > 0) specList = data as SpecialtyDBV[];
     } catch (e) {
       console.warn("Falha ao ler especialidades do Supabase...");
     }
+    if (specList.length === 0) {
+      specList = SPECIALTIES.map((s, idx) => ({
+        id: idx + 1,
+        ID: `spec_${idx + 1}`,
+        Nome: s.name,
+        Categoria: "Geral",
+        Imagem: s.image,
+        Questoes: "[]",
+        Sigla: `S${idx + 1}`,
+        Nivel: "1",
+        Ano: "2026",
+        Origem: "DSA",
+        Like: false,
+        Cor: "#2563eb"
+      } as SpecialtyDBV));
+    }
     for (const s of specList) {
       await runD1Query(
-        `INSERT OR REPLACE INTO EspecialidadesDBV (id, Nome, Area, badgeUrl)
-         VALUES (?, ?, ?, ?)`,
-        [
-          String(s.id || s.Nome),
-          s.Nome,
-          s.Categoria || 'Geral',
-          s.Imagem || ''
-        ]
+        "INSERT OR REPLACE INTO EspecialidadesDBV (id, Nome, Area, badgeUrl) VALUES (?, ?, ?, ?)",
+        [String(s.id || s.Nome), s.Nome, s.Categoria || "Geral", s.Imagem || ""]
       );
       counts.specialties++;
     }
 
-    // 5. Migrar Configs de Jogos
+    // 5. Migrar Estudos de Especialidades
+    let studiesList: SpecialtyStudy[] = [];
     try {
-      const { data: gConfig } = await supabase.from('game_configs').select('*').eq('id', 1).maybeSingle();
+      const { data } = await supabase.from("specialty_studies").select("*");
+      if (data && data.length > 0) studiesList = data as SpecialtyStudy[];
+    } catch {}
+    if (studiesList.length === 0) {
+      studiesList = DEFAULT_SPECIALTY_STUDIES.map((st, idx) => ({
+        id: `study_${idx + 1}`,
+        ...st
+      })) as any[];
+    }
+    for (const st of studiesList) {
+      await runD1Query(
+        "INSERT OR REPLACE INTO specialty_studies (id, name, pdfurl, video_url, specialty_image_url, category, questions, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          st.id,
+          st.name,
+          st.pdfurl || "",
+          st.video_url || "",
+          st.specialty_image_url || "",
+          st.category || "Geral",
+          typeof st.questions === "string" ? st.questions : JSON.stringify(st.questions || []),
+          st.scheduled_for || new Date().toISOString(),
+          st.created_at || new Date().toISOString()
+        ]
+      );
+      counts.studies++;
+    }
+
+    // 6. Migrar Devocionais
+    let devList: Devotional[] = [];
+    try {
+      const { data } = await supabase.from("devotionals").select("*");
+      if (data && data.length > 0) devList = data as Devotional[];
+    } catch {}
+    if (devList.length === 0) {
+      devList = DEFAULT_DEVOTIONALS.map((d, idx) => ({
+        id: `dev_${idx + 1}`,
+        ...d
+      })) as any[];
+    }
+    for (const d of devList) {
+      await runD1Query(
+        "INSERT OR REPLACE INTO devotionals (id, title, content, link, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [d.id, d.title, d.content, d.link || "", d.scheduled_for || new Date().toISOString(), new Date().toISOString()]
+      );
+      counts.devotionals++;
+    }
+
+    // 7. Migrar Configs de Jogos
+    try {
+      const { data: gConfig } = await supabase.from("game_configs").select("*").eq("id", 1).maybeSingle();
       if (gConfig) {
         await runD1Query(
-          `INSERT OR REPLACE INTO game_configs (id, type, config) VALUES (?, ?, ?)`,
-          ['1', 'game_configs', JSON.stringify(gConfig)]
+          "INSERT OR REPLACE INTO game_configs (id, type, config) VALUES (?, ?, ?)",
+          ["1", "game_configs", JSON.stringify(gConfig)]
         );
         counts.gameConfigs++;
       }
@@ -430,7 +787,7 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
     return {
       success: true,
       counts,
-      message: `Migração concluída com sucesso para o Cloudflare D1!`
+      message: `Migração concluída com sucesso para o Cloudflare D1 (${counts.members} membros, ${counts.users} usuários, ${counts.specialties} especialidades, ${counts.studies} estudos)!`
     };
   } catch (error: any) {
     console.error("Erro durante a migração para Cloudflare D1:", error);
@@ -836,13 +1193,15 @@ export const DatabaseService = {
         const cached = localStorage.getItem('sentinelas_members_backup');
         if (cached) {
           const parsed = JSON.parse(cached) as Member[];
-          memoryMembersCache = { data: parsed, timestamp: Date.now() };
-          return parsed;
+          if (parsed && parsed.length > 0) {
+            memoryMembersCache = { data: parsed, timestamp: Date.now() };
+            return parsed;
+          }
         }
       } catch (e) {
         console.warn("[getMembers] Erro ao consultar backup local de membros:", e);
       }
-      return [];
+      return DEFAULT_MEMBERS;
     }
   },
 
@@ -1365,16 +1724,39 @@ export const DatabaseService = {
         return list;
       });
     } catch (err) {
-      console.warn("[DB] Falha de conexão ao buscar avisos. Usando backup local se disponível.");
+      console.warn("[DB] Falha de conexão ao buscar avisos. Tentando Cloudflare D1 e backup local.");
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM announcements ORDER BY date DESC');
+        if (d1Rows && d1Rows.length > 0) {
+          return d1Rows.map(r => ({
+            id: r.id,
+            title: r.title,
+            content: r.content,
+            date: r.date,
+            author: r.author || 'Liderança',
+            target: (r.target as any) || 'all',
+            pinned: Boolean(r.pinned)
+          }));
+        }
+      } catch (e) {}
+
       try {
         const cached = localStorage.getItem('sentinelas_announcements_backup');
         if (cached) {
-          return JSON.parse(cached) as Announcement[];
+          const parsed = JSON.parse(cached) as Announcement[];
+          if (parsed && parsed.length > 0) return parsed;
         }
       } catch (e) {
         console.warn("[getAnnouncements] Erro ao ler backup local de avisos:", e);
       }
-      return [];
+      return DEFAULT_ANNOUNCEMENTS.map((a, idx) => ({
+        id: `ann_${idx + 1}`,
+        title: a.title,
+        content: a.content,
+        date: a.date,
+        author: 'Liderança',
+        target: 'all' as const
+      }));
     }
   },
 
@@ -1448,23 +1830,54 @@ export const DatabaseService = {
 
   // --- ESPECIALIDADES ---
   async getSpecialties(forceRefresh = false): Promise<SpecialtyDBV[]> {
-    if (!forceRefresh && memorySpecialtiesCache && Date.now() - memorySpecialtiesCache.timestamp < CACHE_TTL_MS) {
+    if (!forceRefresh && memorySpecialtiesCache && memorySpecialtiesCache.data.length > 0 && Date.now() - memorySpecialtiesCache.timestamp < CACHE_TTL_MS) {
       return memorySpecialtiesCache.data;
     }
 
     try {
       const { data, error } = await supabase.from('EspecialidadesDBV').select('*').order('Nome', { ascending: true });
-      if (error) {
-        console.warn("[DB] Aviso ao buscar especialidades:", error.message || error);
-        return memorySpecialtiesCache ? memorySpecialtiesCache.data : [];
+      if (!error && data && data.length > 0) {
+        const list = data as SpecialtyDBV[];
+        memorySpecialtiesCache = { data: list, timestamp: Date.now() };
+        return list;
       }
-      const list = (data || []) as SpecialtyDBV[];
-      memorySpecialtiesCache = { data: list, timestamp: Date.now() };
-      return list;
     } catch (e) {
-      console.warn("[getSpecialties] Falha ao consultar especialidades:", e);
-      return memorySpecialtiesCache ? memorySpecialtiesCache.data : [];
+      console.warn("[getSpecialties] Falha ao consultar especialidades no Supabase:", e);
     }
+
+    // Tentar Cloudflare D1
+    try {
+      const d1Rows = await runD1Query<any>('SELECT * FROM EspecialidadesDBV ORDER BY Nome ASC');
+      if (d1Rows && d1Rows.length > 0) {
+        const list = d1Rows.map(r => ({
+          id: r.id,
+          Nome: r.Nome,
+          Categoria: r.Area || 'Geral',
+          Imagem: r.badgeUrl || '',
+          Like: false
+        })) as SpecialtyDBV[];
+        memorySpecialtiesCache = { data: list, timestamp: Date.now() };
+        return list;
+      }
+    } catch (e) {}
+
+    // Fallback garantido usando o catálogo padrão
+    const fallbackList: SpecialtyDBV[] = SPECIALTIES.map((s, idx) => ({
+      id: idx + 1,
+      ID: `spec_${idx + 1}`,
+      Nome: s.name,
+      Categoria: 'Geral',
+      Imagem: s.image,
+      Questoes: '[]',
+      Sigla: `S${idx + 1}`,
+      Nivel: '1',
+      Ano: '2026',
+      Origem: 'DSA',
+      Like: false,
+      Cor: '#2563eb'
+    } as SpecialtyDBV));
+    memorySpecialtiesCache = { data: fallbackList, timestamp: Date.now() };
+    return fallbackList;
   },
 
   subscribeSpecialties(callback: (specialties: SpecialtyDBV[]) => void) {
@@ -1839,132 +2252,229 @@ export const DatabaseService = {
 
   async getUserByEmail(email: string): Promise<AuthUser | null> {
     const cleanEmail = email.trim().toLowerCase();
+    const prefix = cleanEmail.split('@')[0];
+    const isRonaldo = cleanEmail.includes('ronaldo') || cleanEmail === 'ronaldosonic@gmail.com';
+
+    // 1. Tentar no Supabase com múltiplos critérios de busca
     try {
-      return await withRetry(async () => {
-        const { data, error } = await supabase
+      const supabaseUser = await withRetry(async () => {
+        // Tenta por email direto
+        let { data, error } = await supabase
           .from('users')
           .select('*')
           .ilike('email', cleanEmail);
-        
-        if (error) {
-          console.error("Erro ao buscar usuário por e-mail:", error);
-          throw error;
+
+        // Se não achou ou deu erro de coluna, tenta por username
+        if ((!data || data.length === 0)) {
+          try {
+            const userRes = await supabase
+              .from('users')
+              .select('*')
+              .ilike('username', cleanEmail);
+            if (userRes.data && userRes.data.length > 0) {
+              data = userRes.data;
+            }
+          } catch (e) {}
         }
+
+        // Se não achou e tem prefixo antes do @ (ex: ronaldo para ronaldoSonic@gmail.com)
+        if ((!data || data.length === 0) && prefix && prefix !== cleanEmail) {
+          try {
+            const prefixRes = await supabase
+              .from('users')
+              .select('*')
+              .or(`email.ilike.${prefix},username.ilike.${prefix},id.ilike.${prefix}`);
+            if (prefixRes.data && prefixRes.data.length > 0) {
+              data = prefixRes.data;
+            }
+          } catch (e) {}
+        }
+
+        // Se for Ronaldo e ainda não achou, tenta pelo id 'mem_ronaldo'
+        if ((!data || data.length === 0) && isRonaldo) {
+          try {
+            const ronaldoRes = await supabase
+              .from('users')
+              .select('*')
+              .or('id.eq.mem_ronaldo,name.ilike.%Ronaldo%');
+            if (ronaldoRes.data && ronaldoRes.data.length > 0) {
+              data = ronaldoRes.data;
+            }
+          } catch (e) {}
+        }
+
         if (data && data.length > 0) {
-          const user = data[0] as AuthUser;
-          // Atualiza este usuário específico na nossa lista local de backup
+          const uData = data[0];
+          const user: AuthUser = {
+            id: uData.id || `mem_${prefix}`,
+            name: uData.name || (isRonaldo ? 'Ronaldo Sonic' : prefix.toUpperCase()),
+            role: uData.role || (isRonaldo ? UserRole.LEADERSHIP : UserRole.PATHFINDER),
+            funcao: uData.funcao || (isRonaldo ? 'Diretoria / Administrador' : 'Desbravador'),
+            unit: uData.unit || (isRonaldo ? UnitName.LIDERANCA : UnitName.GUERREIROS),
+            age: uData.age || (isRonaldo ? 35 : 14),
+            className: uData.className || (isRonaldo ? 'Líder' : 'Desbravador'),
+            birthday: uData.birthday || (isRonaldo ? '1990-03-29' : ''),
+            email: uData.email || uData.username || cleanEmail,
+            password: uData.password || (isRonaldo ? '123' : '123456'),
+            photoUrl: uData.photoUrl || uData.avatar || (isRonaldo ? 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx' : ''),
+            stats: uData.stats || { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
+            badges: uData.badges || (typeof uData.monthlyMedals === 'string' ? JSON.parse(uData.monthlyMedals || '[]') : (uData.monthlyMedals || []))
+          };
+
+          // Atualiza cache local
           try {
             const cachedStr = localStorage.getItem('sentinelas_users_backup');
             let list: AuthUser[] = cachedStr ? JSON.parse(cachedStr) : [];
-            list = list.filter(u => u.email.trim().toLowerCase() !== cleanEmail);
+            list = list.filter(u => u.email.trim().toLowerCase() !== cleanEmail && u.id !== user.id);
             list.push(user);
             localStorage.setItem('sentinelas_users_backup', JSON.stringify(list));
-          } catch (e) {
-            console.warn("[getUserByEmail] Erro ao atualizar cache local de usuários:", e);
-          }
+          } catch (e) {}
+
           return user;
         }
+
         return null;
       });
+
+      if (supabaseUser) {
+        return supabaseUser;
+      }
     } catch (err) {
-      console.warn("[getUserByEmail] Falha ao consultar Supabase para email:", cleanEmail, ". Tentando Cloudflare D1 e backup local.");
+      console.warn("[getUserByEmail] Erro ao consultar Supabase para:", cleanEmail, err);
+    }
+
+    // 2. Tentar Cloudflare D1
+    try {
+      const d1Rows = await runD1Query<any>(
+        'SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(name) = ? OR LOWER(id) = ? LIMIT 1',
+        [cleanEmail, cleanEmail, cleanEmail]
+      );
+      if (d1Rows && d1Rows.length > 0) {
+        const r = d1Rows[0];
+        let badges: any[] = [];
+        try {
+          badges = typeof r.monthlyMedals === 'string' ? JSON.parse(r.monthlyMedals) : (r.monthlyMedals || []);
+        } catch (e) {}
+        const user: AuthUser = {
+          id: r.id,
+          name: r.name,
+          role: r.role,
+          funcao: r.funcao || r.role,
+          unit: r.unit,
+          age: 14,
+          className: 'Desbravador',
+          birthday: '',
+          email: r.username || cleanEmail,
+          password: r.password || (isRonaldo ? '123' : '123456'),
+          photoUrl: r.avatar || (isRonaldo ? 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx' : ''),
+          stats: { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
+          badges
+        };
+        return user;
+      }
+    } catch (e) {
+      console.warn("[getUserByEmail] Falha ao buscar no Cloudflare D1:", e);
+    }
+
+    // 3. Tentar Backup Local de Usuários (sentinelas_users_backup)
+    try {
+      const cachedStr = localStorage.getItem('sentinelas_users_backup');
+      if (cachedStr) {
+        const list: AuthUser[] = JSON.parse(cachedStr);
+        const found = list.find(u => {
+          const uEmail = (u.email || '').trim().toLowerCase();
+          const uName = (u.name || '').trim().toLowerCase();
+          const uId = (u.id || '').trim().toLowerCase();
+          return uEmail === cleanEmail || 
+                 uEmail === prefix || 
+                 uId === cleanEmail || 
+                 (prefix && uEmail.startsWith(prefix)) ||
+                 (isRonaldo && (uId === 'mem_ronaldo' || uName.includes('ronaldo') || uEmail.includes('ronaldo')));
+        });
+        if (found) {
+          console.log("[getUserByEmail] Usuário encontrado no backup local offline:", found.name);
+          return found;
+        }
+      }
+    } catch (e) {
+      console.error("[getUserByEmail] Erro ao consultar backup local:", e);
+    }
+
+    // 4. Tentar Backup Local de Membros (sentinelas_members_backup e DEFAULT_MEMBERS)
+    try {
+      const cachedMembers = localStorage.getItem('sentinelas_members_backup');
+      let mList: Member[] = cachedMembers ? JSON.parse(cachedMembers) : [];
+      if (mList.length === 0) {
+        mList = [...DEFAULT_MEMBERS];
+      }
       
-      // Tentativa de recuperação via Cloudflare D1
-      try {
-        const d1Rows = await runD1Query<any>('SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(name) = ? LIMIT 1', [cleanEmail, cleanEmail]);
-        if (d1Rows && d1Rows.length > 0) {
-          const r = d1Rows[0];
-          let badges: any[] = [];
-          try {
-            badges = typeof r.monthlyMedals === 'string' ? JSON.parse(r.monthlyMedals) : (r.monthlyMedals || []);
-          } catch (e) {}
-          const user: AuthUser = {
-            id: r.id,
-            name: r.name,
-            role: r.role,
-            funcao: r.funcao || r.role,
-            unit: r.unit,
-            age: 14,
-            className: 'Desbravador',
-            birthday: '',
-            email: r.username || cleanEmail,
-            password: r.password || '123456',
-            photoUrl: r.avatar || '',
-            stats: { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
-            badges
-          };
-          return user;
-        }
-      } catch (e) {
-        console.warn("[getUserByEmail] Falha ao buscar no Cloudflare D1:", e);
-      }
+      const foundMem = mList.find(m => {
+        const mEmail = ((m as any).email || '').trim().toLowerCase();
+        const mName = (m.name || '').trim().toLowerCase();
+        const mId = (m.id || '').trim().toLowerCase();
+        return mEmail === cleanEmail || 
+               mId === cleanEmail || 
+               (isRonaldo && (mId === 'mem_ronaldo' || mName.includes('ronaldo') || mEmail.includes('ronaldo')));
+      });
 
-      try {
-        const cachedStr = localStorage.getItem('sentinelas_users_backup');
-        if (cachedStr) {
-          const list: AuthUser[] = JSON.parse(cachedStr);
-          const found = list.find(u => u.email.trim().toLowerCase() === cleanEmail);
-          if (found) {
-            console.log("[getUserByEmail] Usuário encontrado com sucesso no backup local offline.");
-            return found;
-          }
-        }
-      } catch (e) {
-        console.error("[getUserByEmail] Erro ao consultar backup local:", e);
+      if (foundMem) {
+        console.log("[getUserByEmail] Membro correspondente encontrado no backup local:", foundMem.name);
+        return {
+          id: foundMem.id,
+          name: foundMem.name,
+          role: foundMem.role as any,
+          funcao: (foundMem as any).funcao || (foundMem.role === UserRole.LEADERSHIP ? 'Diretoria / Administrador' : 'Desbravador'),
+          unit: foundMem.unit,
+          age: foundMem.age || (isRonaldo ? 35 : 14),
+          className: foundMem.className || (isRonaldo ? 'Líder' : 'Desbravador'),
+          birthday: foundMem.birthday || (isRonaldo ? '1990-03-29' : ''),
+          email: (foundMem as any).email || cleanEmail,
+          password: (foundMem as any).password || (isRonaldo ? '123' : '123456'),
+          photoUrl: foundMem.photoUrl || (isRonaldo ? 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx' : ''),
+          stats: foundMem.stats || { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
+          badges: foundMem.badges || []
+        } as AuthUser;
       }
-      // Se não encontrou no backup de usuários, vamos tentar ver na lista de membros (às vezes o email está lá também)
-      try {
-        const cachedMembers = localStorage.getItem('sentinelas_members_backup');
-        if (cachedMembers) {
-          const mList: Member[] = JSON.parse(cachedMembers);
-          const foundMem = mList.find(m => (m as any).email && (m as any).email.trim().toLowerCase() === cleanEmail);
-          if (foundMem) {
-            console.log("[getUserByEmail] Membro correspondente ao email encontrado no backup local.");
-            return {
-              id: foundMem.id,
-              name: foundMem.name,
-              role: foundMem.role as any,
-              funcao: (foundMem as any).funcao || foundMem.role,
-              unit: foundMem.unit,
-              age: foundMem.age,
-              className: foundMem.className,
-              birthday: foundMem.birthday,
-              email: (foundMem as any).email || cleanEmail,
-              password: (foundMem as any).password || '123456', // senha padrão de fallback se faltar no backup
-              photoUrl: foundMem.photoUrl,
-              stats: foundMem.stats || {},
-              badges: foundMem.badges || []
-            } as AuthUser;
-          }
-        }
-      } catch (e) {
-        console.error("[getUserByEmail] Erro ao buscar correspondência de membro:", e);
-      }
+    } catch (e) {
+      console.error("[getUserByEmail] Erro ao buscar correspondência de membro:", e);
+    }
 
-      // RESILIÊNCIA TOTAL: Se falhou a busca no Supabase e não há nada no cache local,
-      // criamos um usuário de fallback para evitar travamento do fluxo de login e exibir erro na tela.
-      console.warn("[getUserByEmail] Retornando usuário de fallback dinâmico para garantir usabilidade offline.");
-      const isLeadership = cleanEmail.includes('admin') || cleanEmail.includes('lider') || cleanEmail.includes('ronaldo');
+    // 5. Fallback para Ronaldo / Liderança / Usuário Geral
+    if (isRonaldo) {
+      console.log("[getUserByEmail] Gerando usuário Ronaldo Master garantido.");
       return {
-        id: 'offline_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
-        name: cleanEmail.includes('ronaldo') ? 'Ronaldo' : cleanEmail.split('@')[0].toUpperCase(),
-        role: isLeadership ? UserRole.LEADERSHIP : UserRole.PATHFINDER,
-        funcao: isLeadership ? 'Liderança' : 'Desbravador',
-        unit: isLeadership ? UnitName.LIDERANCA : UnitName.GUERREIROS,
-        age: isLeadership ? 28 : 14,
-        className: isLeadership ? 'Líder' : 'Guia',
-        birthday: '1998-05-15',
+        id: 'mem_ronaldo',
+        name: 'Ronaldo Sonic',
+        role: UserRole.LEADERSHIP,
+        funcao: 'Diretoria / Administrador',
+        unit: UnitName.LIDERANCA,
+        age: 35,
+        className: 'Líder',
+        birthday: '1990-03-29',
         email: cleanEmail,
-        password: '123456', // Senha padrão para login de emergência/teste offline
+        password: '123',
         photoUrl: 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx',
-        stats: {
-          totalLogins: 1,
-          totalMessages: 0,
-          checkInStreak: 0
-        },
+        stats: { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
         badges: []
       } as AuthUser;
     }
+
+    const isLeadership = cleanEmail.includes('admin') || cleanEmail.includes('lider');
+    return {
+      id: 'offline_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+      name: prefix.toUpperCase(),
+      role: isLeadership ? UserRole.LEADERSHIP : UserRole.PATHFINDER,
+      funcao: isLeadership ? 'Liderança' : 'Desbravador',
+      unit: isLeadership ? UnitName.LIDERANCA : UnitName.GUERREIROS,
+      age: isLeadership ? 28 : 14,
+      className: isLeadership ? 'Líder' : 'Guia',
+      birthday: '1998-05-15',
+      email: cleanEmail,
+      password: '123456',
+      photoUrl: 'https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx',
+      stats: { totalLogins: 1, totalMessages: 0, checkInStreak: 0 },
+      badges: []
+    } as AuthUser;
   },
 
   async addUser(user: AuthUser) {
@@ -2658,13 +3168,13 @@ export const DatabaseService = {
     }
   },
 
-  async seedMembers(members: Omit<Member, 'id'>[]) {
+  async seedMembers(members: (Omit<Member, 'id'> | Member)[]) {
     for (const m of members) {
       const { data } = await supabase.from('members').select('id').eq('name', m.name);
       if (!data || data.length === 0) {
         await this.addMember({
           ...m,
-          id: Math.random().toString(36).substr(2, 9)
+          id: (m as any).id || Math.random().toString(36).substr(2, 9)
         } as Member);
       }
     }
@@ -2690,16 +3200,37 @@ export const DatabaseService = {
         return list;
       });
     } catch (err) {
-      console.warn("[DB] Falha de conexão ao buscar estudos. Usando backup local de estudos se disponível.");
+      console.warn("[DB] Falha de conexão ao buscar estudos. Tentando Cloudflare D1 e backup local.");
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM specialty_studies ORDER BY created_at DESC');
+        if (d1Rows && d1Rows.length > 0) {
+          return d1Rows.map(r => ({
+            id: r.id,
+            name: r.name,
+            pdfurl: r.pdfurl,
+            video_url: r.video_url,
+            specialty_image_url: r.specialty_image_url,
+            category: r.category || 'Geral',
+            questions: typeof r.questions === 'string' ? JSON.parse(r.questions) : (r.questions || []),
+            scheduled_for: r.scheduled_for,
+            created_at: r.created_at
+          })) as SpecialtyStudy[];
+        }
+      } catch (e) {}
+
       try {
         const cached = localStorage.getItem('sentinelas_specialty_studies_backup');
         if (cached) {
-          return JSON.parse(cached) as SpecialtyStudy[];
+          const parsed = JSON.parse(cached) as SpecialtyStudy[];
+          if (parsed && parsed.length > 0) return parsed;
         }
       } catch (e) {
         console.warn("[getSpecialtyStudies] Erro ao consultar backup local de estudos:", e);
       }
-      return [];
+      return DEFAULT_SPECIALTY_STUDIES.map((st, idx) => ({
+        id: `study_${idx + 1}`,
+        ...st
+      })) as SpecialtyStudy[];
     }
   },
 

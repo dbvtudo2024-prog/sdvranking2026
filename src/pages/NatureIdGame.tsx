@@ -203,7 +203,7 @@ const NatureIdGame: React.FC<NatureIdGameProps> = ({ user, members, onUpdateMemb
               <div className="w-full md:w-3/4 grid grid-cols-1 gap-3">
                 {currentItem.options.map((opt, idx) => (
                   <button
-                    key={idx}
+                    key={`nature-opt-${currentStep}-${idx}`}
                     disabled={selectedOption !== null}
                     onClick={() => handleOptionSelect(idx)}
                     className={`w-full p-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between text-left

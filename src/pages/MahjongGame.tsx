@@ -800,7 +800,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
                   .sort((a, b) => calculateSpecific(b, 'mahjongGame') - calculateSpecific(a, 'mahjongGame'))
                   .filter(m => calculateSpecific(m, 'mahjongGame') > 0)
                   .map((m, idx) => (
-                    <div key={`rank-${m.id}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                    <div key={`rank-${m.id || idx}-${idx}`} className={`flex items-center gap-4 p-4 rounded-3xl border ${m.id === user.id ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
                       <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400">
                         {idx + 1}º
                       </div>

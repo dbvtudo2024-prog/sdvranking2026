@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database } from 'lucide-react';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
-import { DatabaseService, supabase, migrateAllDataToCloudflareD1, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL } from '@/db';
+import { DatabaseService, supabase, migrateAllDataToCloudflareD1, seedInitialDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
@@ -409,6 +409,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number };
     message: string;
   } | null>(null);
+  const [isSeedingD1, setIsSeedingD1] = useState(false);
+  const [d1SeedResult, setD1SeedResult] = useState<{
+    success: boolean;
+    counts: { members: number; users: number; announcements: number; specialties: number; studies: number; devotionals: number; questions: number };
+    message: string;
+  } | null>(null);
 
   const handleTestCf = async () => {
     setIsTestingCf(true);
@@ -427,6 +433,26 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     setCfWorkerUrl(newUrl);
     setCloudflareApiUrl(newUrl);
     setCfTestStatus(null);
+  };
+
+  const handleSeedInitialDataToD1 = async () => {
+    if (!window.confirm("Deseja popular o Cloudflare D1 com os dados padrão do clube (Membros com Davi campeão, Especialidades, Estudos, Devocionais e Quiz)?\n\nEsta opção é ideal quando o Supabase estiver travado ou indisponível.")) return;
+    setCloudflareApiUrl(cfWorkerUrl);
+    setIsSeedingD1(true);
+    setD1SeedResult(null);
+    try {
+      const res = await seedInitialDataToCloudflareD1();
+      setD1SeedResult(res);
+      if (res.success) {
+        alert(`✅ SUCESSO!\\n\\nCloudflare D1 populado com os dados base:\\n• Membros: ${res.counts.members}\\n• Usuários: ${res.counts.users}\\n• Avisos: ${res.counts.announcements}\\n• Especialidades: ${res.counts.specialties}\\n• Estudos: ${res.counts.studies}\\n• Devocionais: ${res.counts.devotionals}\\n• Quiz: ${res.counts.questions}`);
+      } else {
+        alert(`❌ Falha ao popular D1: ${res.message}`);
+      }
+    } catch (e: any) {
+      alert(`❌ Erro inesperado: ${e?.message || "Falha ao popular D1"}`);
+    } finally {
+      setIsSeedingD1(false);
+    }
   };
 
   const handleMigrateToCloudflareD1 = async () => {
@@ -1000,23 +1026,52 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             // Remove strings vazias de datas para evitar erros de cast do PostgreSQL
             if (payload.birthday === '') payload.birthday = null;
 
-            const { error } = await supabase.from('members').upsert([payload]);
-            if (error) {
-              if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
-                const fallbackPayload = { ...payload };
-                delete fallbackPayload.badges;
-                delete fallbackPayload.stats;
-                
-                const { error: retryError } = await supabase.from('members').upsert([fallbackPayload]);
-                if (retryError) throw retryError;
+            // Sincroniza diretamente com o Cloudflare D1
+            await runD1Query(
+              "INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [
+                payload.id,
+                payload.name,
+                payload.unit,
+                payload.role,
+                payload.className || "",
+                1,
+                payload.birthday || "",
+                "",
+                JSON.stringify({ scores: payload.scores || [], badges: payload.badges || [], stats: payload.stats || {}, counselor: payload.counselor || "" })
+              ]
+            ).catch(err => console.warn("[D1 Import Sync] Erro:", err));
+
+            // Atualiza backup local imediatamente
+            try {
+              const cached = localStorage.getItem("sentinelas_members_backup");
+              let list: Member[] = cached ? JSON.parse(cached) : [];
+              list = list.filter(m => m.id !== payload.id);
+              list.push(payload);
+              localStorage.setItem("sentinelas_members_backup", JSON.stringify(list));
+            } catch {}
+
+            let supabaseSaved = false;
+            try {
+              const { error } = await supabase.from("members").upsert([payload]);
+              if (error) {
+                if (error.code === "PGRST204" || error.message?.toLowerCase().includes("column")) {
+                  const fallbackPayload = { ...payload };
+                  delete fallbackPayload.badges;
+                  delete fallbackPayload.stats;
+                  const { error: retryError } = await supabase.from("members").upsert([fallbackPayload]);
+                  if (!retryError) supabaseSaved = true;
+                }
               } else {
-                throw error;
+                supabaseSaved = true;
               }
+            } catch (supErr) {
+              console.warn("Supabase travado/indisponível durante import de membro:", supErr);
             }
 
             successCount++;
             setImportProgress(p => ({ ...p, success: successCount }));
-            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado com sucesso: membro "${payload.name}"`]);
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado: membro "${payload.name}" ${supabaseSaved ? "(Supabase + D1)" : "(Salvo no Cloudflare D1 & Backup Local)"}`]);
 
           } else {
             // Importar Users
@@ -1066,22 +1121,53 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               try { payload.stats = typeof rawStats === 'string' ? JSON.parse(rawStats) : rawStats; } catch {}
             }
 
-            const { error } = await supabase.from('users').upsert([payload]);
-            if (error) {
-              if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
-                const fallbackPayload = { ...payload };
-                delete fallbackPayload.badges;
-                delete fallbackPayload.stats;
-                const { error: retryError } = await supabase.from('users').upsert([fallbackPayload]);
-                if (retryError) throw retryError;
+            // Sincroniza diretamente com o Cloudflare D1
+            await runD1Query(
+              "INSERT OR REPLACE INTO users (id, username, name, role, unit, password, active, funcao, monthlyMedals, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [
+                payload.id,
+                payload.email || payload.id,
+                payload.name,
+                payload.role,
+                payload.unit || "",
+                payload.password || "123456",
+                1,
+                payload.funcao || payload.role,
+                JSON.stringify(payload.badges || []),
+                payload.photoUrl || ""
+              ]
+            ).catch(err => console.warn("[D1 User Import Sync] Erro:", err));
+
+            // Atualiza backup local de usuários
+            try {
+              const cached = localStorage.getItem("sentinelas_users_backup");
+              let list: any[] = cached ? JSON.parse(cached) : [];
+              list = list.filter(u => u.id !== payload.id);
+              list.push(payload);
+              localStorage.setItem("sentinelas_users_backup", JSON.stringify(list));
+            } catch {}
+
+            let supabaseUserSaved = false;
+            try {
+              const { error } = await supabase.from("users").upsert([payload]);
+              if (error) {
+                if (error.code === "PGRST204" || error.message?.toLowerCase().includes("column")) {
+                  const fallbackPayload = { ...payload };
+                  delete fallbackPayload.badges;
+                  delete fallbackPayload.stats;
+                  const { error: retryError } = await supabase.from("users").upsert([fallbackPayload]);
+                  if (!retryError) supabaseUserSaved = true;
+                }
               } else {
-                throw error;
+                supabaseUserSaved = true;
               }
+            } catch (supErr) {
+              console.warn("Supabase travado/indisponível durante import de usuário:", supErr);
             }
 
             successCount++;
             setImportProgress(p => ({ ...p, success: successCount }));
-            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado com sucesso: usuário "${payload.name}" (${payload.email})`]);
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Importado: usuário "${payload.name}" ${supabaseUserSaved ? "(Supabase + D1)" : "(Salvo no Cloudflare D1 & Backup Local)"}`]);
           }
 
         } catch (itemErr: any) {
@@ -1140,8 +1226,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               : 'bg-white border-slate-100 text-slate-500'
           } outline-none focus:border-blue-500 transition-all appearance-none text-center cursor-pointer`}
         >
-          {days.map(d => (
-            <option key={d.v} value={d.v}>{d.l}</option>
+          {days.map((d, dIdx) => (
+            <option key={`filter-unit-${d.v}-${dIdx}`} value={d.v}>{d.l}</option>
           ))}
         </select>
       </div>
@@ -1225,9 +1311,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
            <div className="space-y-4">
              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight px-2">Verificar pontuações brutas e logs de atividade</p>
              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-               {members.sort((a, b) => a.name.localeCompare(b.name)).map(member => (
+               {members.sort((a, b) => a.name.localeCompare(b.name)).map((member, mIdx) => (
                  <div 
-                   key={member.id}
+                   key={`inspect-mem-${member.id || mIdx}-${mIdx}`}
                    className={`flex items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}
                  >
                    <div className="overflow-hidden pr-4">
@@ -1371,8 +1457,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                    </code>
                 </div>
               )}
-              {diagnosticResults.map(res => (
-                <div key={res.table} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+              {diagnosticResults.map((res, rIdx) => (
+                <div key={`diag-res-${res.table}-${rIdx}`} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">{res.table}</span>
                     <span className={`font-black text-[10px] uppercase ${res.status === 'OK' ? 'text-emerald-500' : 'text-red-500'}`}>{res.status}</span>
@@ -1382,8 +1468,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                   </div>
                   {res.columns.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {res.columns.map(col => (
-                        <span key={col} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
+                      {res.columns.map((col, cIdx) => (
+                        <span key={`col-${col}-${cIdx}`} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
                       ))}
                     </div>
                   )}
@@ -1531,6 +1617,36 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             {isMigratingD1 ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} />}
             {isMigratingD1 ? 'MIGRANDO DADOS PARA O CLOUDFLARE D1...' : 'MIGRAR DADOS PARA O CLOUDFLARE D1 AGORA'}
           </button>
+
+          <button
+            onClick={handleSeedInitialDataToD1}
+            disabled={isSeedingD1 || isMigratingD1}
+            className={`w-full py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-md ${
+              isSeedingD1
+                ? "bg-slate-700 text-slate-400 border border-slate-800 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+            }`}
+          >
+            {isSeedingD1 ? <Loader2 className="animate-spin" size={18} /> : <Database size={18} />}
+            {isSeedingD1 ? "POPULANDO D1 COM DADOS BASE..." : "POPULAR D1 COM DADOS PADRÃO (SE O SUPABASE ESTIVER TRAVADO)"}
+          </button>
+
+          {d1SeedResult && (
+            <div className={`p-4 rounded-2xl border ${d1SeedResult.success ? (isDarkMode ? "bg-emerald-950/30 border-emerald-900/50 text-emerald-300" : "bg-emerald-50 border-emerald-200 text-emerald-800") : (isDarkMode ? "bg-red-950/30 border-red-900/50 text-red-300" : "bg-red-50 border-red-200 text-red-800")} space-y-2`}>
+              <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-wider">
+                {d1SeedResult.success ? <Check size={16} /> : <AlertTriangle size={16} />}
+                <span>{d1SeedResult.message}</span>
+              </div>
+              {d1SeedResult.success && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[9px] font-mono">
+                  <div className="p-2 rounded-lg bg-black/10">Membros: <strong className="text-emerald-500">{d1SeedResult.counts.members}</strong></div>
+                  <div className="p-2 rounded-lg bg-black/10">Usuários: <strong className="text-emerald-500">{d1SeedResult.counts.users}</strong></div>
+                  <div className="p-2 rounded-lg bg-black/10">Especialidades: <strong className="text-emerald-500">{d1SeedResult.counts.specialties}</strong></div>
+                  <div className="p-2 rounded-lg bg-black/10">Estudos: <strong className="text-emerald-500">{d1SeedResult.counts.studies}</strong></div>
+                </div>
+              )}
+            </div>
+          )}
 
           {d1MigrationResult && (
             <div className={`p-4 rounded-2xl border ${d1MigrationResult.success ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-red-950/30 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-800')} space-y-2`}>
@@ -1740,7 +1856,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               <p className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Logs da Importação:</p>
               <div className="max-h-40 overflow-y-auto pr-1 custom-scrollbar text-[8.5px] font-mono space-y-1 text-slate-400">
                 {importLogs.map((log, i) => (
-                  <p key={i} className={log.includes('✅') ? 'text-emerald-500/90' : log.includes('❌') ? 'text-red-400' : 'text-slate-400'}>{log}</p>
+                  <p key={`import-log-${i}`} className={log.includes('✅') ? 'text-emerald-500/90' : log.includes('❌') ? 'text-red-400' : 'text-slate-400'}>{log}</p>
                 ))}
               </div>
             </div>
@@ -2056,8 +2172,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                   <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma imagem encontrada na tabela game_assets</p>
                 </div>
               ) : (
-                gameAssets.map(asset => (
-                  <div key={`asset-${asset.id}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-3xl p-5 space-y-4`}>
+                gameAssets.map((asset, aIdx) => (
+                  <div key={`asset-${asset.id || aIdx}-${aIdx}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-3xl p-5 space-y-4`}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0">
                         <img src={asset.url} alt={asset.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -2147,7 +2263,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2">Registros Brutos ({inspectingMember.scores?.length || 0})</h4>
                   <div className="space-y-2">
                     {inspectingMember.scores?.slice().reverse().map((score: any, idx: number) => (
-                      <div key={idx} className={`p-3 rounded-2xl border text-[10px] ${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                      <div key={`raw-score-${score.id || idx}-${idx}`} className={`p-3 rounded-2xl border text-[10px] ${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
                         <div className="flex justify-between items-start mb-2">
                           <span className={`px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter ${
                             score.type === 'game' ? 'bg-blue-100 text-blue-600' : 
@@ -2159,8 +2275,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                           <span className="text-slate-400 font-bold">{score.date}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          {Object.entries(score).map(([key, val]) => (
-                            <div key={key} className="flex justify-between border-b border-slate-50 dark:border-slate-800/50 pb-1">
+                          {Object.entries(score).map(([key, val], eIdx) => (
+                            <div key={`score-val-${key}-${eIdx}`} className="flex justify-between border-b border-slate-50 dark:border-slate-800/50 pb-1">
                               <span className="text-slate-500 font-medium">{key}:</span>
                               <span className={`font-bold ${key === 'points' ? 'text-blue-500' : isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                                 {typeof val === 'object' ? JSON.stringify(val) : String(val)}

@@ -189,7 +189,7 @@ const FirstAidGame: React.FC<FirstAidGameProps> = ({ user, members, onUpdateMemb
               <div className="grid grid-cols-1 gap-3">
                 {currentQ.options.map((opt, idx) => (
                   <button
-                    key={idx}
+                    key={`firstaid-opt-${currentStep}-${idx}`}
                     disabled={selectedOption !== null}
                     onClick={() => handleOptionSelect(idx)}
                     className={`w-full p-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between text-left

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Announcement, AuthUser, Member, BadgeLevel, UserStats, UserRole } from '@/types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X } from 'lucide-react';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X, GraduationCap } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -134,25 +134,92 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
     }
   }, [announcements]);
 
-  const Shortcut = ({ icon: Icon, label, page, color }: { icon: any, label: string, page: string, color: string }) => (
+  interface ShortcutProps {
+    icon: any;
+    label: string;
+    sublabel: string;
+    page: string;
+    gradient: string;
+    shadow: string;
+  }
+
+  const Shortcut = ({ icon: Icon, label, sublabel, page, gradient, shadow }: ShortcutProps) => (
     <motion.button 
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      whileTap={{ scale: 0.96 }}
       onClick={() => onNavigate(page)}
-      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2.5rem] shadow-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-blue-900/10' : 'bg-white border-slate-100 shadow-slate-200/50'}`}
+      className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col items-center sm:items-start text-center sm:text-left transition-all duration-300 shadow-lg ${gradient} ${shadow} border border-white/30 group cursor-pointer`}
     >
-      <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl mb-1 relative overflow-hidden group`} style={{ backgroundColor: color }}>
-        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Icon size={28} />
+      {/* Ícone d'água de fundo decorativo */}
+      <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/15 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
+        <Icon size={54} strokeWidth={1.5} className="sm:w-16 sm:h-16" />
       </div>
-      <span className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+
+      {/* Brilho suave no canto superior */}
+      <div className="absolute -top-8 -left-8 w-20 h-20 bg-white/25 rounded-full blur-xl pointer-events-none group-hover:bg-white/35 transition-colors" />
+
+      {/* Ícone principal em cápsula translúcida com brilho */}
+      <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-2 sm:mb-2.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300">
+        <Icon size={22} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
+      </div>
+
+      {/* Textos com contraste e nitidez */}
+      <div className="relative z-10 w-full">
+        <span className="block text-white font-black text-xs sm:text-sm uppercase tracking-wider drop-shadow-md leading-tight">
+          {label}
+        </span>
+        <span className="hidden sm:block text-[10px] text-white/85 font-bold uppercase tracking-tight mt-0.5 leading-tight truncate">
+          {sublabel}
+        </span>
+      </div>
+
+      {/* Realce ao passar o mouse */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </motion.button>
   );
 
   return (
     <div className={`flex flex-col h-full overflow-y-auto pb-8 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
-      {/* BRASÃO DO CLUBE AO TOPO */}
-      <div className={`flex flex-col items-center justify-center pt-12 pb-8 landscape:pt-4 landscape:pb-4 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
+      {/* HEADER DESKTOP (Apenas na versão PC: md:flex) */}
+      <div className={`hidden md:flex items-center justify-between px-8 py-5 mx-6 mt-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0061f2] dark:text-blue-400">
+            Painel Principal
+          </span>
+          <h2 className="text-xl font-black uppercase text-slate-800 dark:text-white mt-0.5">
+            Olá, {user.name.split(' ')[0]}! 👋
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {streak > 0 && (
+            <button 
+              onClick={() => setShowCheckInModal(true)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all active:scale-95 ${
+                isDarkMode 
+                  ? 'bg-slate-800/80 border-orange-500/30 text-orange-400 hover:bg-slate-800' 
+                  : 'bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100/70'
+              }`}
+            >
+              <Flame size={18} className="text-orange-500 fill-orange-500" />
+              <span className="text-xs font-black uppercase tracking-tight">{streak} DIAS SEGUIDOS</span>
+            </button>
+          )}
+
+          {canCheckIn && (
+            <button 
+              onClick={() => setShowCheckInModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0061f2] hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-blue-500/25 transition-all active:scale-95"
+            >
+              <Calendar size={18} />
+              <span>Fazer Check-in</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* BRASÃO DO CLUBE AO TOPO (Apenas no Mobile: md:hidden) */}
+      <div className={`md:hidden flex flex-col items-center justify-center pt-12 pb-8 landscape:pt-4 landscape:pb-4 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 
           onClick={() => onNavigate('profile')}
           className={`absolute top-8 right-8 landscape:top-4 landscape:right-4 w-12 h-12 landscape:w-10 landscape:h-10 rounded-2xl active:scale-90 transition-all border shadow-sm overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
@@ -207,7 +274,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               <div className="flex gap-1.5">
                 {announcements.map((_, i) => (
                   <button 
-                    key={i} 
+                    key={`aviso-dot-${i}`} 
                     onClick={() => setCurrentAvisoIndex(i)}
                     className={`relative h-1.5 rounded-full transition-all duration-300 overflow-hidden ${i === currentAvisoIndex ? 'w-8 bg-blue-100 dark:bg-blue-900/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
                   >
@@ -228,7 +295,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
             <div className="px-6 pb-2 min-h-[110px] relative">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={announcements[currentAvisoIndex].id}
+                  key={announcements[currentAvisoIndex]?.id ? `aviso-${announcements[currentAvisoIndex].id}` : `aviso-idx-${currentAvisoIndex}`}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -280,8 +347,8 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
                 <h3 className="text-white text-[11px] font-black uppercase tracking-widest">Aniversariante do Dia!</h3>
               </div>
               <div className="flex flex-col gap-3">
-                {todayBirthdays.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                {todayBirthdays.map((m, idx) => (
+                  <div key={m.id ? `bday-${m.id}-${idx}` : `bday-idx-${idx}`} className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
                     <div className="w-10 h-10 rounded-full border-2 border-white/40 overflow-hidden bg-white/20">
                       <img src={m.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} className="w-full h-full object-cover" />
                     </div>
@@ -305,19 +372,61 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
 
       {/* ÍCONES DE ATALHOS */}
       <div className="px-6 mt-6">
-        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Acesso Rápido</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <Shortcut icon={LayoutGrid} label="Unidades" page="units" color="#0061f2" />
-          <Shortcut icon={Cake} label="Aniversários" page="birthdays" color="#ec4899" />
-          <Shortcut icon={BookOpen} label="Devocional" page="devotional" color="#8b5cf6" />
-          <Shortcut icon={Trophy} label="Ranking" page="ranking" color="#f59e0b" />
-          <Shortcut icon={Gamepad2} label="Jogos" page="games" color="#ec4899" />
-          <Shortcut icon={BookOpen} label="Estudo" page="specialty_study" color="#059669" />
+        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-2">Acesso Rápido</h3>
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <Shortcut 
+            icon={LayoutGrid} 
+            label="Unidades" 
+            sublabel="Pelotões"
+            page="units" 
+            gradient="bg-gradient-to-br from-blue-600 via-[#0061f2] to-indigo-700" 
+            shadow="shadow-blue-500/25 hover:shadow-blue-500/45"
+          />
+          <Shortcut 
+            icon={Cake} 
+            label="Aniversários" 
+            sublabel="Comemorações"
+            page="birthdays" 
+            gradient="bg-gradient-to-br from-pink-500 via-rose-500 to-rose-600" 
+            shadow="shadow-pink-500/25 hover:shadow-pink-500/45"
+          />
+          <Shortcut 
+            icon={BookOpen} 
+            label="Devocional" 
+            sublabel="Ano Bíblico"
+            page="devotional" 
+            gradient="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700" 
+            shadow="shadow-purple-500/25 hover:shadow-purple-500/45"
+          />
+          <Shortcut 
+            icon={Trophy} 
+            label="Ranking" 
+            sublabel="Campeões"
+            page="ranking" 
+            gradient="bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600" 
+            shadow="shadow-amber-500/25 hover:shadow-amber-500/45"
+          />
+          <Shortcut 
+            icon={Gamepad2} 
+            label="Jogos" 
+            sublabel="Central & Arcade"
+            page="games" 
+            gradient="bg-gradient-to-br from-fuchsia-600 via-pink-600 to-rose-600" 
+            shadow="shadow-fuchsia-500/25 hover:shadow-fuchsia-500/45"
+          />
+          <Shortcut 
+            icon={GraduationCap} 
+            label="Estudo" 
+            sublabel="Especialidades"
+            page="specialty_study" 
+            gradient="bg-gradient-to-br from-emerald-600 via-teal-600 to-teal-800" 
+            shadow="shadow-emerald-500/25 hover:shadow-emerald-500/45"
+          />
         </div>
       </div>
 
-      {/* FLOATING ACTION BUTTON / ICON FOR CHECK-IN - MOVIDO PARA O TOPO ESQUERDO */}
-      <div className="fixed top-8 left-6 z-[100] flex flex-col items-start gap-3 pointer-events-none">
+      {/* FLOATING ACTION BUTTON / ICON FOR CHECK-IN - MOVIDO PARA O TOPO ESQUERDO (Apenas Mobile) */}
+      <div className="md:hidden fixed top-8 left-6 z-[100] flex flex-col items-start gap-3 pointer-events-none">
         <AnimatePresence>
           {streak > 0 && (
             <motion.div 
@@ -389,8 +498,8 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
                          const start = Math.max(1, streak - 3);
                          const days = Array.from({ length: 7 }, (_, i) => start + i);
                          
-                         return days.map(day => (
-                            <div key={day} className="flex flex-col items-center gap-2">
+                         return days.map((day, idx) => (
+                            <div key={`streak-day-${day}-${idx}`} className="flex flex-col items-center gap-2">
                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                                   day <= streak 
                                      ? 'bg-blue-600 text-white shadow-lg' 

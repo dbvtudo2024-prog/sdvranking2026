@@ -78,6 +78,21 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || ''),
         'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || '')
       },
+      build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+        chunkSizeWarningLimit: 2500,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-motion': ['motion'],
+              'vendor-icons': ['lucide-react'],
+              'vendor-supabase': ['@supabase/supabase-js']
+            }
+          }
+        }
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, './src'),

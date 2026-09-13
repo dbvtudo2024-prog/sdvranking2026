@@ -133,8 +133,8 @@ const AdminScrambledVerseEditor: React.FC<AdminScrambledVerseEditorProps> = ({ o
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredVerses.map(v => (
-              <div key={v.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-amber-900/5 transition-all flex justify-between items-start gap-4`}>
+            {filteredVerses.map((v, vIdx) => (
+              <div key={`verse-${v.id || vIdx}-${vIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-amber-900/5 transition-all flex justify-between items-start gap-4`}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isDarkMode ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>Versículo</span>

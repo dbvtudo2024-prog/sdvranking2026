@@ -206,7 +206,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
               <div className="w-full md:w-1/2 grid grid-cols-1 gap-3">
                 {options.map((opt, idx) => (
                   <button
-                    key={idx}
+                    key={`knot-opt-${currentKnot.id || currentKnot.name}-${opt.id || idx}-${idx}`}
                     disabled={selectedOption !== null}
                     onClick={() => handleOptionSelect(idx)}
                     className={`w-full p-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border-2 border-b-4 active:scale-95 flex items-center justify-between text-left

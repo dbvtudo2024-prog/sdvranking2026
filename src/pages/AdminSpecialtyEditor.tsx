@@ -602,8 +602,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {filtered.map((s) => (
-              <div key={s.id} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 flex items-center justify-between gap-4`}>
+            {filtered.map((s, sIdx) => (
+              <div key={s.id ? `spec-${s.id}-${sIdx}` : `spec-idx-${sIdx}`} className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-5 rounded-[2rem] border shadow-xl shadow-blue-900/5 flex items-center justify-between gap-4`}>
                 <div className="flex items-center gap-4 min-w-0">
                   <div className={`w-14 h-14 rounded-2xl p-2 flex items-center justify-center border shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                     <img src={s.Imagem || undefined} className="w-full h-full object-contain" alt={s.Nome} />
@@ -874,8 +874,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                     <tbody>
                       {specialties
                         .filter(spec => spec.Nome.toLowerCase().includes(bulkSearch.toLowerCase()))
-                        .map(spec => (
-                          <tr key={spec.id} className={`border-b ${isDarkMode ? 'border-slate-800 hover:bg-slate-900/40 text-slate-300' : 'hover:bg-slate-50 text-slate-700'} transition-all`}>
+                        .map((spec, specIdx) => (
+                          <tr key={spec.id ? `spec-row-${spec.id}-${specIdx}` : `spec-row-${specIdx}`} className={`border-b ${isDarkMode ? 'border-slate-800 hover:bg-slate-900/40 text-slate-300' : 'hover:bg-slate-50 text-slate-700'} transition-all`}>
                             <td className="p-2 text-center">
                               <ImageCellPreview src={bulkEditMap[spec.id!] || ''} />
                             </td>
@@ -1005,7 +1005,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                   <div className="h-[350px] md:h-auto md:flex-1 overflow-y-auto pr-2 gap-3 flex flex-col min-h-0 py-2 border-y border-dashed border-slate-700/50 shrink-0 md:shrink">
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2] block ml-1 mb-1">Mapeamento de Imagens encontradas:</span>
                     {storageFiles.map((file, idx) => (
-                      <div key={idx} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-100'} gap-4`}>
+                      <div key={`storage-file-${file.name || idx}-${idx}`} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-100'} gap-4`}>
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-12 h-12 rounded-xl border p-1 shrink-0 bg-white flex items-center justify-center overflow-hidden">
                             <img src={file.url} className="w-full h-full object-contain" alt={file.name} referrerPolicy="no-referrer" />
@@ -1030,7 +1030,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                           >
                             <option value="">[ Ignorar / Não vincular ]</option>
                             {specialties.map(spec => (
-                              <option key={spec.id} value={spec.id}>{spec.Nome}</option>
+                              <option key={spec.id ? `spec-opt-${spec.id}-${idx}` : `spec-opt-${idx}`} value={spec.id}>{spec.Nome}</option>
                             ))}
                           </select>
                         </div>

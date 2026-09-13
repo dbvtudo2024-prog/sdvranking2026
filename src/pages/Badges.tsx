@@ -119,30 +119,9 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
 
   return (
     <div className={`flex flex-col h-full overflow-hidden ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
-      {/* Stats Header */}
-      <div className={`p-8 pb-10 pt-6 ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-600'} rounded-b-[3.5rem] shadow-xl relative overflow-hidden shrink-0`}>
-        {/* Abstract circles */}
-        <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
-
-        <div className="relative z-10">
-          <div className="bg-white/10 backdrop-blur-md p-5 rounded-[2rem] border border-white/20 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner">
-              <ShieldCheck className="text-white" size={24} />
-            </div>
-            <div>
-              <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Progresso Geral</p>
-              <p className="text-white text-sm font-black leading-none">
-                <span className="text-yellow-400">{userBadges.filter(b => !b.badgeId.startsWith('monthly_games_')).length} de {BADGE_DEFINITIONS.length}</span> conquistadas
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-10 pb-32">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 pb-32">
         <div className="grid grid-cols-2 gap-4">
-          {BADGE_DEFINITIONS.map(badge => {
+          {BADGE_DEFINITIONS.map((badge, bIdx) => {
             const userBadge = userBadges.find(ub => 
               ub.badgeId === badge.id || 
               (badge.id === 'mestre_especialidade' && ub.badgeId.startsWith('specialty_master_'))
@@ -152,7 +131,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
             
             return (
               <button 
-                key={badge.id}
+                key={`badge-def-${badge.id}-${bIdx}`}
                 onClick={() => handleBadgeClick(badge)}
                 className={`p-5 rounded-[2.5rem] border-2 transition-all relative flex flex-col items-center justify-between min-h-[180px] text-left w-full outline-none ${
                   isUnlocked 
@@ -196,7 +175,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
           <div className="space-y-4">
             <h3 className={`text-[11px] font-black uppercase tracking-[0.3em] ml-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Campeões Mensais</h3>
             <div className="grid grid-cols-1 gap-4">
-              {userBadges.filter(b => b.badgeId.startsWith('monthly_games_')).map(badge => {
+              {userBadges.filter(b => b.badgeId.startsWith('monthly_games_')).map((badge, bIdx) => {
                 const parts = badge.badgeId.split('_');
                 const monthStr = parts[2];
                 const rank = parts[3];
@@ -213,7 +192,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
 
                 return (
                   <button 
-                    key={badge.badgeId} 
+                    key={`monthly-badge-${badge.badgeId || 'b'}-${bIdx}`} 
                     onClick={() => handleMonthlyClick(badge)}
                     className={`relative overflow-hidden p-6 rounded-[2.5rem] bg-gradient-to-br ${levelColors[badge.level as keyof typeof levelColors] || 'from-blue-500 to-indigo-600'} shadow-2xl shadow-black/10 transition-transform active:scale-95 text-left w-full outline-none`}
                   >

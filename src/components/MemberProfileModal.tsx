@@ -142,14 +142,14 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                       }
                     }
                     
-                    return uniqueBadges.map(ub => {
+                    return uniqueBadges.map((ub, idx) => {
                       const parts = (ub.monthLabel || '').split('-');
                       const positionLabel = parts[0]?.trim() || 'Campeão';
                       const monthYear = parts[1]?.trim() || 'Mensal';
 
                       return (
                         <div 
-                          key={ub.badgeId} 
+                          key={`monthly-badge-${ub.badgeId}-${ub.monthLabel || ''}-${idx}`} 
                           className="flex flex-col items-center cursor-pointer group"
                           onClick={() => {
                             const def = BADGE_DEFINITIONS.find(d => ub.badgeId.startsWith(d.id));
@@ -203,7 +203,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                     }
                   }
 
-                  return uniqueBadges.map(ub => {
+                  return uniqueBadges.map((ub, idx) => {
                     const isSpecialtyMaster = ub.badgeId.startsWith('specialty_master_');
                     const badgeDef = BADGE_DEFINITIONS.find(b => b.id === ub.badgeId || (isSpecialtyMaster && b.id === 'mestre_especialidade'));
                     
@@ -214,7 +214,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                     
                     return (
                       <div 
-                        key={ub.badgeId} 
+                        key={`club-badge-${ub.badgeId}-${idx}`} 
                         className="flex flex-col items-center cursor-pointer group"
                         onClick={() => {
                           if (badgeDef) setSelectedBadgeInfo(badgeDef);
@@ -239,11 +239,11 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                 {/* Not Conquered Club Badges */}
                 {BADGE_DEFINITIONS
                   .filter(badge => !member.badges?.some(ub => ub.badgeId === badge.id || (ub.badgeId.startsWith('specialty_master_') && badge.id === 'mestre_especialidade')))
-                  .map(badge => {
+                  .map((badge, idx) => {
                   const BadgeIcon = BADGE_ICONS[badge.icon] || HelpCircle;
                   return (
                     <div 
-                      key={`not-conquered-${badge.id}`} 
+                      key={`not-conquered-${badge.id}-${idx}`} 
                       className="flex flex-col items-center opacity-20 grayscale cursor-pointer group"
                       onClick={() => setSelectedBadgeInfo(badge)}
                     >
@@ -274,7 +274,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                 {member.scores
                   .filter(s => s.specialtyStudyId)
                   .map((s, idx) => (
-                  <div key={idx} className={`flex justify-between items-center p-4 rounded-[1.5rem] border shadow-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-100'}`}>
+                  <div key={`study-score-${s.specialtyStudyId || s.date || idx}-${idx}`} className={`flex justify-between items-center p-4 rounded-[1.5rem] border shadow-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-100'}`}>
                     <div className="flex-1 min-w-0 pr-4 text-left">
                       <p className={`text-[10px] font-black uppercase truncate mb-0.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{s.specialtyStudyName}</p>
                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(s.date)}</p>

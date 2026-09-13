@@ -99,9 +99,9 @@ const Devotional: React.FC<DevotionalProps> = ({ onBack, isDarkMode, onAwardBadg
                 <p className="text-sm font-black uppercase tracking-widest">Nenhum histórico disponível</p>
               </div>
             ) : (
-              history.map(dev => (
+              history.map((dev, dIdx) => (
                 <button 
-                  key={dev.id}
+                  key={`dev-hist-${dev.id || dIdx}-${dIdx}`}
                   onClick={() => handleSelectFromHistory(dev)}
                   className="w-full bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
                 >
