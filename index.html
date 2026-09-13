@@ -4,6 +4,61 @@
 <head>
     <meta charset="UTF-8">
     <script>
+        // 1. Interceptador de segurança para navegadores/webviews com getters restritos de window.fetch
+        window.addEventListener('error', function(e) {
+            var msg = (e && e.message) || (e && e.error && e.error.message) || '';
+            if (typeof msg === 'string' && msg.indexOf('fetch') !== -1 && msg.indexOf('getter') !== -1) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                return true;
+            }
+        }, true);
+
+        // 2. Garante que window.fetch e Window.prototype.fetch tenham setter
+        (function() {
+            try {
+                var _nativeFetch = window.fetch ? window.fetch.bind(window) : (typeof fetch !== 'undefined' ? fetch : null);
+                function makeWritable(obj) {
+                    if (!obj) return;
+                    try {
+                        var d = Object.getOwnPropertyDescriptor(obj, 'fetch');
+                        if (d && !d.set) {
+                            try {
+                                Object.defineProperty(obj, 'fetch', {
+                                    get: function() { return _nativeFetch; },
+                                    set: function(v) { _nativeFetch = v; },
+                                    configurable: d.configurable !== false,
+                                    enumerable: d.enumerable !== false
+                                });
+                            } catch (err) {}
+                        }
+                    } catch (err) {}
+                }
+
+                makeWritable(window);
+                if (typeof Window !== 'undefined' && Window.prototype) {
+                    makeWritable(Window.prototype);
+                }
+                var proto = window;
+                while (proto) {
+                    makeWritable(proto);
+                    proto = Object.getPrototypeOf(proto);
+                }
+
+                try {
+                    var ownD = Object.getOwnPropertyDescriptor(window, 'fetch');
+                    if (!ownD || ownD.set === undefined) {
+                        Object.defineProperty(window, 'fetch', {
+                            get: function() { return _nativeFetch; },
+                            set: function(v) { _nativeFetch = v; },
+                            configurable: true,
+                            enumerable: true
+                        });
+                    }
+                } catch (err) {}
+            } catch (e) {}
+        })();
+
         // Tenta desbloquear a orientação da tela o mais cedo possível
         if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
             window.screen.orientation.unlock().catch(function(err) {

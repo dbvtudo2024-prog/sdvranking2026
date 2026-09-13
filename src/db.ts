@@ -95,7 +95,18 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 1, delay = 300): Pro
   }
 };
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const safeFetch = (...args: Parameters<typeof fetch>) => {
+  if (typeof window !== 'undefined' && window.fetch) {
+    return window.fetch(...args);
+  }
+  return fetch(...args);
+};
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    fetch: safeFetch
+  }
+});
 
 const FALLBACK_BIBLE: Record<string, Record<number, { Versiculo: number; Texto: string }[]>> = {
   "Gênesis": {
