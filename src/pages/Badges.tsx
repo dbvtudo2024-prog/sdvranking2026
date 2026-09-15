@@ -119,7 +119,33 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
 
   return (
     <div className={`flex flex-col h-full overflow-hidden ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 pb-32">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-32">
+        {/* CARD DE PROGRESSO GERAL NO MOBILE (md:hidden - mantido no corpo da página) */}
+        {(() => {
+          const unlockedCount = (user.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).length;
+          const totalCount = BADGE_DEFINITIONS.length;
+          const pct = Math.round((unlockedCount / totalCount) * 100);
+
+          return (
+            <div className="md:hidden flex items-center justify-between p-4 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 shadow-md shadow-blue-500/5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#0061f2] flex items-center justify-center text-white shadow-md shadow-blue-500/30 shrink-0">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#0061f2] dark:text-blue-400">Progresso Geral</p>
+                  <p className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                    {unlockedCount} de {totalCount} <span className="text-xs font-bold text-slate-500 dark:text-slate-400">conquistadas</span>
+                  </p>
+                </div>
+              </div>
+              <div className="px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 text-[#0061f2] dark:text-blue-300 font-black text-xs">
+                {pct}%
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-2 gap-4">
           {BADGE_DEFINITIONS.map((badge, bIdx) => {
             const userBadge = userBadges.find(ub => 

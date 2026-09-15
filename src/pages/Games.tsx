@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
-import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music, ArrowLeft } from 'lucide-react';
+import { Gamepad2, Brain, Lock, Medal, Sword, CheckCircle2, Calendar, HelpCircle, Shuffle, Anchor, User, Map, Type, Leaf, HeartPulse, X, Music, ArrowLeft, Sparkles, Flame, Shield, Trophy } from 'lucide-react';
+import { motion } from 'motion/react';
 import { AuthUser, Member, UserRole, Score, BadgeLevel, UserStats } from '@/types';
 import QuizSelection from '@/pages/QuizSelection';
 import MemoryGame from '@/pages/MemoryGame';
@@ -215,232 +216,374 @@ const Games: React.FC<GamesProps> = ({
 
   if (activeGame !== 'hub') return renderActiveGame();
 
-  const getButtonStyles = (unlocked: boolean, played: boolean, variant: 'normal' | 'large' | 'tall' = 'normal') => {
-    const base = "w-full rounded-[2rem] sm:rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-2 sm:gap-4 transition-all border-2 border-b-8 active:scale-95 px-4 sm:px-8 relative overflow-hidden group ";
-    
-    let height = "h-40 sm:h-48";
-    if (variant === 'large') height = "h-56 sm:h-64";
-    if (variant === 'tall') height = "h-80 sm:h-96";
+  interface GameCardProps {
+    id: string;
+    title: string;
+    subtitle: string;
+    badgeLabel?: string;
+    icon: any;
+    watermarkIcon?: any;
+    gradient: string;
+    shadow: string;
+    unlocked: boolean;
+    alreadyPlayed: boolean;
+    onClick: () => void;
+    colSpan?: string;
+  }
 
-    const stateStyles = !unlocked 
-      ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-60 grayscale"
-      : played
-      ? "bg-slate-50 dark:bg-slate-900 border-green-200 dark:border-green-900/30 text-slate-400 dark:text-slate-600 shadow-inner"
-      : "bg-white dark:bg-slate-800 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 shadow-xl shadow-blue-500/10 dark:shadow-none hover:bg-blue-50 dark:hover:bg-slate-700 hover:-translate-y-1";
+  const GameCard: React.FC<GameCardProps> = ({
+    id,
+    title,
+    subtitle,
+    badgeLabel,
+    icon: Icon,
+    watermarkIcon: WatermarkIcon = Icon,
+    gradient,
+    shadow,
+    unlocked,
+    alreadyPlayed,
+    onClick,
+    colSpan = 'col-span-1'
+  }) => {
+    // 1. Estado Bloqueado
+    if (!unlocked) {
+      return (
+        <div
+          id={id}
+          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[135px] sm:min-h-[160px] bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 opacity-60 grayscale cursor-not-allowed select-none ${colSpan}`}
+        >
+          <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-slate-300 dark:text-slate-700 pointer-events-none">
+            <WatermarkIcon size={64} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
+          </div>
 
-    return `${base} ${height} ${stateStyles}`;
+          <div className="flex items-start justify-between relative z-10">
+            <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-slate-200 dark:bg-slate-700/70 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-xs">
+              <Lock size={19} strokeWidth={2.4} className="sm:w-5 sm:h-5" />
+            </div>
+            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-200/90 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400">
+              Bloqueado
+            </span>
+          </div>
+
+          <div className="relative z-10 mt-3 sm:mt-4">
+            <span className="block text-slate-400 dark:text-slate-500 font-black text-xs sm:text-base uppercase tracking-tight truncate">
+              {title}
+            </span>
+            <span className="block text-[9px] sm:text-[11px] text-slate-400/80 font-bold uppercase tracking-wider truncate mt-0.5">
+              {subtitle}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Estado Já Concluído esta semana
+    if (alreadyPlayed) {
+      return (
+        <div
+          id={id}
+          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[135px] sm:min-h-[160px] bg-gradient-to-br from-emerald-600/90 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10 border border-emerald-400/30 opacity-90 select-none ${colSpan}`}
+        >
+          <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/10 pointer-events-none">
+            <WatermarkIcon size={64} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
+          </div>
+
+          <div className="flex items-start justify-between relative z-10">
+            <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35">
+              <CheckCircle2 size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6 text-emerald-200" />
+            </div>
+            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-black/25 text-emerald-100 backdrop-blur-xs border border-white/10">
+              Concluído
+            </span>
+          </div>
+
+          <div className="relative z-10 mt-3 sm:mt-4">
+            <span className="block text-white font-black text-xs sm:text-base uppercase tracking-tight drop-shadow-sm truncate">
+              {title}
+            </span>
+            <span className="block text-[9px] sm:text-[11px] text-emerald-100/90 font-bold uppercase tracking-wider truncate mt-0.5">
+              {subtitle}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // 3. Estado Disponível (Padrão Início e Unidades: gradiente vivo, vidro, brilho e animação fluida)
+    return (
+      <motion.button
+        id={id}
+        whileHover={{ y: -4, scale: 1.02 }}
+        whileTap={{ scale: 0.96 }}
+        onClick={onClick}
+        className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 min-h-[135px] sm:min-h-[160px] ${gradient} ${shadow} border border-white/30 group cursor-pointer w-full select-none ${colSpan}`}
+      >
+        {/* Ícone d'água de fundo decorativo rotacionado */}
+        <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/15 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
+          <WatermarkIcon size={64} strokeWidth={1.4} className="sm:w-22 sm:h-22" />
+        </div>
+
+        {/* Brilho suave no canto superior */}
+        <div className="absolute -top-8 -left-8 w-20 h-20 bg-white/25 rounded-full blur-xl pointer-events-none group-hover:bg-white/35 transition-colors" />
+
+        {/* Topo do Card: Cápsula translúcida + Tag de status */}
+        <div className="flex items-start justify-between relative z-10 w-full">
+          <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300">
+            <Icon size={20} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
+          </div>
+
+          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-black/20 text-white/95 backdrop-blur-xs border border-white/15 drop-shadow-xs">
+            {badgeLabel || (isAdmin && !unlocked ? 'Admin' : 'Disponível')}
+          </span>
+        </div>
+
+        {/* Base do Card: Título e Subtítulo estilizados */}
+        <div className="relative z-10 w-full mt-3 sm:mt-4">
+          <span className="block text-white font-black text-xs sm:text-base uppercase tracking-tight sm:tracking-wider drop-shadow-md leading-tight truncate">
+            {title}
+          </span>
+          <span className="block text-[9px] sm:text-[11px] text-white/85 font-bold uppercase tracking-tight sm:tracking-wider mt-0.5 leading-tight truncate">
+            {subtitle}
+          </span>
+        </div>
+
+        {/* Realce ao passar o mouse */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      </motion.button>
+    );
   };
 
   return (
-    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 w-full pt-8 landscape:pt-4 pb-8 px-4 sm:px-8 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 landscape:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-[120px] sm:auto-rows-[160px] landscape:auto-rows-[140px]">
-          
-          {/* JOGOS SEMPRE DISPONÍVEIS */}
-          <div className="col-span-2 row-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+    <div className="flex flex-col items-center justify-start h-full overflow-y-auto animate-in fade-in duration-500 w-full pb-28 px-4 sm:px-8 custom-scrollbar bg-slate-50 dark:bg-[#0f172a]">
+      <div className="w-full max-w-7xl mx-auto py-6 flex flex-col gap-6">
+        
+        {/* SEÇÃO 1: JOGOS LIVRES / ARENA DIÁRIA */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-blue-500 dark:text-blue-400" />
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">
+                Arena & Jogos Livres
+              </h3>
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-200/50 dark:border-blue-700/50">
+              Sempre Liberados
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4.5">
             {/* DUELO ARENA 1x1 */}
-            <button 
-              onClick={() => setActiveGame('1x1')} 
-              disabled={duelStatus.alreadyPlayed}
-              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-800 border-b-8 text-white shadow-2xl shadow-blue-500/30 active:scale-95 px-8 relative overflow-hidden group ${duelStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                <Sword size={100} />
-              </div>
-              {duelStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Sword size={48} className="text-yellow-400 drop-shadow-lg animate-bounce-slow" />}
-              <div className="flex flex-col items-center text-center leading-tight">
-                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Duelo 1x1</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
-                  {duelStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
-                </span>
-              </div>
-            </button>
+            <GameCard
+              id="btn-game-duel"
+              title="Duelo 1x1"
+              subtitle="Arena de Desafios"
+              badgeLabel={duelStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+              icon={Sword}
+              watermarkIcon={Sword}
+              gradient="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700"
+              shadow="shadow-indigo-500/20 shadow-lg"
+              unlocked={duelStatus.unlocked}
+              alreadyPlayed={duelStatus.alreadyPlayed}
+              onClick={() => setActiveGame('1x1')}
+            />
 
-            {/* MAHJONG - AGORA PARA TODOS */}
-            <button 
-              onClick={() => setActiveGame('mahjong')} 
-              disabled={mahjongStatus.alreadyPlayed}
-              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-slate-800 dark:bg-slate-900 border-slate-950 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group ${mahjongStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                <Gamepad2 size={100} />
-              </div>
-              {mahjongStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Medal size={48} className="text-amber-400 animate-pulse" />}
-              <div className="flex flex-col items-center text-center leading-tight">
-                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Mahjong</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
-                  {mahjongStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
-                </span>
-              </div>
-            </button>
+            {/* MAHJONG */}
+            <GameCard
+              id="btn-game-mahjong"
+              title="Mahjong"
+              subtitle="Combinações & Foco"
+              badgeLabel={mahjongStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+              icon={Medal}
+              watermarkIcon={Gamepad2}
+              gradient="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700"
+              shadow="shadow-teal-500/20 shadow-lg"
+              unlocked={mahjongStatus.unlocked}
+              alreadyPlayed={mahjongStatus.alreadyPlayed}
+              onClick={() => setActiveGame('mahjong')}
+            />
 
-            {/* BLOCOS - SEMPRE LIBERADO */}
-            <button 
-              onClick={() => setActiveGame('brickbreaker')} 
-              disabled={brickStatus.alreadyPlayed}
-              className={`h-full rounded-[2.5rem] font-black flex flex-col items-center justify-center gap-4 transition-all bg-orange-500 dark:bg-orange-600 border-orange-700 border-b-8 text-white shadow-2xl active:scale-95 px-8 relative overflow-hidden group ${brickStatus.alreadyPlayed ? 'grayscale opacity-75' : ''}`}
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                <Gamepad2 size={100} />
-              </div>
-              {brickStatus.alreadyPlayed ? <CheckCircle2 size={48} className="text-white animate-pulse" /> : <Gamepad2 size={48} className="text-orange-200 animate-pulse" />}
-              <div className="flex flex-col items-center text-center leading-tight">
-                <span className="uppercase tracking-[0.2em] text-base sm:text-lg">Blocos</span>
-                <span className="text-[10px] font-bold opacity-80 lowercase mt-1 bg-black/20 px-2 py-0.5 rounded-full">
-                  {brickStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
-                </span>
-              </div>
-            </button>
+            {/* DESTRUIR BLOCOS */}
+            <GameCard
+              id="btn-game-brickbreaker"
+              title="Blocos"
+              subtitle="Reflexo & Agilidade"
+              badgeLabel={brickStatus.alreadyPlayed ? 'Concluído' : 'Semanal'}
+              icon={Gamepad2}
+              watermarkIcon={Gamepad2}
+              gradient="bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600"
+              shadow="shadow-orange-500/20 shadow-lg"
+              unlocked={brickStatus.unlocked}
+              alreadyPlayed={brickStatus.alreadyPlayed}
+              onClick={() => setActiveGame('brickbreaker')}
+            />
+          </div>
+        </div>
+
+        {/* SEÇÃO 2: DESAFIOS SEMANAIS DO CLUBE */}
+        <div className="flex flex-col gap-3 mt-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Trophy size={16} className="text-amber-500" />
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">
+                Desafios Semanais
+              </h3>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700/60">
+              <Calendar size={11} className="text-slate-400" />
+              <span className="text-[9px] font-black uppercase tracking-wider">{getTimeToUnlock()}</span>
+            </div>
           </div>
 
-          {/* SEPARADOR E ÁREA DE DESAFIOS SEMANAIS */}
-          <div className="col-span-full mt-4 mb-2 flex items-center gap-4">
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-            <div className="flex flex-col items-center">
-              <span className="text-slate-900 dark:text-slate-100 font-black text-[10px] uppercase tracking-[0.3em]">Desafios Semanais</span>
-              <div className="flex items-center gap-1.5 mt-1 text-slate-400 dark:text-slate-500">
-                <Calendar size={10} />
-                <span className="text-[8px] font-black uppercase tracking-widest">{getTimeToUnlock()}</span>
-              </div>
-            </div>
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4.5">
+            {/* QUIZ - MESTRE DO QUIZ */}
+            <GameCard
+              id="btn-game-quiz"
+              title="Mestre do Quiz"
+              subtitle="Bíblia & Clube"
+              badgeLabel={quizStatus.alreadyPlayed ? 'Concluído' : (quizStatus.clubUnlocked ? 'Disponível' : (isAdmin ? 'Admin' : 'Semanal'))}
+              icon={Brain}
+              gradient="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600"
+              shadow="shadow-amber-500/20 shadow-lg"
+              unlocked={quizStatus.unlocked}
+              alreadyPlayed={quizStatus.alreadyPlayed}
+              onClick={() => setActiveGame('quiz')}
+              colSpan="col-span-2 sm:col-span-1 md:col-span-1"
+            />
 
-          {/* CONTAINER DE DESAFIOS PARA MELHOR AGRUPAMENTO VISUAL */}
-          <div className="col-span-full grid grid-cols-2 landscape:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-min">
-            {/* QUIZ - DESTAQUE */}
-            <button 
-              disabled={!quizStatus.unlocked || quizStatus.alreadyPlayed} 
-              onClick={() => setActiveGame('quiz')} 
-              className={`${getButtonStyles(quizStatus.clubUnlocked, quizStatus.alreadyPlayed, 'large')} col-span-2 sm:col-span-1 row-span-1 sm:row-span-2`}
-            >
-              <div className={`p-5 rounded-[2rem] bg-amber-100 dark:bg-amber-900/30 text-amber-600 group-hover:scale-110 transition-transform ${quizStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-                {quizStatus.alreadyPlayed ? <CheckCircle2 size={40} /> : (!quizStatus.clubUnlocked && !isAdmin ? <Lock size={40} /> : <Brain size={40} />)}
+            {/* 3 PISTAS */}
+            <GameCard
+              id="btn-game-threeclues"
+              title="3 Pistas"
+              subtitle="Dedução Bíblica"
+              icon={HelpCircle}
+              gradient="bg-gradient-to-br from-teal-500 via-emerald-600 to-green-600"
+              shadow="shadow-emerald-500/20 shadow-lg"
+              unlocked={threeCluesStatus.unlocked}
+              alreadyPlayed={threeCluesStatus.alreadyPlayed}
+              onClick={() => setActiveGame('threeclues')}
+            />
+
+            {/* BRASÕES / ESPECIALIDADES */}
+            <GameCard
+              id="btn-game-specialty"
+              title="Brasões"
+              subtitle="Especialidades"
+              icon={Medal}
+              gradient="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800"
+              shadow="shadow-blue-600/20 shadow-lg"
+              unlocked={specialtyStatus.unlocked}
+              alreadyPlayed={specialtyStatus.alreadyPlayed}
+              onClick={() => setActiveGame('specialty')}
+            />
+
+            {/* MEMÓRIA */}
+            <GameCard
+              id="btn-game-memory"
+              title="Memória"
+              subtitle="Pares & Foco"
+              icon={Gamepad2}
+              gradient="bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700"
+              shadow="shadow-purple-500/20 shadow-lg"
+              unlocked={memoryStatus.unlocked}
+              alreadyPlayed={memoryStatus.alreadyPlayed}
+              onClick={() => setActiveGame('memory')}
+            />
+
+            {/* QUEBRA-CABEÇA */}
+            <GameCard
+              id="btn-game-puzzle"
+              title="Puzzle"
+              subtitle="Quebra-Cabeça"
+              icon={Shuffle}
+              gradient="bg-gradient-to-br from-rose-500 via-pink-600 to-rose-700"
+              shadow="shadow-rose-500/20 shadow-lg"
+              unlocked={puzzleStatus.unlocked}
+              alreadyPlayed={puzzleStatus.alreadyPlayed}
+              onClick={() => setActiveGame('puzzle')}
+            />
+
+            {/* NÓS */}
+            <GameCard
+              id="btn-game-knots"
+              title="Nós"
+              subtitle="Mestre dos Nós"
+              icon={Anchor}
+              gradient="bg-gradient-to-br from-amber-700 via-yellow-800 to-orange-900"
+              shadow="shadow-amber-700/20 shadow-lg"
+              unlocked={knotsStatus.unlocked}
+              alreadyPlayed={knotsStatus.alreadyPlayed}
+              onClick={() => setActiveGame('knots')}
+            />
+
+            {/* TRILHA */}
+            <GameCard
+              id="btn-game-specialtytrail"
+              title="Trilha"
+              subtitle="Especialidades"
+              icon={Map}
+              gradient="bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700"
+              shadow="shadow-cyan-500/20 shadow-lg"
+              unlocked={specialtyTrailStatus.unlocked}
+              alreadyPlayed={specialtyTrailStatus.alreadyPlayed}
+              onClick={() => setActiveGame('specialtytrail')}
+            />
+
+            {/* VERSÍCULO */}
+            <GameCard
+              id="btn-game-scrambledverse"
+              title="Versículo"
+              subtitle="Embaralhado"
+              icon={Type}
+              gradient="bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-700"
+              shadow="shadow-violet-500/20 shadow-lg"
+              unlocked={scrambledVerseStatus.unlocked}
+              alreadyPlayed={scrambledVerseStatus.alreadyPlayed}
+              onClick={() => setActiveGame('scrambledverse')}
+            />
+
+            {/* NATUREZA */}
+            <GameCard
+              id="btn-game-natureid"
+              title="Natureza"
+              subtitle="Identificação"
+              icon={Leaf}
+              gradient="bg-gradient-to-br from-lime-600 via-green-600 to-emerald-700"
+              shadow="shadow-green-500/20 shadow-lg"
+              unlocked={natureIdStatus.unlocked}
+              alreadyPlayed={natureIdStatus.alreadyPlayed}
+              onClick={() => setActiveGame('natureid')}
+            />
+
+            {/* SOCORROS */}
+            <GameCard
+              id="btn-game-firstaid"
+              title="Socorros"
+              subtitle="Primeiros Socorros"
+              icon={HeartPulse}
+              gradient="bg-gradient-to-br from-red-600 via-rose-600 to-red-700"
+              shadow="shadow-red-500/20 shadow-lg"
+              unlocked={firstAidStatus.unlocked}
+              alreadyPlayed={firstAidStatus.alreadyPlayed}
+              onClick={() => setActiveGame('firstaid')}
+            />
+
+            {/* CARD VISUAL "EM BREVE" */}
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[135px] sm:min-h-[160px] bg-slate-100 dark:bg-slate-800/40 border-2 border-dashed border-slate-200 dark:border-slate-700/60 opacity-60 select-none">
+              <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-slate-200 dark:bg-slate-700/50 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                <Lock size={18} />
               </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="uppercase tracking-[0.2em] text-xs sm:text-sm font-black">Mestre do Quiz</span>
-                <span className="text-[9px] font-bold opacity-60 mt-1 max-w-[120px] uppercase tracking-widest">
-                  {quizStatus.alreadyPlayed ? 'Concluído' : (quizStatus.clubUnlocked ? 'Disponível' : (isAdmin ? 'Admin: Aberto' : 'Bloqueado'))}
+              <div className="mt-3 sm:mt-4">
+                <span className="block text-slate-400 dark:text-slate-500 font-black text-xs sm:text-base uppercase tracking-tight">
+                  Novos Jogos
+                </span>
+                <span className="block text-[9px] sm:text-[11px] text-slate-400/80 font-bold uppercase tracking-wider mt-0.5">
+                  Em breve
                 </span>
               </div>
-            </button>
-
-            {/* TRÊS DICAS */}
-            <button 
-              disabled={!threeCluesStatus.unlocked || threeCluesStatus.alreadyPlayed} 
-              onClick={() => setActiveGame('threeclues')} 
-              className={`${getButtonStyles(threeCluesStatus.clubUnlocked, threeCluesStatus.alreadyPlayed)}`}
-            >
-              <div className={`p-3 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 group-hover:scale-110 transition-transform ${threeCluesStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-                {threeCluesStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!threeCluesStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <HelpCircle size={24} />)}
-              </div>
-              <span className="uppercase tracking-widest text-[10px] font-black text-center">3 Pistas</span>
-            </button>
-
-            {/* ESPECIALIDADE */}
-            <button 
-              disabled={!specialtyStatus.unlocked || specialtyStatus.alreadyPlayed} 
-              onClick={() => setActiveGame('specialty')} 
-              className={`${getButtonStyles(specialtyStatus.clubUnlocked, specialtyStatus.alreadyPlayed)}`}
-            >
-              <div className={`p-3 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 group-hover:scale-110 transition-transform ${specialtyStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-                {specialtyStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!specialtyStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Medal size={24} />)}
-              </div>
-              <span className="uppercase tracking-widest text-[10px] font-black text-center">Brasões</span>
-            </button>
-
-          {/* MEMÓRIA */}
-          <button 
-            disabled={!memoryStatus.unlocked || memoryStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('memory')} 
-            className={`${getButtonStyles(memoryStatus.clubUnlocked, memoryStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 group-hover:scale-110 transition-transform ${memoryStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {memoryStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!memoryStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Gamepad2 size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Memória</span>
-          </button>
-
-          {/* QUEBRA-CABEÇA */}
-          <button 
-            disabled={!puzzleStatus.unlocked || puzzleStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('puzzle')} 
-            className={`${getButtonStyles(puzzleStatus.clubUnlocked, puzzleStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 group-hover:scale-110 transition-transform ${puzzleStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {puzzleStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!puzzleStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Shuffle size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Puzzle</span>
-          </button>
-
-          {/* NÓS */}
-          <button 
-            disabled={!knotsStatus.unlocked || knotsStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('knots')} 
-            className={`${getButtonStyles(knotsStatus.clubUnlocked, knotsStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 group-hover:scale-110 transition-transform ${knotsStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {knotsStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!knotsStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Anchor size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Nós</span>
-          </button>
-
-          {/* TRILHA */}
-          <button 
-            disabled={!specialtyTrailStatus.unlocked || specialtyTrailStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('specialtytrail')} 
-            className={`${getButtonStyles(specialtyTrailStatus.clubUnlocked, specialtyTrailStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 group-hover:scale-110 transition-transform ${specialtyTrailStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {specialtyTrailStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!specialtyTrailStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Map size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Trilha</span>
-          </button>
-
-          {/* VERSÍCULO */}
-          <button 
-            disabled={!scrambledVerseStatus.unlocked || scrambledVerseStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('scrambledverse')} 
-            className={`${getButtonStyles(scrambledVerseStatus.clubUnlocked, scrambledVerseStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-violet-100 dark:bg-violet-900/30 text-violet-600 group-hover:scale-110 transition-transform ${scrambledVerseStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {scrambledVerseStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!scrambledVerseStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Type size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Versículo</span>
-          </button>
-
-          {/* NATUREZA */}
-          <button 
-            disabled={!natureIdStatus.unlocked || natureIdStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('natureid')} 
-            className={`${getButtonStyles(natureIdStatus.clubUnlocked, natureIdStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-lime-100 dark:bg-lime-900/30 text-lime-600 group-hover:scale-110 transition-transform ${natureIdStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {natureIdStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!natureIdStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <Leaf size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Natureza</span>
-          </button>
-
-          {/* SOCORROS */}
-          <button 
-            disabled={!firstAidStatus.unlocked || firstAidStatus.alreadyPlayed} 
-            onClick={() => setActiveGame('firstaid')} 
-            className={`${getButtonStyles(firstAidStatus.clubUnlocked, firstAidStatus.alreadyPlayed)}`}
-          >
-            <div className={`p-3 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 group-hover:scale-110 transition-transform ${firstAidStatus.alreadyPlayed ? 'grayscale opacity-50' : ''}`}>
-              {firstAidStatus.alreadyPlayed ? <CheckCircle2 size={24} /> : (!firstAidStatus.clubUnlocked && !isAdmin ? <Lock size={24} /> : <HeartPulse size={24} />)}
-            </div>
-            <span className="uppercase tracking-widest text-[10px] font-black text-center">Socorros</span>
-          </button>
-
-
-            {/* EM BREVE */}
-            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center gap-1 row-span-1 opacity-50">
-              <Lock size={16} className="text-slate-400" />
-              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Em breve</p>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

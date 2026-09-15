@@ -1,7 +1,7 @@
 
 import { UnitName, QuizQuestion, BadgeDefinition, BadgeCategory } from './types';
 
-export const APP_VERSION = '3.1.0';
+export const APP_VERSION = '3.4.0';
 
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {

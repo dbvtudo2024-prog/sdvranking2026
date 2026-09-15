@@ -125,7 +125,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-8 overflow-y-auto h-full bg-slate-50 dark:bg-[#0f172a]">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-28 overflow-y-auto h-full bg-slate-50 dark:bg-[#0f172a]">
       <div className="bg-[#f1f5f9] dark:bg-slate-800/50 p-1.5 rounded-[2rem] shadow-inner mx-4 mt-6 grid grid-cols-4 gap-1.5">
         <TabButton type="members" label="Membro" icon={User} />
         <TabButton type="units" label="Unidade" icon={Shield} />
@@ -192,9 +192,18 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                         }`}>
                           {idx + 1}º
                         </div>
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
-                           {champ.photoUrl ? <img src={formatImageUrl(champ.photoUrl)} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-200 dark:text-slate-700" />}
-                        </div>
+                        {/* Foto do membro sem container artificial */}
+                        {champ.photoUrl ? (
+                          <img 
+                            src={formatImageUrl(champ.photoUrl)} 
+                            alt={champ.name}
+                            className="w-12 h-12 rounded-full object-cover shrink-0" 
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                            <User size={20} className="text-slate-400 dark:text-slate-500" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-2">
                              <p className={`font-black text-sm uppercase truncate ${idx === 0 ? 'text-yellow-700 dark:text-yellow-500' : 'text-slate-900 dark:text-white'}`}>{champ.name.split(' ')[0]}</p>
@@ -307,7 +316,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
             {/* 3º LUGAR */}
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 rounded-full border-4 border-amber-300 overflow-hidden bg-amber-50 dark:bg-slate-800 shadow-lg flex items-center justify-center relative z-20">
-                {podiumSlots[2]?.photoUrl ? <img src={podiumSlots[2].photoUrl} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200 dark:text-slate-700" />}
+                {podiumSlots[2]?.photoUrl ? <img src={formatImageUrl(podiumSlots[2].photoUrl)} className="w-full h-full object-cover" /> : <User size={24} className="text-slate-200 dark:text-slate-700" />}
               </div>
               <div className="text-center mt-2 mb-2 px-1 w-20">
                 <p className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase truncate leading-tight">
@@ -353,10 +362,19 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                     : 'bg-white border-slate-100 hover:border-blue-100 shadow-blue-900/5'
                 }`}
               >
-                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center font-black text-sm text-slate-400 dark:text-slate-600 shrink-0 border border-slate-100 dark:border-slate-700">{idx + 4}º</div>
-                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-900 shrink-0">
-                  {m.photoUrl ? <img src={formatImageUrl(m.photoUrl)} className="w-full h-full object-cover" /> : <User size={24} className="m-auto text-slate-200 dark:text-slate-700 mt-2.5" />}
-                </div>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center font-black text-xs sm:text-sm text-slate-400 dark:text-slate-600 shrink-0 border border-slate-100 dark:border-slate-700">{idx + 4}º</div>
+                {/* Foto direta do membro sem container artificial */}
+                {m.photoUrl ? (
+                  <img 
+                    src={formatImageUrl(m.photoUrl)} 
+                    alt={m.name}
+                    className="w-12 h-12 rounded-full object-cover shrink-0" 
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                    <User size={22} className="text-slate-400 dark:text-slate-500" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2">
                     <h4 className={`font-black text-sm truncate uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{m.name.split(' ')[0]}</h4>
@@ -426,20 +444,17 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                     : 'bg-white border-slate-100 shadow-blue-900/5'
                 }`}
               >
-                <div className={`w-16 h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border transition-transform duration-500 overflow-hidden shadow-inner ${
-                  isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
-                }`} style={{ width: '64px', height: '64px' }}>
-                  {logo ? (
-                    <img src={logo} alt={unit} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div 
-                      className="w-full h-full flex flex-col items-center justify-center rounded-xl text-white font-black text-xs"
-                      style={{ backgroundColor: color }}
-                    >
-                      <Shield size={20} />
-                    </div>
-                  )}
-                </div>
+                {/* Brasão direto, livre de container artificial */}
+                {logo ? (
+                  <img 
+                    src={logo} 
+                    alt={unit} 
+                    className="w-13 h-13 sm:w-16 sm:h-16 object-contain filter drop-shadow-md shrink-0 pointer-events-none" 
+                    referrerPolicy="no-referrer" 
+                  />
+                ) : (
+                  <Shield size={32} style={{ color }} className="shrink-0 drop-shadow-sm" />
+                )}
                 <div className="flex-1 min-w-0">
                   <h3 className={`text-base font-black uppercase leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{unit}</h3>
                   <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md mt-1 ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>

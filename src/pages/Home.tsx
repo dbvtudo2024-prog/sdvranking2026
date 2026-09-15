@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Announcement, AuthUser, Member, BadgeLevel, UserStats, UserRole } from '@/types';
-import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X, GraduationCap } from 'lucide-react';
+import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X, GraduationCap, Moon, Sun } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -9,13 +9,14 @@ interface HomeProps {
   announcements: Announcement[];
   onNavigate: (page: any) => void;
   isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
   user: AuthUser;
   members: Member[];
   onAwardBadge?: (badgeId: string, level: BadgeLevel) => void;
   onUpdateStats?: (statsUpdate: Partial<UserStats>) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, user, members, onAwardBadge, onUpdateStats }) => {
+const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = false, onToggleDarkMode, user, members, onAwardBadge, onUpdateStats }) => {
   const [currentAvisoIndex, setCurrentAvisoIndex] = useState(0);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const LOGO_APP = "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx";
@@ -148,7 +149,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.96 }}
       onClick={() => onNavigate(page)}
-      className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col items-center sm:items-start text-center sm:text-left transition-all duration-300 shadow-lg ${gradient} ${shadow} border border-white/30 group cursor-pointer`}
+      className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-2.5 min-[360px]:p-3 sm:p-5 flex flex-col items-center sm:items-start text-center sm:text-left transition-all duration-300 shadow-lg ${gradient} ${shadow} border border-white/30 group cursor-pointer w-full`}
     >
       {/* Ícone d'água de fundo decorativo */}
       <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/15 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
@@ -159,13 +160,13 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       <div className="absolute -top-8 -left-8 w-20 h-20 bg-white/25 rounded-full blur-xl pointer-events-none group-hover:bg-white/35 transition-colors" />
 
       {/* Ícone principal em cápsula translúcida com brilho */}
-      <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-2 sm:mb-2.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300">
-        <Icon size={22} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
+      <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-2 sm:mb-2.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300">
+        <Icon size={20} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
       </div>
 
-      {/* Textos com contraste e nitidez */}
-      <div className="relative z-10 w-full">
-        <span className="block text-white font-black text-xs sm:text-sm uppercase tracking-wider drop-shadow-md leading-tight">
+      {/* Textos com contraste, proporção perfeita para celular e sem cortes */}
+      <div className="relative z-10 w-full flex flex-col items-center sm:items-start">
+        <span className="block text-white font-black text-[9px] min-[340px]:text-[10px] min-[390px]:text-[11px] sm:text-sm uppercase tracking-tight sm:tracking-wider drop-shadow-md leading-tight text-center sm:text-left w-full truncate">
           {label}
         </span>
         <span className="hidden sm:block text-[10px] text-white/85 font-bold uppercase tracking-tight mt-0.5 leading-tight truncate">
@@ -179,7 +180,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
   );
 
   return (
-    <div className={`flex flex-col h-full overflow-y-auto pb-8 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
+    <div className={`flex flex-col h-full overflow-y-auto pb-28 animate-in fade-in duration-500 ${isDarkMode ? 'bg-dark-bg' : 'bg-slate-50'}`}>
       {/* HEADER DESKTOP (Apenas na versão PC: md:flex) */}
       <div className={`hidden md:flex items-center justify-between px-8 py-5 mx-6 mt-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div>
@@ -215,14 +216,35 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               <span>Fazer Check-in</span>
             </button>
           )}
+
+          {/* FOTO DE PERFIL NO CABEÇALHO DESKTOP */}
+          <button
+            id="home-desktop-header-profile-btn"
+            onClick={() => onNavigate('profile')}
+            className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all active:scale-95 shadow-sm flex items-center justify-center group shrink-0"
+            title="Meu Perfil"
+          >
+            {user.photoUrl ? (
+              <img
+                src={formatImageUrl(user.photoUrl)}
+                alt="Meu Perfil"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User size={20} className="text-slate-500 dark:text-slate-400" />
+            )}
+          </button>
         </div>
       </div>
 
       {/* BRASÃO DO CLUBE AO TOPO (Apenas no Mobile: md:hidden) */}
       <div className={`md:hidden flex flex-col items-center justify-center pt-12 pb-8 landscape:pt-4 landscape:pb-4 rounded-b-[3rem] shadow-xl relative ${isDarkMode ? 'bg-dark-card shadow-blue-900/10' : 'bg-white shadow-blue-900/5'}`}>
         <button 
+          id="home-mobile-header-profile-btn"
           onClick={() => onNavigate('profile')}
-          className={`absolute top-8 right-8 landscape:top-4 landscape:right-4 w-12 h-12 landscape:w-10 landscape:h-10 rounded-2xl active:scale-90 transition-all border shadow-sm overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+          className={`absolute top-8 right-8 landscape:top-4 landscape:right-4 w-12 h-12 landscape:w-10 landscape:h-10 rounded-2xl active:scale-90 transition-all border shadow-md overflow-hidden flex items-center justify-center hover:scale-105 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 ring-1 ring-white/10' : 'bg-slate-50 border-slate-200 text-slate-400 shadow-blue-900/5'}`}
+          title="Meu Perfil"
         >
           {user.photoUrl ? (
             <img 
@@ -371,9 +393,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       )}
 
       {/* ÍCONES DE ATALHOS */}
-      <div className="px-6 mt-6">
+      <div className="px-4 sm:px-6 mt-6">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-2">Acesso Rápido</h3>
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 gap-2 min-[360px]:gap-2.5 min-[400px]:gap-3 sm:gap-4">
           <Shortcut 
             icon={LayoutGrid} 
             label="Unidades" 

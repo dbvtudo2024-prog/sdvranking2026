@@ -287,8 +287,8 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           })}
         </nav>
 
-        {/* 4. BASE DO MENU: AJUSTES */}
-        <div className="p-2.5 border-t border-slate-100 dark:border-slate-800/80 shrink-0">
+        {/* 4. BASE DO MENU: AJUSTES E VERSÃO DO APP */}
+        <div className="p-2.5 border-t border-slate-100 dark:border-slate-800/80 shrink-0 flex flex-col gap-1.5">
           <button
             onClick={(e) => {
               if (!isExpanded) {
@@ -313,6 +313,21 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             </div>
             {isExpanded && <span className="text-[10px] font-bold text-slate-400">Opções</span>}
           </button>
+
+          {/* Versão do App no Rodapé da Sidebar */}
+          {isExpanded ? (
+            <div className="text-center py-1 select-none">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                v3.4.0 • Oficial
+              </span>
+            </div>
+          ) : (
+            <div className="text-center py-0.5 select-none" title="Versão 3.4.0 Oficial">
+              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500">
+                v3.4
+              </span>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -500,7 +515,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               {/* Rodapé do Modal */}
               <div className="pt-2 text-center">
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  Sentinelas da Verdade • Versão PC
+                  Sentinelas da Verdade • v3.4.0 (PC)
                 </p>
               </div>
             </motion.div>

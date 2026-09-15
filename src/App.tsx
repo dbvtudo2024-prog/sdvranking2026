@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
 import { DatabaseService } from '@/db';
 import { calculateMonthlyGamesTotal, GAME_KEYS } from '@/helpers/scoreHelpers';
-import { APP_VERSION, BADGE_DEFINITIONS } from '@/constants';
+import { APP_VERSION, BADGE_DEFINITIONS, UNIT_LOGOS } from '@/constants';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Home from '@/pages/Home';
@@ -29,7 +29,7 @@ import AppNavbar from '@/components/AppNavbar';
 import DesktopSidebar from '@/components/DesktopSidebar';
 import TickerBanner from '@/components/TickerBanner';
 import { formatImageUrl } from '@/helpers/imageHelpers';
-import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle, ShieldCheck, Plus, UserPlus, Shield, User } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -1007,7 +1007,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
+      case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'units': return (
         <Units 
           members={members} 
@@ -1078,7 +1078,7 @@ const App: React.FC = () => {
       mahjongOverride={mahjongOverride} mahjongAllowedDay={mahjongAllowedDay} onSetMahjongAllowedDay={async (d) => { setMahjongAllowedDay(d); await DatabaseService.updateGameConfig({ mahjong_allowed_day: d }); }} onToggleMahjongOverride={async () => { const nv = !mahjongOverride; setMahjongOverride(nv); await DatabaseService.updateGameConfig({ mahjong_override: nv }); }}
       specialtyStudyOverride={specialtyStudyOverride} specialtyStudyAllowedDay={specialtyStudyAllowedDay} onSetSpecialtyStudyAllowedDay={async (d) => { setSpecialtyStudyAllowedDay(d); await DatabaseService.updateGameConfig({ specialty_study_allowed_day: d }); }} onToggleSpecialtyStudyOverride={async () => { const nv = !specialtyStudyOverride; setSpecialtyStudyOverride(nv); await DatabaseService.updateGameConfig({ specialty_study_override: nv }); }}
       isDarkMode={isDarkMode} />;
-      default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} user={user!} />;
+      default: return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} user={user!} />;
     }
   };
 
@@ -1220,7 +1220,7 @@ const App: React.FC = () => {
                 <img 
                   src={LOGO_APP} 
                   alt="Logo" 
-                  className="w-12 h-12 object-contain" 
+                  className="w-12 h-12 object-contain md:hidden" 
                   referrerPolicy="no-referrer"
                 />
               )}
@@ -1238,36 +1238,138 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {activeSpecialtyImage && currentPage === 'specialty_study' && (
-              <div className="w-12 h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center animate-in zoom-in duration-300">
-                <img 
-                  src={formatImageUrl(activeSpecialtyImage)} 
-                  alt="Especialidade" 
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-            )}
+            {/* LADO DIREITO DO CABEÇALHO (WIDGETS + FOTO DE PERFIL FIXA) */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {activeSpecialtyImage && currentPage === 'specialty_study' && (
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center animate-in zoom-in duration-300">
+                  <img 
+                    src={formatImageUrl(activeSpecialtyImage)} 
+                    alt="Especialidade" 
+                    className="w-full h-full object-contain" 
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
 
-            {/* PROGRESSO GERAL NA TELA DE INSÍGNIAS (À DIREITA DO CABEÇALHO) */}
-            {currentPage === 'badges' && (
-              <div className="flex items-center gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-inner shrink-0 animate-in fade-in duration-300">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                  <ShieldCheck className="text-white" size={20} />
+              {/* PROGRESSO GERAL NA TELA DE INSÍGNIAS (À DIREITA DO CABEÇALHO - APENAS PC) */}
+              {currentPage === 'badges' && (
+                <div className="hidden md:flex items-center gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-inner shrink-0 animate-in fade-in duration-300">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="text-white" size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest leading-none opacity-90">
+                      Progresso Geral
+                    </p>
+                    <p className="text-white text-xs font-black leading-tight mt-0.5 whitespace-nowrap">
+                      <span className="text-yellow-400 font-black">
+                        {(user.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).length} de {BADGE_DEFINITIONS.length}
+                      </span>{' '}
+                      <span className="font-bold opacity-90">conquistadas</span>
+                    </p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest leading-none opacity-90">
-                    Progresso Geral
-                  </p>
-                  <p className="text-white text-xs font-black leading-tight mt-0.5 whitespace-nowrap">
-                    <span className="text-yellow-400 font-black">
-                      {(user.badges || []).filter(b => !b.badgeId.startsWith('monthly_games_')).length} de {BADGE_DEFINITIONS.length}
-                    </span>{' '}
-                    <span className="font-bold opacity-90">conquistadas</span>
-                  </p>
+              )}
+
+              {/* BOTÃO NOVA UNIDADE NA ÁREA DE UNIDADES NO CABEÇALHO À DIREITA (APENAS PC / DESKTOP) */}
+              {currentPage === 'units' && (user?.role === UserRole.LEADERSHIP || user?.email?.toLowerCase() === 'ronaldosonic@gmail.com' || (user?.role as any) === 'admin') && (
+                <div className="hidden md:flex items-center gap-2.5 shrink-0 animate-in fade-in duration-300">
+                  <button
+                    id="header-btn-add-unit"
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-add-unit-modal'))}
+                    className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-blue-950/40 border border-blue-400/40 hover:scale-105 transition-all duration-200 cursor-pointer group"
+                    title="Criar Nova Unidade"
+                  >
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <Plus size={18} strokeWidth={3} className="text-white" />
+                    </div>
+                    <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                      NOVA UNIDADE
+                    </span>
+                  </button>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* INFORMAÇÕES DA UNIDADE (BRASÃO + INTEGRANTES) & BOTÃO NOVO MEMBRO NO CABEÇALHO À DIREITA (APENAS PC / DESKTOP) */}
+              {currentPage === 'unit_detail' && selectedUnit && (() => {
+                const activeSelectedUnitData = unitsList.find(u => u.name === selectedUnit) || DEFAULT_UNITS.find(u => u.name === selectedUnit);
+                const selectedUnitLogo = activeSelectedUnitData?.logoUrl || (UNIT_LOGOS as any)[selectedUnit] || (UNIT_LOGOS as any)[selectedUnit.replace('Unidade ', '')];
+                const isLiderancaSelected = selectedUnit === UnitName.LIDERANCA;
+                const selectedUnitMembersCount = (members || []).filter(m => (m.unit || '').trim().toLowerCase() === (selectedUnit || '').trim().toLowerCase()).length;
+                const canManageMembers = user?.role === UserRole.LEADERSHIP || user?.email?.toLowerCase() === 'ronaldosonic@gmail.com' || (user?.role as any) === 'admin';
+
+                return (
+                  <div className="hidden md:flex items-center gap-2.5 sm:gap-3 shrink-0 animate-in fade-in duration-300">
+                    {/* Card Brasão + Integrantes (Solicitado para o cabeçalho no PC) */}
+                    <div className="flex items-center gap-3 bg-white/10 dark:bg-slate-900/60 backdrop-blur-md border border-white/20 dark:border-slate-700/60 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-inner">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900/70 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                        {selectedUnitLogo ? (
+                          <img 
+                            src={selectedUnitLogo} 
+                            alt="Brasão" 
+                            className="w-full h-full object-contain" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <Shield size={18} className="text-yellow-400" />
+                        )}
+                      </div>
+                      <span className="text-white font-black text-xs sm:text-sm md:text-base whitespace-nowrap tracking-tight">
+                        {selectedUnitMembersCount} {isLiderancaSelected ? 'Líderes' : 'Integrantes'}
+                      </span>
+                    </div>
+
+                    {/* BOTÃO NOVO MEMBRO DENTRO DAS UNIDADES (NO PC) */}
+                    {canManageMembers && (
+                      <button
+                        id="header-btn-unit-add-member"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-unit-detail-add-member'))}
+                        className="flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#059669] hover:bg-[#047857] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-950/40 border border-emerald-400/40 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
+                        title="Cadastrar Novo Membro nesta Unidade"
+                      >
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <UserPlus size={16} strokeWidth={2.5} className="text-white" />
+                        </div>
+                        <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                          NOVO MEMBRO
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* FOTO DE PERFIL FIXA NO CABEÇALHO (PADRÃO PARA TODAS AS PÁGINAS) */}
+              <button
+                id="header-profile-btn"
+                onClick={() => {
+                  setActiveSpecialtyName(null);
+                  setCurrentPage('profile');
+                }}
+                className={`relative group rounded-full p-0.5 transition-all active:scale-90 hover:scale-105 shrink-0 ${
+                  currentPage === 'profile'
+                    ? 'ring-2 ring-yellow-400 bg-white/25 shadow-lg shadow-yellow-400/20'
+                    : 'hover:bg-white/15'
+                }`}
+                title="Meu Perfil"
+              >
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-white/50 shadow-sm bg-white/20 flex items-center justify-center">
+                  {user.photoUrl ? (
+                    <img
+                      src={formatImageUrl(user.photoUrl)}
+                      alt="Meu Perfil"
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <User size={20} className="text-white" />
+                  )}
+                </div>
+                {currentPage === 'profile' && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-yellow-400 border-2 border-[#0061f2] rounded-full shadow-xs" />
+                )}
+              </button>
+            </div>
           </header>
         )}
         
@@ -1296,16 +1398,16 @@ const App: React.FC = () => {
           </button>
         )}
 
-        {/* MENU INFERIOR APENAS NO MOBILE (md:hidden) */}
+        {/* MENU INFERIOR FLUTUANTE (MOBILE & TABLET: md:hidden) */}
         {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
-          <footer className="shrink-0 z-[100] md:hidden">
+          <div className="fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[420px] sm:max-w-lg z-[95] pointer-events-auto md:hidden">
             <AppNavbar 
               currentPage={currentPage as any} 
               setCurrentPage={setCurrentPage as any} 
               unreadCount={unreadCount}
               isDarkMode={isDarkMode}
             />
-          </footer>
+          </div>
         )}
       </div>
     </div>

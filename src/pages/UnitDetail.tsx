@@ -1,8 +1,8 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { UnitName, Member, UserRole, Score, BadgeLevel } from '@/types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES, BADGE_DEFINITIONS } from '@/constants';
-import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book, ArrowLeft, Trophy } from 'lucide-react';
+import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book, ArrowLeft, Trophy, UserPlus } from 'lucide-react';
 import MemberProfileModal from '@/components/MemberProfileModal';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
@@ -77,6 +77,27 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const historyMember = useMemo(() => {
     return members.find(m => m.id === selectedMemberIdForHistory);
   }, [members, selectedMemberIdForHistory]);
+
+  // Listener para abertura do modal via botão no cabeçalho superior
+  useEffect(() => {
+    const handleAddMemberEvent = () => {
+      setIsEditing(false);
+      setEditingMember(null);
+      setFormData({
+        name: '',
+        age: isLiderancaUnit ? 16 : 10,
+        className: isLiderancaUnit ? 'Líder' : 'Amigo',
+        birthday: new Date().toISOString().split('T')[0],
+        counselor: isLiderancaUnit ? (LEADERSHIP_ROLES[0] || 'Instrutor (a)') : '',
+        photoUrl: ''
+      });
+      setShowAddModal(true);
+    };
+    window.addEventListener('open-unit-detail-add-member', handleAddMemberEvent);
+    return () => {
+      window.removeEventListener('open-unit-detail-add-member', handleAddMemberEvent);
+    };
+  }, [isLiderancaUnit]);
 
   // Sync profile when members list updates (ensures badges show up in real-time)
   const currentProfile = useMemo(() => {
@@ -211,31 +232,47 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   const inputClasses = "w-full p-3.5 bg-white dark:bg-slate-900 border border-[#e2e8f0] dark:border-slate-700 rounded-[0.8rem] text-[#1e293b] dark:text-slate-100 outline-none focus:border-[#2563eb] font-semibold transition-all text-sm shadow-sm";
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0f172a] animate-in fade-in duration-500 overflow-y-auto pb-28">
       <div className="p-4 sm:p-8">
-        <div className="flex justify-between items-center mb-8 bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm min-h-[80px]">
-            <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 px-2">
-              <div className="w-16 h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" style={{ width: '64px', height: '64px' }}>
-                {(UNIT_LOGOS as any)[unitName] ? (
-                  <img src={(UNIT_LOGOS as any)[unitName]} alt="Brasão" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                ) : (
-                  <Shield size={32} className="text-blue-500" />
-                )}
-              </div>
-              <span className="font-black text-base sm:text-xl text-slate-600 dark:text-slate-300">{filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}</span>
-            </div>
-          {isProtectedAdmin && (
-            <button 
-              id="btn-unit-add-member"
-              onClick={() => { setIsEditing(false); setEditingMember(null); setShowAddModal(true); }} 
-              className="flex items-center gap-2 px-4 sm:px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/25 border border-emerald-400/30 hover:scale-105 transition-all duration-200 cursor-pointer group"
-              title="Adicionar Novo Membro nesta Unidade"
+        {/* INFORMAÇÕES DA UNIDADE NO CELULAR: BRASÃO DIRETO (SEM CONTAINER), CONTAGEM E BOTÃO NOVO MEMBRO */}
+        <div className="md:hidden flex items-center justify-between gap-3 mb-6 px-1">
+          <div className="flex items-center gap-3">
+            {/* Brasão direto, livre de qualquer container */}
+            {(UNIT_LOGOS as any)[unitName] ? (
+              <img 
+                src={(UNIT_LOGOS as any)[unitName]} 
+                alt="Brasão" 
+                className="w-12 h-12 object-contain filter drop-shadow-md shrink-0" 
+                referrerPolicy="no-referrer" 
+              />
+            ) : (
+              <Shield size={28} className="text-blue-500 shrink-0" />
+            )}
+            <span className="font-black text-base text-slate-800 dark:text-slate-100 block">
+              {filteredMembers.length} {isLiderancaUnit ? 'Líderes' : 'Integrantes'}
+            </span>
+          </div>
+
+          {/* BOTÃO NOVO MEMBRO */}
+          {(isUserLeadership || isProtectedAdmin) && (
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditingMember(null);
+                setFormData({
+                  name: '',
+                  age: isLiderancaUnit ? 16 : 10,
+                  className: isLiderancaUnit ? 'Líder' : 'Amigo',
+                  birthday: new Date().toISOString().split('T')[0],
+                  counselor: isLiderancaUnit ? (LEADERSHIP_ROLES[0] || 'Instrutor (a)') : '',
+                  photoUrl: ''
+                });
+                setShowAddModal(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all cursor-pointer shrink-0"
             >
-              <div className="p-1 rounded-lg bg-white/20 group-hover:scale-110 transition-transform">
-                <Plus size={16} strokeWidth={3} />
-              </div>
-              <span className="hidden sm:inline">Novo Membro</span>
-              <span className="sm:hidden">Membro</span>
+              <UserPlus size={15} strokeWidth={2.5} />
+              <span>Novo Membro</span>
             </button>
           )}
         </div>

@@ -2,8 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UnitName, Member, UserRole, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
 import { UNIT_LOGOS, PATHFINDER_CLASSES, LEADERSHIP_CLASSES, PATHFINDER_ROLES, LEADERSHIP_ROLES, getClassByAge } from '@/constants';
-import { Users, Shield, Plus, Trash2, X, AlertTriangle, Upload, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, Pencil, UserPlus, User, Calendar } from 'lucide-react';
+import { Users, Shield, Plus, Trash2, X, AlertTriangle, Upload, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, Pencil, UserPlus, User, Calendar, ChevronRight, Trophy } from 'lucide-react';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
+import { motion } from 'motion/react';
 
 interface UnitsProps {
   members: Member[];
@@ -32,6 +33,66 @@ const PRESET_COLORS = [
   { name: 'Índigo', color: '#4f46e5' },
   { name: 'Grafite', color: '#1e293b' }
 ];
+
+const getUnitCardTheme = (unitName: string, unitColor?: string) => {
+  const normalized = unitName.trim().toLowerCase();
+  
+  if (normalized.includes('águia') || normalized.includes('aguia') || normalized.includes('dourada') || unitColor?.toLowerCase() === '#ffd700') {
+    return {
+      gradient: 'bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500',
+      shadow: 'shadow-amber-500/25 hover:shadow-amber-500/45',
+      border: 'border-white/30 hover:border-white/50',
+      watermarkColor: 'text-amber-200/20'
+    };
+  }
+  
+  if (normalized.includes('guerreiro') || unitColor?.toLowerCase() === '#0061f2') {
+    return {
+      gradient: 'bg-gradient-to-r from-blue-600 via-[#0061f2] to-indigo-700',
+      shadow: 'shadow-blue-500/25 hover:shadow-blue-500/45',
+      border: 'border-white/30 hover:border-white/50',
+      watermarkColor: 'text-white/15'
+    };
+  }
+  
+  if (normalized.includes('lideran') || normalized.includes('lider') || normalized.includes('líder') || unitColor?.toLowerCase() === '#1e293b') {
+    return {
+      gradient: 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900',
+      shadow: 'shadow-indigo-950/40 hover:shadow-indigo-900/60',
+      border: 'border-amber-400/40 hover:border-amber-400/70',
+      watermarkColor: 'text-amber-300/15'
+    };
+  }
+
+  const colorMap: Record<string, { gradient: string; shadow: string }> = {
+    '#16a34a': { gradient: 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700', shadow: 'shadow-emerald-500/25 hover:shadow-emerald-500/45' },
+    '#dc2626': { gradient: 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700', shadow: 'shadow-red-500/25 hover:shadow-red-500/45' },
+    '#7c3aed': { gradient: 'bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700', shadow: 'shadow-purple-500/25 hover:shadow-purple-500/45' },
+    '#ea580c': { gradient: 'bg-gradient-to-r from-orange-500 via-amber-600 to-orange-600', shadow: 'shadow-orange-500/25 hover:shadow-orange-500/45' },
+    '#0891b2': { gradient: 'bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600', shadow: 'shadow-cyan-500/25 hover:shadow-cyan-500/45' },
+    '#db2777': { gradient: 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600', shadow: 'shadow-pink-500/25 hover:shadow-pink-500/45' },
+    '#4f46e5': { gradient: 'bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-800', shadow: 'shadow-indigo-500/25 hover:shadow-indigo-500/45' },
+  };
+
+  if (unitColor && colorMap[unitColor.toLowerCase()]) {
+    return {
+      gradient: colorMap[unitColor.toLowerCase()].gradient,
+      shadow: colorMap[unitColor.toLowerCase()].shadow,
+      border: 'border-white/30 hover:border-white/50',
+      watermarkColor: 'text-white/15'
+    };
+  }
+
+  return {
+    gradient: 'bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-800',
+    shadow: 'shadow-blue-500/25 hover:shadow-blue-500/45',
+    border: 'border-white/30 hover:border-white/50',
+    watermarkColor: 'text-white/15',
+    customStyle: unitColor ? {
+      background: `linear-gradient(135deg, ${unitColor}, #0f172a)`
+    } : undefined
+  };
+};
 
 const Units: React.FC<UnitsProps> = ({ 
   members, 
@@ -331,80 +392,38 @@ const Units: React.FC<UnitsProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full animate-in fade-in duration-500 overflow-y-auto pb-24 pt-4 ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
+    <div className={`flex flex-col h-full animate-in fade-in duration-500 overflow-y-auto pb-28 pt-4 ${isDarkMode ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
       <div className="px-6 flex flex-col gap-4 mb-6">
-        
-        {/* Cabeçalho de Ações do Administrador */}
+        {/* BOTÃO NOVA UNIDADE PARA CELULAR (md:hidden - mantido no corpo da página no mobile) */}
         {isAdmin && (
-          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl border shadow-xl transition-all duration-300 ${
-            isDarkMode 
-              ? 'bg-gradient-to-r from-blue-950/50 via-slate-900 to-slate-900 border-blue-800/40 shadow-blue-950/20' 
-              : 'bg-gradient-to-r from-blue-50/90 via-white to-white border-blue-100/80 shadow-blue-900/5'
-          }`}>
-            <div className="flex items-center gap-3.5">
-              <div className={`p-3 rounded-2xl ${
-                isDarkMode 
-                  ? 'bg-blue-600/30 text-blue-400 border border-blue-500/30' 
-                  : 'bg-blue-600 text-white shadow-blue-500/30'
-              } shadow-lg shrink-0`}>
-                <Shield size={22} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  Gestão de Unidades & Membros
-                </h3>
-                <p className={`text-[10px] sm:text-xs font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Cadastre novos membros e gerencie as unidades do clube
-                </p>
-              </div>
-            </div>
-
-            {/* BOTÕES ESTILIZADOS E VIBRANTES */}
-            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-              {/* Botão + Novo Membro (Imagem 2) */}
-              <button
-                id="btn-add-member"
-                onClick={() => handleOpenAddMemberModal()}
-                className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#059669] hover:bg-[#047857] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
-                title="Cadastrar novo membro no clube"
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <UserPlus size={16} strokeWidth={2.5} className="text-white" />
-                </div>
-                <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                  NOVO MEMBRO
-                </span>
-              </button>
-
-              {/* Botão + Nova Unidade (Imagem 1) */}
-              <button
-                id="btn-add-unit"
-                onClick={handleOpenAddModal}
-                className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 border border-blue-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
-                title="Criar nova unidade"
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Plus size={18} strokeWidth={3} className="text-white" />
-                </div>
-                <span className="font-black text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                  NOVA UNIDADE
-                </span>
-              </button>
-            </div>
+          <div className="md:hidden flex items-center justify-between">
+            <button
+              type="button"
+              id="mobile-btn-add-unit"
+              onClick={handleOpenAddModal}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#0061f2] hover:bg-blue-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-blue-500/20 border border-blue-400/30 transition-all cursor-pointer"
+            >
+              <Plus size={16} strokeWidth={3} />
+              <span>NOVA UNIDADE</span>
+            </button>
           </div>
         )}
 
         {/* Lista de Unidades */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {activeUnits.map((unit) => {
             const stats = getUnitStats(unit.name);
             const unitLogo = unit.logoUrl || (UNIT_LOGOS as any)[unit.name];
             const unitColor = unit.color || '#0061f2';
+            const theme = getUnitCardTheme(unit.name, unitColor);
 
             return (
-              <div 
+              <motion.div 
                 key={unit.id || unit.name}
-                className="relative group"
+                whileHover={{ scale: 1.01, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="w-full"
               >
                 <div 
                   onClick={() => onSelectUnit(unit.name)}
@@ -415,133 +434,93 @@ const Units: React.FC<UnitsProps> = ({
                       onSelectUnit(unit.name);
                     }
                   }}
-                  className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-[2.25rem] border-2 transition-all active:scale-[0.99] w-full text-left shadow-xl cursor-pointer ${
-                    isDarkMode 
-                      ? 'bg-slate-800 border-slate-700/80 hover:border-blue-700 shadow-blue-950/20' 
-                      : 'bg-white border-slate-100 hover:border-blue-200 shadow-blue-900/5'
-                  }`}
+                  style={theme.customStyle}
+                  className={`relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-5 flex items-center justify-between gap-2.5 sm:gap-6 transition-all duration-300 shadow-lg ${theme.gradient} ${theme.shadow} border ${theme.border} group cursor-pointer w-full text-left`}
                 >
-                  {/* Bloco Esquerda: Logo / Brasão + Dados da Unidade */}
-                  <div className="flex items-center gap-4 sm:gap-5 flex-1 min-w-0">
-                    <div 
-                      className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center p-2 rounded-2xl border-2 transition-transform duration-500 group-hover:scale-105 overflow-hidden shadow-inner ${
-                        isDarkMode ? 'bg-slate-900/90 border-slate-700' : 'bg-slate-50 border-slate-100'
-                      }`}
-                    >
-                      {unitLogo ? (
-                        <img 
-                          src={unitLogo} 
-                          alt={`Logo ${unit.name}`} 
-                          className="w-full h-full object-contain" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div 
-                          className="w-full h-full flex flex-col items-center justify-center rounded-xl text-white font-black text-xs"
-                          style={{ backgroundColor: unitColor }}
-                        >
-                          <Shield size={22} className="mb-0.5" />
-                          <span className="text-[9px] uppercase leading-none font-black truncate max-w-full px-1">
-                            {unit.name.substring(0, 3)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                  {/* Ícone d'água de fundo decorativo rotacionado (como na tela de início) */}
+                  <div className={`absolute -right-3 -bottom-3 sm:-right-6 sm:-bottom-6 ${theme.watermarkColor} group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 pointer-events-none`}>
+                    <Shield size={90} strokeWidth={1.4} className="sm:w-36 sm:h-36" />
+                  </div>
+
+                  {/* Brilho suave no canto superior (como na tela de início) */}
+                  <div className="absolute -top-10 -left-10 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none" />
+
+                  {/* Bloco Esquerda: Brasão DIRETO (sem container) + Nome da Unidade e Integrantes */}
+                  <div className="relative z-10 flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    {/* Brasão renderizado direto, sem container */}
+                    {unitLogo ? (
+                      <img 
+                        src={unitLogo} 
+                        alt={`Logo ${unit.name}`} 
+                        className="w-12 h-12 sm:w-16 sm:h-16 object-contain filter drop-shadow-md pointer-events-none shrink-0" 
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <Shield size={32} className="text-white drop-shadow-sm shrink-0" />
+                    )}
                     
-                    {/* Dados da Unidade */}
-                    <div className="flex-1 min-w-0 pr-2">
-                      <h4 className={`font-black text-base sm:text-lg uppercase tracking-tight leading-snug mb-1.5 truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {/* Nome da Unidade e Integrantes */}
+                    <div className="flex-1 min-w-0 pr-1">
+                      <h4 className="text-white font-black text-sm sm:text-2xl uppercase tracking-wide drop-shadow-sm leading-tight truncate">
                         {unit.name}
                       </h4>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-slate-700/70 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                          <Users size={11} />
-                          <span className="text-[9px] font-black uppercase tracking-wider">{stats.count} Integrantes</span>
-                        </div>
-                      </div>
+                      <p className="text-[11px] sm:text-xs font-bold text-white/90 uppercase tracking-wider mt-0.5 truncate">
+                        {stats.count} {unit.name === UnitName.LIDERANCA ? 'Líderes' : 'Integrantes'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Bloco Direita: Botão NOVO MEMBRO (Imagem 2) no cabeçalho da unidade + Pontos Semanais */}
-                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 justify-between sm:justify-end z-10">
-                    {/* Botão NOVO MEMBRO no cabeçalho de cada unidade (Imagem 2) */}
+                  {/* Bloco Direita: Botões Admin na VERTICAL + Caixa de Pontos */}
+                  <div className="relative z-10 flex items-center gap-2 sm:gap-3 shrink-0">
                     {isAdmin && (
-                      <button
-                        type="button"
-                        id={`btn-unit-card-add-member-${unit.id || unit.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenAddMemberModal(unit.name);
-                        }}
-                        className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-[#059669] hover:bg-[#047857] active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/20 hover:scale-105 transition-all duration-200 cursor-pointer group shrink-0"
-                        title={`Adicionar novo membro na unidade ${unit.name}`}
-                      >
-                        <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <UserPlus size={14} strokeWidth={2.5} className="text-white" />
-                        </div>
-                        <span className="font-black text-[11px] sm:text-xs uppercase tracking-wider whitespace-nowrap">
-                          NOVO MEMBRO
-                        </span>
-                      </button>
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          id={`btn-edit-unit-${unit.id || unit.name}`}
+                          title={`Editar unidade ${unit.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditModal(unit);
+                          }}
+                          className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/20 hover:bg-white/35 active:scale-95 text-white border border-white/30 backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer"
+                        >
+                          <Pencil size={12} strokeWidth={2.4} className="sm:w-3.5 sm:h-3.5" />
+                        </button>
+
+                        {unit.name !== UnitName.LIDERANCA && (
+                          <button
+                            type="button"
+                            id={`btn-delete-unit-${unit.id || unit.name}`}
+                            title={`Excluir unidade ${unit.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUnitToDelete(unit);
+                            }}
+                            className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/20 hover:bg-red-500/80 active:scale-95 text-white border border-white/30 backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer"
+                          >
+                            <Trash2 size={12} strokeWidth={2.4} className="sm:w-3.5 sm:h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     )}
 
-                    {/* Pontos Semanais */}
-                    <div className={`flex flex-col items-center justify-center px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border-2 ${
-                      isDarkMode ? 'bg-blue-900/20 border-blue-800/40' : 'bg-blue-50/70 border-blue-100'
-                    }`}>
-                      <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest mb-0.5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                        Pontos
+                    {/* Caixa de Pontos Semanal */}
+                    <div className="flex flex-col items-center justify-center min-w-[54px] sm:min-w-[84px] px-2 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.25)]">
+                      <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest leading-none mb-0.5 text-white/90">
+                        PONTOS
                       </span>
-                      <span className={`text-lg sm:text-xl font-black leading-none ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                      <span className="text-base sm:text-2xl font-black leading-none tracking-tight text-white drop-shadow-sm">
                         {stats.weeklyPoints}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Faixa lateral colorida */}
-                  <div 
-                    className="absolute right-0 top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-l-full" 
-                    style={{ backgroundColor: unitColor }}
-                  />
+                    {/* Seta indicativa de clique no desktop */}
+                    <div className="hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white group-hover:translate-x-1 transition-transform duration-300 shrink-0">
+                      <ChevronRight size={18} strokeWidth={2.5} />
+                    </div>
+                  </div>
                 </div>
-
-                {/* Botões de Ação para Administrador (Editar e Excluir) */}
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
-                    <button
-                      id={`btn-edit-unit-${unit.id || unit.name}`}
-                      title={`Editar unidade ${unit.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEditModal(unit);
-                      }}
-                      className={`p-2 rounded-full border transition-all opacity-70 group-hover:opacity-100 hover:scale-110 active:scale-95 ${
-                        isDarkMode 
-                          ? 'bg-slate-900/90 hover:bg-blue-950/80 text-slate-400 hover:text-blue-400 border-slate-700 hover:border-blue-700' 
-                          : 'bg-white/90 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border-slate-200 hover:border-blue-200 shadow-sm'
-                      }`}
-                    >
-                      <Pencil size={13} />
-                    </button>
-
-                    <button
-                      id={`btn-delete-unit-${unit.id || unit.name}`}
-                      title={`Excluir unidade ${unit.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUnitToDelete(unit);
-                      }}
-                      className={`p-2 rounded-full border transition-all opacity-70 group-hover:opacity-100 hover:scale-110 active:scale-95 ${
-                        isDarkMode 
-                          ? 'bg-slate-900/90 hover:bg-red-950/80 text-slate-400 hover:text-red-400 border-slate-700 hover:border-red-800' 
-                          : 'bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-600 border-slate-200 hover:border-red-200 shadow-sm'
-                      }`}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )}
-              </div>
+              </motion.div>
             );
           })}
         </div>

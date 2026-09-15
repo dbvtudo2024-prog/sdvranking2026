@@ -236,14 +236,28 @@ const Profile: React.FC<ProfileProps> = ({
               </div>
             </div>
             
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <h2 className={`text-2xl sm:text-3xl font-black tracking-tight uppercase leading-tight ${isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'}`}>
                 {formData.name}
               </h2>
-              <div className={`flex items-center justify-center sm:justify-start gap-1.5 font-bold uppercase text-[10px] sm:text-xs tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                <Shield size={13} className={isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'} />
-                {formData.unit || 'Sem Unidade'}
-                {formData.funcao && <span className="opacity-70">• {formData.funcao}</span>}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black uppercase text-[10px] sm:text-xs tracking-wider border shadow-xs ${
+                  isDarkMode 
+                    ? 'bg-blue-950/60 border-blue-800/60 text-blue-300' 
+                    : 'bg-blue-50 border-blue-200 text-[#0061f2]'
+                }`}>
+                  <Shield size={13} className={isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'} />
+                  <span className="whitespace-nowrap">{formData.unit || 'Sem Unidade'}</span>
+                </span>
+                {formData.funcao && (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full font-bold uppercase text-[10px] sm:text-xs tracking-wide border shadow-xs ${
+                    isDarkMode 
+                      ? 'bg-slate-800 border-slate-700 text-slate-300' 
+                      : 'bg-slate-100 border-slate-200 text-slate-600'
+                  }`}>
+                    {formData.funcao}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -260,6 +274,21 @@ const Profile: React.FC<ProfileProps> = ({
                 }`}
               >
                 <ShieldCheck size={16} /> GESTÃO ADMINISTRATIVA
+              </button>
+            )}
+            
+            {onToggleDarkMode && (
+              <button 
+                id="profile-btn-toggle-theme"
+                onClick={onToggleDarkMode} 
+                className={`w-full border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2 ${
+                  isDarkMode 
+                    ? 'bg-slate-800 border-amber-500/50 text-amber-300 hover:bg-slate-700' 
+                    : 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50'
+                }`}
+              >
+                {isDarkMode ? <Sun size={16} className="text-yellow-400 fill-yellow-400/30" /> : <Moon size={16} />}
+                <span>{isDarkMode ? 'MUDAR PARA MODO CLARO' : 'MUDAR PARA MODO ESCURO'}</span>
               </button>
             )}
             
@@ -639,7 +668,7 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         </div>
       </div>
-      <div className="text-center py-10 opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">v3.0.0 • Versão Oficial</p></div>
+      <div className="text-center py-10 opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">v3.4.0 • Versão Oficial</p></div>
 
       <AnimatePresence>
         {showEditModal && (
