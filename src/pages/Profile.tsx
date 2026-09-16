@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser, UserRole, UnitName, Member, UserBadge, BadgeDefinition, BadgeCategory, BadgeLevel, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, isLeadershipUnit } from '@/types';
 import { getClassByAge, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_ROLES, BADGE_DEFINITIONS } from '@/constants';
-import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon } from 'lucide-react';
+import { Save, User as UserIcon, Camera, ChevronDown, Trophy, BookOpen, Medal, ShieldCheck, Check, Shield, X, Settings, LogOut, Gamepad2, Brain, Zap, Shuffle, HelpCircle, Moon, Sun, Star, MessageSquare, Type, Map, Shield as ShieldIcon, Award, GraduationCap, Calendar, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { calculateWeeklyTotal, calculateGamesTotal, calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
@@ -227,12 +227,12 @@ const Profile: React.FC<ProfileProps> = ({
         )}
 
         {/* CABEÇALHO COM FOTO À ESQUERDA E BOTÕES À DIREITA */}
-        <div className={`p-6 sm:p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} flex flex-col md:flex-row items-center justify-between gap-6`}>
+        <div className={`p-5 sm:p-7 md:p-8 rounded-2xl sm:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900/90 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-xl shadow-blue-900/5'} flex flex-col md:flex-row items-center justify-between gap-6`}>
           {/* LADO ESQUERDO: FOTO + IDENTIFICAÇÃO */}
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
             <div className="relative shrink-0">
-              <div className={`w-28 h-28 sm:w-32 sm:h-32 bg-gradient-to-br from-[#0061f2] to-[#0052cc] rounded-[2.5rem] flex items-center justify-center text-white border-4 ${isDarkMode ? 'border-slate-800' : 'border-white'} shadow-2xl overflow-hidden`}>
-                {formData.photoUrl ? <img src={formData.photoUrl} alt="Perfil" className="w-full h-full object-cover" /> : <UserIcon size={64} />}
+              <div className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-[#0061f2] to-[#0052cc] rounded-2xl sm:rounded-3xl flex items-center justify-center text-white border-4 ${isDarkMode ? 'border-slate-800' : 'border-white'} shadow-2xl overflow-hidden`}>
+                {formData.photoUrl ? <img src={formData.photoUrl} alt="Perfil" className="w-full h-full object-cover" /> : <UserIcon size={56} />}
               </div>
             </div>
             
@@ -277,21 +277,6 @@ const Profile: React.FC<ProfileProps> = ({
               </button>
             )}
             
-            {onToggleDarkMode && (
-              <button 
-                id="profile-btn-toggle-theme"
-                onClick={onToggleDarkMode} 
-                className={`w-full border-2 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2 ${
-                  isDarkMode 
-                    ? 'bg-slate-800 border-amber-500/50 text-amber-300 hover:bg-slate-700' 
-                    : 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50'
-                }`}
-              >
-                {isDarkMode ? <Sun size={16} className="text-yellow-400 fill-yellow-400/30" /> : <Moon size={16} />}
-                <span>{isDarkMode ? 'MUDAR PARA MODO CLARO' : 'MUDAR PARA MODO ESCURO'}</span>
-              </button>
-            )}
-            
             <button 
               onClick={() => {
                 setFormData({ ...user });
@@ -315,81 +300,296 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         </div>
 
-        {/* RESUMO DE PONTUAÇÃO GERAL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#0061f2] p-8 rounded-[3.5rem] text-white shadow-2xl shadow-blue-500/20 flex items-center justify-between border-b-8 border-blue-800">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100/60 mb-1">Jogos</p>
-              <h3 className="text-5xl font-black tracking-tighter tabular-nums">{gameStats.totalPoints}</h3>
-              <p className="text-[10px] font-bold text-blue-200/80 uppercase tracking-widest mt-1">Pontos Acumulados</p>
+        {/* PAINEL DE MÉTRICAS & PONTUAÇÕES (RESPONSIVO PARA MOBILE, TABLET E PC) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 1. PONTOS DE JOGOS */}
+          <div 
+            id="profile-kpi-games"
+            className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border transition-all duration-300 flex flex-col justify-between group ${
+              isDarkMode 
+                ? 'bg-slate-900/80 border-slate-800 hover:border-blue-500/40 shadow-lg shadow-black/20' 
+                : 'bg-white border-slate-100 hover:border-blue-200 shadow-sm shadow-blue-500/5'
+            }`}
+          >
+            <div className="absolute -right-2 -bottom-2 text-blue-500/10 dark:text-blue-400/10 pointer-events-none group-hover:scale-110 transition-transform">
+              <Trophy size={56} />
             </div>
-            <div className="w-20 h-20 rounded-[2rem] bg-white/20 flex items-center justify-center backdrop-blur-md border-2 border-white/30 shrink-0">
-              <Trophy size={40} className="text-yellow-400" />
+            
+            <div className="flex items-center justify-between relative z-10">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                isDarkMode ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-blue-50 text-[#0061f2] border border-blue-100'
+              }`}>
+                <Trophy size={18} className="text-yellow-500" />
+              </div>
+              <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isDarkMode ? 'bg-blue-950/60 text-blue-300 border border-blue-800/40' : 'bg-blue-50 text-blue-700 border border-blue-100'
+              }`}>
+                Jogos
+              </span>
+            </div>
+
+            <div className="relative z-10 mt-3 sm:mt-4">
+              <span className={`block text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight tabular-nums ${
+                isDarkMode ? 'text-blue-400' : 'text-[#0061f2]'
+              }`}>
+                {gameStats.totalPoints}
+              </span>
+              <span className={`block text-[9px] sm:text-[11px] font-bold uppercase tracking-wider mt-0.5 truncate ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Pontos Acumulados
+              </span>
             </div>
           </div>
 
-          <div className="bg-emerald-500 p-8 rounded-[3.5rem] text-white shadow-2xl shadow-emerald-500/20 flex items-center justify-between border-b-8 border-emerald-700">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100/60 mb-1">Membro Semanal</p>
-              <h3 className="text-5xl font-black tracking-tighter tabular-nums">{gameStats.weeklyPoints}</h3>
-              <p className="text-[10px] font-bold text-emerald-100/80 uppercase tracking-widest mt-1">Pontos da Semana</p>
+          {/* 2. MEMBRO SEMANAL */}
+          <div 
+            id="profile-kpi-weekly"
+            className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border transition-all duration-300 flex flex-col justify-between group ${
+              isDarkMode 
+                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/40 shadow-lg shadow-black/20' 
+                : 'bg-white border-slate-100 hover:border-emerald-200 shadow-sm shadow-emerald-500/5'
+            }`}
+          >
+            <div className="absolute -right-2 -bottom-2 text-emerald-500/10 dark:text-emerald-400/10 pointer-events-none group-hover:scale-110 transition-transform">
+              <Star size={56} />
             </div>
-            <div className="w-20 h-20 rounded-[2rem] bg-white/20 flex items-center justify-center backdrop-blur-md border-2 border-white/30 shrink-0">
-              <Star size={40} className="text-yellow-300" fill="currentColor" />
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                isDarkMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+              }`}>
+                <Star size={18} className="text-yellow-400" fill="currentColor" />
+              </div>
+              <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isDarkMode ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+              }`}>
+                Semanal
+              </span>
+            </div>
+
+            <div className="relative z-10 mt-3 sm:mt-4">
+              <span className={`block text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight tabular-nums ${
+                isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
+              }`}>
+                {gameStats.weeklyPoints}
+              </span>
+              <span className={`block text-[9px] sm:text-[11px] font-bold uppercase tracking-wider mt-0.5 truncate ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Presença & Classe
+              </span>
+            </div>
+          </div>
+
+          {/* 3. ESPECIALIDADES CONCLUÍDAS */}
+          <div 
+            id="profile-kpi-specialties"
+            className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border transition-all duration-300 flex flex-col justify-between group ${
+              isDarkMode 
+                ? 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40 shadow-lg shadow-black/20' 
+                : 'bg-white border-slate-100 hover:border-amber-200 shadow-sm shadow-amber-500/5'
+            }`}
+          >
+            <div className="absolute -right-2 -bottom-2 text-amber-500/10 dark:text-amber-400/10 pointer-events-none group-hover:scale-110 transition-transform">
+              <Award size={56} />
+            </div>
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                isDarkMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-amber-50 text-amber-600 border border-amber-100'
+              }`}>
+                <Award size={18} className="text-amber-500" />
+              </div>
+              <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isDarkMode ? 'bg-amber-950/60 text-amber-300 border border-amber-800/40' : 'bg-amber-50 text-amber-700 border border-amber-100'
+              }`}>
+                Estudos
+              </span>
+            </div>
+
+            <div className="relative z-10 mt-3 sm:mt-4">
+              <span className={`block text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight tabular-nums ${
+                isDarkMode ? 'text-amber-400' : 'text-amber-600'
+              }`}>
+                {gameStats.study.completed}
+              </span>
+              <span className={`block text-[9px] sm:text-[11px] font-bold uppercase tracking-wider mt-0.5 truncate ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                {gameStats.study.completed === 1 ? 'Especialidade Feita' : 'Especialidades Feitas'}
+              </span>
+            </div>
+          </div>
+
+          {/* 4. ÚLTIMO EXAME / APROVEITAMENTO */}
+          <div 
+            id="profile-kpi-exam"
+            className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border transition-all duration-300 flex flex-col justify-between group ${
+              isDarkMode 
+                ? 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40 shadow-lg shadow-black/20' 
+                : 'bg-white border-slate-100 hover:border-indigo-200 shadow-sm shadow-indigo-500/5'
+            }`}
+          >
+            <div className="absolute -right-2 -bottom-2 text-indigo-500/10 dark:text-indigo-400/10 pointer-events-none group-hover:scale-110 transition-transform">
+              <GraduationCap size={56} />
+            </div>
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                isDarkMode ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+              }`}>
+                <GraduationCap size={18} className="text-indigo-500" />
+              </div>
+              <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isDarkMode ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/40' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+              }`}>
+                Avaliação
+              </span>
+            </div>
+
+            <div className="relative z-10 mt-3 sm:mt-4">
+              <div className="flex items-baseline gap-1">
+                <span className={`text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight tabular-nums ${
+                  isDarkMode ? 'text-indigo-400' : 'text-indigo-600'
+                }`}>
+                  {gameStats.study.history.length > 0 ? gameStats.study.history[0].specialtyStudyScore : '-'}
+                </span>
+                {gameStats.study.history.length > 0 && (
+                  <span className={`text-xs sm:text-sm font-bold opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    /10
+                  </span>
+                )}
+              </div>
+              <span className={`block text-[9px] sm:text-[11px] font-bold uppercase tracking-wider mt-0.5 truncate ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                {gameStats.study.history.length > 0
+                  ? (Number(gameStats.study.history[0].specialtyStudyScore) >= 7 ? 'Aprovado' : 'Em Reforço')
+                  : 'Sem Registros'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* ESPECIALIDADES CONCLUÍDAS */}
-        <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-8 rounded-[3.5rem] border-2 shadow-xl shadow-blue-900/5 space-y-8`}>
-          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-              <Medal size={20} />
-            </div>
-            <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm uppercase tracking-tight`}>Especialidades Concluídas</h3>
-          </div>
-
-          <div className={`grid grid-cols-2 gap-4`}>
-             <div className={`${isDarkMode ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-100'} p-6 rounded-[2.5rem] border-2 flex flex-col items-center justify-center text-center shadow-lg shadow-amber-500/5`}>
-                <p className={`text-[8px] font-black ${isDarkMode ? 'text-amber-500/60' : 'text-amber-500'} uppercase tracking-widest mb-1.5`}>Total Concluído</p>
-                <p className={`text-5xl font-black ${isDarkMode ? 'text-amber-500' : 'text-amber-600'} leading-none`}>{gameStats.study.completed}</p>
-             </div>
-             <div className={`${isDarkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-100'} p-6 rounded-[2.5rem] border-2 flex flex-col items-center justify-center text-center shadow-lg shadow-blue-500/5`}>
-                <p className={`text-[8px] font-black ${isDarkMode ? 'text-blue-500/60' : 'text-blue-500'} uppercase tracking-widest mb-1.5`}>Último Exame</p>
-                <p className={`text-xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} leading-tight`}>
-                  {gameStats.study.history.length > 0 ? gameStats.study.history[0].specialtyStudyScore : '-'}<span className="text-xs ml-0.5 opacity-60">/10</span>
+        {/* ESPECIALIDADES CONCLUÍDAS & HISTÓRICO DE ESTUDOS */}
+        <div 
+          id="profile-section-specialties"
+          className={`p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border transition-all ${
+            isDarkMode ? 'bg-slate-900/80 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-xl shadow-blue-900/5'
+          } space-y-5 sm:space-y-6`}
+        >
+          {/* CABEÇALHO DA SEÇÃO */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                isDarkMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-amber-50 text-amber-600 border border-amber-100'
+              }`}>
+                <Medal size={20} />
+              </div>
+              <div>
+                <h3 className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-sm sm:text-base uppercase tracking-tight`}>
+                  Especialidades Concluídas
+                </h3>
+                <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Histórico de avaliações práticas e estudos realizados
                 </p>
-             </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
+                gameStats.study.completed > 0
+                  ? isDarkMode 
+                    ? 'bg-amber-950/60 border-amber-800/50 text-amber-300' 
+                    : 'bg-amber-50 border-amber-200 text-amber-700'
+                  : isDarkMode
+                    ? 'bg-slate-800 border-slate-700 text-slate-400'
+                    : 'bg-slate-100 border-slate-200 text-slate-500'
+              }`}>
+                {gameStats.study.completed} {gameStats.study.completed === 1 ? 'Concluída' : 'Concluídas'}
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] ml-2">Histórico de Estudos</p>
+          {/* HISTÓRICO DE ESTUDOS */}
+          <div>
             {gameStats.study.history.length > 0 ? (
-              <div className="space-y-3">
-                {gameStats.study.history.map((s, idx) => (
-                  <div key={`profile-study-hist-${s.specialtyStudyId || idx}-${idx}`} className={`flex justify-between items-center p-4 rounded-3xl border shadow-sm transition-all ${isDarkMode ? 'bg-slate-800/50 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-100 hover:bg-slate-50/50'}`}>
-                    <div className="flex-1 min-w-0 pr-4">
-                      <h4 className={`text-[11px] font-black uppercase truncate mb-0.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                        {s.specialtyStudyName || 'Especialidade'}
-                      </h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(s.date)}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                {gameStats.study.history.map((s, idx) => {
+                  const scoreNum = Number(s.specialtyStudyScore);
+                  const isPassed = scoreNum >= 7;
+
+                  return (
+                    <div 
+                      key={`profile-study-hist-${s.specialtyStudyId || idx}-${idx}`}
+                      className={`flex items-center justify-between p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 ${
+                        isDarkMode 
+                          ? 'bg-slate-800/40 border-slate-700/60 hover:bg-slate-800/80 hover:border-slate-600' 
+                          : 'bg-slate-50/70 border-slate-200/60 hover:bg-white hover:border-blue-200 hover:shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                        <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                          isPassed
+                            ? isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'
+                            : isDarkMode ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          <BookOpen size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className={`text-xs sm:text-sm font-black uppercase truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                            {s.specialtyStudyName || 'Especialidade'}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Calendar size={11} className="text-slate-400 shrink-0" />
+                            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                              {formatDate(s.date)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm tabular-nums border flex items-center gap-1 ${
+                          isPassed 
+                            ? isDarkMode 
+                              ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' 
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isDarkMode 
+                              ? 'bg-amber-950/50 text-amber-400 border-amber-800/50' 
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          <span>{s.specialtyStudyScore}</span>
+                          <span className="text-[9px] opacity-60">/10</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className={`px-4 py-2 rounded-2xl font-black text-xs ${Number(s.specialtyStudyScore) >= 7 ? (isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-600') : (isDarkMode ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600')}`}>
-                      {s.specialtyStudyScore}/10
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className={`py-10 text-center rounded-3xl border border-dashed ${isDarkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50/50 border-slate-200'}`}>
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma Especialidade Concluída</p>
+              <div className={`py-10 sm:py-12 text-center rounded-2xl sm:rounded-3xl border-2 border-dashed ${
+                isDarkMode ? 'bg-slate-800/20 border-slate-700/60' : 'bg-slate-50/60 border-slate-200/80'
+              } flex flex-col items-center justify-center px-4 space-y-2`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <BookOpen size={24} />
+                </div>
+                <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Nenhuma Especialidade Concluída
+                </p>
+                <p className={`text-[10px] sm:text-[11px] font-bold max-w-sm ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Participe dos estudos de especialidades e realize as provas para registrar seu progresso aqui.
+                </p>
               </div>
             )}
           </div>
         </div>
 
         {/* INSÍGNIAS (BADGES) CONQUISTADAS */}
-        <div className={`${isDarkMode ? 'bg-dark-card border-dark-border' : 'bg-white border-slate-50'} p-8 rounded-[3rem] border shadow-xl shadow-blue-900/5 space-y-8`}>
+        <div className={`p-5 sm:p-7 md:p-8 rounded-2xl sm:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900/80 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-xl shadow-blue-900/5'} space-y-6 sm:space-y-8`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Medal className="text-yellow-500" size={24} />

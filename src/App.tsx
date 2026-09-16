@@ -584,6 +584,7 @@ const App: React.FC = () => {
 
   const handleBack = () => {
     if (currentPage === 'unit_detail') setCurrentPage('units');
+    else if (currentPage === 'chat') setCurrentPage('home');
     else if (currentPage === 'specialty_study') {
       const handled = specialtyStudyRef.current?.goBack();
       if (!handled) setCurrentPage('home');
@@ -1094,7 +1095,7 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 
-  const isDetailPage = ['unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'devotional', 'birthdays'].includes(currentPage);
+  const isDetailPage = ['chat', 'unit_detail', 'admin_announcements', 'admin_quiz', 'admin_specialty', 'admin_three_clues', 'admin_management', 'admin_specialty_study', 'admin_puzzle', 'admin_who_am_i', 'admin_scrambled_verse', 'specialty_study', 'devotional', 'birthdays'].includes(currentPage);
 
   return (
     <div className={`flex flex-col md:flex-row h-[100dvh] overflow-hidden relative ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -1339,36 +1340,48 @@ const App: React.FC = () => {
                 );
               })()}
 
-              {/* FOTO DE PERFIL FIXA NO CABEÇALHO (PADRÃO PARA TODAS AS PÁGINAS) */}
-              <button
-                id="header-profile-btn"
-                onClick={() => {
-                  setActiveSpecialtyName(null);
-                  setCurrentPage('profile');
-                }}
-                className={`relative group rounded-full p-0.5 transition-all active:scale-90 hover:scale-105 shrink-0 ${
-                  currentPage === 'profile'
-                    ? 'ring-2 ring-yellow-400 bg-white/25 shadow-lg shadow-yellow-400/20'
-                    : 'hover:bg-white/15'
-                }`}
-                title="Meu Perfil"
-              >
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-white/50 shadow-sm bg-white/20 flex items-center justify-center">
-                  {user.photoUrl ? (
-                    <img
-                      src={formatImageUrl(user.photoUrl)}
-                      alt="Meu Perfil"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+              {/* QUANDO ESTIVER NA PÁGINA DE PERFIL: SUBSTITUI A FOTO PELO BOTÃO DE MODO CLARO / ESCURO */}
+              {currentPage === 'profile' ? (
+                <button
+                  id="header-profile-theme-toggle-btn"
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 transition-all active:scale-90 hover:scale-105 shadow-md cursor-pointer shrink-0 ${
+                    isDarkMode
+                      ? 'bg-slate-800/90 border-yellow-400/50 text-yellow-300 shadow-yellow-500/10 hover:bg-slate-800'
+                      : 'bg-white/20 border-white/40 text-white hover:bg-white/30 shadow-blue-900/10'
+                  }`}
+                  title={isDarkMode ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
+                >
+                  {isDarkMode ? (
+                    <Sun size={20} className="text-yellow-300 fill-yellow-400/30" />
                   ) : (
-                    <User size={20} className="text-white" />
+                    <Moon size={20} className="text-white fill-white/20" />
                   )}
-                </div>
-                {currentPage === 'profile' && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-yellow-400 border-2 border-[#0061f2] rounded-full shadow-xs" />
-                )}
-              </button>
+                </button>
+              ) : (
+                <button
+                  id="header-profile-btn"
+                  onClick={() => {
+                    setActiveSpecialtyName(null);
+                    setCurrentPage('profile');
+                  }}
+                  className="md:hidden relative group rounded-full p-0.5 transition-all active:scale-90 hover:scale-105 shrink-0 hover:bg-white/15"
+                  title="Meu Perfil"
+                >
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-white/50 shadow-sm bg-white/20 flex items-center justify-center">
+                    {user.photoUrl ? (
+                      <img
+                        src={formatImageUrl(user.photoUrl)}
+                        alt="Meu Perfil"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <User size={20} className="text-white" />
+                    )}
+                  </div>
+                </button>
+              )}
             </div>
           </header>
         )}
@@ -1398,8 +1411,8 @@ const App: React.FC = () => {
           </button>
         )}
 
-        {/* MENU INFERIOR FLUTUANTE (MOBILE & TABLET: md:hidden) */}
-        {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'chat', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
+        {/* MENU INFERIOR FLUTUANTE (MOBILE & TABLET: md:hidden) - OCULTO NO CHAT PARA NÃO COBRIR O CAMPO DE MENSAGEM */}
+        {['home', 'units', 'ranking', 'leadership', 'pathfinders', 'profile', 'games', 'badges', 'specialty_study'].includes(currentPage) && !activeSpecialtyName && !isGameActive && (
           <div className="fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[420px] sm:max-w-lg z-[95] pointer-events-auto md:hidden">
             <AppNavbar 
               currentPage={currentPage as any} 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { DatabaseService, supabase } from '@/db';
+import { DatabaseService } from '@/db';
 import { SpecialtyDBV } from '@/types';
 import { SPECIALTIES } from '@/constants';
 import { Trash2, Edit2, Plus, X, Search, ChevronLeft, Loader2, DownloadCloud, Image as ImageIcon, Wand2, Link, RefreshCw, AlertCircle } from 'lucide-react';
@@ -58,15 +58,9 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
   
   // Estados para sincronização do storage de imagens
   const [showStorageModal, setShowStorageModal] = useState(false);
-  const [bucketName, setBucketName] = useState('imagens');
-  const [folderName, setFolderName] = useState('Especialidades');
-  const [storageFiles, setStorageFiles] = useState<{ name: string; url: string; matchedSpecialtyId?: number }[]>([]);
-  const [isScanningStorage, setIsScanningStorage] = useState(false);
-  const [storageStatusMessage, setStorageStatusMessage] = useState('');
   const [savingSync, setSavingSync] = useState(false);
 
-  // Novos estados para o Gerenciador de Imagens Inteligente / Edição em Massa
-  const [syncTab, setSyncTab] = useState<'bulk' | 'scan'>('bulk');
+  // Estados para o Gerenciador de Imagens Inteligente / Edição em Massa
   const [bulkBaseUrl, setBulkBaseUrl] = useState('');
   const [inferredFromDB, setInferredFromDB] = useState('');
   const [bulkPattern, setBulkPattern] = useState<string>('imagem_sigla');
@@ -242,16 +236,12 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
 
   const openStorageModal = () => {
     let inferred = '';
-    const sWithImg = specialties.find(s => s.Imagem && s.Imagem.includes('.supabase.co/'));
+    const sWithImg = specialties.find(s => s.Imagem && s.Imagem.startsWith('http'));
     if (sWithImg && sWithImg.Imagem) {
       const lastSlash = sWithImg.Imagem.lastIndexOf('/');
       if (lastSlash !== -1) {
-        // Encontra onde começa o nome do arquivo e extrai tudo antes
         inferred = sWithImg.Imagem.substring(0, lastSlash + 1);
-        
-        // Se já possuir a categoria no final (ex: "/ADRA/"), podemos tentar limpar para manter a URL da pasta pai
         const parts = inferred.split('/');
-        // Se a penúltima parte for parecida com alguma categoria existente, removemos para a pessoa ter a pasta pai
         if (parts.length > 2) {
           const penultime = decodeURIComponent(parts[parts.length - 2]);
           const isCategory = specialties.some(s => s.Categoria && s.Categoria.toLowerCase() === penultime.toLowerCase());
@@ -263,10 +253,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     }
     
     setInferredFromDB(inferred);
-    
-    // Forçamos o novo bucket do usuário que ele pediu como padrão imediato!
-    const defaultNewBucket = 'https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/';
-    setBulkBaseUrl(defaultNewBucket);
+    setBulkBaseUrl(inferred || 'https://raw.githubusercontent.com/membros-dbv/especialidades/main/');
     
     const initialMap: { [id: number]: string } = {};
     specialties.forEach(spec => {
@@ -276,8 +263,6 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
     });
     setBulkEditMap(initialMap);
     
-    setStorageFiles([]);
-    setStorageStatusMessage('');
     setShowStorageModal(true);
   };
 
@@ -321,197 +306,6 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
       setSpecialties(refreshedSpec);
     } catch (err: any) {
       alert(`Erro no processo de sincronização em massa: ${err.message || err}`);
-    } finally {
-      setSavingSync(false);
-    }
-  };
-
-  const handleScanStorage = async () => {
-    setIsScanningStorage(true);
-    setStorageStatusMessage('Acessando o bucket do Supabase...');
-    setStorageFiles([]);
-    
-    try {
-      const parentFolder = folderName.trim().replace(/\/+$/, ''); // limpa barras no final
-      
-      // 1. Lista a pasta pai
-      const { data: parentItems, error: parentError } = await supabase.storage.from(bucketName).list(parentFolder, {
-        limit: 100, // número de subpastas/categorias (geralmente < 20)
-        sortBy: { column: 'name', order: 'asc' }
-      });
-
-      if (parentError) throw parentError;
-
-      if (!parentItems || parentItems.length === 0) {
-        setStorageStatusMessage(`Nenhum arquivo ou pasta encontrado no bucket "${bucketName}" na pasta "${parentFolder}". Certifique-se de que o bucket existe, que o nome está correto e que você liberou a política de acesso RLS para o correto funcionamento da listagem do Storage.`);
-        return;
-      }
-
-      const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'];
-      let allFoundFiles: { name: string; path: string }[] = [];
-
-      // Percorre todos os itens encontrados na pasta pai
-      for (const item of parentItems) {
-        const isImage = imageExtensions.some(ext => item.name.toLowerCase().endsWith(ext));
-        
-        if (isImage) {
-          // É uma imagem direta na pasta pai
-          allFoundFiles.push({
-            name: item.name,
-            path: parentFolder ? `${parentFolder}/${item.name}` : item.name
-          });
-        } else if (item.id === null || !item.metadata || Object.keys(item.metadata).length === 0 || !item.name.includes('.')) {
-          // Trata como uma subpasta (como ADRA, Artes e Habilidades Manuais, etc)
-          const subFolderPath = parentFolder ? `${parentFolder}/${item.name}` : item.name;
-          setStorageStatusMessage(`Escaneando subpasta: ${item.name}...`);
-          
-          try {
-            const { data: subItems, error: subError } = await supabase.storage.from(bucketName).list(subFolderPath, {
-              limit: 500,
-              sortBy: { column: 'name', order: 'asc' }
-            });
-            
-            if (!subError && subItems) {
-              for (const subItem of subItems) {
-                const isSubImage = imageExtensions.some(ext => subItem.name.toLowerCase().endsWith(ext));
-                if (isSubImage) {
-                  allFoundFiles.push({
-                    name: subItem.name,
-                    path: `${subFolderPath}/${subItem.name}`
-                  });
-                }
-              }
-            }
-          } catch (subErr) {
-            console.warn(`Erro ao listar subpasta ${subFolderPath}:`, subErr);
-          }
-        }
-      }
-
-      if (allFoundFiles.length === 0) {
-        setStorageStatusMessage(`O escaneamento foi concluído, mas nenhuma imagem válida foi encontrada nas pastas listadas. Se as pastas existem, crie uma política de leitura pública (Select) para storage.objects no painel do Supabase.`);
-        return;
-      }
-
-      setStorageStatusMessage(`Mapeando ${allFoundFiles.length} imagens encontradas para especialidades...`);
-
-      const mapped = allFoundFiles.map(file => {
-        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(file.path);
-        const publicUrl = urlData?.publicUrl || '';
-
-        // Match inteligente de especialidade baseando-se no nome do arquivo
-        const cleanFileName = file.name.toLowerCase()
-          .replace(/\.[^/.]+$/, "") // remove extensao
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove acentos
-          .replace(/[^a-z0-9]/g, ""); // strip
-
-        let bestMatchId: number | undefined = undefined;
-
-        // 1. Tenta correspondência direta do nome
-        const directMatch = specialties.find(spec => {
-          const cleanSpecName = spec.Nome.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]/g, "");
-          return cleanFileName.includes(cleanSpecName) || cleanSpecName.includes(cleanFileName);
-        });
-
-        if (directMatch) {
-          bestMatchId = directMatch.id;
-        } else {
-          // 2. Procura com base nas iniciais / códigos
-          const lowerNameString = file.name.toLowerCase();
-          
-          bestMatchId = specialties.find(spec => {
-            const specLower = spec.Nome.toLowerCase();
-            
-            // Nós e Amarras -> HM 032 ou HM 017 ou HM 022 ou similar
-            if (specLower.includes("nos") && specLower.includes("amarras")) {
-              return lowerNameString.includes("hm") && (lowerNameString.includes("32") || lowerNameString.includes("17") || lowerNameString.includes("22"));
-            }
-            // Acampamento
-            if (specLower.includes("acampamento")) {
-              return lowerNameString.includes("hm") && lowerNameString.includes("01");
-            }
-            // Primeiros Socorros
-            if (specLower.includes("socorros")) {
-              return lowerNameString.includes("hm") && lowerNameString.includes("35") || lowerNameString.includes("so") || lowerNameString.includes("ps");
-            }
-            // Astronomia
-            if (specLower.includes("astronomia")) {
-              return lowerNameString.includes("en") && lowerNameString.includes("03") || lowerNameString.includes("astro");
-            }
-            // Gatos
-            if (specLower.includes("gatos") || specLower.includes("gato")) {
-              return lowerNameString.includes("gato") || (lowerNameString.includes("en") && lowerNameString.includes("26"));
-            }
-            // Cães
-            if (specLower.includes("caes") || specLower.includes("caes") || specLower.includes("cães") || specLower.includes("cao")) {
-              return lowerNameString.includes("caes") || lowerNameString.includes("dog") || (lowerNameString.includes("en") && lowerNameString.includes("20"));
-            }
-            // Aves
-            if (specLower.includes("aves") || specLower.includes("ave")) {
-              return lowerNameString.includes("aves") || lowerNameString.includes("passaro") || lowerNameString.includes("pássaro") || (lowerNameString.includes("en") && lowerNameString.includes("05"));
-            }
-            // Computação I
-            if (specLower.includes("computacao") || specLower.includes("computação")) {
-              return lowerNameString.includes("comput") || lowerNameString.includes("ci") || lowerNameString.includes("pc");
-            }
-            // Culinária I
-            if (specLower.includes("culinaria") || specLower.includes("culinária")) {
-              return lowerNameString.includes("culin") || lowerNameString.includes("ad") || lowerNameString.includes("coz");
-            }
-            return false;
-          })?.id;
-        }
-
-        return {
-          name: file.name,
-          url: publicUrl,
-          matchedSpecialtyId: bestMatchId
-        };
-      });
-
-      setStorageFiles(mapped);
-      setStorageStatusMessage(`Sucesso! Encontradas ${mapped.length} imagens.`);
-    } catch (err: any) {
-      console.error(err);
-      setStorageStatusMessage(`Erro: ${err.message || err}. Verifique as configurações de acesso ao Storage.`);
-    } finally {
-      setIsScanningStorage(false);
-    }
-  };
-
-  const handleSaveSync = async () => {
-    const itemsToSync = storageFiles.filter(f => f.matchedSpecialtyId !== undefined);
-    if (itemsToSync.length === 0) {
-      alert("Nenhuma correspondência selecionada. Associe uma especialidade às imagens listadas do storage.");
-      return;
-    }
-
-    if (!confirm(`Sincronizar caminhos de ${itemsToSync.length} imagem(ns) no banco?`)) {
-      return;
-    }
-
-    setSavingSync(true);
-    let successCount = 0;
-    try {
-      for (const item of itemsToSync) {
-        const spec = specialties.find(s => s.id === item.matchedSpecialtyId);
-        if (spec) {
-          await DatabaseService.updateSpecialty({
-            ...spec,
-            Imagem: item.url
-          });
-          successCount++;
-        }
-      }
-      alert(`✅ Sucesso! ${successCount} especialidade(s) foram atualizadas com o link de imagem do novo storage.`);
-      setShowStorageModal(false);
-      // Recarrega especialidades de imediato
-      const refreshedSpec = await DatabaseService.getSpecialties();
-      setSpecialties(refreshedSpec);
-    } catch (err: any) {
-      alert(`Erro no processo de sincronização: ${err.message || err}`);
     } finally {
       setSavingSync(false);
     }
@@ -663,35 +457,8 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
               <button onClick={() => setShowStorageModal(false)} className="text-slate-400 hover:text-red-400 p-1"><X size={28} /></button>
             </div>
 
-            {/* Alternador de Abas */}
-            <div className="flex border-b border-slate-700/20 gap-2 shrink-0">
-              <button 
-                type="button"
-                onClick={() => setSyncTab('bulk')}
-                className={`px-4 py-2.5 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all ${
-                  syncTab === 'bulk' 
-                    ? 'border-[#0061f2] text-[#0061f2]' 
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Gerador por Padrão e Edição em Massa (Recomendado)
-              </button>
-              <button 
-                type="button"
-                onClick={() => setSyncTab('scan')}
-                className={`px-4 py-2.5 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all ${
-                  syncTab === 'scan' 
-                    ? 'border-[#0061f2] text-[#0061f2]' 
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Escaneamento Direto do Storage (Requer RLS)
-              </button>
-            </div>
-
-            {syncTab === 'bulk' ? (
-              // ABA DE BULK GENERATOR & LINK EDITING
-              <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            {/* Conteúdo do Gerenciador de Imagens Inteligente */}
+            <div className="flex flex-col flex-1 min-h-0 space-y-4">
                 <div className={`p-5 rounded-[1.8rem] ${isDarkMode ? 'bg-slate-900/70 border border-slate-805 bg-slate-950/20' : 'bg-slate-50 border border-slate-200/60'} space-y-4 shrink-0`}>
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 font-bold text-xs shrink-0">i</span>
@@ -705,31 +472,24 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                     {/* URL Base */}
                     <div className="md:col-span-8">
-                      <label className={labelClasses}>URL Base do seu Storage (Bucket & Pastas Iniciais)</label>
+                      <label className={labelClasses}>URL Base do seu Repositório de Imagens / CDN</label>
                       <input 
                         className={inputClasses}
-                        placeholder="Ex: https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/"
+                        placeholder="Ex: https://meu-cdn.com/imagens/especialidades/"
                         value={bulkBaseUrl}
                         onChange={e => setBulkBaseUrl(e.target.value)}
                       />
                       
-                      {/* Atalhos rápidos para alternar entre Buckets */}
+                      {/* Atalhos rápidos */}
                       <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <span className="text-[9px] font-black text-slate-500 uppercase">Atalhos Rápidos:</span>
-                        <button
-                          type="button"
-                          onClick={() => setBulkBaseUrl('https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/')}
-                          className="px-2.5 py-1 text-[9px] font-black uppercase bg-blue-500/15 hover:bg-blue-500/25 text-blue-500 rounded-lg transition-all border border-blue-500/20 shadow-sm"
-                        >
-                          ✨ Novo Bucket (heuotluvniqozsuwcnpi)
-                        </button>
-                        {inferredFromDB && inferredFromDB !== 'https://heuotluvniqozsuwcnpi.supabase.co/storage/v1/object/public/imagens/Especialidades/' && (
+                        <span className="text-[9px] font-black text-slate-500 uppercase">Atalhos:</span>
+                        {inferredFromDB && (
                           <button
                             type="button"
                             onClick={() => setBulkBaseUrl(inferredFromDB)}
-                            className="px-2.5 py-1 text-[9px] font-black uppercase bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 rounded-lg transition-all border border-slate-500/15"
+                            className="px-2.5 py-1 text-[9px] font-black uppercase bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-all border border-blue-500/20"
                           >
-                            🔄 Recuperar do Banco ({inferredFromDB.includes('qfpyjavbncijowjvznkg') ? 'Banco Atual' : 'Original'})
+                            🔄 Restaurar URL Padrão do Banco
                           </button>
                         )}
                       </div>
@@ -840,7 +600,7 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                 <div className={`p-3 rounded-xl flex flex-wrap gap-2 items-center justify-between text-[9px] font-bold uppercase tracking-wider ${isDarkMode ? 'bg-slate-900/40 text-slate-400 border border-slate-800' : 'bg-slate-100 text-slate-500'}`}>
                   <div className="flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/10"></span>
-                    <span>Bolinha Verde = Imagem ativa no Supabase</span>
+                    <span>Bolinha Verde = Imagem ativa no servidor</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 rounded-full bg-red-500 ring-4 ring-red-500/10"></span>
@@ -942,135 +702,9 @@ const AdminSpecialtyEditor: React.FC<AdminSpecialtyEditorProps> = ({ onBack, onL
                   </button>
                 </div>
               </div>
-            ) : (
-              // ABA DE SCANNING (ANTERIOR)
-              <div className="flex flex-col flex-1 min-h-0 space-y-4 animate-in fade-in">
-                <div className="space-y-4 shrink-0">
-                  <p className={`text-xs font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Coloque abaixo o nome do seu <strong>Bucket de Storage</strong> do Supabase e a <strong>Pasta</strong> onde as imagens estão salvas para vinculá-las automaticamente com base na sigla/número ou nome do arquivo.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClasses}>Nome do Bucket</label>
-                      <input 
-                        className={inputClasses} 
-                        placeholder="Ex: Imagens" 
-                        value={bucketName} 
-                        onChange={e => setBucketName(e.target.value)} 
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClasses}>Pasta do Bucket (Opcional)</label>
-                      <input 
-                        className={inputClasses} 
-                        placeholder="Ex: especialidades" 
-                        value={folderName} 
-                        onChange={e => setFolderName(e.target.value)} 
-                      />
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handleScanStorage} 
-                    disabled={isScanningStorage || !bucketName}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest py-4 rounded-[1.2rem] flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/10 active:scale-[0.98] transition-all disabled:opacity-50"
-                  >
-                    {isScanningStorage ? (
-                      <>
-                        <Loader2 className="animate-spin" size={16} />
-                        Escaneando Storage...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw size={16} />
-                        Buscar Imagens no Storage
-                      </>
-                    )}
-                  </button>
-
-                  {storageStatusMessage && (
-                    <div className={`p-4 rounded-[1.5rem] flex items-start gap-2.5 border text-xs font-bold uppercase tracking-wider ${
-                      storageStatusMessage.toLowerCase().includes('erro') || storageStatusMessage.toLowerCase().includes('nenhum')
-                        ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    }`}>
-                      <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                      <span>{storageStatusMessage}</span>
-                    </div>
-                  )}
-                </div>
-
-                {storageFiles.length > 0 && (
-                  <div className="h-[350px] md:h-auto md:flex-1 overflow-y-auto pr-2 gap-3 flex flex-col min-h-0 py-2 border-y border-dashed border-slate-700/50 shrink-0 md:shrink">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0061f2] block ml-1 mb-1">Mapeamento de Imagens encontradas:</span>
-                    {storageFiles.map((file, idx) => (
-                      <div key={`storage-file-${file.name || idx}-${idx}`} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-100'} gap-4`}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-xl border p-1 shrink-0 bg-white flex items-center justify-center overflow-hidden">
-                            <img src={file.url} className="w-full h-full object-contain" alt={file.name} referrerPolicy="no-referrer" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-black truncate max-w-[200px]" title={file.name}>{file.name}</p>
-                            <span className="text-[9px] font-semibold text-slate-500 truncate block">Novo Link Públicizado pronto</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0 hidden md:inline">Vincular a:</span>
-                          <select 
-                            className={`p-2.5 rounded-xl text-xs font-bold outline-none border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-700'} max-w-[220px]`}
-                            value={file.matchedSpecialtyId || ''}
-                            onChange={(e) => {
-                              const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                              const updated = [...storageFiles];
-                              updated[idx].matchedSpecialtyId = val;
-                              setStorageFiles(updated);
-                            }}
-                          >
-                            <option value="">[ Ignorar / Não vincular ]</option>
-                            {specialties.map(spec => (
-                              <option key={spec.id ? `spec-opt-${spec.id}-${idx}` : `spec-opt-${idx}`} value={spec.id}>{spec.Nome}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {storageFiles.length > 0 && (
-                  <div className="shrink-0 pt-2 flex gap-4">
-                    <button 
-                      onClick={() => setShowStorageModal(false)}
-                      className={`flex-1 py-4 rounded-[1.2rem] text-xs font-black uppercase border ${isDarkMode ? 'border-slate-700 hover:bg-slate-700 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} transition-all`}
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      onClick={handleSaveSync}
-                      disabled={savingSync}
-                      className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-[1.2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all border-b-4 border-emerald-800 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {savingSync ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          Sincronizando Banco...
-                        </>
-                      ) : (
-                        <>
-                          <Link size={16} />
-                          Gravar Vínculos no Banco
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };

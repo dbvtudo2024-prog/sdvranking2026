@@ -250,26 +250,26 @@ const Games: React.FC<GamesProps> = ({
       return (
         <div
           id={id}
-          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[135px] sm:min-h-[160px] bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 opacity-60 grayscale cursor-not-allowed select-none ${colSpan}`}
+          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[105px] min-[380px]:min-h-[115px] sm:min-h-[160px] bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 opacity-60 grayscale cursor-not-allowed select-none ${colSpan}`}
         >
           <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-slate-300 dark:text-slate-700 pointer-events-none">
-            <WatermarkIcon size={64} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
+            <WatermarkIcon size={46} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
           </div>
 
           <div className="flex items-start justify-between relative z-10">
-            <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-slate-200 dark:bg-slate-700/70 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-xs">
-              <Lock size={19} strokeWidth={2.4} className="sm:w-5 sm:h-5" />
+            <div className="w-7 h-7 min-[380px]:w-8 min-[380px]:h-8 sm:w-13 sm:h-13 rounded-lg sm:rounded-2xl bg-slate-200 dark:bg-slate-700/70 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-xs">
+              <Lock size={15} strokeWidth={2.4} className="sm:w-5 sm:h-5" />
             </div>
-            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-200/90 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400">
-              Bloqueado
+            <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-200/90 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400">
+              Bloq.
             </span>
           </div>
 
-          <div className="relative z-10 mt-3 sm:mt-4">
-            <span className="block text-slate-400 dark:text-slate-500 font-black text-xs sm:text-base uppercase tracking-tight truncate">
+          <div className="relative z-10 mt-2 sm:mt-4">
+            <span className="block text-slate-400 dark:text-slate-500 font-black text-[10px] min-[380px]:text-xs sm:text-base uppercase tracking-tight truncate leading-tight">
               {title}
             </span>
-            <span className="block text-[9px] sm:text-[11px] text-slate-400/80 font-bold uppercase tracking-wider truncate mt-0.5">
+            <span className="block text-[8px] min-[380px]:text-[9px] sm:text-[11px] text-slate-400/80 font-bold uppercase tracking-wider truncate mt-0.5 leading-tight">
               {subtitle}
             </span>
           </div>
@@ -282,26 +282,26 @@ const Games: React.FC<GamesProps> = ({
       return (
         <div
           id={id}
-          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[135px] sm:min-h-[160px] bg-gradient-to-br from-emerald-600/90 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10 border border-emerald-400/30 opacity-90 select-none ${colSpan}`}
+          className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 flex flex-col justify-between transition-all duration-300 min-h-[105px] min-[380px]:min-h-[115px] sm:min-h-[160px] bg-gradient-to-br from-emerald-600/90 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10 border border-emerald-400/30 opacity-90 select-none ${colSpan}`}
         >
           <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/10 pointer-events-none">
-            <WatermarkIcon size={64} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
+            <WatermarkIcon size={46} strokeWidth={1.2} className="sm:w-20 sm:h-20" />
           </div>
 
           <div className="flex items-start justify-between relative z-10">
-            <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35">
-              <CheckCircle2 size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6 text-emerald-200" />
+            <div className="w-7 h-7 min-[380px]:w-8 min-[380px]:h-8 sm:w-13 sm:h-13 rounded-lg sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35">
+              <CheckCircle2 size={16} strokeWidth={2.5} className="sm:w-6 sm:h-6 text-emerald-200" />
             </div>
-            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-black/25 text-emerald-100 backdrop-blur-xs border border-white/10">
-              Concluído
+            <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 sm:px-2.5 py-0.5 rounded-full bg-black/25 text-emerald-100 backdrop-blur-xs border border-white/10">
+              Feito
             </span>
           </div>
 
-          <div className="relative z-10 mt-3 sm:mt-4">
-            <span className="block text-white font-black text-xs sm:text-base uppercase tracking-tight drop-shadow-sm truncate">
+          <div className="relative z-10 mt-2 sm:mt-4">
+            <span className="block text-white font-black text-[10px] min-[380px]:text-xs sm:text-base uppercase tracking-tight drop-shadow-sm truncate leading-tight">
               {title}
             </span>
-            <span className="block text-[9px] sm:text-[11px] text-emerald-100/90 font-bold uppercase tracking-wider truncate mt-0.5">
+            <span className="block text-[8px] min-[380px]:text-[9px] sm:text-[11px] text-emerald-100/90 font-bold uppercase tracking-wider truncate mt-0.5 leading-tight">
               {subtitle}
             </span>
           </div>
@@ -316,33 +316,33 @@ const Games: React.FC<GamesProps> = ({
         whileHover={{ y: -4, scale: 1.02 }}
         whileTap={{ scale: 0.96 }}
         onClick={onClick}
-        className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 min-h-[135px] sm:min-h-[160px] ${gradient} ${shadow} border border-white/30 group cursor-pointer w-full select-none ${colSpan}`}
+        className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 min-h-[105px] min-[380px]:min-h-[115px] sm:min-h-[160px] ${gradient} ${shadow} border border-white/30 group cursor-pointer w-full select-none ${colSpan}`}
       >
         {/* Ícone d'água de fundo decorativo rotacionado */}
         <div className="absolute -right-2 -bottom-2 sm:-right-3 sm:-bottom-3 text-white/15 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
-          <WatermarkIcon size={64} strokeWidth={1.4} className="sm:w-22 sm:h-22" />
+          <WatermarkIcon size={46} strokeWidth={1.4} className="sm:w-22 sm:h-22" />
         </div>
 
         {/* Brilho suave no canto superior */}
         <div className="absolute -top-8 -left-8 w-20 h-20 bg-white/25 rounded-full blur-xl pointer-events-none group-hover:bg-white/35 transition-colors" />
 
         {/* Topo do Card: Cápsula translúcida + Tag de status */}
-        <div className="flex items-start justify-between relative z-10 w-full">
-          <div className="w-10 h-10 min-[360px]:w-11 min-[360px]:h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300">
-            <Icon size={20} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
+        <div className="flex items-start justify-between relative z-10 w-full gap-1">
+          <div className="w-7 h-7 min-[380px]:w-8 min-[380px]:h-8 sm:w-13 sm:h-13 rounded-lg sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] border border-white/35 group-hover:scale-110 transition-transform duration-300 shrink-0">
+            <Icon size={16} strokeWidth={2.4} className="sm:w-6 sm:h-6" />
           </div>
 
-          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-black/20 text-white/95 backdrop-blur-xs border border-white/15 drop-shadow-xs">
-            {badgeLabel || (isAdmin && !unlocked ? 'Admin' : 'Disponível')}
+          <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 sm:px-2.5 py-0.5 rounded-full bg-black/20 text-white/95 backdrop-blur-xs border border-white/15 drop-shadow-xs shrink-0">
+            {badgeLabel || (isAdmin && !unlocked ? 'Admin' : 'Livre')}
           </span>
         </div>
 
         {/* Base do Card: Título e Subtítulo estilizados */}
-        <div className="relative z-10 w-full mt-3 sm:mt-4">
-          <span className="block text-white font-black text-xs sm:text-base uppercase tracking-tight sm:tracking-wider drop-shadow-md leading-tight truncate">
+        <div className="relative z-10 w-full mt-2 sm:mt-4">
+          <span className="block text-white font-black text-[10px] min-[380px]:text-xs sm:text-base uppercase tracking-tight sm:tracking-wider drop-shadow-md leading-tight truncate">
             {title}
           </span>
-          <span className="block text-[9px] sm:text-[11px] text-white/85 font-bold uppercase tracking-tight sm:tracking-wider mt-0.5 leading-tight truncate">
+          <span className="block text-[8px] min-[380px]:text-[9px] sm:text-[11px] text-white/85 font-bold uppercase tracking-tight sm:tracking-wider mt-0.5 leading-tight truncate">
             {subtitle}
           </span>
         </div>
@@ -371,7 +371,7 @@ const Games: React.FC<GamesProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4.5">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4.5">
             {/* DUELO ARENA 1x1 */}
             <GameCard
               id="btn-game-duel"

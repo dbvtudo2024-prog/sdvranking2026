@@ -241,7 +241,7 @@ const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge, onUpdateSta
       </div>
 
       {/* INPUT AREA */}
-      <form onSubmit={handleSend} className="bg-white dark:bg-slate-800 p-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 shrink-0">
+      <form onSubmit={handleSend} className="bg-white dark:bg-slate-800 p-3 pb-4 sm:pb-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 shrink-0">
         <div className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 px-4 py-1 flex items-center">
           <input 
             type="text" 

@@ -216,25 +216,6 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
               <span>Fazer Check-in</span>
             </button>
           )}
-
-          {/* FOTO DE PERFIL NO CABEÇALHO DESKTOP */}
-          <button
-            id="home-desktop-header-profile-btn"
-            onClick={() => onNavigate('profile')}
-            className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all active:scale-95 shadow-sm flex items-center justify-center group shrink-0"
-            title="Meu Perfil"
-          >
-            {user.photoUrl ? (
-              <img
-                src={formatImageUrl(user.photoUrl)}
-                alt="Meu Perfil"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <User size={20} className="text-slate-500 dark:text-slate-400" />
-            )}
-          </button>
         </div>
       </div>
 
