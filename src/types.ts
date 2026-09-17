@@ -289,6 +289,7 @@ export interface SpecialtyDBV {
 export interface CounselorDB {
   id?: string | number;
   name: string;
+  unit?: string;
   created_at?: string;
 }
 

@@ -1,14 +1,16 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyDBV, CounselorDB, GameConfig, UserRole, UnitName, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, BadgeLevel } from '@/types';
+import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyStudyQuestion, SpecialtyDBV, CounselorDB, GameConfig, UserRole, UnitName, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, BadgeLevel } from '@/types';
 import { 
   DEFAULT_MEMBERS, 
   DEFAULT_ANNOUNCEMENTS, 
   DEFAULT_SPECIALTY_STUDIES, 
   DEFAULT_DEVOTIONALS, 
-  NEW_QUIZ_QUESTIONS 
+  NEW_QUIZ_QUESTIONS,
+  NEW_THREE_CLUES_QUESTIONS,
+  NEW_SCRAMBLED_VERSES
 } from './seedData';
-import { SPECIALTIES, QUIZ_QUESTIONS } from './constants';
+import { SPECIALTIES, QUIZ_QUESTIONS, THREE_CLUES_DATA } from './constants';
 
 declare global {
   interface ImportMeta {
@@ -891,6 +893,160 @@ async function detectBibleKeys(): Promise<{ bookKey: string; chapterKey: string;
   }
 }
 
+// ==========================================
+// HELPERS DE NORMALIZAÇÃO E DADOS DE FALLBACK
+// ==========================================
+
+function normalizeQuizQuestion(q: any): QuizQuestion {
+  if (!q) {
+    return {
+      id: `q_${Math.random().toString(36).substring(2, 9)}`,
+      category: 'Desbravadores',
+      question: 'Pergunta não informada',
+      options: ['Opção A', 'Opção B', 'Opção C', 'Opção D'],
+      correct_answer: 0
+    };
+  }
+
+  let category = q.category || 'Desbravadores';
+  let question = String(q.question || '');
+
+  // Lógica de mapeamento reverso: extrai a subcategoria do prefixo da pergunta
+  if (category === 'Desbravadores' || !['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'].includes(category)) {
+    if (question.startsWith('[Natureza] ')) {
+      category = 'Natureza';
+      question = question.replace('[Natureza] ', '');
+    } else if (question.startsWith('[Primeiros Socorros] ')) {
+      category = 'Primeiros Socorros';
+      question = question.replace('[Primeiros Socorros] ', '');
+    } else if (question.startsWith('[Especialidades] ')) {
+      category = 'Especialidades';
+      question = question.replace('[Especialidades] ', '');
+    } else if (question.startsWith('[Bíblia] ')) {
+      category = 'Bíblia';
+      question = question.replace('[Bíblia] ', '');
+    }
+  }
+
+  let options = q.options;
+  if (typeof options === 'string') {
+    try {
+      options = JSON.parse(options);
+    } catch {
+      options = [];
+    }
+  }
+  if (!Array.isArray(options)) {
+    options = options && typeof options === 'object' ? Object.values(options) : [];
+  }
+  options = options.map((opt: any) => String(opt ?? ''));
+
+  let correct_answer = typeof q.correct_answer === 'number'
+    ? q.correct_answer
+    : (parseInt(q.correct_answer, 10) || 0);
+
+  return {
+    id: String(q.id || `q_${Math.random().toString(36).substring(2, 9)}`),
+    category: category as any,
+    question: question.trim(),
+    options,
+    correct_answer,
+    image_url: q.image_url || undefined,
+    tip: q.tip || undefined
+  };
+}
+
+const DEFAULT_FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
+  ...QUIZ_QUESTIONS,
+  ...NEW_QUIZ_QUESTIONS.map((q, idx) => ({ id: `q_extra_${idx + 1}`, ...q }))
+].map(normalizeQuizQuestion);
+
+function normalizeThreeClues(q: any): ThreeCluesQuestion {
+  let clues = q.clues;
+  if (typeof clues === 'string') {
+    try {
+      clues = JSON.parse(clues);
+    } catch {
+      clues = [clues];
+    }
+  }
+  if (!Array.isArray(clues)) {
+    clues = clues && typeof clues === 'object' ? Object.values(clues) : [];
+  }
+  clues = clues.map((c: any) => String(c ?? ''));
+  while (clues.length < 3) {
+    clues.push(`Dica ${clues.length + 1}`);
+  }
+
+  return {
+    id: String(q.id || `tc_${Math.random().toString(36).substring(2, 9)}`),
+    answer: String(q.answer || q.word || ''),
+    clues,
+    category: String(q.category || 'Geral'),
+    created_at: q.created_at || new Date().toISOString()
+  };
+}
+
+const DEFAULT_FALLBACK_THREE_CLUES: ThreeCluesQuestion[] = [
+  ...THREE_CLUES_DATA.map((item, idx) => ({
+    id: `tc_const_${idx + 1}`,
+    answer: item.answer,
+    clues: item.clues,
+    category: 'Geral'
+  })),
+  ...NEW_THREE_CLUES_QUESTIONS.map((item, idx) => ({
+    id: `tc_seed_${idx + 1}`,
+    ...item
+  }))
+].map(normalizeThreeClues);
+
+function normalizeStudyQuestions(raw: any): SpecialtyStudyQuestion[] {
+  if (!raw) return [];
+  let parsed = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = [];
+    }
+  }
+  if (!Array.isArray(parsed)) {
+    parsed = parsed && typeof parsed === 'object' ? Object.values(parsed) : [];
+  }
+  return parsed.map((item: any) => {
+    let options = item.options;
+    if (typeof options === 'string') {
+      try {
+        options = JSON.parse(options);
+      } catch {
+        options = [];
+      }
+    }
+    if (!Array.isArray(options)) {
+      options = options && typeof options === 'object' ? Object.values(options) : [];
+    }
+    return {
+      question: String(item.question || ''),
+      options: options.map((opt: any) => String(opt ?? '')),
+      correct_answer: typeof item.correct_answer === 'number' ? item.correct_answer : (parseInt(item.correct_answer, 10) || 0)
+    };
+  });
+}
+
+function normalizeStudy(s: any): SpecialtyStudy {
+  return {
+    id: String(s.id || `study_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`),
+    name: String(s.name || 'Estudo de Especialidade'),
+    pdfurl: String(s.pdfurl || ''),
+    video_url: s.video_url || undefined,
+    specialty_image_url: s.specialty_image_url || undefined,
+    category: s.category || 'Geral',
+    questions: normalizeStudyQuestions(s.questions),
+    scheduled_for: s.scheduled_for || undefined,
+    created_at: s.created_at || new Date().toISOString()
+  };
+}
+
 export const DatabaseService = {
   // --- CHAT ---
   async getMessages(unit: string): Promise<ChatMessage[]> {
@@ -1073,10 +1229,10 @@ export const DatabaseService = {
       channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
         console.log("[Realtime] Mudança em conselheiros:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
-          localCounselors = [...localCounselors, newC];
+          const newC = { id: payload.new.id, name: (payload.new.nome || payload.new.name || '').trim(), created_at: payload.new.created_at, unit: payload.new.unidade || payload.new.unit || '' };
+          if (newC.name) localCounselors = [...localCounselors, newC];
         } else if (payload.eventType === 'UPDATE') {
-          const updatedC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          const updatedC = { id: payload.new.id, name: (payload.new.nome || payload.new.name || '').trim(), created_at: payload.new.created_at, unit: payload.new.unidade || payload.new.unit || '' };
           localCounselors = localCounselors.map(c => c.id === payload.new.id ? updatedC : c);
         } else if (payload.eventType === 'DELETE') {
           localCounselors = localCounselors.filter(c => c.id !== payload.old.id);
@@ -1483,32 +1639,147 @@ export const DatabaseService = {
   // --- CONSELHEIROS ---
   async getCounselors(): Promise<CounselorDB[]> {
     try {
+      // 1. Tentar Supabase
       const { data, error } = await supabase
         .from('conselheiros')
-        .select('id, created_at, name:nome') 
+        .select('*') 
         .order('nome', { ascending: true });
       
-      if (error) {
-        console.warn("[DB] Aviso ao buscar conselheiros:", error.message || error);
-        return [];
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const mapped: CounselorDB[] = data.map((item: any) => ({
+          id: item.id || `cons_${Math.random()}`,
+          name: (item.nome || item.name || '').trim(),
+          created_at: item.created_at,
+          unit: item.unidade || item.unit || ''
+        })).filter(c => !!c.name);
+
+        if (mapped.length > 0) {
+          try {
+            localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(mapped));
+          } catch {}
+          return mapped;
+        }
       }
-      return (data || []) as any[];
     } catch (e) {
-      console.warn("[getCounselors] Falha ao buscar conselheiros:", e);
-      return [];
+      console.warn("[getCounselors] Falha ao buscar conselheiros no Supabase:", e);
     }
+
+    // 2. Tentar Cloudflare D1
+    try {
+      const d1Rows = await runD1Query<any>("SELECT * FROM conselheiros ORDER BY COALESCE(nome, name) ASC");
+      if (d1Rows && Array.isArray(d1Rows) && d1Rows.length > 0) {
+        const mapped: CounselorDB[] = d1Rows.map((item: any) => ({
+          id: item.id || `cons_${Math.random()}`,
+          name: (item.nome || item.name || '').trim(),
+          created_at: item.created_at,
+          unit: item.unidade || item.unit || ''
+        })).filter(c => !!c.name);
+
+        if (mapped.length > 0) {
+          try {
+            localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(mapped));
+          } catch {}
+          return mapped;
+        }
+      }
+    } catch (d1Err) {
+      console.warn("[getCounselors] Falha ao buscar conselheiros no D1:", d1Err);
+    }
+
+    // 3. Tentar Cache Local
+    try {
+      const cached = localStorage.getItem("sentinelas_counselors_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+
+    // 4. Fallback Padrão com conselheiros oficiais das unidades Águia Dourada e Guerreiros
+    const defaultCounselors: CounselorDB[] = [
+      { id: 'cons_carlos_souza', name: 'Carlos Souza', unit: 'Águia Dourada' },
+      { id: 'cons_carlos', name: 'Carlos', unit: 'Águia Dourada' },
+      { id: 'cons_ana_paula', name: 'Ana Paula', unit: 'Guerreiros' },
+      { id: 'cons_ana', name: 'Ana', unit: 'Guerreiros' },
+      { id: 'cons_ronaldo', name: 'Ronaldo Sonic', unit: 'Liderança' },
+      { id: 'cons_priscila', name: 'Priscila', unit: 'Guerreiros' }
+    ];
+
+    try {
+      localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(defaultCounselors));
+    } catch {}
+
+    // Persistir no D1 em segundo plano para que fique sempre gravado
+    for (const dc of defaultCounselors) {
+      runD1Query(
+        "INSERT OR IGNORE INTO conselheiros (id, nome, name, unidade, unit, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [dc.id, dc.name, dc.name, dc.unit || '', dc.unit || '', new Date().toISOString()]
+      ).catch(() => {});
+    }
+
+    return defaultCounselors;
   },
 
-  async addCounselor(name: string) {
-    await supabase.from('conselheiros').insert([{ nome: name }]);
+  async addCounselor(name: string, unit?: string) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return;
+    const id = 'cons_' + Date.now();
+    try {
+      await supabase.from('conselheiros').insert([{ id, nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }]);
+    } catch {}
+    try {
+      await runD1Query(
+        "INSERT OR REPLACE INTO conselheiros (id, nome, name, unidade, unit, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [id, cleanName, cleanName, unit || '', unit || '', new Date().toISOString()]
+      );
+    } catch {}
+    try {
+      const cached = localStorage.getItem("sentinelas_counselors_cache");
+      const list = cached ? JSON.parse(cached) : [];
+      list.push({ id, name: cleanName, unit: unit || '' });
+      localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(list));
+    } catch {}
   },
 
-  async updateCounselor(id: string | number, name: string) {
-    await supabase.from('conselheiros').update({ nome: name }).eq('id', id);
+  async updateCounselor(id: string | number, name: string, unit?: string) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return;
+    try {
+      await supabase.from('conselheiros').update({ nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }).eq('id', id);
+    } catch {}
+    try {
+      await runD1Query(
+        "UPDATE conselheiros SET nome = ?, name = ?, unidade = COALESCE(?, unidade), unit = COALESCE(?, unit) WHERE id = ?",
+        [cleanName, cleanName, unit, unit, id]
+      );
+    } catch {}
+    try {
+      const cached = localStorage.getItem("sentinelas_counselors_cache");
+      if (cached) {
+        let list = JSON.parse(cached);
+        list = list.map((c: any) => c.id === id ? { ...c, name: cleanName, unit: unit || c.unit } : c);
+        localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(list));
+      }
+    } catch {}
   },
 
   async deleteCounselor(id: string | number) {
-    await supabase.from('conselheiros').delete().eq('id', id);
+    try {
+      await supabase.from('conselheiros').delete().eq('id', id);
+    } catch {}
+    try {
+      await runD1Query("DELETE FROM conselheiros WHERE id = ?", [id]);
+    } catch {}
+    try {
+      const cached = localStorage.getItem("sentinelas_counselors_cache");
+      if (cached) {
+        let list = JSON.parse(cached);
+        list = list.filter((c: any) => c.id !== id);
+        localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(list));
+      }
+    } catch {}
   },
 
   subscribeCounselors(callback: (counselors: CounselorDB[]) => void) {
@@ -1522,10 +1793,10 @@ export const DatabaseService = {
       .channel('conselheiros_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conselheiros' }, payload => {
         if (payload.eventType === 'INSERT') {
-          const newC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
-          localCounselors = [...localCounselors, newC];
+          const newC = { id: payload.new.id, name: (payload.new.nome || payload.new.name || '').trim(), created_at: payload.new.created_at, unit: payload.new.unidade || payload.new.unit || '' };
+          if (newC.name) localCounselors = [...localCounselors, newC];
         } else if (payload.eventType === 'UPDATE') {
-          const updatedC = { id: payload.new.id, name: payload.new.nome, created_at: payload.new.created_at };
+          const updatedC = { id: payload.new.id, name: (payload.new.nome || payload.new.name || '').trim(), created_at: payload.new.created_at, unit: payload.new.unidade || payload.new.unit || '' };
           localCounselors = localCounselors.map(c => c.id === payload.new.id ? updatedC : c);
         } else if (payload.eventType === 'DELETE') {
           localCounselors = localCounselors.filter(c => c.id !== payload.old.id);
@@ -2052,51 +2323,94 @@ export const DatabaseService = {
 
   // --- QUESTÕES DO QUIZ ---
   async getQuizQuestions(): Promise<QuizQuestion[]> {
+    let dbQuestions: QuizQuestion[] = [];
+
+    // 1. Tentar Supabase
     try {
       const { data, error } = await supabase.from('quiz_questions').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.warn("[DB] Aviso ao buscar quiz_questions:", error.message || error);
-        return [];
+      if (!error && data && data.length > 0) {
+        dbQuestions = data.map(normalizeQuizQuestion);
+      } else if (error) {
+        console.warn("[DB] Aviso ao buscar quiz_questions no Supabase:", error.message || error);
       }
-      return (data || []).map(q => {
-        let category = q.category;
-        let question = q.question;
+    } catch (e) {
+      console.warn("[getQuizQuestions] Falha ao consultar Supabase:", e);
+    }
 
-        // Lógica de mapeamento reverso: extrai a subcategoria do prefixo da pergunta
-        if (q.category === 'Desbravadores') {
-          if (q.question.startsWith('[Natureza] ')) {
-            category = 'Natureza';
-            question = q.question.replace('[Natureza] ', '');
-          } else if (q.question.startsWith('[Primeiros Socorros] ')) {
-            category = 'Primeiros Socorros';
-            question = q.question.replace('[Primeiros Socorros] ', '');
-          } else if (q.question.startsWith('[Especialidades] ')) {
-            category = 'Especialidades';
-            question = q.question.replace('[Especialidades] ', '');
+    // 2. Se o Supabase estiver vazio ou falhar, tentar Cloudflare D1
+    if (dbQuestions.length === 0) {
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM quiz_questions ORDER BY created_at DESC');
+        if (d1Rows && d1Rows.length > 0) {
+          dbQuestions = d1Rows.map(normalizeQuizQuestion);
+        }
+      } catch (e) {
+        console.warn("[getQuizQuestions] Falha ao consultar D1:", e);
+      }
+    }
+
+    // 3. Se ainda vazio, tentar cache local
+    if (dbQuestions.length === 0) {
+      try {
+        const cached = localStorage.getItem('sentinelas_quiz_questions_backup');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            dbQuestions = parsed.map(normalizeQuizQuestion);
           }
         }
-
-        return {
-          id: q.id,
-          category: category as any,
-          question: question,
-          options: q.options,
-          correct_answer: q.correct_answer,
-          image_url: q.image_url,
-          tip: q.tip
-        };
-      }) as QuizQuestion[];
-    } catch (e) {
-      console.warn("[getQuizQuestions] Falha ao consultar questões do quiz:", e);
-      return [];
+      } catch (e) {
+        console.warn("[getQuizQuestions] Erro ao ler backup local:", e);
+      }
     }
+
+    // 4. Complementar ou preencher com as questões padrão
+    // Garantir que todas as 5 categorias essenciais tenham no mínimo 5 questões cada
+    const requiredCategories: ('Desbravadores' | 'Bíblia' | 'Natureza' | 'Primeiros Socorros' | 'Especialidades')[] = [
+      'Desbravadores',
+      'Bíblia',
+      'Natureza',
+      'Primeiros Socorros',
+      'Especialidades'
+    ];
+
+    const finalQuestions: QuizQuestion[] = [...dbQuestions];
+    const existingTexts = new Set(finalQuestions.map(q => q.question.toLowerCase().trim()));
+
+    for (const cat of requiredCategories) {
+      const countForCat = finalQuestions.filter(q => q.category === cat).length;
+      if (countForCat < 5) {
+        const fallbacksForCat = DEFAULT_FALLBACK_QUIZ_QUESTIONS.filter(q => q.category === cat);
+        for (const fq of fallbacksForCat) {
+          if (!existingTexts.has(fq.question.toLowerCase().trim())) {
+            finalQuestions.push(fq);
+            existingTexts.add(fq.question.toLowerCase().trim());
+          }
+        }
+      }
+    }
+
+    // 5. Salvar cache local para contingência futura
+    try {
+      localStorage.setItem('sentinelas_quiz_questions_backup', JSON.stringify(finalQuestions));
+    } catch {}
+
+    return finalQuestions;
   },
 
   async getQuizCategories(): Promise<string[]> {
-    const { data, error } = await supabase.from('quiz_questions').select('category');
-    if (error) return ['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'];
-    const categories = Array.from(new Set(data.map(d => d.category)));
-    return categories.length > 0 ? categories : ['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'];
+    const baseCategories = ['Desbravadores', 'Bíblia', 'Natureza', 'Primeiros Socorros', 'Especialidades'];
+    try {
+      const { data, error } = await supabase.from('quiz_questions').select('category');
+      if (error || !data) return baseCategories;
+      const categories = Array.from(new Set(data.map(d => d.category)));
+      for (const base of baseCategories) {
+        if (!categories.includes(base)) categories.push(base);
+      }
+      return categories;
+    } catch {
+      return baseCategories;
+    }
   },
 
   async addQuizQuestion(q: Omit<QuizQuestion, 'id'>) {
@@ -2191,32 +2505,6 @@ export const DatabaseService = {
 
   subscribeQuizQuestions(callback: (questions: QuizQuestion[]) => void) {
     let localQuestions: QuizQuestion[] = [];
-    
-    const mapQ = (q: any): QuizQuestion => {
-      let category = q.category;
-      let question = q.question;
-      if (q.category === 'Desbravadores') {
-        if (q.question.startsWith('[Natureza] ')) {
-          category = 'Natureza';
-          question = q.question.replace('[Natureza] ', '');
-        } else if (q.question.startsWith('[Primeiros Socorros] ')) {
-          category = 'Primeiros Socorros';
-          question = q.question.replace('[Primeiros Socorros] ', '');
-        } else if (q.question.startsWith('[Especialidades] ')) {
-          category = 'Especialidades';
-          question = q.question.replace('[Especialidades] ', '');
-        }
-      }
-      return {
-        id: q.id,
-        category: category as any,
-        question: question,
-        options: q.options,
-        correct_answer: q.correct_answer,
-        image_url: q.image_url,
-        tip: q.tip
-      };
-    };
 
     this.getQuizQuestions().then(data => {
       localQuestions = data;
@@ -2227,9 +2515,9 @@ export const DatabaseService = {
       .channel('quiz_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_questions' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localQuestions = [mapQ(payload.new), ...localQuestions];
+          localQuestions = [normalizeQuizQuestion(payload.new), ...localQuestions];
         } else if (payload.eventType === 'UPDATE') {
-          localQuestions = localQuestions.map(q => q.id === payload.new.id ? mapQ(payload.new) : q);
+          localQuestions = localQuestions.map(q => q.id === payload.new.id ? normalizeQuizQuestion(payload.new) : q);
         } else if (payload.eventType === 'DELETE') {
           localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
         }
@@ -2996,17 +3284,48 @@ export const DatabaseService = {
 
   // --- JOGO 3 DICAS ---
   async getThreeCluesQuestions(): Promise<ThreeCluesQuestion[]> {
+    let list: ThreeCluesQuestion[] = [];
     try {
       const { data, error } = await supabase.from('three_clues_questions').select('*').order('created_at', { ascending: false });
-      if (error) {
+      if (!error && data && data.length > 0) {
+        list = data.map(normalizeThreeClues);
+      } else if (error) {
         console.warn("[DB] Aviso ao buscar 3 dicas:", error.message || error);
-        return [];
       }
-      return (data || []) as ThreeCluesQuestion[];
     } catch (e) {
       console.warn("[getThreeCluesQuestions] Falha ao buscar 3 dicas:", e);
-      return [];
     }
+
+    if (list.length === 0) {
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM three_clues_questions ORDER BY created_at DESC');
+        if (d1Rows && d1Rows.length > 0) {
+          list = d1Rows.map(normalizeThreeClues);
+        }
+      } catch (e) {}
+    }
+
+    if (list.length === 0) {
+      try {
+        const cached = localStorage.getItem('sentinelas_three_clues_backup');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed.map(normalizeThreeClues);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (list.length === 0) {
+      list = DEFAULT_FALLBACK_THREE_CLUES;
+    }
+
+    try {
+      localStorage.setItem('sentinelas_three_clues_backup', JSON.stringify(list));
+    } catch (e) {}
+
+    return list;
   },
 
   async addThreeCluesQuestion(q: Omit<ThreeCluesQuestion, 'id'>) {
@@ -3216,56 +3535,68 @@ export const DatabaseService = {
 
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---
   async getSpecialtyStudies(): Promise<SpecialtyStudy[]> {
+    let list: SpecialtyStudy[] = [];
+
+    // 1. Tentar Supabase
     try {
-      return await withRetry(async () => {
-        console.log("[DB] Buscando estudos...");
-        const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
-        if (error) {
-          console.warn("[DB] Aviso ao buscar estudos:", error.message || error);
-          throw error;
-        }
-        console.log(`[DB] ${data?.length || 0} estudos encontrados.`);
-        const list = (data || []) as SpecialtyStudy[];
-        try {
-          localStorage.setItem('sentinelas_specialty_studies_backup', JSON.stringify(list));
-        } catch (e) {
-          console.warn("[getSpecialtyStudies] Erro ao salvar cache de estudos:", e);
-        }
-        return list;
-      });
+      const { data, error } = await supabase.from('specialty_studies').select('*').order('created_at', { ascending: false });
+      if (!error && data && data.length > 0) {
+        list = data.map(normalizeStudy);
+      } else if (error) {
+        console.warn("[DB] Aviso ao buscar specialty_studies no Supabase:", error.message || error);
+      }
     } catch (err) {
-      console.warn("[DB] Falha de conexão ao buscar estudos. Tentando Cloudflare D1 e backup local.");
+      console.warn("[DB] Falha de conexão ao buscar estudos no Supabase:", err);
+    }
+
+    // 2. Tentar Cloudflare D1 se vazio
+    if (list.length === 0) {
       try {
         const d1Rows = await runD1Query<any>('SELECT * FROM specialty_studies ORDER BY created_at DESC');
         if (d1Rows && d1Rows.length > 0) {
-          return d1Rows.map(r => ({
-            id: r.id,
-            name: r.name,
-            pdfurl: r.pdfurl,
-            video_url: r.video_url,
-            specialty_image_url: r.specialty_image_url,
-            category: r.category || 'Geral',
-            questions: typeof r.questions === 'string' ? JSON.parse(r.questions) : (r.questions || []),
-            scheduled_for: r.scheduled_for,
-            created_at: r.created_at
-          })) as SpecialtyStudy[];
+          list = d1Rows.map(normalizeStudy);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("[getSpecialtyStudies] Falha ao consultar D1:", e);
+      }
+    }
 
+    // 3. Tentar cache local se vazio
+    if (list.length === 0) {
       try {
         const cached = localStorage.getItem('sentinelas_specialty_studies_backup');
         if (cached) {
-          const parsed = JSON.parse(cached) as SpecialtyStudy[];
-          if (parsed && parsed.length > 0) return parsed;
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed.map(normalizeStudy);
+          }
         }
       } catch (e) {
         console.warn("[getSpecialtyStudies] Erro ao consultar backup local de estudos:", e);
       }
-      return DEFAULT_SPECIALTY_STUDIES.map((st, idx) => ({
+    }
+
+    // 4. Se ainda estiver vazio, usar DEFAULT_SPECIALTY_STUDIES
+    if (list.length === 0) {
+      list = DEFAULT_SPECIALTY_STUDIES.map((st, idx) => normalizeStudy({
         id: `study_${idx + 1}`,
         ...st
-      })) as SpecialtyStudy[];
+      }));
+
+      // Tentar salvar no banco em background para que fiquem persistidos
+      this.seedSpecialtyStudies(DEFAULT_SPECIALTY_STUDIES).catch(err => {
+        console.warn("[getSpecialtyStudies] Falha ao semear estudos padrão em background:", err);
+      });
     }
+
+    // 5. Atualizar cache local com dados normalizados
+    try {
+      localStorage.setItem('sentinelas_specialty_studies_backup', JSON.stringify(list));
+    } catch (e) {
+      console.warn("[getSpecialtyStudies] Erro ao salvar cache de estudos:", e);
+    }
+
+    return list;
   },
 
   async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
@@ -3365,9 +3696,9 @@ export const DatabaseService = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, payload => {
         console.log("[Realtime] Mudança em specialty_studies:", payload.eventType);
         if (payload.eventType === 'INSERT') {
-          localStudies = [payload.new as SpecialtyStudy, ...localStudies];
+          localStudies = [normalizeStudy(payload.new), ...localStudies];
         } else if (payload.eventType === 'UPDATE') {
-          localStudies = localStudies.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s);
+          localStudies = localStudies.map(s => s.id === payload.new.id ? normalizeStudy(payload.new) : s);
         } else if (payload.eventType === 'DELETE') {
           localStudies = localStudies.filter(s => s.id !== payload.old.id);
         }
@@ -3389,9 +3720,9 @@ export const DatabaseService = {
       .channel('three_clues_questions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'three_clues_questions' }, payload => {
         if (payload.eventType === 'INSERT') {
-          localQuestions = [payload.new as ThreeCluesQuestion, ...localQuestions];
+          localQuestions = [normalizeThreeClues(payload.new), ...localQuestions];
         } else if (payload.eventType === 'UPDATE') {
-          localQuestions = localQuestions.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q);
+          localQuestions = localQuestions.map(q => q.id === payload.new.id ? normalizeThreeClues(payload.new) : q);
         } else if (payload.eventType === 'DELETE') {
           localQuestions = localQuestions.filter(q => q.id !== payload.old.id);
         }
@@ -3524,17 +3855,32 @@ export const DatabaseService = {
 
   // --- VERSÍCULO EMBARALHADO ---
   async getScrambledVerses(): Promise<any[]> {
+    let list: any[] = [];
     try {
       const { data, error } = await supabase.from('scrambled_verses').select('*').order('created_at', { ascending: false });
-      if (error) {
+      if (!error && data && data.length > 0) {
+        list = data;
+      } else if (error) {
         console.warn("[DB] Aviso ao buscar scrambled_verses:", error.message || error);
-        return [];
       }
-      return (data || []) as any[];
     } catch (e) {
       console.warn("[getScrambledVerses] Falha:", e);
-      return [];
     }
+
+    if (list.length === 0) {
+      try {
+        const d1Rows = await runD1Query<any>('SELECT * FROM scrambled_verses ORDER BY created_at DESC');
+        if (d1Rows && d1Rows.length > 0) {
+          list = d1Rows;
+        }
+      } catch (e) {}
+    }
+
+    if (list.length === 0) {
+      list = NEW_SCRAMBLED_VERSES.map((v, idx) => ({ id: `sv_${idx + 1}`, ...v }));
+    }
+
+    return list;
   },
 
   async addScrambledVerse(v: any) {

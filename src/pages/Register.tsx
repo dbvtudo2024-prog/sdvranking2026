@@ -255,8 +255,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
             >
               <option value="" disabled>Selecionar</option>
               {formData.role === UserRole.LEADERSHIP 
-                ? LEADERSHIP_ROLES.map(pos => <option key={pos} value={pos}>{pos}</option>)
-                : PATHFINDER_ROLES.map(pos => <option key={pos} value={pos}>{pos}</option>)
+                ? LEADERSHIP_ROLES.map((pos, pIdx) => <option key={`reg-lead-role-${pos}-${pIdx}`} value={pos}>{pos}</option>)
+                : PATHFINDER_ROLES.map((pos, pIdx) => <option key={`reg-pf-role-${pos}-${pIdx}`} value={pos}>{pos}</option>)
               }
             </select>
             <ChevronDown className="absolute right-3 bottom-2.5 text-slate-400 pointer-events-none" size={16} />
@@ -273,7 +273,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
                 onChange={e => setFormData({...formData, counselor: e.target.value})}
               >
                 <option value="" disabled>Selecione o conselheiro</option>
-                {counselorList.map(name => <option key={name} value={name}>{name}</option>)}
+                {counselorList.map((name, nIdx) => <option key={`reg-counselor-${name}-${nIdx}`} value={name}>{name}</option>)}
               </select>
               <ChevronDown className="absolute right-3 bottom-2.5 text-slate-400 pointer-events-none" size={16} />
             </div>
@@ -291,8 +291,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
                 <option value="" disabled>Selecione a unidade</option>
                 {sortUnitsWithLeadershipLast(unitsList)
                   .filter(u => isLeadership || !isLeadershipUnit(u.name))
-                  .map(u => (
-                    <option key={u.id || u.name} value={u.name}>{u.name}</option>
+                  .map((u, uIdx) => (
+                    <option key={`reg-unit-${u.id || u.name}-${uIdx}`} value={u.name}>{u.name}</option>
                   ))
                 }
               </select>
@@ -308,7 +308,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
                   onChange={e => setFormData({...formData, className: e.target.value})}
                 >
                   <option value="">Selecionar Classe</option>
-                  {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                  {LEADERSHIP_CLASSES.map((cls, cIdx) => <option key={`reg-lead-cls-${cls}-${cIdx}`} value={cls}>{cls}</option>)}
                 </select>
                 <ChevronDown className="absolute right-3 bottom-2.5 text-slate-400 pointer-events-none" size={16} />
               </div>
@@ -358,7 +358,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBack, counselorList =
                   onChange={e => setFormData({...formData, className: e.target.value})}
                 >
                   <option value="">Selecionar Classe</option>
-                  {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                  {LEADERSHIP_CLASSES.map((cls, cIdx) => <option key={`reg-lead-cls-alt-${cls}-${cIdx}`} value={cls}>{cls}</option>)}
                 </select>
                 <ChevronDown className="absolute right-3 bottom-2.5 text-slate-400 pointer-events-none" size={16} />
               </div>

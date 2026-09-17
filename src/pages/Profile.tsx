@@ -943,7 +943,9 @@ const Profile: React.FC<ProfileProps> = ({
                       <label className={labelClasses}>Função</label>
                       <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.funcao || ''} onChange={e => setFormData({...formData, funcao: e.target.value})}>
                         <option value="" disabled>Selecionar</option>
-                        {formData.role === UserRole.LEADERSHIP ? LEADERSHIP_ROLES.map(pos => <option key={pos} value={pos}>{pos}</option>) : PATHFINDER_ROLES.map(pos => <option key={pos} value={pos}>{pos}</option>)}
+                        {formData.role === UserRole.LEADERSHIP 
+                          ? LEADERSHIP_ROLES.map((pos, pIdx) => <option key={`lead-role-${pos}-${pIdx}`} value={pos}>{pos}</option>) 
+                          : PATHFINDER_ROLES.map((pos, pIdx) => <option key={`pf-role-${pos}-${pIdx}`} value={pos}>{pos}</option>)}
                       </select>
                       <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={16} />
                     </div>
@@ -1004,7 +1006,7 @@ const Profile: React.FC<ProfileProps> = ({
                       <>
                         <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.className || ''} onChange={e => setFormData({...formData, className: e.target.value})}>
                           <option value="">Nenhuma</option>
-                          {LEADERSHIP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                          {LEADERSHIP_CLASSES.map((cls, cIdx) => <option key={`lead-cls-${cls}-${cIdx}`} value={cls}>{cls}</option>)}
                         </select>
                         <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={16} />
                       </>
@@ -1018,8 +1020,8 @@ const Profile: React.FC<ProfileProps> = ({
                       <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.unit || ''} onChange={e => setFormData({...formData, unit: e.target.value as UnitName})}>
                         {sortUnitsWithLeadershipLast(unitsList)
                           .filter(u => isLeadership || !isLeadershipUnit(u.name))
-                          .map(u => (
-                            <option key={u.id || u.name} value={u.name}>{u.name}</option>
+                          .map((u, uIdx) => (
+                            <option key={`unit-opt-${u.id || u.name}-${uIdx}`} value={u.name}>{u.name}</option>
                           ))
                         }
                       </select>
@@ -1031,7 +1033,7 @@ const Profile: React.FC<ProfileProps> = ({
                          <>
                            <select className={`${inputClasses} ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-100 text-slate-700'} appearance-none`} value={formData.counselor || ''} onChange={e => setFormData({...formData, counselor: e.target.value})}>
                              <option value="" disabled>Selecionar</option>
-                             {counselorList.map(name => <option key={name} value={name}>{name}</option>)}
+                             {counselorList.map((name, nIdx) => <option key={`counselor-opt-${name}-${nIdx}`} value={name}>{name}</option>)}
                            </select>
                            <ChevronDown className="absolute right-4 bottom-4 text-slate-400 pointer-events-none" size={18} />
                          </>

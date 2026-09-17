@@ -176,13 +176,8 @@ const SpecialtyStudyArea = forwardRef<SpecialtyStudyHandle, SpecialtyStudyAreaPr
   }, [members, user.id]);
 
   const filteredStudies = useMemo(() => {
-    if (isAdmin) return studies;
-    const now = new Date();
-    return studies.filter(s => {
-      if (!s.scheduled_for) return true;
-      return new Date(s.scheduled_for) <= now;
-    });
-  }, [studies, isAdmin]);
+    return studies;
+  }, [studies]);
 
   const parseDate = (dateStr: string) => {
     if (!dateStr) return new Date(0);

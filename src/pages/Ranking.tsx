@@ -832,7 +832,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
 
                     return (
                       <div
-                        key={`pc-rank-member-${m.id || idx}`}
+                        key={`pc-rank-member-${m.id || 'mem'}-${idx}`}
                         onClick={() => setSelectedProfile(m)}
                         className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-blue-50/50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer group"
                       >
@@ -1093,7 +1093,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
 
                         return (
                           <div
-                            key={`pc-other-unit-${u.unit}`}
+                            key={`pc-other-unit-${u.unit}-${uIdx}`}
                             className="p-6 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 shadow-sm flex flex-col justify-between"
                           >
                             <div className="flex items-center justify-between mb-4">

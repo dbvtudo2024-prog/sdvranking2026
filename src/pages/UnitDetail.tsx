@@ -99,6 +99,55 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     };
   }, [isLiderancaUnit]);
 
+  // Lista de conselheiros / funções contextualizada para a unidade atual
+  const unitCounselorOptions = useMemo(() => {
+    if (isLiderancaUnit) {
+      return LEADERSHIP_ROLES;
+    }
+    const set = new Set<string>();
+
+    // 1. Conselheiros específicos das unidades Águia Dourada e Guerreiros
+    const lowerUnit = (unitName || '').toLowerCase();
+    if (lowerUnit.includes('águia') || lowerUnit.includes('aguia')) {
+      set.add('Carlos Souza');
+      set.add('Carlos');
+    } else if (lowerUnit.includes('guerreiro')) {
+      set.add('Ana Paula');
+      set.add('Ana');
+      set.add('Priscila');
+    }
+
+    // 2. Lista vinda de props (counselorList)
+    (counselorList || []).forEach(c => {
+      const trimmed = (c || '').trim();
+      if (trimmed) set.add(trimmed);
+    });
+
+    // 3. Conselheiros já atribuídos aos membros da unidade
+    (filteredMembers || []).forEach(m => {
+      const c = (m.counselor || '').trim();
+      if (c && c !== 'N/A' && c !== 'Sem Conselheiro' && c !== 'Diretoria') {
+        set.add(c);
+      }
+    });
+
+    // 4. Se estiver editando ou formulário tiver conselheiro, garantir que esteja na lista
+    if (isEditing && editingMember?.counselor) {
+      const current = editingMember.counselor.trim();
+      if (current) set.add(current);
+    } else if (formData.counselor) {
+      const current = formData.counselor.trim();
+      if (current) set.add(current);
+    }
+
+    // 5. Fallback padrão seguro
+    if (set.size === 0) {
+      ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(c => set.add(c));
+    }
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [isLiderancaUnit, unitName, counselorList, filteredMembers, isEditing, editingMember?.counselor, formData.counselor]);
+
   // Sync profile when members list updates (ensures badges show up in real-time)
   const currentProfile = useMemo(() => {
     if (!selectedMemberProfile) return null;
@@ -569,8 +618,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                       }}
                     >
                       {/* Liderança até 70 anos */}
-                      {Array.from({length: isLiderancaUnit ? 55 : 6}, (_, i) => (isLiderancaUnit ? 16 : 10) + i).map(a => (
-                        <option key={a} value={a}>{a} anos</option>
+                      {Array.from({length: isLiderancaUnit ? 55 : 6}, (_, i) => (isLiderancaUnit ? 16 : 10) + i).map((a, aIdx) => (
+                        <option key={`age-${a}-${aIdx}`} value={a}>{a} anos</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -585,7 +634,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                       onChange={e => isEditing ? setEditingMember({...editingMember!, className: e.target.value}) : setFormData({...formData, className: e.target.value})}
                     >
                       <option value="">Escolher Classe</option>
-                      {isLiderancaUnit ? LEADERSHIP_CLASSES.map(c => <option key={c} value={c}>{c}</option>) : PATHFINDER_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {isLiderancaUnit ? LEADERSHIP_CLASSES.map((c, cIdx) => <option key={`lead-cls-${c}-${cIdx}`} value={c}>{c}</option>) : PATHFINDER_CLASSES.map((c, cIdx) => <option key={`pf-cls-${c}-${cIdx}`} value={c}>{c}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
@@ -610,11 +659,13 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   <select 
                     required 
                     className={`${inputClasses} appearance-none`} 
-                    value={isEditing ? editingMember?.counselor : formData.counselor} 
+                    value={isEditing ? (editingMember?.counselor || '') : (formData.counselor || '')} 
                     onChange={e => isEditing ? setEditingMember({...editingMember!, counselor: e.target.value}) : setFormData({...formData, counselor: e.target.value})}
                   >
                     <option value="">Escolher {isLiderancaUnit ? 'Função' : 'Conselheiro'}</option>
-                    {isLiderancaUnit ? LEADERSHIP_ROLES.map(r => <option key={r} value={r}>{r}</option>) : counselorList.map(c => <option key={c} value={c}>{c}</option>)}
+                    {unitCounselorOptions.map((opt, optIdx) => (
+                      <option key={`unit-counselor-opt-${opt}-${optIdx}`} value={opt}>{opt}</option>
+                    ))}
                   </select>
                   <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>

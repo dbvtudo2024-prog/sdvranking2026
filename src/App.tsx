@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AuthUser, UserRole, UnitName, Member, Announcement, ChatMessage, Challenge1x1, CounselorDB, GameConfig, BadgeLevel, UserBadge, UserStats, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast } from '@/types';
 import { DatabaseService } from '@/db';
 import { calculateMonthlyGamesTotal, GAME_KEYS } from '@/helpers/scoreHelpers';
@@ -1006,6 +1006,26 @@ const App: React.FC = () => {
     }
   }, [members, user, processAutomatedAwards]);
 
+  const cleanCounselorNames = useMemo(() => {
+    const names = new Set<string>();
+    // 1. De counselorsData
+    (counselorsData || []).forEach(c => {
+      const n = (c.name || '').trim();
+      if (n) names.add(n);
+    });
+    // 2. De members que já possuem counselor atribuído
+    (members || []).forEach(m => {
+      const n = (m.counselor || '').trim();
+      if (n && n !== 'N/A' && n !== 'Sem Conselheiro' && n !== 'Diretoria') {
+        names.add(n);
+      }
+    });
+    // 3. Garantir conselheiros reconhecidos das unidades Águia e Guerreiros
+    ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(n => names.add(n));
+
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [counselorsData, members]);
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <Home announcements={announcements} onNavigate={(p) => setCurrentPage(p)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} user={user!} members={members} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
@@ -1022,13 +1042,13 @@ const App: React.FC = () => {
           onUpdateUnit={handleUpdateUnit}
           onDeleteUnit={handleDeleteUnit}
           onAddMember={handleAddMember}
-          counselorList={counselorsData.map(c => c.name)}
+          counselorList={cleanCounselorNames}
         />
       );
       case 'birthdays': return <Birthdays ref={birthdaysRef} members={members} onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} />;
       case 'devotional': return <Devotional onBack={() => setCurrentPage('home')} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
       case 'ranking': return <Ranking members={members} isDarkMode={isDarkMode} unitsList={unitsList} />;
-      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} unitsList={unitsList} />;
+      case 'profile': return <Profile user={user!} members={members} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onGoToAdminManagement={() => setCurrentPage('admin_management')} counselorList={cleanCounselorNames} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onGoToBadges={() => setCurrentPage('badges')} unitsList={unitsList} />;
       case 'games': return <Games user={user!} members={members} onUpdateMember={handleUpdateMember} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} 
         quizOverride={quizOverride} quizAllowedDay={quizAllowedDay}
         memoryOverride={memoryOverride} memoryAllowedDay={memoryAllowedDay}
@@ -1043,7 +1063,7 @@ const App: React.FC = () => {
         isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'badges': return <Badges user={user!} members={members} isDarkMode={isDarkMode} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
-      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} userEmail={user!.email} counselorList={counselorsData.map(c => c.name)} isDarkMode={isDarkMode} /> : null;
+      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} userEmail={user!.email} counselorList={cleanCounselorNames} isDarkMode={isDarkMode} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;
@@ -1091,7 +1111,7 @@ const App: React.FC = () => {
       } else {
         setCurrentPage('home');
       }
-    }} onBack={() => setCurrentPage('home')} counselorList={counselorsData.map(c => c.name)} unitsList={unitsList} />;
+    }} onBack={() => setCurrentPage('home')} counselorList={cleanCounselorNames} unitsList={unitsList} />;
     return <Login onLogin={handleLogin} onGoToRegister={() => setCurrentPage('register')} />;
   }
 

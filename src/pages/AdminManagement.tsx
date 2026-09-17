@@ -2193,8 +2193,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               {counselors.length === 0 ? (
                 <p className="text-center py-8 text-slate-300 text-[10px] font-black uppercase">Nenhum conselheiro cadastrado</p>
               ) : (
-                counselors.map(c => (
-                  <div key={`modal-counselor-${c.id}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-2xl p-4 flex items-center justify-between group`}>
+                counselors.map((c, cIdx) => (
+                  <div key={`modal-counselor-${c.id || c.name || cIdx}-${cIdx}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-2xl p-4 flex items-center justify-between group`}>
                     <span className={`font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-xs uppercase tracking-tight`}>{c.name}</span>
                     <div className="flex gap-3">
                       <button onClick={() => { setEditCounselor(c); setNewCounselorName(c.name); }} className="text-blue-300 hover:text-blue-600 transition-colors">

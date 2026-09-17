@@ -411,7 +411,7 @@ const Units: React.FC<UnitsProps> = ({
 
         {/* Lista de Unidades */}
         <div className="flex flex-col gap-3 sm:gap-4">
-          {activeUnits.map((unit) => {
+          {activeUnits.map((unit, uIdx) => {
             const stats = getUnitStats(unit.name);
             const unitLogo = unit.logoUrl || (UNIT_LOGOS as any)[unit.name];
             const unitColor = unit.color || '#0061f2';
@@ -419,7 +419,7 @@ const Units: React.FC<UnitsProps> = ({
 
             return (
               <motion.div 
-                key={unit.id || unit.name}
+                key={`unit-card-${unit.id || unit.name}-${uIdx}`}
                 whileHover={{ scale: 1.01, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.15 }}
@@ -936,8 +936,8 @@ const Units: React.FC<UnitsProps> = ({
                       : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                   }`}
                 >
-                  {activeUnits.map(unit => (
-                    <option key={unit.id || unit.name} value={unit.name}>
+                  {activeUnits.map((unit, uIdx) => (
+                    <option key={`unit-opt-${unit.id || unit.name}-${uIdx}`} value={unit.name}>
                       {unit.name}
                     </option>
                   ))}
@@ -960,12 +960,12 @@ const Units: React.FC<UnitsProps> = ({
                     }`}
                   >
                     {memberFormUnit === UnitName.LIDERANCA ? (
-                      LEADERSHIP_CLASSES.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      LEADERSHIP_CLASSES.map((c, cIdx) => (
+                        <option key={`lead-cls-${c}-${cIdx}`} value={c}>{c}</option>
                       ))
                     ) : (
-                      PATHFINDER_CLASSES.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      PATHFINDER_CLASSES.map((c, cIdx) => (
+                        <option key={`pf-cls-${c}-${cIdx}`} value={c}>{c}</option>
                       ))
                     )}
                   </select>
@@ -984,8 +984,8 @@ const Units: React.FC<UnitsProps> = ({
                           : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                       }`}
                     >
-                      {LEADERSHIP_ROLES.map(role => (
-                        <option key={role} value={role}>{role}</option>
+                      {LEADERSHIP_ROLES.map((role, rIdx) => (
+                        <option key={`lead-role-${role}-${rIdx}`} value={role}>{role}</option>
                       ))}
                     </select>
                   ) : (
@@ -1001,8 +1001,8 @@ const Units: React.FC<UnitsProps> = ({
                           }`}
                         >
                           <option value="">Selecione ou deixe vazio</option>
-                          {counselorList.map(name => (
-                            <option key={name} value={name}>{name}</option>
+                          {counselorList.map((name, nIdx) => (
+                            <option key={`counselor-opt-${name}-${nIdx}`} value={name}>{name}</option>
                           ))}
                         </select>
                       ) : (
