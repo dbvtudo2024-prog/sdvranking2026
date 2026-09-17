@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database, FileText, Table, Download, Eye, RefreshCw, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database, FileText, Table, Download, Eye, RefreshCw, CheckCircle2, FileSpreadsheet, Layers } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
-import { DatabaseService, migrateAllDataToCloudflareD1, seedInitialDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL } from '@/db';
+import { DatabaseService, migrateAllDataToCloudflareD1, seedInitialDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL, createAllD1Tables, ALL_D1_TABLES } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
@@ -242,7 +243,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
-  // Templates pré-definidos de CSV para cada tabela do novo banco
+  // Templates pré-definidos de CSV para cada uma das 16 tabelas originadas do Supabase
   const CSV_TEMPLATES: Record<string, { label: string; template: string; headers: string[] }> = {
     members: {
       label: 'Membros (members)',
@@ -251,7 +252,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     },
     users: {
       label: 'Usuários (users)',
-      headers: ['id', 'username', 'name', 'password', 'role', 'unit', 'funcao'],
+      headers: ['id', 'username', 'name', 'password', 'role', 'unit', 'funcao', 'avatar'],
       template: `id,username,name,password,role,unit,funcao\nuser_davi,davi,Davi de Pin,123,Desbravador,Águia Dourada,Desbravador Campeão\nuser_ronaldo,ronaldo,Ronaldo Sonic,123,Liderança,Liderança,Diretoria`
     },
     announcements: {
@@ -278,20 +279,133 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       label: 'Perguntas do Quiz (quiz_questions)',
       headers: ['id', 'category', 'question', 'options', 'correct_answer', 'tip', 'image_url'],
       template: `id,category,question,options,correct_answer,tip,image_url\nq_1,Bíblia,Quem construiu a arca?,Moisés;Noé;Abraão;Davi,1,Ele tinha 3 filhos e colocou animais na arca,`
+    },
+    Biblia_Completa: {
+      label: 'Bíblia Completa (Biblia_Completa)',
+      headers: ['id', 'Livro', 'Capitulo', 'Versiculo', 'Texto', 'testamento'],
+      template: `id,Livro,Capitulo,Versiculo,Texto,testamento\n1,Gênesis,1,1,No princípio criou Deus os céus e a terra.,Antigo\n2,Gênesis,1,2,E a terra era sem forma e vazia.,Antigo`
+    },
+    conselheiros: {
+      label: 'Conselheiros (conselheiros)',
+      headers: ['id', 'nome', 'unidade'],
+      template: `id,nome,unidade\ncons_1,Carlos Souza,Águia Dourada\ncons_2,Ana Paula,Guerreiros de Betel`
+    },
+    game_assets: {
+      label: 'Ativos dos Jogos (game_assets)',
+      headers: ['id', 'game_type', 'name', 'url'],
+      template: `id,game_type,name,url\nasset_1,knots,Nó Direito,https://exemplo.com/no_direito.png\nasset_2,nature,Ipê Amarelo,https://exemplo.com/ipe.png`
+    },
+    game_configs: {
+      label: 'Configurações de Jogos (game_configs)',
+      headers: ['id', 'type', 'config'],
+      template: `id,type,config\n1,game_configs,{"active":true,"quizOverride":false}`
+    },
+    messages: {
+      label: 'Mensagens / Chat (messages)',
+      headers: ['id', 'sender_id', 'sender_name', 'sender_photo', 'text', 'unit', 'target'],
+      template: `id,sender_id,sender_name,sender_photo,text,unit,target\nmsg_1,user_ronaldo,Ronaldo Sonic,,Bem-vindos ao mural do clube!,all,all`
+    },
+    puzzle_images: {
+      label: 'Quebra-Cabeça (puzzle_images)',
+      headers: ['id', 'title', 'url'],
+      template: `id,title,url\npuz_1,Acampamento de Verão,https://images.unsplash.com/photo-1510312305653-8ed496efae75`
+    },
+    scrambled_verses: {
+      label: 'Versículos Embaralhados (scrambled_verses)',
+      headers: ['id', 'title', 'reference', 'text', 'scheduled_for'],
+      template: `id,title,reference,text,scheduled_for\nsv_1,Salmos 23:1,Salmos 23:1,O Senhor é o meu pastor nada me faltará.,2026-04-12`
+    },
+    three_clues_questions: {
+      label: 'Três Pistas (three_clues_questions)',
+      headers: ['id', 'category', 'answer', 'clue1', 'clue2', 'clue3'],
+      template: `id,category,answer,clue1,clue2,clue3\ntc_1,Bíblia,Moisés,Fui colocado em um cesto de junco,Abri o Mar Vermelho,Recebi as tábuas dos Dez Mandamentos`
+    },
+    who_am_i_questions: {
+      label: 'Quem Sou Eu (who_am_i_questions)',
+      headers: ['id', 'character', 'clues', 'tip', 'category'],
+      template: `id,character,clues,tip,category\nwai_1,Davi,Derrubei um gigante com uma funda;Fui o segundo rei de Israel;Escrevi muitos Salmos,Fui pastor de ovelhas na juventude,Bíblia`
     }
   };
 
-  // Estados para envio de tabelas CSV para o novo banco (Cloudflare D1)
-  type ImportTargetTable = 'members' | 'users' | 'announcements' | 'EspecialidadesDBV' | 'specialty_studies' | 'devotionals' | 'quiz_questions' | 'custom';
+  // Estados para envio de tabelas CSV/XLSX para o novo banco (Cloudflare D1)
+  type ImportTargetTable =
+    | 'members'
+    | 'users'
+    | 'announcements'
+    | 'EspecialidadesDBV'
+    | 'specialty_studies'
+    | 'devotionals'
+    | 'quiz_questions'
+    | 'Biblia_Completa'
+    | 'conselheiros'
+    | 'game_assets'
+    | 'game_configs'
+    | 'messages'
+    | 'puzzle_images'
+    | 'scrambled_verses'
+    | 'three_clues_questions'
+    | 'who_am_i_questions'
+    | 'custom';
+
   const [importTarget, setImportTarget] = useState<ImportTargetTable>('members');
   const [customTableName, setCustomTableName] = useState('');
   const [importFormat, setImportFormat] = useState<'csv' | 'json'>('csv');
   const [rawImportText, setRawImportText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [isCreatingAllTables, setIsCreatingAllTables] = useState(false);
+  const [detectedTableName, setDetectedTableName] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, success: 0, error: 0 });
   const [importLogs, setImportLogs] = useState<string[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [templateCopied, setTemplateCopied] = useState(false);
+
+  // Auto-identifica a tabela a partir do nome do arquivo (ex: announcements_rows.csv -> announcements)
+  const detectTableFromFileName = (fileName: string): ImportTargetTable | null => {
+    const clean = fileName
+      .toLowerCase()
+      .replace(/\.(csv|json|xlsx|xls)$/, '')
+      .replace(/_rows$/, '')
+      .replace(/_row$/, '')
+      .trim();
+
+    const map: Record<string, ImportTargetTable> = {
+      'announcements': 'announcements',
+      'avisos': 'announcements',
+      'biblia_completa': 'Biblia_Completa',
+      'bibliacompleta': 'Biblia_Completa',
+      'biblia': 'Biblia_Completa',
+      'conselheiros': 'conselheiros',
+      'counselors': 'conselheiros',
+      'devotionals': 'devotionals',
+      'devocionais': 'devotionals',
+      'especialidadesdbv': 'EspecialidadesDBV',
+      'especialidades': 'EspecialidadesDBV',
+      'game_assets': 'game_assets',
+      'gameassets': 'game_assets',
+      'game_configs': 'game_configs',
+      'gameconfigs': 'game_configs',
+      'members': 'members',
+      'membros': 'members',
+      'messages': 'messages',
+      'mensagens': 'messages',
+      'puzzle_images': 'puzzle_images',
+      'puzzleimages': 'puzzle_images',
+      'quiz_questions': 'quiz_questions',
+      'quiz': 'quiz_questions',
+      'scrambled_verses': 'scrambled_verses',
+      'scrambledverses': 'scrambled_verses',
+      'specialty_studies': 'specialty_studies',
+      'specialtystudies': 'specialty_studies',
+      'three_clues_questions': 'three_clues_questions',
+      'threeclues': 'three_clues_questions',
+      'users': 'users',
+      'usuarios': 'users',
+      'who_am_i_questions': 'who_am_i_questions',
+      'whoami': 'who_am_i_questions',
+      'who_am_i': 'who_am_i_questions'
+    };
+    return map[clean] || null;
+  };
 
   const handleCopyTemplate = () => {
     const tpl = CSV_TEMPLATES[importTarget]?.template;
@@ -327,6 +441,33 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   };
 
   const readImportFile = (file: File) => {
+    const detected = detectTableFromFileName(file.name);
+    if (detected) {
+      setImportTarget(detected);
+      setDetectedTableName(detected);
+      setTimeout(() => setDetectedTableName(null), 6000);
+    }
+
+    // Suporte nativo a planilhas Excel (.xlsx, .xls)
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+          setRawImportText(JSON.stringify(json, null, 2));
+          setImportFormat('json');
+        } catch (err: any) {
+          alert('Erro ao processar planilha Excel: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
     if (file.name.endsWith('.json')) {
       setImportFormat('json');
     } else if (file.name.endsWith('.csv')) {
@@ -342,21 +483,30 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     reader.readAsText(file);
   };
 
+  // Criação explícita de todas as 16 tabelas no Cloudflare D1
+  const handleCreateAllTables = async () => {
+    if (!window.confirm("Deseja criar e verificar todas as 16 tabelas originadas do Supabase no Cloudflare D1 agora?")) return;
+    setIsCreatingAllTables(true);
+    try {
+      const res = await createAllD1Tables();
+      if (res.success) {
+        alert(`✅ SUCESSO!\n\nTodas as 16 tabelas foram criadas/garantidas no Cloudflare D1:\n` + ALL_D1_TABLES.map(t => `• ${t}`).join('\n'));
+      } else {
+        alert(`⚠️ Tabelas criadas: ${res.createdCount} de 16.\nErros:\n${res.errors.join('\n')}`);
+      }
+      await runDiagnostic();
+    } catch (err: any) {
+      alert(`❌ Erro ao criar tabelas: ${err?.message || 'Falha inesperada'}`);
+    } finally {
+      setIsCreatingAllTables(false);
+    }
+  };
+
   const runDiagnostic = async () => {
     setIsDiagnosticRunning(true);
     const results = [];
-    const tables = [
-      'members',
-      'users',
-      'announcements',
-      'EspecialidadesDBV',
-      'specialty_studies',
-      'devotionals',
-      'quiz_questions',
-      'game_configs'
-    ];
     
-    for (const table of tables) {
+    for (const table of ALL_D1_TABLES) {
       try {
         const rows = await runD1Query(`SELECT * FROM ${table} LIMIT 1`);
         const countRes = await runD1Query<{ total?: number }>(`SELECT COUNT(*) as total FROM ${table}`);
@@ -370,7 +520,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
           columns 
         });
       } catch (e: any) {
-        results.push({ table, count: -1, status: `Erro: ${e?.message || 'Tabela não encontrada'}`, columns: [] });
+        results.push({ table, count: -1, status: `Não criada ou com erro: ${e?.message || 'Inacessível'}`, columns: [] });
       }
     }
     setDiagnosticResults(results);
@@ -1029,6 +1179,148 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             setImportProgress(p => ({ ...p, success: successCount }));
             setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Questão "${question.slice(0, 30)}..."`]);
 
+          } else if (importTarget === 'Biblia_Completa') {
+            const livro = getValueWithAliases(item, ['Livro', 'livro', 'book', 'book_name', 'Nome'], 'Gênesis');
+            const capitulo = parseInt(getValueWithAliases(item, ['Capitulo', 'capitulo', 'chapter'], '1'), 10) || 1;
+            const versiculo = parseInt(getValueWithAliases(item, ['Versiculo', 'versiculo', 'verse', 'verse_number'], '1'), 10) || 1;
+            const texto = getValueWithAliases(item, ['Texto', 'texto', 'text', 'conteudo'], '');
+            const testamento = getValueWithAliases(item, ['testamento', 'Testamento'], 'Antigo');
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO Biblia_Completa (id, Livro, Capitulo, Versiculo, Texto, testamento, book_name, chapter, verse_number, text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [recordId, livro, capitulo, versiculo, texto, testamento, livro, capitulo, versiculo, texto]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Bíblia "${livro} ${capitulo}:${versiculo}"`]);
+
+          } else if (importTarget === 'conselheiros') {
+            const nome = getValueWithAliases(item, ['nome', 'Nome', 'name', 'Name'], 'Conselheiro');
+            const unidade = getValueWithAliases(item, ['unidade', 'Unidade', 'unit', 'Unit'], '');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt', 'criado_em'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO conselheiros (id, nome, name, unidade, unit, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [recordId, nome, nome, unidade, unidade, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Conselheiro "${nome}" (${unidade})`]);
+
+          } else if (importTarget === 'game_assets') {
+            const game_type = getValueWithAliases(item, ['game_type', 'gameType', 'tipo_jogo'], 'geral');
+            const name = getValueWithAliases(item, ['name', 'Name', 'nome', 'titulo'], 'Ativo');
+            const url = getValueWithAliases(item, ['url', 'URL', 'imagem', 'image_url'], '');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO game_assets (id, game_type, name, url, created_at) VALUES (?, ?, ?, ?, ?)",
+              [recordId, game_type, name, url, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Game Asset "${name}"`]);
+
+          } else if (importTarget === 'game_configs') {
+            const type = getValueWithAliases(item, ['type', 'tipo'], 'game_configs');
+            const configRaw = getValueWithAliases(item, ['config', 'Config', 'dados'], '{}');
+            const config = typeof configRaw === 'string' ? configRaw : JSON.stringify(configRaw);
+            const updated_at = getValueWithAliases(item, ['updated_at', 'updatedAt'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO game_configs (id, type, config, updated_at) VALUES (?, ?, ?, ?)",
+              [recordId, type, config, updated_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Configuração de Jogos "${type}"`]);
+
+          } else if (importTarget === 'messages') {
+            const sender_id = getValueWithAliases(item, ['sender_id', 'senderId', 'usuario_id', 'id_usuario'], 'anon');
+            const sender_name = getValueWithAliases(item, ['sender_name', 'senderName', 'nome', 'autor'], 'Desbravador');
+            const sender_photo = getValueWithAliases(item, ['sender_photo', 'senderPhoto', 'foto', 'avatar'], '');
+            const text = getValueWithAliases(item, ['text', 'Text', 'mensagem', 'conteudo'], '');
+            const unit = getValueWithAliases(item, ['unit', 'Unit', 'unidade'], '');
+            const target = getValueWithAliases(item, ['target', 'Target', 'destino', 'alvo'], 'all');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt', 'timestamp'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO messages (id, sender_id, sender_name, sender_photo, text, unit, target, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              [recordId, sender_id, sender_name, sender_photo, text, unit, target, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Mensagem de "${sender_name}"`]);
+
+          } else if (importTarget === 'puzzle_images') {
+            const title = getValueWithAliases(item, ['title', 'Title', 'titulo', 'Titulo', 'nome'], 'Quebra-Cabeça');
+            const url = getValueWithAliases(item, ['url', 'URL', 'imagem', 'image_url'], '');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO puzzle_images (id, title, url, created_at) VALUES (?, ?, ?, ?)",
+              [recordId, title, url, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Imagem Quebra-Cabeça "${title}"`]);
+
+          } else if (importTarget === 'scrambled_verses') {
+            const title = getValueWithAliases(item, ['title', 'Title', 'titulo', 'Titulo'], 'Versículo');
+            const reference = getValueWithAliases(item, ['reference', 'Reference', 'referencia', 'passagem'], '');
+            const text = getValueWithAliases(item, ['text', 'Text', 'texto', 'versiculo'], '');
+            const scheduled_for = getValueWithAliases(item, ['scheduled_for', 'scheduledFor', 'data'], '');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO scrambled_verses (id, title, reference, text, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [recordId, title, reference, text, scheduled_for, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Versículo "${title}" (${reference})`]);
+
+          } else if (importTarget === 'three_clues_questions') {
+            const category = getValueWithAliases(item, ['category', 'Category', 'categoria'], 'Bíblia');
+            const answer = getValueWithAliases(item, ['answer', 'Answer', 'resposta', 'personagem'], '');
+            const clue1 = getValueWithAliases(item, ['clue1', 'Clue1', 'pista1', 'dica1'], '');
+            const clue2 = getValueWithAliases(item, ['clue2', 'Clue2', 'pista2', 'dica2'], '');
+            const clue3 = getValueWithAliases(item, ['clue3', 'Clue3', 'pista3', 'dica3'], '');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt'], new Date().toISOString());
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO three_clues_questions (id, category, answer, clue1, clue2, clue3, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [recordId, category, answer, clue1, clue2, clue3, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: 3 Pistas "${answer}"`]);
+
+          } else if (importTarget === 'who_am_i_questions') {
+            const character = getValueWithAliases(item, ['character', 'Character', 'personagem', 'nome', 'answer'], '');
+            const cluesRaw = getValueWithAliases(item, ['clues', 'Clues', 'pistas', 'dicas'], '[]');
+            const tip = getValueWithAliases(item, ['tip', 'Tip', 'dica'], '');
+            const category = getValueWithAliases(item, ['category', 'Category', 'categoria'], 'Bíblia');
+            const created_at = getValueWithAliases(item, ['created_at', 'createdAt'], new Date().toISOString());
+            const clues = typeof cluesRaw === 'string' ? cluesRaw : JSON.stringify(cluesRaw);
+
+            await runD1Query(
+              "INSERT OR REPLACE INTO who_am_i_questions (id, character, clues, tip, category, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [recordId, character, clues, tip, category, created_at]
+            );
+
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Quem Sou Eu "${character}"`]);
+
           } else {
             // Tabela personalizada no Cloudflare D1
             const targetTable = (customTableName || importTarget).trim();
@@ -1323,35 +1615,56 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
               </p>
             </div>
           </div>
-          <button 
-            onClick={runDiagnostic}
-            disabled={isDiagnosticRunning}
-            className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border border-blue-900/30' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}
-          >
-            {isDiagnosticRunning ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-            EXECUTAR DIAGNÓSTICO DO CLOUDFLARE D1
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button 
+              onClick={runDiagnostic}
+              disabled={isDiagnosticRunning || isCreatingAllTables}
+              className={`py-4 px-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border border-blue-900/30 hover:bg-blue-900/30' : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'}`}
+            >
+              {isDiagnosticRunning ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+              DIAGNÓSTICO DAS 16 TABELAS
+            </button>
+
+            <button 
+              onClick={handleCreateAllTables}
+              disabled={isCreatingAllTables || isDiagnosticRunning}
+              className={`py-4 px-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-sm ${isDarkMode ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/50 hover:bg-emerald-900/30' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
+            >
+              {isCreatingAllTables ? <Loader2 className="animate-spin" size={18} /> : <Layers size={18} />}
+              CRIAR / GARANTIR AS 16 TABELAS NO D1
+            </button>
+          </div>
 
           {diagnosticResults.length > 0 && (
             <div className="space-y-3 mt-4">
-              {diagnosticResults.map((res, rIdx) => (
-                <div key={`diag-res-${res.table}-${rIdx}`} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-black text-[10px] uppercase tracking-widest text-blue-500">{res.table}</span>
-                    <span className={`font-black text-[10px] uppercase ${res.status === 'OK' ? 'text-emerald-500' : 'text-red-500'}`}>{res.status}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Registros no D1: {res.count}</span>
-                  </div>
-                  {res.columns.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {res.columns.map((col, cIdx) => (
-                        <span key={`col-${col}-${cIdx}`} className={`text-[7px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400 border border-slate-100'}`}>{col}</span>
-                      ))}
+              <div className="flex items-center justify-between px-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                <span>Total de Tabelas Verificadas: {diagnosticResults.length}</span>
+                <span className="text-emerald-500">Tabelas Ativas (OK): {diagnosticResults.filter(r => r.status === 'OK').length} / {diagnosticResults.length}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {diagnosticResults.map((res, rIdx) => (
+                  <div key={`diag-res-${res.table}-${rIdx}`} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-black text-[10.5px] uppercase tracking-wider text-blue-500 font-mono">{res.table}</span>
+                      <span className={`font-black text-[9px] uppercase px-2 py-0.5 rounded-full ${res.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>{res.status}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="flex justify-between items-center text-[9px] font-bold">
+                      <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Linhas no D1:</span>
+                      <span className={`font-mono ${res.count >= 0 ? 'text-emerald-400 font-black' : 'text-red-400'}`}>{res.count >= 0 ? res.count : 'Inexistente'}</span>
+                    </div>
+                    {res.columns.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {res.columns.slice(0, 10).map((col, cIdx) => (
+                          <span key={`col-${col}-${cIdx}`} className={`text-[7.5px] px-1.5 py-0.5 rounded-md font-mono font-bold ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500 border border-slate-200'}`}>{col}</span>
+                        ))}
+                        {res.columns.length > 10 && (
+                          <span className="text-[7.5px] px-1.5 py-0.5 font-bold text-slate-500">+{res.columns.length - 10} mais</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1501,34 +1814,54 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
           {/* Seleção de Tabela de Destino */}
           <div>
-            <label className={`block text-[8px] font-black uppercase tracking-widest mb-2.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Selecione a Tabela de Destino no Cloudflare D1:
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="flex items-center justify-between mb-2.5">
+              <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Selecione a Tabela de Destino no Cloudflare D1 (16 Tabelas Oficiais):
+              </label>
+              <span className="text-[8px] font-mono font-bold text-emerald-500">16 Tabelas Disponíveis</span>
+            </div>
+
+            {detectedTableName && (
+              <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-emerald-400 animate-pulse">
+                <CheckCircle2 size={16} />
+                <span>Arquivo detectado com sucesso: Tabela "{detectedTableName}" selecionada automaticamente!</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {[
-                { key: 'members', label: 'Membros', sub: 'members' },
-                { key: 'users', label: 'Usuários', sub: 'users' },
                 { key: 'announcements', label: 'Avisos', sub: 'announcements' },
-                { key: 'EspecialidadesDBV', label: 'Especialidades', sub: 'EspecialidadesDBV' },
-                { key: 'specialty_studies', label: 'Estudos', sub: 'specialty_studies' },
+                { key: 'Biblia_Completa', label: 'Bíblia Completa', sub: 'Biblia_Completa' },
+                { key: 'conselheiros', label: 'Conselheiros', sub: 'conselheiros' },
                 { key: 'devotionals', label: 'Devocionais', sub: 'devotionals' },
+                { key: 'EspecialidadesDBV', label: 'Especialidades', sub: 'EspecialidadesDBV' },
+                { key: 'game_assets', label: 'Ativos de Jogos', sub: 'game_assets' },
+                { key: 'game_configs', label: 'Config Jogos', sub: 'game_configs' },
+                { key: 'members', label: 'Membros', sub: 'members' },
+                { key: 'messages', label: 'Mensagens / Chat', sub: 'messages' },
+                { key: 'puzzle_images', label: 'Quebra-Cabeça', sub: 'puzzle_images' },
                 { key: 'quiz_questions', label: 'Perguntas Quiz', sub: 'quiz_questions' },
+                { key: 'scrambled_verses', label: 'Versículos Emb.', sub: 'scrambled_verses' },
+                { key: 'specialty_studies', label: 'Estudos Espec.', sub: 'specialty_studies' },
+                { key: 'three_clues_questions', label: '3 Pistas', sub: 'three_clues_questions' },
+                { key: 'users', label: 'Usuários', sub: 'users' },
+                { key: 'who_am_i_questions', label: 'Quem Sou Eu', sub: 'who_am_i_questions' },
                 { key: 'custom', label: 'Outra Tabela', sub: 'Personalizada' },
               ].map((tbl) => (
                 <button
                   key={tbl.key}
                   type="button"
                   onClick={() => setImportTarget(tbl.key as ImportTargetTable)}
-                  className={`py-3 px-3 rounded-2xl font-bold uppercase tracking-wider text-left border transition-all ${
+                  className={`py-2.5 px-3 rounded-2xl font-bold uppercase tracking-wider text-left border transition-all ${
                     importTarget === tbl.key
-                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20'
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 ring-2 ring-blue-400/40'
                       : isDarkMode
                       ? 'bg-slate-900/40 text-slate-400 border-slate-800 hover:bg-slate-900/80 hover:text-slate-200'
                       : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  <p className="text-[9.5px] font-black leading-none">{tbl.label}</p>
-                  <p className={`text-[7.5px] mt-1 font-mono ${importTarget === tbl.key ? 'text-blue-100' : 'text-slate-500'}`}>{tbl.sub}</p>
+                  <p className="text-[9px] font-black leading-tight truncate">{tbl.label}</p>
+                  <p className={`text-[7px] mt-1 font-mono truncate ${importTarget === tbl.key ? 'text-blue-100' : 'text-slate-500'}`}>{tbl.sub}</p>
                 </button>
               ))}
             </div>
@@ -1625,7 +1958,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             >
               <input
                 type="file"
-                accept=".csv,.json,.txt"
+                accept=".csv,.xlsx,.xls,.json,.txt"
                 onChange={handleFileChange}
                 id="file-import-input-new"
                 className="hidden"
@@ -1642,10 +1975,10 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                 </div>
                 <div className="space-y-1">
                   <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    Arraste & Solte seu arquivo .CSV ou .JSON aqui
+                    Arraste & Solte seu arquivo .CSV, Excel (.xlsx/.xls) ou .JSON aqui
                   </p>
                   <p className={`text-[8.5px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                    Ou clique para selecionar do seu computador
+                    Detecção automática da tabela pelo nome do arquivo (ex: conselheiros_rows.csv)
                   </p>
                 </div>
               </label>

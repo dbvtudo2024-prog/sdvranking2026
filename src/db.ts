@@ -289,6 +289,64 @@ export async function runD1Query<T = any>(query: string, params: any[] = []): Pr
   }
 }
 
+// Lista oficial de todas as 16 tabelas originadas do Supabase que compõem o sistema
+export const ALL_D1_TABLES = [
+  'announcements',
+  'Biblia_Completa',
+  'conselheiros',
+  'devotionals',
+  'EspecialidadesDBV',
+  'game_assets',
+  'game_configs',
+  'members',
+  'messages',
+  'puzzle_images',
+  'quiz_questions',
+  'scrambled_verses',
+  'specialty_studies',
+  'three_clues_questions',
+  'users',
+  'who_am_i_questions'
+] as const;
+
+export const D1_TABLE_CREATION_QUERIES = [
+  "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT, name TEXT, role TEXT, unit TEXT, password TEXT, active INTEGER, funcao TEXT, monthlyMedals TEXT, avatar TEXT, email TEXT);",
+  "CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, unit TEXT, role TEXT, rank TEXT, active INTEGER, birthDate TEXT, phone TEXT, stats TEXT);",
+  "CREATE TABLE IF NOT EXISTS announcements (id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT, author TEXT, target TEXT, pinned INTEGER, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS Biblia_Completa (id TEXT PRIMARY KEY, Livro TEXT, Capitulo INTEGER, Versiculo INTEGER, Texto TEXT, testamento TEXT, book_name TEXT, chapter INTEGER, verse_number INTEGER, text TEXT);",
+  "CREATE TABLE IF NOT EXISTS conselheiros (id TEXT PRIMARY KEY, nome TEXT, name TEXT, unidade TEXT, unit TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS devotionals (id TEXT PRIMARY KEY, title TEXT, content TEXT, link TEXT, scheduled_for TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS EspecialidadesDBV (id TEXT PRIMARY KEY, Nome TEXT, Area TEXT, badgeUrl TEXT, imagem TEXT);",
+  "CREATE TABLE IF NOT EXISTS game_assets (id TEXT PRIMARY KEY, game_type TEXT, name TEXT, url TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS game_configs (id TEXT PRIMARY KEY, type TEXT, config TEXT, updated_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, sender_id TEXT, sender_name TEXT, sender_photo TEXT, text TEXT, unit TEXT, target TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS puzzle_images (id TEXT PRIMARY KEY, title TEXT, url TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS quiz_questions (id TEXT PRIMARY KEY, category TEXT, question TEXT, options TEXT, correct_answer INTEGER, tip TEXT, image_url TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS scrambled_verses (id TEXT PRIMARY KEY, title TEXT, reference TEXT, text TEXT, scheduled_for TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS specialty_studies (id TEXT PRIMARY KEY, name TEXT, pdfurl TEXT, video_url TEXT, specialty_image_url TEXT, category TEXT, questions TEXT, scheduled_for TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS three_clues_questions (id TEXT PRIMARY KEY, category TEXT, answer TEXT, clue1 TEXT, clue2 TEXT, clue3 TEXT, created_at TEXT);",
+  "CREATE TABLE IF NOT EXISTS who_am_i_questions (id TEXT PRIMARY KEY, character TEXT, clues TEXT, tip TEXT, category TEXT, created_at TEXT);"
+];
+
+// Garante que todas as 16 tabelas existam no Cloudflare D1
+export async function createAllD1Tables(): Promise<{ success: boolean; createdCount: number; errors: string[] }> {
+  const errors: string[] = [];
+  let createdCount = 0;
+  for (const q of D1_TABLE_CREATION_QUERIES) {
+    try {
+      await runD1Query(q);
+      createdCount++;
+    } catch (e: any) {
+      errors.push(e?.message || 'Erro ao executar query de tabela');
+    }
+  }
+  return {
+    success: errors.length === 0,
+    createdCount,
+    errors
+  };
+}
+
 // Utilitário de Migração Integral para Cloudflare D1
 export async function seedInitialDataToCloudflareD1(): Promise<{
   success: boolean;
@@ -307,20 +365,8 @@ export async function seedInitialDataToCloudflareD1(): Promise<{
   const counts = { members: 0, users: 0, announcements: 0, specialties: 0, studies: 0, devotionals: 0, questions: 0, gameConfigs: 0 };
 
   try {
-    // 1. Criar tabelas se não existirem
-    const createTableQueries = [
-      "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT, name TEXT, role TEXT, unit TEXT, password TEXT, active INTEGER, funcao TEXT, monthlyMedals TEXT, avatar TEXT);",
-      "CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, unit TEXT, role TEXT, rank TEXT, active INTEGER, birthDate TEXT, phone TEXT, stats TEXT);",
-      "CREATE TABLE IF NOT EXISTS announcements (id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT, author TEXT, target TEXT, pinned INTEGER);",
-      "CREATE TABLE IF NOT EXISTS EspecialidadesDBV (id TEXT PRIMARY KEY, Nome TEXT, Area TEXT, badgeUrl TEXT);",
-      "CREATE TABLE IF NOT EXISTS specialty_studies (id TEXT PRIMARY KEY, name TEXT, pdfurl TEXT, video_url TEXT, specialty_image_url TEXT, category TEXT, questions TEXT, scheduled_for TEXT, created_at TEXT);",
-      "CREATE TABLE IF NOT EXISTS devotionals (id TEXT PRIMARY KEY, title TEXT, content TEXT, link TEXT, scheduled_for TEXT, created_at TEXT);",
-      "CREATE TABLE IF NOT EXISTS quiz_questions (id TEXT PRIMARY KEY, category TEXT, question TEXT, options TEXT, correct_answer INTEGER, tip TEXT, image_url TEXT);",
-      "CREATE TABLE IF NOT EXISTS game_configs (id TEXT PRIMARY KEY, type TEXT, config TEXT);"
-    ];
-    for (const q of createTableQueries) {
-      await runD1Query(q).catch(() => {});
-    }
+    // 1. Criar todas as 16 tabelas no D1 se não existirem
+    await createAllD1Tables();
 
     // 2. Popular Usuários base
     const baseUsers: AuthUser[] = [
@@ -531,20 +577,8 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
   const counts = { members: 0, users: 0, announcements: 0, specialties: 0, gameConfigs: 0, studies: 0, devotionals: 0 };
 
   try {
-    // 0. Garantir tabelas
-    const createTableQueries = [
-      "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT, name TEXT, role TEXT, unit TEXT, password TEXT, active INTEGER, funcao TEXT, monthlyMedals TEXT, avatar TEXT);",
-      "CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, unit TEXT, role TEXT, rank TEXT, active INTEGER, birthDate TEXT, phone TEXT, stats TEXT);",
-      "CREATE TABLE IF NOT EXISTS announcements (id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT, author TEXT, target TEXT, pinned INTEGER);",
-      "CREATE TABLE IF NOT EXISTS EspecialidadesDBV (id TEXT PRIMARY KEY, Nome TEXT, Area TEXT, badgeUrl TEXT);",
-      "CREATE TABLE IF NOT EXISTS specialty_studies (id TEXT PRIMARY KEY, name TEXT, pdfurl TEXT, video_url TEXT, specialty_image_url TEXT, category TEXT, questions TEXT, scheduled_for TEXT, created_at TEXT);",
-      "CREATE TABLE IF NOT EXISTS devotionals (id TEXT PRIMARY KEY, title TEXT, content TEXT, link TEXT, scheduled_for TEXT, created_at TEXT);",
-      "CREATE TABLE IF NOT EXISTS quiz_questions (id TEXT PRIMARY KEY, category TEXT, question TEXT, options TEXT, correct_answer INTEGER, tip TEXT, image_url TEXT);",
-      "CREATE TABLE IF NOT EXISTS game_configs (id TEXT PRIMARY KEY, type TEXT, config TEXT);"
-    ];
-    for (const q of createTableQueries) {
-      await runD1Query(q).catch(() => {});
-    }
+    // 0. Garantir que todas as 16 tabelas existam
+    await createAllD1Tables();
 
     // 1. Migrar Usuários (se Supabase travou ou retornou <= 1, mescla com backup local e usuários base)
     let usersList: AuthUser[] = [];
