@@ -29,6 +29,7 @@ import AppNavbar from '@/components/AppNavbar';
 import DesktopSidebar from '@/components/DesktopSidebar';
 import TickerBanner from '@/components/TickerBanner';
 import { formatImageUrl } from '@/helpers/imageHelpers';
+import { extractCounselorNameList } from '@/utils/counselors';
 import { ArrowLeft, Bell, X, Sword, Moon, Sun, MessageCircle, ShieldCheck, Plus, UserPlus, Shield, User } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -1007,24 +1008,12 @@ const App: React.FC = () => {
   }, [members, user, processAutomatedAwards]);
 
   const cleanCounselorNames = useMemo(() => {
-    const names = new Set<string>();
-    // 1. De counselorsData
-    (counselorsData || []).forEach(c => {
-      const n = (c.name || '').trim();
-      if (n) names.add(n);
+    return extractCounselorNameList({
+      counselorsData,
+      members,
+      unitsList
     });
-    // 2. De members que já possuem counselor atribuído
-    (members || []).forEach(m => {
-      const n = (m.counselor || '').trim();
-      if (n && n !== 'N/A' && n !== 'Sem Conselheiro' && n !== 'Diretoria') {
-        names.add(n);
-      }
-    });
-    // 3. Garantir conselheiros reconhecidos das unidades Águia e Guerreiros
-    ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(n => names.add(n));
-
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [counselorsData, members]);
+  }, [counselorsData, members, unitsList]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -1063,7 +1052,7 @@ const App: React.FC = () => {
         isDarkMode={isDarkMode} onGameActiveChange={setIsGameActive} />;
       case 'badges': return <Badges user={user!} members={members} isDarkMode={isDarkMode} />;
       case 'chat': return <Chat user={user!} isDarkMode={isDarkMode} onAwardBadge={handleAwardBadge} onUpdateStats={handleUpdateStats} />;
-      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} userEmail={user!.email} counselorList={cleanCounselorNames} isDarkMode={isDarkMode} /> : null;
+      case 'unit_detail': return selectedUnit ? <UnitDetail unitName={selectedUnit} members={members} onBack={() => setCurrentPage('units')} onLogout={handleLogout} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} role={user!.role} userName={user!.name} userEmail={user!.email} counselorList={cleanCounselorNames} isDarkMode={isDarkMode} unitsList={unitsList} /> : null;
       case 'admin_announcements': return <AdminAnnouncements announcements={announcements} onAdd={handleAddAnnouncement} onDelete={handleDeleteAnnouncement} onBack={() => setCurrentPage('admin_management')} isDarkMode={isDarkMode} />;
       case 'admin_quiz': return <AdminQuizEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} initialCategory={adminQuizCategory} />;
       case 'admin_specialty': return <AdminSpecialtyEditor onBack={() => setCurrentPage('admin_management')} onLogout={handleLogout} isDarkMode={isDarkMode} />;

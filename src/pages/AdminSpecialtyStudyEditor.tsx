@@ -2,9 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SpecialtyStudy, SpecialtyStudyQuestion } from '@/types';
 import { DatabaseService } from '@/db';
-import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud, Check, Camera, Image as ImageIcon } from 'lucide-react';
+import { Edit2, Trash2, X, Save, Search, Plus, Loader2, FileText, HelpCircle, ArrowLeft, DownloadCloud, Check, Camera, Image as ImageIcon, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { SpecialtyDBV } from '@/types';
 import { formatImageUrl } from '@/helpers/imageHelpers';
+import {
+  parseSpecialtyStudiesFromCSVText,
+  parseQuestionsFromCSVText,
+  generateSpecialtyStudiesCsvTemplate,
+  generateQuestionsCsvTemplate
+} from '@/utils/specialtyStudyCsv';
 
 interface AdminSpecialtyStudyEditorProps {
   onBack: () => void;
@@ -15,6 +21,7 @@ interface AdminSpecialtyStudyEditorProps {
 const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ onBack, onLogout, isDarkMode }) => {
   const [studies, setStudies] = useState<SpecialtyStudy[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showBatchImportModal, setShowBatchImportModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState<SpecialtyStudy | null>(null);
@@ -23,6 +30,14 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
   const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
   const [specialtySearch, setSpecialtySearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bulkCsvInputRef = useRef<HTMLInputElement>(null);
+  const questionsCsvInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados da importação em lote de Estudos
+  const [batchCsvText, setBatchCsvText] = useState('');
+  const [batchImportLogs, setBatchImportLogs] = useState<string[]>([]);
+  const [batchImportProgress, setBatchImportProgress] = useState<{ current: number; total: number; success: number; error: number } | null>(null);
+  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
   const emptyQuestion: SpecialtyStudyQuestion = {
     question: '',
@@ -158,6 +173,146 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
     }
   };
 
+  const handleDownloadStudiesTemplate = () => {
+    const csvContent = generateSpecialtyStudiesCsvTemplate();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'modelo_estudos_especialidades.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadQuestionsTemplate = () => {
+    const csvContent = generateQuestionsCsvTemplate();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'modelo_questoes_estudo.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBatchCsvFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setBatchCsvText(content || '');
+      setBatchImportLogs(prev => [...prev, `📄 Arquivo carregado: "${file.name}" (${(file.size / 1024).toFixed(1)} KB)`]);
+    };
+    reader.readAsText(file);
+    if (bulkCsvInputRef.current) bulkCsvInputRef.current.value = '';
+  };
+
+  const handleProcessBatchStudies = async () => {
+    if (!batchCsvText.trim()) {
+      alert('Por favor, selecione um arquivo CSV ou cole o conteúdo antes de importar.');
+      return;
+    }
+
+    setIsProcessingBatch(true);
+    setBatchImportLogs(['Iniciando leitura e validação do CSV...']);
+
+    try {
+      const parsedStudies = parseSpecialtyStudiesFromCSVText(batchCsvText);
+      if (parsedStudies.length === 0) {
+        setBatchImportLogs(prev => [...prev, '❌ Nenhum estudo válido pôde ser extraído do CSV. Verifique os cabeçalhos das colunas.']);
+        setIsProcessingBatch(false);
+        return;
+      }
+
+      setBatchImportLogs(prev => [
+        ...prev,
+        `📋 Encontrado(s) ${parsedStudies.length} estudo(s) no arquivo. Gravando no Supabase e Cloudflare D1...`
+      ]);
+
+      setBatchImportProgress({ current: 0, total: parsedStudies.length, success: 0, error: 0 });
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < parsedStudies.length; i++) {
+        const study = parsedStudies[i];
+        const currentIdx = i + 1;
+        setBatchImportProgress(prev => prev ? ({ ...prev, current: currentIdx }) : null);
+
+        try {
+          await DatabaseService.saveSpecialtyStudy(study);
+          successCount++;
+          setBatchImportProgress(prev => prev ? ({ ...prev, success: successCount }) : null);
+          setBatchImportLogs(prev => [
+            ...prev,
+            `✅ [${currentIdx}/${parsedStudies.length}] Salvo com sucesso: "${study.name}" (${study.questions?.length || 0} questões)`
+          ]);
+        } catch (err: any) {
+          errorCount++;
+          setBatchImportProgress(prev => prev ? ({ ...prev, error: errorCount }) : null);
+          setBatchImportLogs(prev => [
+            ...prev,
+            `❌ [${currentIdx}/${parsedStudies.length}] Erro ao salvar "${study.name}": ${err?.message || err}`
+          ]);
+        }
+      }
+
+      setBatchImportLogs(prev => [
+        ...prev,
+        `🎉 Concluído: ${successCount} salvos com sucesso, ${errorCount} falhas.`
+      ]);
+
+      const freshList = await DatabaseService.getSpecialtyStudies();
+      setStudies(freshList);
+      alert(`Importação concluída! ${successCount} estudo(s) salvo(s) no banco de dados.`);
+    } catch (err: any) {
+      console.error('Erro na importação em lote:', err);
+      setBatchImportLogs(prev => [...prev, `❌ Erro inesperado: ${err?.message || err}`]);
+      alert('Erro ao processar CSV: ' + (err?.message || 'Verifique o console'));
+    } finally {
+      setIsProcessingBatch(false);
+    }
+  };
+
+  const handleQuestionsCsvFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = (event.target?.result as string) || '';
+      try {
+        const parsed = parseQuestionsFromCSVText(content);
+        if (parsed.length === 0) {
+          alert('Nenhuma questão válida foi encontrada no CSV. Verifique o modelo de colunas.');
+          return;
+        }
+
+        const mergedQuestions: SpecialtyStudyQuestion[] = [...parsed];
+        while (mergedQuestions.length < 10) {
+          mergedQuestions.push({ question: '', options: ['', '', '', ''], correct_answer: 0 });
+        }
+
+        if (editForm) {
+          setEditForm({ ...editForm, questions: mergedQuestions });
+        } else {
+          setNewStudy({ ...newStudy, questions: mergedQuestions });
+        }
+
+        alert(`✅ ${parsed.length} questão(ões) importada(s) para o formulário!`);
+      } catch (err: any) {
+        alert('Erro ao processar CSV de questões: ' + (err?.message || 'Arquivo inválido'));
+      }
+    };
+    reader.readAsText(file);
+    if (questionsCsvInputRef.current) questionsCsvInputRef.current.value = '';
+  };
+
   const filteredStudies = studies.filter(s => 
     (s.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
     (s.category || '').toLowerCase().includes((searchTerm || '').toLowerCase())
@@ -173,24 +328,41 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
           <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Materiais de Estudo</h2>
           <div className="flex flex-wrap gap-2">
             <button 
+              onClick={handleDownloadStudiesTemplate}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-black text-xs uppercase tracking-widest border transition-all active:scale-95 ${isDarkMode ? 'border-slate-700 bg-slate-850 text-slate-300 hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              title="Baixar modelo de planilha CSV para estudos"
+            >
+              <Download size={16} className="text-blue-500" /> Modelo CSV
+            </button>
+            <button 
+              onClick={() => {
+                setShowBatchImportModal(true);
+                setBatchImportLogs([]);
+                setBatchImportProgress(null);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+            >
+              <FileSpreadsheet size={16} /> Importar Estudos CSV
+            </button>
+            <button 
               onClick={handleSeedHistory}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
             >
-              <DownloadCloud size={18} /> Importar História VT
+              <DownloadCloud size={16} /> História VT
             </button>
             <button 
               onClick={handleSeedNature}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50"
             >
-              <DownloadCloud size={18} /> Importar Natureza
+              <DownloadCloud size={16} /> Natureza
             </button>
             <button 
               onClick={() => { setEditForm(null); setShowModal(true); }}
-              className="flex items-center gap-2 px-6 py-3 bg-[#0061f2] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0061f2] hover:bg-blue-700 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
             >
-              <Plus size={18} /> Adicionar Material
+              <Plus size={16} /> Adicionar Material
             </button>
           </div>
         </div>
@@ -392,9 +564,36 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
               </div>
 
               <div className={`border-t pt-6 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-2 mb-6">
-                  <HelpCircle className="text-amber-500" size={20} />
-                  <h4 className={`font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Questões do Quiz (10 Obrigatórias)</h4>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="text-amber-500" size={20} />
+                    <h4 className={`font-black uppercase tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>Questões do Quiz (10 Obrigatórias)</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadQuestionsTemplate}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider border transition-all ${isDarkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                      title="Baixar modelo de CSV com colunas de perguntas e alternativas"
+                    >
+                      <Download size={14} className="text-blue-500" /> Modelo Questões
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => questionsCsvInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase tracking-wider shadow-md transition-all active:scale-95"
+                      title="Importar perguntas a partir de uma planilha CSV"
+                    >
+                      <Upload size={14} /> Importar Questões CSV
+                    </button>
+                    <input
+                      type="file"
+                      ref={questionsCsvInputRef}
+                      hidden
+                      accept=".csv,text/csv,text/plain"
+                      onChange={handleQuestionsCsvFileSelected}
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-8">
@@ -457,6 +656,148 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                 {editForm ? 'SALVAR ALTERAÇÕES' : 'CRIAR MATERIAL DE ESTUDO'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Importação em Lote de Estudos via CSV */}
+      {showBatchImportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+          <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-800'} w-full max-w-3xl rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border space-y-6 max-h-[90vh] overflow-y-auto`}>
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                  <FileSpreadsheet size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Importar Estudos em Massa (CSV)</h3>
+                  <p className="text-xs text-slate-400 font-medium">Salve múltiplos estudos e seus questionários de uma só vez no banco de dados</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (!isProcessingBatch) {
+                    setShowBatchImportModal(false);
+                    setBatchImportLogs([]);
+                    setBatchImportProgress(null);
+                  }
+                }} 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Ações de Arquivo e Modelo */}
+            <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-850/50 border-slate-800' : 'bg-slate-50 border-slate-200'} space-y-4`}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Planilha ou Arquivo CSV</h4>
+                  <p className="text-xs text-slate-500">Selecione um arquivo .csv formatado ou cole o conteúdo logo abaixo.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadStudiesTemplate}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all"
+                  >
+                    <Download size={14} className="text-indigo-500" /> Baixar Modelo CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => bulkCsvInputRef.current?.click()}
+                    disabled={isProcessingBatch}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload size={14} /> Selecionar Arquivo .CSV
+                  </button>
+                  <input 
+                    type="file"
+                    ref={bulkCsvInputRef}
+                    hidden
+                    accept=".csv,text/csv,text/plain"
+                    onChange={handleBatchCsvFileSelected}
+                  />
+                </div>
+              </div>
+
+              {/* Informação sobre as colunas aceitas */}
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/30 flex items-start gap-2">
+                <AlertCircle size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">Colunas reconhecidas: </span>
+                  <code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
+                    nome, categoria, pdf_url, video_url, imagem, data_agendamento, pergunta, opcao_a, opcao_b, opcao_c, opcao_d, resposta_correta
+                  </code>
+                  <p className="mt-1">Se houver várias linhas com o mesmo nome de especialidade, as perguntas serão agrupadas automaticamente no mesmo estudo!</p>
+                </div>
+              </div>
+
+              {/* Área de texto para colar CSV diretamente */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1 ml-1">
+                  Conteúdo CSV (ou cole aqui os dados da planilha):
+                </label>
+                <textarea
+                  className={`w-full h-36 p-3 rounded-xl border text-xs font-mono outline-none focus:border-indigo-500 transition-all ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                  placeholder={`nome,categoria,pdf_url,pergunta,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta\n"Estudo de Nós","Habilidades Manuais","https://exemplo.com/nos.pdf","Qual nó une cabos?","Nó Escota","Nó Direito","Lais de Guia","Catau",0`}
+                  value={batchCsvText}
+                  onChange={e => setBatchCsvText(e.target.value)}
+                  disabled={isProcessingBatch}
+                />
+              </div>
+            </div>
+
+            {/* Barra de Progresso */}
+            {batchImportProgress && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Progresso: {batchImportProgress.current} de {batchImportProgress.total}</span>
+                  <span className="text-emerald-500">{batchImportProgress.success} salvos / {batchImportProgress.error} erros</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                    style={{ width: `${(batchImportProgress.current / Math.max(batchImportProgress.total, 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Caixa de Logs */}
+            {batchImportLogs.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Relatório da Gravação:</p>
+                <div className="h-36 overflow-y-auto p-3 rounded-xl bg-black/80 text-emerald-400 font-mono text-[11px] space-y-1 border border-slate-800">
+                  {batchImportLogs.map((log, idx) => (
+                    <div key={idx} className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-emerald-300' : 'text-slate-300'}>
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Botões de Ação */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBatchImportModal(false)}
+                disabled={isProcessingBatch}
+                className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={handleProcessBatchStudies}
+                disabled={isProcessingBatch || !batchCsvText.trim()}
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/25 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isProcessingBatch ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                {isProcessingBatch ? 'Gravando no Banco...' : 'Gravar Estudos no Banco'}
+              </button>
+            </div>
           </div>
         </div>
       )}

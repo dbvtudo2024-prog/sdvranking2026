@@ -2,6 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { UnitName, Member, UserRole, Score, BadgeLevel } from '@/types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES, BADGE_DEFINITIONS } from '@/constants';
+import { isValidCounselorPersonName } from '@/utils/counselors';
 import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book, ArrowLeft, Trophy, UserPlus } from 'lucide-react';
 import MemberProfileModal from '@/components/MemberProfileModal';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
@@ -31,6 +32,7 @@ interface UnitDetailProps {
   userEmail?: string;
   counselorList?: string[];
   isDarkMode?: boolean;
+  unitsList?: any[];
 }
 
 const UnitDetail: React.FC<UnitDetailProps> = ({ 
@@ -43,7 +45,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   userName,
   userEmail,
   counselorList = [],
-  isDarkMode
+  isDarkMode,
+  unitsList = []
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMemberForPoints, setSelectedMemberForPoints] = useState<Member | null>(null);
@@ -106,47 +109,40 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     }
     const set = new Set<string>();
 
-    // 1. Conselheiros específicos das unidades Águia Dourada e Guerreiros
-    const lowerUnit = (unitName || '').toLowerCase();
-    if (lowerUnit.includes('águia') || lowerUnit.includes('aguia')) {
-      set.add('Carlos Souza');
-      set.add('Carlos');
-    } else if (lowerUnit.includes('guerreiro')) {
-      set.add('Ana Paula');
-      set.add('Ana');
-      set.add('Priscila');
-    }
-
-    // 2. Lista vinda de props (counselorList)
+    // 1. Lista vinda de props (counselorList) - consolidada do Banco de Dados e da Liderança
     (counselorList || []).forEach(c => {
       const trimmed = (c || '').trim();
-      if (trimmed) set.add(trimmed);
-    });
-
-    // 3. Conselheiros já atribuídos aos membros da unidade
-    (filteredMembers || []).forEach(m => {
-      const c = (m.counselor || '').trim();
-      if (c && c !== 'N/A' && c !== 'Sem Conselheiro' && c !== 'Diretoria') {
-        set.add(c);
+      if (isValidCounselorPersonName(trimmed, unitsList)) {
+        set.add(trimmed);
       }
     });
 
-    // 4. Se estiver editando ou formulário tiver conselheiro, garantir que esteja na lista
-    if (isEditing && editingMember?.counselor) {
-      const current = editingMember.counselor.trim();
-      if (current) set.add(current);
-    } else if (formData.counselor) {
-      const current = formData.counselor.trim();
-      if (current) set.add(current);
+    // 2. Conselheiros específicos das unidades Águia Dourada e Guerreiros
+    const lowerUnit = (unitName || '').toLowerCase();
+    if (lowerUnit.includes('águia') || lowerUnit.includes('aguia')) {
+      if (isValidCounselorPersonName('Carlos Souza', unitsList)) set.add('Carlos Souza');
+      if (isValidCounselorPersonName('Carlos', unitsList)) set.add('Carlos');
+    } else if (lowerUnit.includes('guerreiro')) {
+      if (isValidCounselorPersonName('Ana Paula', unitsList)) set.add('Ana Paula');
+      if (isValidCounselorPersonName('Ana', unitsList)) set.add('Ana');
+      if (isValidCounselorPersonName('Priscila', unitsList)) set.add('Priscila');
     }
 
-    // 5. Fallback padrão seguro
+    // 3. Se estiver editando ou formulário tiver conselheiro, garantir que esteja na lista APENAS se for nome de pessoa válido
+    const current = (isEditing ? editingMember?.counselor : formData.counselor) || '';
+    if (current && isValidCounselorPersonName(current, unitsList)) {
+      set.add(current.trim());
+    }
+
+    // 4. Fallback padrão seguro
     if (set.size === 0) {
-      ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(c => set.add(c));
+      ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(c => {
+        if (isValidCounselorPersonName(c, unitsList)) set.add(c);
+      });
     }
 
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [isLiderancaUnit, unitName, counselorList, filteredMembers, isEditing, editingMember?.counselor, formData.counselor]);
+  }, [isLiderancaUnit, unitName, counselorList, isEditing, editingMember?.counselor, formData.counselor, unitsList]);
 
   // Sync profile when members list updates (ensures badges show up in real-time)
   const currentProfile = useMemo(() => {
@@ -426,7 +422,16 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                   {isProtectedAdmin && (
                     <>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingMember(member); setIsEditing(true); setShowAddModal(true); }} 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const rawCounselor = member.counselor || '';
+                          const sanitizedCounselor = isLiderancaUnit 
+                            ? rawCounselor 
+                            : (isValidCounselorPersonName(rawCounselor, unitsList) ? rawCounselor : '');
+                          setEditingMember({ ...member, counselor: sanitizedCounselor }); 
+                          setIsEditing(true); 
+                          setShowAddModal(true); 
+                        }} 
                         className={`p-2 rounded-xl transition-all active:scale-90 ${isDarkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}
                       >
                         <Edit2 size={18} />

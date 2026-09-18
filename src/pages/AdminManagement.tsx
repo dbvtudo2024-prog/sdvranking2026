@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database, FileText, Table, Download, Eye, RefreshCw, CheckCircle2, FileSpreadsheet, Layers } from 'lucide-react';
+import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database, FileText, Table, Download, Eye, RefreshCw, CheckCircle2, FileSpreadsheet, Layers, ArrowLeft, Search, SlidersHorizontal, Filter, ChevronRight, Users, Settings } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
 import { DatabaseService, migrateAllDataToCloudflareD1, seedInitialDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL, createAllD1Tables, ALL_D1_TABLES } from '@/db';
@@ -9,6 +9,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
 
 import { NEW_QUIZ_QUESTIONS, NEW_THREE_CLUES_QUESTIONS, NEW_SCRAMBLED_VERSES, NEW_KNOTS_ASSETS, DEFAULT_ANNOUNCEMENTS, DEFAULT_SPECIALTY_STUDIES, DEFAULT_MEMBERS, DEFAULT_DEVOTIONALS } from '@/seedData';
+import { isValidCounselorPersonName } from '@/utils/counselors';
+import { parseSpecialtyStudiesFromRows } from '@/utils/specialtyStudyCsv';
+import { useHorizontalScroll } from '@/utils/useHorizontalScroll';
+import { AdminGamesTab } from '@/components/admin/AdminGamesTab';
+import { AdminClubTab } from '@/components/admin/AdminClubTab';
+import { AdminDatabaseTab } from '@/components/admin/AdminDatabaseTab';
+import { AdminImportTab } from '@/components/admin/AdminImportTab';
+import { AdminMasterTab } from '@/components/admin/AdminMasterTab';
 
 interface AdminManagementProps {
   members: Member[];
@@ -167,6 +175,13 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [diagnosticResults, setDiagnosticResults] = useState<{table: string, count: number, status: string, columns: string[]}[]>([]);
   const [copiado, setCopiado] = useState(false);
 
+  // Estados de navegação e organização da área de Admin
+  type AdminTab = 'games' | 'club' | 'database' | 'import' | 'master';
+  const [activeTab, setActiveTab] = useState<AdminTab>('games');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberUnitFilter, setMemberUnitFilter] = useState('all');
+  const [gameControlSection, setGameControlSection] = useState<'editors' | 'access'>('editors');
+
   // Estados para migração para o Cloudflare D1
   const [cfWorkerUrl, setCfWorkerUrl] = useState(() => getCloudflareApiUrl());
   const [isTestingCf, setIsTestingCf] = useState(false);
@@ -267,8 +282,11 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     },
     specialty_studies: {
       label: 'Estudos de Especialidades (specialty_studies)',
-      headers: ['id', 'name', 'category', 'pdfurl', 'video_url', 'specialty_image_url', 'scheduled_for'],
-      template: `id,name,category,pdfurl,video_url,specialty_image_url,scheduled_for\nest_nos,Estudo de Nós e Amarras,Habilidades Manuais,https://exemplo.com/estudo.pdf,https://youtube.com/watch?v=123,https://i.ibb.co/ex.png,2026-04-12`
+      headers: ['nome', 'categoria', 'pdf_url', 'video_url', 'imagem', 'data_agendamento', 'pergunta', 'opcao_a', 'opcao_b', 'opcao_c', 'opcao_d', 'resposta_correta'],
+      template: `nome,categoria,pdf_url,video_url,imagem,data_agendamento,pergunta,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta
+"Especialidade de Gatos","Natureza","https://exemplo.com/gatos.pdf","https://youtube.com/watch?v=123","https://exemplo.com/gatos.png","2026-05-01","Qual o nome científico do gato doméstico?","Felis catus","Panthera leo","Felis silvestris","Lynx lynx",0
+"Especialidade de Gatos","Natureza","https://exemplo.com/gatos.pdf","https://youtube.com/watch?v=123","https://exemplo.com/gatos.png","2026-05-01","Quantos dentes tem um gato adulto?","20","30","40","50",1
+"Estudo de Nós e Amarras","Habilidades Manuais","https://exemplo.com/nos.pdf","","https://i.ibb.co/ex.png","2026-04-12","Qual nó é usado para unir cabos de bitolas diferentes?","Nó de Escota","Nó Direito","Lais de Guia","Catau",0`
     },
     devotionals: {
       label: 'Devocionais (devotionals)',
@@ -544,6 +562,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
   const [isSavingAsset, setIsSavingAsset] = useState(false);
   
   const ADMIN_MASTER_EMAIL = 'ronaldosonic@gmail.com';
+  const isMasterAdmin = (userEmail || '').toLowerCase() === ADMIN_MASTER_EMAIL.toLowerCase();
 
   useEffect(() => {
     loadDevotionals();
@@ -686,11 +705,16 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
 
   const handleAddOrUpdateCounselor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCounselorName.trim()) return;
+    const cleanName = newCounselorName.trim();
+    if (!cleanName) return;
+    if (!isValidCounselorPersonName(cleanName)) {
+      alert("Por favor, insira o nome de uma pessoa. Nomes de cargos, funções ou unidades não são permitidos.");
+      return;
+    }
     setIsProcessing(true);
     try {
-      if (editCounselor) await onUpdateCounselor(editCounselor.id!, newCounselorName);
-      else await onAddCounselor(newCounselorName);
+      if (editCounselor) await onUpdateCounselor(editCounselor.id!, cleanName);
+      else await onAddCounselor(cleanName);
       setNewCounselorName('');
       setEditCounselor(null);
       setShowCounselorModal(false);
@@ -923,6 +947,33 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       let successCount = 0;
       let errorCount = 0;
 
+      if (importTarget === 'specialty_studies') {
+        const parsedStudies = parseSpecialtyStudiesFromRows(items);
+        setImportLogs(prev => [...prev, `📚 Identificado(s) ${parsedStudies.length} estudo(s) de especialidade(s) para importar.`]);
+        setImportProgress(p => ({ ...p, total: parsedStudies.length }));
+
+        for (let sIdx = 0; sIdx < parsedStudies.length; sIdx++) {
+          const study = parsedStudies[sIdx];
+          const curr = sIdx + 1;
+          setImportProgress(p => ({ ...p, current: curr }));
+
+          try {
+            await DatabaseService.saveSpecialtyStudy(study);
+            successCount++;
+            setImportProgress(p => ({ ...p, success: successCount }));
+            setImportLogs(prev => [...prev, `✅ [${curr}/${parsedStudies.length}] Salvo no Banco de Dados: Estudo "${study.name}" (${study.questions?.length || 0} questões)`]);
+          } catch (err: any) {
+            errorCount++;
+            setImportProgress(p => ({ ...p, error: errorCount }));
+            setImportLogs(prev => [...prev, `❌ [${curr}/${parsedStudies.length}] Erro ao salvar "${study.name}": ${err?.message || err}`]);
+          }
+        }
+
+        setIsProcessing(false);
+        setImportLogs(prev => [...prev, `🎉 Importação de estudos concluída: ${successCount} salvos com sucesso, ${errorCount} erros.`]);
+        return;
+      }
+
       for (let index = 0; index < total; index++) {
         const item = items[index];
         const currentNum = index + 1;
@@ -1119,16 +1170,24 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             const scheduled_for = getValueWithAliases(item, ['scheduled_for', 'scheduledFor', 'agendamento', 'data'], '');
             const created_at = getValueWithAliases(item, ['created_at', 'createdAt', 'criado_em'], new Date().toISOString());
 
-            const questions = typeof questionsRaw === 'string' ? questionsRaw : JSON.stringify(questionsRaw);
+            const parsedStudies = parseSpecialtyStudiesFromRows([item]);
+            const studyToSave = parsedStudies[0] || {
+              id: recordId,
+              name,
+              pdfurl,
+              video_url,
+              specialty_image_url,
+              category,
+              questions: typeof questionsRaw === 'string' ? JSON.parse(questionsRaw || '[]') : questionsRaw,
+              scheduled_for,
+              created_at
+            };
 
-            await runD1Query(
-              "INSERT OR REPLACE INTO specialty_studies (id, name, pdfurl, video_url, specialty_image_url, category, questions, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-              [recordId, name, pdfurl, video_url, specialty_image_url, category, questions, scheduled_for, created_at]
-            );
+            await DatabaseService.saveSpecialtyStudy(studyToSave);
 
             successCount++;
             setImportProgress(p => ({ ...p, success: successCount }));
-            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Cloudflare D1: Estudo "${name}"`]);
+            setImportLogs(prev => [...prev, `✅ [${currentNum}/${total}] Salvo no Banco de Dados: Estudo "${name}"`]);
 
           } else if (importTarget === 'devotionals') {
             const title = getValueWithAliases(item, ['title', 'Title', 'titulo', 'Titulo'], 'Devocional');
@@ -1362,800 +1421,221 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     }
   };
 
-  const GameLockButton = ({ label, active, onToggle, allowedDay, onSetAllowedDay, icon: Icon }: any) => {
-    const days = [
-      { v: -1, l: 'Todos os Dias' },
-      { v: 0, l: 'Domingo' },
-      { v: 1, l: 'Segunda' },
-      { v: 2, l: 'Terça' },
-      { v: 3, l: 'Quarta' },
-      { v: 4, l: 'Quinta' },
-      { v: 5, l: 'Sexta' },
-      { v: 6, l: 'Sábado' },
-    ];
+  const navRef = useHorizontalScroll<HTMLElement>();
 
-    return (
-      <div className="flex flex-col gap-2">
-        <button 
-          onClick={onToggle}
-          className={`w-full ${active 
-            ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20' 
-            : (isDarkMode ? 'bg-slate-900/50 text-slate-500 border-slate-800' : 'bg-white text-slate-300 border-slate-100')} 
-            aspect-square rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-sm border uppercase text-[8px] font-black tracking-widest active:scale-95 transition-all overflow-hidden relative group`}
-        >
-          <div className={`absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity`} />
-          <Icon size={20} strokeWidth={active ? 3 : 2} className={active ? 'animate-pulse' : ''} />
-          <span className="leading-tight text-center px-1">{label}</span>
-          <span className={`text-[6px] font-bold ${active ? 'text-blue-100' : 'text-slate-400'}`}>
-            {active ? 'LIBERADO (OVERRIDE)' : (allowedDay === null || allowedDay === -1 ? 'HORÁRIO PADRÃO' : 'DIA RESTRITO')}
-          </span>
-        </button>
-        
-        <select
-          value={allowedDay ?? -1}
-          onChange={(e) => onSetAllowedDay(Number(e.target.value))}
-          className={`w-full text-[8px] font-black uppercase tracking-tight py-2 px-1 rounded-xl border ${
-            isDarkMode 
-              ? 'bg-slate-900/40 border-slate-700 text-slate-400' 
-              : 'bg-white border-slate-100 text-slate-500'
-          } outline-none focus:border-blue-500 transition-all appearance-none text-center cursor-pointer`}
-        >
-          {days.map((d, dIdx) => (
-            <option key={`filter-unit-${d.v}-${dIdx}`} value={d.v}>{d.l}</option>
-          ))}
-        </select>
-      </div>
-    );
-  };
+  const navTabs: { id: AdminTab; label: string; icon: any }[] = [
+    { id: 'games', label: 'Jogos & Dinâmicas', icon: Gamepad2 },
+    { id: 'club', label: 'Clube & Membros', icon: Users },
+    { id: 'database', label: 'Banco & D1', icon: Database },
+    { id: 'import', label: 'Importar Planilhas', icon: FileSpreadsheet },
+    ...(isMasterAdmin ? [{ id: 'master' as AdminTab, label: 'Zona Master', icon: ShieldAlert }] : [])
+  ];
 
   return (
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'} overflow-y-auto`}>
-      <div className="p-6 space-y-8 pb-32">
-        
-        {/* 1. LIBERAÇÃO MANUAL DE JOGOS */}
-        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-8 border backdrop-blur-sm`}>
-          <div className="flex flex-col items-center gap-1">
-            <h3 className={`text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[11px] font-black uppercase tracking-[0.25em]`}>Controle de Acesso</h3>
-            <p className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-600' : 'text-slate-300'}`}>Liberação Manual de Jogos</p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <GameLockButton label="Quiz" active={quizOverride} onToggle={onToggleQuizOverride} allowedDay={quizAllowedDay} onSetAllowedDay={onSetQuizAllowedDay} icon={Zap} />
-            <GameLockButton label="Memória" active={memoryOverride} onToggle={onToggleMemoryOverride} allowedDay={memoryAllowedDay} onSetAllowedDay={onSetMemoryAllowedDay} icon={Gamepad2} />
-            <GameLockButton label="Espec." active={specialtyOverride} onToggle={onToggleSpecialtyOverride} allowedDay={specialtyAllowedDay} onSetAllowedDay={onSetSpecialtyAllowedDay} icon={Medal} />
-            <GameLockButton label="3 Dicas" active={threeCluesOverride} onToggle={onToggleThreeCluesOverride} allowedDay={threeCluesAllowedDay} onSetAllowedDay={onSetThreeCluesAllowedDay} icon={HelpCircle} />
-            <GameLockButton label="Quebra-C" active={puzzleOverride} onToggle={onTogglePuzzleOverride} allowedDay={puzzleAllowedDay} onSetAllowedDay={onSetPuzzleAllowedDay} icon={Shuffle} />
-            <GameLockButton label="Nós" active={knotsOverride} onToggle={onToggleKnotsOverride} allowedDay={knotsAllowedDay} onSetAllowedDay={onSetKnotsAllowedDay} icon={Anchor} />
-            <GameLockButton label="Trilha" active={specialtyTrailOverride} onToggle={onToggleSpecialtyTrailOverride} allowedDay={specialtyTrailAllowedDay} onSetAllowedDay={onSetSpecialtyTrailAllowedDay} icon={Map} />
-            <GameLockButton label="Versículo" active={scrambledVerseOverride} onToggle={onToggleScrambledVerseOverride} allowedDay={scrambledVerseAllowedDay} onSetAllowedDay={onSetScrambledVerseAllowedDay} icon={Type} />
-            <GameLockButton label="Natureza" active={natureIdOverride} onToggle={onToggleNatureIdOverride} allowedDay={natureIdAllowedDay} onSetAllowedDay={onSetNatureIdAllowedDay} icon={Leaf} />
-            <GameLockButton label="Socorro" active={firstAidOverride} onToggle={onToggleFirstAidOverride} allowedDay={firstAidAllowedDay} onSetAllowedDay={onSetFirstAidAllowedDay} icon={HeartPulse} />
-            <GameLockButton label="Duelo 1x1" active={false} onToggle={() => {}} allowedDay={null} onSetAllowedDay={() => {}} icon={Sword} />
-            <GameLockButton label="Mahjong" active={mahjongOverride} onToggle={onToggleMahjongOverride} allowedDay={mahjongAllowedDay} onSetAllowedDay={onSetMahjongAllowedDay} icon={Grid3X3} />
-            <GameLockButton label="Blocos" active={brickBreakerOverride} onToggle={onToggleBrickBreakerOverride} allowedDay={brickBreakerAllowedDay} onSetAllowedDay={onSetBrickBreakerAllowedDay} icon={Square} />
-            <GameLockButton label="Estudos" active={specialtyStudyOverride} onToggle={onToggleSpecialtyStudyOverride} allowedDay={specialtyStudyAllowedDay} onSetAllowedDay={onSetSpecialtyStudyAllowedDay} icon={BookOpen} />
-          </div>
-        </div>
-
-        {/* 2. MURAL E EQUIPE */}
-        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6 border backdrop-blur-sm`}>
-           <div className="flex items-center gap-2 px-2">
-             <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-               <ShieldAlert size={16} />
-             </div>
-             <h3 className={`${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[10px] font-black uppercase tracking-[0.2em]`}>Mural e Equipe</h3>
-           </div>
-           <div className="grid grid-cols-1 gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button onClick={onGoToAdminAvisos} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}>
-                <BellRing size={24} /> GERENCIAR AVISOS
-              </button>
-              <button 
-                onClick={() => {
-                  if (onProcessMonthlyAwards) {
-                    onProcessMonthlyAwards();
-                    alert('Solicitado processamento de medalhas! Verifique no perfil após alguns segundos.');
-                  }
-                }}
-                className={`w-full ${isDarkMode ? 'bg-amber-900/10 text-amber-500 border-amber-900/30' : 'bg-amber-50 text-amber-700 border-amber-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-[10px] tracking-widest active:scale-95 transition-all outline-none`}
-              >
-                <Trophy size={20} /> Medalhas Mensais
-              </button>
-            </div>
-              <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => { setEditCounselor(null); setNewCounselorName(''); setShowCounselorModal(true); }} className={`${isDarkMode ? 'bg-slate-900/50 text-blue-400 border-blue-900/30' : 'bg-blue-50/50 text-[#0061f2] border-blue-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <UserPlus size={22} /> CONSELHEIROS
-                </button>
-                <button onClick={() => { setShowDevotionalList(false); setShowDevotionalModal(true); }} className={`${isDarkMode ? 'bg-slate-900/50 text-emerald-400 border-emerald-900/30' : 'bg-emerald-50/50 text-emerald-600 border-emerald-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <BookOpen size={22} /> DEVOCIONAIS
-                </button>
-              </div>
-           </div>
-        </div>
-
-        {/* 3. INSPEÇÃO DE MEMBROS */}
-        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6 border backdrop-blur-sm`}>
-           <div className="flex items-center gap-2 px-2">
-             <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-amber-900/30 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-               <User size={16} />
-             </div>
-             <h3 className={`${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[10px] font-black uppercase tracking-[0.2em]`}>Inspeção de Membros</h3>
-           </div>
-           
-           <div className="space-y-4">
-             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight px-2">Verificar pontuações brutas e logs de atividade</p>
-             <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-               {members.sort((a, b) => a.name.localeCompare(b.name)).map((member, mIdx) => (
-                 <div 
-                   key={`inspect-mem-${member.id || mIdx}-${mIdx}`}
-                   className={`flex items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}
-                 >
-                   <div className="overflow-hidden pr-4">
-                     <p className={`text-xs font-black uppercase truncate ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>{member.name}</p>
-                     <p className="text-[9px] text-slate-500 font-bold uppercase">Unidade: {member.unit}</p>
-                   </div>
-                   <button 
-                     onClick={() => setInspectingMember(member)}
-                     className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all flex-shrink-0"
-                   >
-                     Inspecionar
-                   </button>
-                 </div>
-               ))}
-             </div>
-           </div>
-        </div>
-
-        {/* 4. GESTÃO DE JOGOS */}
-        <div className={`${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'} rounded-[3rem] p-8 shadow-2xl shadow-blue-900/5 space-y-6 border backdrop-blur-sm`}>
-           <div className="flex items-center gap-2 px-2">
-             <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-               <Trophy size={16} />
-             </div>
-             <h3 className={`${isDarkMode ? 'text-slate-400' : 'text-slate-400'} text-[10px] font-black uppercase tracking-[0.2em]`}>Gestão de Jogos</h3>
-           </div>
-           <div className="grid grid-cols-1 gap-3">
-              <button onClick={onGoToAdminQuiz} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}>
-                <ListFilter size={24} /> EDITAR QUIZ & QUESTÕES
-              </button>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={onGoToAdminSpecialty} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Medal size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> ESPECIALIDADES
-                </button>
-                <button onClick={onGoToAdminThreeClues} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <HelpCircle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> 3 DICAS
-                </button>
-                <button onClick={onGoToAdminSpecialtyStudy} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <BookOpen size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> ESTUDO (PDF)
-                </button>
-                <button onClick={onGoToAdminPuzzle} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Shuffle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> QUEBRA-CABEÇA
-                </button>
-                <button onClick={onGoToAdminScrambledVerse} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Shuffle size={22} className={isDarkMode ? 'text-slate-500' : 'text-slate-400'} /> VERSÍCULO
-                </button>
-                <button onClick={onGoToAdminNatureId} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Leaf size={22} className={isDarkMode ? 'text-emerald-500' : 'text-emerald-600'} /> NATUREZA
-                </button>
-                <button onClick={onGoToAdminFirstAid} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <HeartPulse size={22} className={isDarkMode ? 'text-red-500' : 'text-red-600'} /> 1º SOCORROS
-                </button>
-                <button onClick={onGoToAdminSpecialtyTrail} className={`w-full ${isDarkMode ? 'bg-slate-900/50 text-slate-300 border-slate-800' : 'bg-white text-slate-600 border-slate-100'} py-5 rounded-[2rem] font-black flex flex-col items-center justify-center gap-3 shadow-sm border uppercase text-[9px] tracking-widest active:scale-95 transition-all`}>
-                  <Map size={22} className={isDarkMode ? 'text-blue-500' : 'text-blue-600'} /> TRILHA ESPECIAL.
-                </button>
-              </div>
-              <button 
-                onClick={() => { loadAssets(); setShowAssetsModal(true); }} 
-                className={`w-full ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border-blue-900/30' : 'bg-blue-50 text-blue-600 border-blue-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
-              >
-                <Zap size={24} /> GERENCIAR IMAGENS (ASSETS)
-              </button>
-              <button 
-                onClick={handleSeedAllData} 
-                disabled={isSeeding}
-                className={`w-full ${isDarkMode ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' : 'bg-emerald-50 text-emerald-600 border-emerald-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
-              >
-                {isSeeding ? <Loader2 className="animate-spin" size={24} /> : <Plus size={24} />}
-                ADICIONAR 20 NOVAS QUESTÕES (TODOS OS JOGOS)
-              </button>
-              <button 
-                onClick={handleFixGameStatus} 
-                disabled={isProcessing}
-                className={`w-full ${isDarkMode ? 'bg-amber-900/20 text-amber-400 border-amber-900/30' : 'bg-amber-50 text-amber-600 border-amber-100'} py-6 rounded-[2rem] font-black flex flex-col items-center justify-center gap-2 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
-              >
-                <div className="flex items-center gap-4">
-                  {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
-                  CORRIGIR STATUS DE JOGOS
-                </div>
-                {fixProgress && (
-                  <div className="w-full max-w-[200px] mt-2">
-                    <div className="h-1.5 w-full bg-slate-200/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-amber-500 transition-all duration-300" 
-                        style={{ width: `${(fixProgress.current / fixProgress.total) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[8px] mt-1 opacity-70">
-                      PROCESSANDO: {fixProgress.current} / {fixProgress.total}
-                    </p>
-                  </div>
-                )}
-              </button>
-              <button 
-                onClick={async () => {
-                  if (onProcessMonthlyAwards) {
-                    setIsProcessing(true);
-                    try {
-                      await onProcessMonthlyAwards();
-                      alert("✅ Insígnias históricas atualizadas com sucesso!");
-                    } catch (err) {
-                      alert("❌ Erro ao atualizar insígnias.");
-                    } finally {
-                      setIsProcessing(false);
-                    }
-                  }
-                }}
-                disabled={isProcessing}
-                className={`w-full ${isDarkMode ? 'bg-indigo-900/20 text-indigo-400 border-indigo-900/30' : 'bg-indigo-50 text-indigo-600 border-indigo-100'} py-6 rounded-[2rem] font-black flex items-center justify-center gap-4 shadow-sm border uppercase text-xs tracking-widest active:scale-95 transition-all`}
-              >
-                {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <Trophy size={24} />}
-                ATUALIZAR INSÍGNIAS HISTÓRICAS
-              </button>
-           </div>
-        </div>
-        {/* 5. ZERAR RANKING (PAINEL MASTER) */}
-        {/* DIAGNÓSTICO DO BANCO DE DADOS (CLOUDFLARE D1) */}
-        <div className={`${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'} p-10 rounded-[3.5rem] border shadow-xl space-y-6 mt-6`}>
-          <div className="flex items-center gap-3 mb-4">
-            <ShieldAlert size={24} className="text-blue-600" />
-            <div>
-              <h4 className={`text-[12px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Diagnóstico do Banco de Dados (Cloudflare D1)</h4>
-              <p className={`text-[8.5px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-0.5`}>
-                Verifique a integridade, contagem de registros e colunas ativas no Cloudflare D1
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button 
-              onClick={runDiagnostic}
-              disabled={isDiagnosticRunning || isCreatingAllTables}
-              className={`py-4 px-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all ${isDarkMode ? 'bg-blue-900/20 text-blue-400 border border-blue-900/30 hover:bg-blue-900/30' : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'}`}
-            >
-              {isDiagnosticRunning ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-              DIAGNÓSTICO DAS 16 TABELAS
-            </button>
-
-            <button 
-              onClick={handleCreateAllTables}
-              disabled={isCreatingAllTables || isDiagnosticRunning}
-              className={`py-4 px-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-sm ${isDarkMode ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/50 hover:bg-emerald-900/30' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
-            >
-              {isCreatingAllTables ? <Loader2 className="animate-spin" size={18} /> : <Layers size={18} />}
-              CRIAR / GARANTIR AS 16 TABELAS NO D1
-            </button>
-          </div>
-
-          {diagnosticResults.length > 0 && (
-            <div className="space-y-3 mt-4">
-              <div className="flex items-center justify-between px-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <span>Total de Tabelas Verificadas: {diagnosticResults.length}</span>
-                <span className="text-emerald-500">Tabelas Ativas (OK): {diagnosticResults.filter(r => r.status === 'OK').length} / {diagnosticResults.length}</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {diagnosticResults.map((res, rIdx) => (
-                  <div key={`diag-res-${res.table}-${rIdx}`} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-black text-[10.5px] uppercase tracking-wider text-blue-500 font-mono">{res.table}</span>
-                      <span className={`font-black text-[9px] uppercase px-2 py-0.5 rounded-full ${res.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>{res.status}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] font-bold">
-                      <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Linhas no D1:</span>
-                      <span className={`font-mono ${res.count >= 0 ? 'text-emerald-400 font-black' : 'text-red-400'}`}>{res.count >= 0 ? res.count : 'Inexistente'}</span>
-                    </div>
-                    {res.columns.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {res.columns.slice(0, 10).map((col, cIdx) => (
-                          <span key={`col-${col}-${cIdx}`} className={`text-[7.5px] px-1.5 py-0.5 rounded-md font-mono font-bold ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500 border border-slate-200'}`}>{col}</span>
-                        ))}
-                        {res.columns.length > 10 && (
-                          <span className="text-[7.5px] px-1.5 py-0.5 font-bold text-slate-500">+{res.columns.length - 10} mais</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* MIGRAÇÃO PARA CLOUDFLARE D1 */}
-        <div className={`${isDarkMode ? 'bg-slate-900/50 border-blue-900/40' : 'bg-blue-50/40 border-blue-100'} p-10 rounded-[3.5rem] border shadow-xl space-y-6 mt-6 backdrop-blur-sm`}>
+      {/* HEADER FIXO SUPERIOR DA ADMINISTRAÇÃO */}
+      <header className={`sticky top-0 z-30 ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-200'} backdrop-blur-md border-b px-4 sm:px-8 py-3.5 shadow-sm`}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Cloud size={24} className="text-blue-500" />
-            <div>
-              <h4 className={`text-[12px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-blue-400' : 'text-blue-900'}`}>Sincronização e Gateway do Cloudflare D1</h4>
-              <p className={`text-[8.5px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} uppercase tracking-widest mt-0.5`}>
-                Banco de dados global distribuído com alta performance e latência ultrabaixa
-              </p>
-            </div>
-          </div>
-
-          {/* Configuração de URL do Worker */}
-          <div className={`p-4 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-blue-100'}`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="text-[9px] font-black uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
-                <Zap size={12} /> URL do Gateway / Cloudflare Worker:
-              </label>
-              <button
-                type="button"
-                onClick={() => handleSaveCfUrl(DEFAULT_CLOUDFLARE_API_URL)}
-                className="text-[8px] font-black uppercase tracking-wider text-slate-400 hover:text-blue-400 underline transition-colors"
-              >
-                Restaurar URL Padrão
-              </button>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={cfWorkerUrl}
-                onChange={(e) => handleSaveCfUrl(e.target.value)}
-                placeholder="https://seu-worker.workers.dev"
-                className={`flex-1 px-4 py-2.5 rounded-xl border text-[10px] font-mono outline-none transition-all ${
-                  isDarkMode 
-                    ? 'bg-slate-900 border-slate-700 text-slate-200 focus:border-blue-500' 
-                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={handleTestCf}
-                disabled={isTestingCf}
-                className={`px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm ${
-                  isTestingCf
-                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                    : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
-                }`}
-              >
-                {isTestingCf ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
-                {isTestingCf ? 'Testando...' : 'Testar Conexão'}
-              </button>
-            </div>
-
-            {cfTestStatus && (
-              <div className={`p-2.5 rounded-xl text-[8.5px] font-bold uppercase tracking-wider flex items-center gap-2 ${
-                cfTestStatus.success
-                  ? (isDarkMode ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/50' : 'bg-emerald-50 text-emerald-800 border border-emerald-200')
-                  : (isDarkMode ? 'bg-red-950/40 text-red-300 border border-red-900/50' : 'bg-red-50 text-red-800 border border-red-200')
-              }`}>
-                {cfTestStatus.success ? <Check size={14} /> : <AlertTriangle size={14} />}
-                <span>{cfTestStatus.message}</span>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleSeedInitialDataToD1}
-            disabled={isSeedingD1 || isMigratingD1}
-            className={`w-full py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-md ${
-              isSeedingD1
-                ? "bg-slate-700 text-slate-400 border border-slate-800 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-            }`}
-          >
-            {isSeedingD1 ? <Loader2 className="animate-spin" size={18} /> : <Database size={18} />}
-            {isSeedingD1 ? "POPULANDO D1 COM DADOS INICIAIS..." : "POPULAR CLOUDFLARE D1 COM DADOS INICIAIS DO CLUBE"}
-          </button>
-
-          {d1SeedResult && (
-            <div className={`p-4 rounded-2xl border ${d1SeedResult.success ? (isDarkMode ? "bg-emerald-950/30 border-emerald-900/50 text-emerald-300" : "bg-emerald-50 border-emerald-200 text-emerald-800") : (isDarkMode ? "bg-red-950/30 border-red-900/50 text-red-300" : "bg-red-50 border-red-200 text-red-800")} space-y-2`}>
-              <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-wider">
-                {d1SeedResult.success ? <Check size={16} /> : <AlertTriangle size={16} />}
-                <span>{d1SeedResult.message}</span>
-              </div>
-              {d1SeedResult.success && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[9px] font-mono">
-                  <div className="p-2 rounded-lg bg-black/10">Membros: <strong className="text-emerald-500">{d1SeedResult.counts.members}</strong></div>
-                  <div className="p-2 rounded-lg bg-black/10">Usuários: <strong className="text-emerald-500">{d1SeedResult.counts.users}</strong></div>
-                  <div className="p-2 rounded-lg bg-black/10">Especialidades: <strong className="text-emerald-500">{d1SeedResult.counts.specialties}</strong></div>
-                  <div className="p-2 rounded-lg bg-black/10">Estudos: <strong className="text-emerald-500">{d1SeedResult.counts.studies}</strong></div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* MÉTODO DE ENVIAR TABELAS CSV PARA O NOVO BANCO (CLOUDFLARE D1) */}
-        <div className={`${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'} p-10 rounded-[3.5rem] border shadow-xl space-y-6 mt-6 backdrop-blur-sm`}>
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
-            <div className="flex items-center gap-3">
-              <FileSpreadsheet size={26} className="text-emerald-500" />
-              <div>
-                <h4 className={`text-[13px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                  Enviar Tabelas CSV para o Novo Banco (Cloudflare D1)
-                </h4>
-                <p className={`text-[8.5px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-widest mt-0.5`}>
-                  Envio e sincronização de planilhas CSV/JSON direto para o banco D1
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopyTemplate}
-                className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border transition-all ${
-                  templateCopied
-                    ? 'bg-emerald-600 text-white border-emerald-500'
-                    : isDarkMode
-                    ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                }`}
-              >
-                {templateCopied ? <Check size={13} /> : <Copy size={13} />}
-                {templateCopied ? 'Modelo Copiado!' : 'Copiar Modelo CSV'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLoadTemplateIntoEditor}
-                className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border transition-all ${
-                  isDarkMode
-                    ? 'bg-blue-900/20 text-blue-400 border-blue-900/40 hover:bg-blue-900/30'
-                    : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
-                }`}
-              >
-                <Plus size={13} />
-                Carregar Exemplo no Editor
-              </button>
-            </div>
-          </div>
-
-          {/* Seleção de Tabela de Destino */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                Selecione a Tabela de Destino no Cloudflare D1 (16 Tabelas Oficiais):
-              </label>
-              <span className="text-[8px] font-mono font-bold text-emerald-500">16 Tabelas Disponíveis</span>
-            </div>
-
-            {detectedTableName && (
-              <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-emerald-400 animate-pulse">
-                <CheckCircle2 size={16} />
-                <span>Arquivo detectado com sucesso: Tabela "{detectedTableName}" selecionada automaticamente!</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {[
-                { key: 'announcements', label: 'Avisos', sub: 'announcements' },
-                { key: 'Biblia_Completa', label: 'Bíblia Completa', sub: 'Biblia_Completa' },
-                { key: 'conselheiros', label: 'Conselheiros', sub: 'conselheiros' },
-                { key: 'devotionals', label: 'Devocionais', sub: 'devotionals' },
-                { key: 'EspecialidadesDBV', label: 'Especialidades', sub: 'EspecialidadesDBV' },
-                { key: 'game_assets', label: 'Ativos de Jogos', sub: 'game_assets' },
-                { key: 'game_configs', label: 'Config Jogos', sub: 'game_configs' },
-                { key: 'members', label: 'Membros', sub: 'members' },
-                { key: 'messages', label: 'Mensagens / Chat', sub: 'messages' },
-                { key: 'puzzle_images', label: 'Quebra-Cabeça', sub: 'puzzle_images' },
-                { key: 'quiz_questions', label: 'Perguntas Quiz', sub: 'quiz_questions' },
-                { key: 'scrambled_verses', label: 'Versículos Emb.', sub: 'scrambled_verses' },
-                { key: 'specialty_studies', label: 'Estudos Espec.', sub: 'specialty_studies' },
-                { key: 'three_clues_questions', label: '3 Pistas', sub: 'three_clues_questions' },
-                { key: 'users', label: 'Usuários', sub: 'users' },
-                { key: 'who_am_i_questions', label: 'Quem Sou Eu', sub: 'who_am_i_questions' },
-                { key: 'custom', label: 'Outra Tabela', sub: 'Personalizada' },
-              ].map((tbl) => (
-                <button
-                  key={tbl.key}
-                  type="button"
-                  onClick={() => setImportTarget(tbl.key as ImportTargetTable)}
-                  className={`py-2.5 px-3 rounded-2xl font-bold uppercase tracking-wider text-left border transition-all ${
-                    importTarget === tbl.key
-                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 ring-2 ring-blue-400/40'
-                      : isDarkMode
-                      ? 'bg-slate-900/40 text-slate-400 border-slate-800 hover:bg-slate-900/80 hover:text-slate-200'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <p className="text-[9px] font-black leading-tight truncate">{tbl.label}</p>
-                  <p className={`text-[7px] mt-1 font-mono truncate ${importTarget === tbl.key ? 'text-blue-100' : 'text-slate-500'}`}>{tbl.sub}</p>
-                </button>
-              ))}
-            </div>
-
-            {importTarget === 'custom' && (
-              <div className="mt-3">
-                <label className={`block text-[8px] font-black uppercase tracking-widest mb-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Nome da Tabela no D1:
-                </label>
-                <input
-                  type="text"
-                  value={customTableName}
-                  onChange={(e) => setCustomTableName(e.target.value)}
-                  placeholder="ex: game_configs, conselheiros, etc."
-                  className={`w-full px-4 py-2.5 rounded-xl border text-[10px] font-mono outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Formato dos Dados */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setImportFormat('csv')}
-                className={`flex-1 sm:flex-none py-2 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
-                  importFormat === 'csv'
-                    ? 'bg-emerald-600 text-white border-emerald-500'
-                    : isDarkMode ? 'bg-slate-900/40 text-slate-400 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
-                }`}
-              >
-                Formato CSV (.csv)
-              </button>
-              <button
-                type="button"
-                onClick={() => setImportFormat('json')}
-                className={`flex-1 sm:flex-none py-2 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] border transition-all ${
-                  importFormat === 'json'
-                    ? 'bg-emerald-600 text-white border-emerald-500'
-                    : isDarkMode ? 'bg-slate-900/40 text-slate-400 border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'
-                }`}
-              >
-                Formato JSON (.json)
-              </button>
-            </div>
-
-            <p className={`text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Separadores aceitos: Vírgula (,), Ponto-e-vírgula (;) ou Tab
-            </p>
-          </div>
-
-          {/* Colunas sugeridas / esperadas */}
-          <div className={`p-4 rounded-2xl text-[9px] space-y-1 font-mono leading-relaxed ${isDarkMode ? 'bg-slate-950/60 text-slate-400 border border-slate-800/80' : 'bg-slate-50 text-slate-600 border border-slate-200'}`}>
-            <p className="font-black uppercase tracking-widest text-[10px] text-blue-500">
-              Colunas Sugeridas para "{CSV_TEMPLATES[importTarget]?.label || customTableName || 'Tabela'}":
-            </p>
-            {CSV_TEMPLATES[importTarget] ? (
-              <p className="break-all font-semibold">
-                {CSV_TEMPLATES[importTarget].headers.map((h, i) => (
-                  <span key={h}>
-                    <span className="text-emerald-500 font-bold">{h}</span>
-                    {i < CSV_TEMPLATES[importTarget].headers.length - 1 ? ', ' : ''}
-                  </span>
-                ))}
-              </p>
-            ) : (
-              <p className="text-slate-400">As colunas da primeira linha do CSV serão utilizadas dinamicamente para os campos da tabela.</p>
-            )}
-            <p className="text-amber-500 font-bold pt-1 text-[8px] uppercase tracking-wider">
-              * Dica: Se o ID for omitido ou vazio, o sistema gerará um identificador único automaticamente.
-            </p>
-          </div>
-
-          {/* Caixa de Upload Real por Drag & Drop / Clique */}
-          <div className="space-y-2">
-            <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Carregar Arquivo da Planilha
-            </label>
-            <div
-              onDragEnter={() => setIsDragActive(true)}
-              onDragLeave={() => setIsDragActive(false)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleFileDrop}
-              className={`cursor-pointer border-2 border-dashed rounded-3xl p-6 text-center transition-all duration-200 ${
-                isDragActive
-                  ? 'border-emerald-500 bg-emerald-500/10 scale-[0.99] shadow-inner'
-                  : isDarkMode
-                  ? 'border-slate-800 bg-slate-950/40 hover:border-slate-700 hover:bg-slate-900/60'
-                  : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100/50'
+            <button
+              onClick={onBack}
+              className={`p-2.5 rounded-2xl border transition-all active:scale-95 ${
+                isDarkMode
+                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                  : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
               }`}
+              title="Voltar ao Perfil"
             >
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls,.json,.txt"
-                onChange={handleFileChange}
-                id="file-import-input-new"
-                className="hidden"
-                disabled={isImporting}
-              />
-              <label htmlFor="file-import-input-new" className="cursor-pointer space-y-2 block">
-                <div className="flex justify-center">
-                  <Upload
-                    size={32}
-                    className={`transition-transform duration-200 ${
-                      isDragActive ? 'text-emerald-500 scale-125 animate-bounce' : isDarkMode ? 'text-slate-500' : 'text-slate-400'
-                    }`}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    Arraste & Solte seu arquivo .CSV, Excel (.xlsx/.xls) ou .JSON aqui
-                  </p>
-                  <p className={`text-[8.5px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                    Detecção automática da tabela pelo nome do arquivo (ex: conselheiros_rows.csv)
-                  </p>
-                </div>
-              </label>
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className={`text-base sm:text-lg font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  Painel de Administração
+                </h1>
+                {isMasterAdmin && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/10 text-red-500 border border-red-500/20">
+                    Master
+                  </span>
+                )}
+              </div>
+              <p className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Sentinelas da Verdade • Gestão Unificada
+              </p>
             </div>
           </div>
 
-          {/* Área de texto / editor interativo de dados */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className={`block text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                Conteúdo CSV / JSON (Edite ou Cole Diretamente):
-              </label>
-              {rawImportText && (
-                <button
-                  type="button"
-                  onClick={() => setRawImportText('')}
-                  className="text-[8px] font-black uppercase tracking-widest text-red-500 hover:underline"
-                >
-                  Limpar Dados
-                </button>
-              )}
-            </div>
-            <textarea
-              className={`w-full h-36 p-4 rounded-3xl font-mono text-xs ${
-                isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-700'
-              } border outline-none focus:border-emerald-500 transition-all custom-scrollbar`}
-              placeholder={
-                importFormat === 'csv'
-                  ? (CSV_TEMPLATES[importTarget]?.template || "id,coluna1,coluna2\n1,valorA,valorB")
-                  : '[\n  { "id": "1", "name": "Exemplo" }\n]'
-              }
-              value={rawImportText}
-              onChange={e => setRawImportText(e.target.value)}
-              disabled={isImporting}
-            />
-          </div>
-
-          {/* Barra de Progresso durante envio */}
-          {isImporting && (
-            <div className="space-y-2 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-emerald-500">
-                <span>Enviando para o D1: {importProgress.current} de {importProgress.total}</span>
-                <span>{Math.round((importProgress.current / importProgress.total) * 100 || 0)}%</span>
-              </div>
-              <div className="h-2 w-full bg-slate-200/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
-                  style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 pt-1 text-[9px] font-bold uppercase tracking-widest">
-                <span className="text-emerald-500">Salvos no D1: {importProgress.success}</span>
-                <span className="text-red-500">Falhas: {importProgress.error}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Botão de Envio para Cloudflare D1 */}
-          <button
-            onClick={handleImportData}
-            disabled={isImporting}
-            className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-md ${
-              isImporting
-                ? 'bg-slate-700 text-slate-400 border border-slate-800 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-            }`}
+          {/* NAVEGAÇÃO POR ABAS COM SUPORTE A ROLAGEM PELA RODA DO MOUSE (PC) */}
+          <nav
+            ref={navRef}
+            style={{ overscrollBehavior: 'contain' }}
+            className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar select-none"
+            title="Dica: Use a roda do mouse para rolar horizontalmente"
           >
-            {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileSpreadsheet size={20} />}
-            {isImporting ? 'ENVIANDO TABELA PARA O CLOUDFLARE D1...' : `ENVIAR TABELA PARA O CLOUDFLARE D1 (${importTarget === 'custom' ? (customTableName || 'Personalizada') : importTarget})`}
-          </button>
-
-          {/* Terminal de Logs */}
-          {importLogs.length > 0 && (
-            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-black/50 border-slate-800' : 'bg-slate-50 border-slate-200'} space-y-2`}>
-              <div className="flex items-center justify-between">
-                <p className={`text-[9px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Logs de Execução (Cloudflare D1):
-                </p>
-                <span className="text-[8px] font-mono text-slate-500">{importLogs.length} linhas</span>
-              </div>
-              <div className="max-h-44 overflow-y-auto pr-1 custom-scrollbar text-[8.5px] font-mono space-y-1 text-slate-400">
-                {importLogs.map((log, i) => (
-                  <p key={`import-log-${i}`} className={log.includes('✅') ? 'text-emerald-400' : log.includes('❌') ? 'text-red-400' : log.includes('🔍') ? 'text-blue-400 font-bold' : 'text-slate-400'}>
-                    {log}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
+            {navTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-400/30'
+                      : isDarkMode
+                      ? 'bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-700/50'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <Icon size={15} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
-        {userEmail === ADMIN_MASTER_EMAIL && (
-          <div className={`${isDarkMode ? 'bg-red-950/20 border-red-900/30' : 'bg-[#fff1f1] border-red-100'} p-10 rounded-[3.5rem] border shadow-xl shadow-red-900/5 space-y-6 mt-6`}>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-red-600 mb-4">
-                <AlertTriangle size={20} strokeWidth={3} />
-                <h4 className={`text-[12px] font-black uppercase tracking-[0.15em] ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>Zerar Rankings (Master)</h4>
-              </div>
-              <p className={`text-[9px] font-black ${isDarkMode ? 'text-red-800' : 'text-red-400'} uppercase tracking-widest mb-8 text-center leading-tight`}>Esta área é visível apenas para você. Ações irreversíveis.</p>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <button disabled={!!isResetting} onClick={() => handleResetClick('members', 'Membros')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'members' ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />} 
-                  </div>
-                  Zerar Membros
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('quiz', 'Quiz')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'quiz' ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />} 
-                  </div>
-                  Zerar Quiz
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('memory', 'Memória')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'memory' ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />} 
-                  </div>
-                  Zerar Memória
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('specialty', 'Especialidade')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'specialty' ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />} 
-                  </div>
-                  Zerar Especialidade
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('1x1', 'Arena 1x1')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === '1x1' ? <Loader2 className="animate-spin" size={20} /> : <Sword size={20} />} 
-                  </div>
-                  Zerar Arena 1x1
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('threeclues', 'Três Dicas')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'threeclues' ? <Loader2 className="animate-spin" size={20} /> : <HelpCircle size={20} />} 
-                  </div>
-                  Zerar 3 Dicas
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('natureid', 'Natureza')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'natureid' ? <Loader2 className="animate-spin" size={20} /> : <Leaf size={20} />} 
-                  </div>
-                  Zerar Natureza
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('firstaid', 'Socorros')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'firstaid' ? <Loader2 className="animate-spin" size={20} /> : <HeartPulse size={20} />} 
-                  </div>
-                  Zerar Socorros
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('specialtytrail', 'Trilha')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'specialtytrail' ? <Loader2 className="animate-spin" size={20} /> : <Map size={20} />} 
-                  </div>
-                  Zerar Trilha
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('puzzle', 'Quebra-Cabeça')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'puzzle' ? <Loader2 className="animate-spin" size={20} /> : <Shuffle size={20} />} 
-                  </div>
-                  Zerar Quebra-Cabeça
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('knots', 'Nós')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'knots' ? <Loader2 className="animate-spin" size={20} /> : <Anchor size={20} />} 
-                  </div>
-                  Zerar Nós
-                </button>
-                <button disabled={!!isResetting} onClick={() => handleResetClick('scrambledverse', 'Versículo')} className={`${isDarkMode ? 'bg-slate-900/40 text-red-400 border-red-900/20' : 'bg-white text-red-600 border-red-100'} p-6 rounded-[2.5rem] font-black text-[9px] uppercase tracking-widest flex flex-col items-center gap-3 shadow-sm min-h-[110px] active:scale-95 transition-all border hover:border-red-500/30 group`}>
-                  <div className={`p-3 rounded-2xl transition-all ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50 group-hover:bg-red-100'}`}>
-                    {isResetting === 'scrambledverse' ? <Loader2 className="animate-spin" size={20} /> : <Type size={20} />} 
-                  </div>
-                  Zerar Versículo
-                </button>
-              </div>
-            </div>
-          </div>
+      </header>
+
+      {/* CONTEÚDO PRINCIPAL DA ABA SELECIONADA */}
+      <main className="max-w-7xl mx-auto w-full p-4 sm:p-8 pb-32">
+        {activeTab === 'games' && (
+          <AdminGamesTab
+            onGoToAdminQuiz={onGoToAdminQuiz}
+            onGoToAdminSpecialty={onGoToAdminSpecialty}
+            onGoToAdminThreeClues={onGoToAdminThreeClues}
+            onGoToAdminSpecialtyStudy={onGoToAdminSpecialtyStudy}
+            onGoToAdminPuzzle={onGoToAdminPuzzle}
+            onGoToAdminScrambledVerse={onGoToAdminScrambledVerse}
+            onGoToAdminNatureId={onGoToAdminNatureId}
+            onGoToAdminFirstAid={onGoToAdminFirstAid}
+            onGoToAdminSpecialtyTrail={onGoToAdminSpecialtyTrail}
+            quizOverride={quizOverride}
+            onToggleQuizOverride={onToggleQuizOverride}
+            quizAllowedDay={quizAllowedDay}
+            onSetQuizAllowedDay={onSetQuizAllowedDay}
+            memoryOverride={memoryOverride}
+            onToggleMemoryOverride={onToggleMemoryOverride}
+            memoryAllowedDay={memoryAllowedDay}
+            onSetMemoryAllowedDay={onSetMemoryAllowedDay}
+            specialtyOverride={specialtyOverride}
+            onToggleSpecialtyOverride={onToggleSpecialtyOverride}
+            specialtyAllowedDay={specialtyAllowedDay}
+            onSetSpecialtyAllowedDay={onSetSpecialtyAllowedDay}
+            threeCluesOverride={threeCluesOverride}
+            onToggleThreeCluesOverride={onToggleThreeCluesOverride}
+            threeCluesAllowedDay={threeCluesAllowedDay}
+            onSetThreeCluesAllowedDay={onSetThreeCluesAllowedDay}
+            puzzleOverride={puzzleOverride}
+            onTogglePuzzleOverride={onTogglePuzzleOverride}
+            puzzleAllowedDay={puzzleAllowedDay}
+            onSetPuzzleAllowedDay={onSetPuzzleAllowedDay}
+            knotsOverride={knotsOverride}
+            onToggleKnotsOverride={onToggleKnotsOverride}
+            knotsAllowedDay={knotsAllowedDay}
+            onSetKnotsAllowedDay={onSetKnotsAllowedDay}
+            specialtyTrailOverride={specialtyTrailOverride}
+            onToggleSpecialtyTrailOverride={onToggleSpecialtyTrailOverride}
+            specialtyTrailAllowedDay={specialtyTrailAllowedDay}
+            onSetSpecialtyTrailAllowedDay={onSetSpecialtyTrailAllowedDay}
+            scrambledVerseOverride={scrambledVerseOverride}
+            onToggleScrambledVerseOverride={onToggleScrambledVerseOverride}
+            scrambledVerseAllowedDay={scrambledVerseAllowedDay}
+            onSetScrambledVerseAllowedDay={onSetScrambledVerseAllowedDay}
+            natureIdOverride={natureIdOverride}
+            onToggleNatureIdOverride={onToggleNatureIdOverride}
+            natureIdAllowedDay={natureIdAllowedDay}
+            onSetNatureIdAllowedDay={onSetNatureIdAllowedDay}
+            firstAidOverride={firstAidOverride}
+            onToggleFirstAidOverride={onToggleFirstAidOverride}
+            firstAidAllowedDay={firstAidAllowedDay}
+            onSetFirstAidAllowedDay={onSetFirstAidAllowedDay}
+            mahjongOverride={mahjongOverride}
+            onToggleMahjongOverride={onToggleMahjongOverride}
+            mahjongAllowedDay={mahjongAllowedDay}
+            onSetMahjongAllowedDay={onSetMahjongAllowedDay}
+            brickBreakerOverride={brickBreakerOverride}
+            onToggleBrickBreakerOverride={onToggleBrickBreakerOverride}
+            brickBreakerAllowedDay={brickBreakerAllowedDay}
+            onSetBrickBreakerAllowedDay={onSetBrickBreakerAllowedDay}
+            specialtyStudyOverride={specialtyStudyOverride}
+            onToggleSpecialtyStudyOverride={onToggleSpecialtyStudyOverride}
+            specialtyStudyAllowedDay={specialtyStudyAllowedDay}
+            onSetSpecialtyStudyAllowedDay={onSetSpecialtyStudyAllowedDay}
+            onOpenAssetsModal={() => { loadAssets(); setShowAssetsModal(true); }}
+            onSeedAllData={handleSeedAllData}
+            isSeeding={isSeeding}
+            onFixGameStatus={handleFixGameStatus}
+            isProcessing={isProcessing}
+            fixProgress={fixProgress}
+            onProcessMonthlyAwards={onProcessMonthlyAwards}
+            isDarkMode={isDarkMode}
+          />
         )}
-      </div>
+
+        {activeTab === 'club' && (
+          <AdminClubTab
+            members={members}
+            counselors={counselors}
+            devotionalsCount={allDevotionals.length}
+            onGoToAdminAvisos={onGoToAdminAvisos}
+            onProcessMonthlyAwards={onProcessMonthlyAwards}
+            onOpenCounselorModal={() => { setEditCounselor(null); setNewCounselorName(''); setShowCounselorModal(true); }}
+            onOpenDevotionalModal={() => { setShowDevotionalList(false); setShowDevotionalModal(true); }}
+            onInspectMember={(member) => setInspectingMember(member)}
+            isDarkMode={isDarkMode}
+          />
+        )}
+
+        {activeTab === 'database' && (
+          <AdminDatabaseTab
+            cfWorkerUrl={cfWorkerUrl}
+            onSaveCfUrl={handleSaveCfUrl}
+            onTestCf={handleTestCf}
+            isTestingCf={isTestingCf}
+            cfTestStatus={cfTestStatus}
+            onRunDiagnostic={runDiagnostic}
+            isDiagnosticRunning={isDiagnosticRunning}
+            diagnosticResults={diagnosticResults}
+            onCreateAllTables={handleCreateAllTables}
+            isCreatingAllTables={isCreatingAllTables}
+            onSeedInitialDataToD1={handleSeedInitialDataToD1}
+            isSeedingD1={isSeedingD1}
+            d1SeedResult={d1SeedResult}
+            isDarkMode={isDarkMode}
+          />
+        )}
+
+        {activeTab === 'import' && (
+          <AdminImportTab
+            importTarget={importTarget}
+            setImportTarget={setImportTarget}
+            importFormat={importFormat}
+            setImportFormat={setImportFormat}
+            rawImportText={rawImportText}
+            setRawImportText={setRawImportText}
+            isImporting={isImporting}
+            importProgress={importProgress}
+            importLogs={importLogs}
+            isDragActive={isDragActive}
+            setIsDragActive={setIsDragActive}
+            onFileDrop={handleFileDrop}
+            onFileChange={handleFileChange}
+            onCopyTemplate={handleCopyTemplate}
+            onLoadTemplateIntoEditor={handleLoadTemplateIntoEditor}
+            onImportData={handleImportData}
+            templateCopied={templateCopied}
+            isDarkMode={isDarkMode}
+          />
+        )}
+
+        {activeTab === 'master' && isMasterAdmin && (
+          <AdminMasterTab
+            isResetting={isResetting}
+            onResetClick={handleResetClick}
+            isDarkMode={isDarkMode}
+          />
+        )}
+      </main>
 
       {/* MODAL PARA ADICIONAR/EDITAR CONSELHEIROS */}
       {showCounselorModal && (

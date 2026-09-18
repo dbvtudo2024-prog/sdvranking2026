@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Member, AuthUser, Announcement, Challenge1x1, QuizQuestion, ChatMessage, Devotional, ThreeCluesQuestion, SpecialtyStudy, SpecialtyStudyQuestion, SpecialtyDBV, CounselorDB, GameConfig, UserRole, UnitName, ClubUnit, DEFAULT_UNITS, sortUnitsWithLeadershipLast, BadgeLevel } from '@/types';
+import { isValidCounselorPersonName } from './utils/counselors';
 import { 
   DEFAULT_MEMBERS, 
   DEFAULT_ANNOUNCEMENTS, 
@@ -1638,6 +1639,11 @@ export const DatabaseService = {
 
   // --- CONSELHEIROS ---
   async getCounselors(): Promise<CounselorDB[]> {
+    // Purga em segundo plano qualquer registro espúrio que seja cargo ou unidade
+    runD1Query(
+      "DELETE FROM conselheiros WHERE LOWER(COALESCE(nome, name)) IN ('apoio', 'esperança', 'esperanca', 'diretor (a)', 'diretora (a)', 'diretor(a)', 'diretor', 'diretora', 'conselheiro (a) associado (a)', 'conselheiro(a) associado(a)', 'conselheiro associado', 'diretor (a) associado (a)', 'secretário (a)', 'secretaria (a)', 'secretario (a)', 'tesoureiro (a)', 'sem conselheiro', 'n/a', 'diretoria', 'nenhum')"
+    ).catch(() => {});
+
     try {
       // 1. Tentar Supabase
       const { data, error } = await supabase
@@ -1651,7 +1657,7 @@ export const DatabaseService = {
           name: (item.nome || item.name || '').trim(),
           created_at: item.created_at,
           unit: item.unidade || item.unit || ''
-        })).filter(c => !!c.name);
+        })).filter(c => !!c.name && isValidCounselorPersonName(c.name));
 
         if (mapped.length > 0) {
           try {
@@ -1673,7 +1679,7 @@ export const DatabaseService = {
           name: (item.nome || item.name || '').trim(),
           created_at: item.created_at,
           unit: item.unidade || item.unit || ''
-        })).filter(c => !!c.name);
+        })).filter(c => !!c.name && isValidCounselorPersonName(c.name));
 
         if (mapped.length > 0) {
           try {
@@ -1692,7 +1698,10 @@ export const DatabaseService = {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const validCached = parsed.filter((c: any) => c && !!c.name && isValidCounselorPersonName(c.name));
+          if (validCached.length > 0) {
+            return validCached;
+          }
         }
       }
     } catch {}
@@ -1724,7 +1733,7 @@ export const DatabaseService = {
 
   async addCounselor(name: string, unit?: string) {
     const cleanName = (name || '').trim();
-    if (!cleanName) return;
+    if (!cleanName || !isValidCounselorPersonName(cleanName)) return;
     const id = 'cons_' + Date.now();
     try {
       await supabase.from('conselheiros').insert([{ id, nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }]);
@@ -1745,7 +1754,7 @@ export const DatabaseService = {
 
   async updateCounselor(id: string | number, name: string, unit?: string) {
     const cleanName = (name || '').trim();
-    if (!cleanName) return;
+    if (!cleanName || !isValidCounselorPersonName(cleanName)) return;
     try {
       await supabase.from('conselheiros').update({ nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }).eq('id', id);
     } catch {}
@@ -3599,66 +3608,116 @@ export const DatabaseService = {
     return list;
   },
 
-  async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
-    console.log("[DB] Adicionando novo estudo de especialidade:", study.name);
-    
-    // Backup local preventivo
-    const tempId = 'study_' + Date.now();
-    const newStudyItem = { ...study, id: tempId, created_at: new Date().toISOString() } as SpecialtyStudy;
+  async saveSpecialtyStudy(study: SpecialtyStudy | Omit<SpecialtyStudy, 'id'>): Promise<SpecialtyStudy> {
+    const recordId = String((study as any).id || ('study_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)));
+    const studyItem: SpecialtyStudy = normalizeStudy({
+      ...study,
+      id: recordId,
+      created_at: (study as any).created_at || new Date().toISOString()
+    });
+
+    console.log(`[DB] Salvando estudo de especialidade "${studyItem.name}" (ID: ${studyItem.id})...`);
+
+    // 1. Atualizar backup local
     try {
       const cachedStr = localStorage.getItem('sentinelas_specialty_studies_backup');
       let list: SpecialtyStudy[] = cachedStr ? JSON.parse(cachedStr) : [];
-      list = [newStudyItem, ...list];
+      list = list.filter(s => s.id !== studyItem.id && s.name.trim().toLowerCase() !== studyItem.name.trim().toLowerCase());
+      list = [studyItem, ...list];
       localStorage.setItem('sentinelas_specialty_studies_backup', JSON.stringify(list));
     } catch (e) {
-      console.warn("[addSpecialtyStudy] Erro no backup local:", e);
+      console.warn("[saveSpecialtyStudy] Erro no backup local:", e);
     }
 
+    // 2. Salvar no Supabase (com contingências para schema e colunas opcionais)
     try {
-      const { error } = await supabase.from('specialty_studies').insert([study]);
-      if (error) {
-        console.warn("[DB] Aviso ao adicionar estudo:", error.message || error);
-        if (error.message?.includes('scheduled_for') || error.code === 'PGRST100' || (error as any).status === 404) {
-          console.warn("[DB] Tentando salvar sem coluna 'scheduled_for'...");
-          const { scheduled_for, ...studyWithoutSchedule } = study;
-          const { error: retryError } = await supabase.from('specialty_studies').insert([studyWithoutSchedule]);
-          if (retryError) {
-            console.warn("[DB] Falha na contingência de salvar estudo:", retryError.message || retryError);
+      // Tentativa 1: upsert padrão com objeto normalizado
+      const { error: upsertErr } = await supabase.from('specialty_studies').upsert([studyItem], { onConflict: 'id' });
+      if (upsertErr) {
+        console.warn("[saveSpecialtyStudy] Aviso no upsert do Supabase:", upsertErr.message || upsertErr);
+
+        // Tentativa 2: sem coluna scheduled_for
+        if (upsertErr.message?.includes('scheduled_for') || upsertErr.code === 'PGRST100' || (upsertErr as any).status === 404) {
+          console.log("[saveSpecialtyStudy] Tentando salvar sem coluna 'scheduled_for'...");
+          const { scheduled_for, ...withoutSchedule } = studyItem;
+          const { error: retryErr } = await supabase.from('specialty_studies').upsert([withoutSchedule], { onConflict: 'id' });
+          if (retryErr) {
+            console.warn("[saveSpecialtyStudy] Falha ao salvar sem scheduled_for:", retryErr.message || retryErr);
+          }
+        } else {
+          // Tentativa 3: caso questions precise de JSON string em colunas do tipo TEXT
+          const stringifiedQuestionsStudy = {
+            ...studyItem,
+            questions: JSON.stringify(studyItem.questions || [])
+          };
+          const { error: textErr } = await supabase.from('specialty_studies').upsert([stringifiedQuestionsStudy], { onConflict: 'id' });
+          if (textErr) {
+            console.warn("[saveSpecialtyStudy] Tentando insert simples no Supabase...", textErr.message);
+            try {
+              await supabase.from('specialty_studies').insert([studyItem]);
+            } catch {
+              // ignore insert fallback error
+            }
           }
         }
       }
-    } catch (e) {
-      console.warn("[addSpecialtyStudy] Erro ao salvar no Supabase:", e);
+    } catch (sbErr) {
+      console.warn("[saveSpecialtyStudy] Erro ao sincronizar com Supabase:", sbErr);
     }
+
+    // 3. Salvar no Cloudflare D1
+    try {
+      const questionsStr = JSON.stringify(studyItem.questions || []);
+      await runD1Query(
+        "INSERT OR REPLACE INTO specialty_studies (id, name, pdfurl, video_url, specialty_image_url, category, questions, scheduled_for, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          studyItem.id,
+          studyItem.name,
+          studyItem.pdfurl,
+          studyItem.video_url || '',
+          studyItem.specialty_image_url || '',
+          studyItem.category || 'Geral',
+          questionsStr,
+          studyItem.scheduled_for || '',
+          studyItem.created_at || new Date().toISOString()
+        ]
+      );
+    } catch (d1Err) {
+      console.warn("[saveSpecialtyStudy] Aviso ao sincronizar com Cloudflare D1:", d1Err);
+    }
+
+    // 4. Notificar listeners locais
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('specialty_studies_updated', { detail: studyItem }));
+    }
+
+    return studyItem;
+  },
+
+  async saveSpecialtyStudies(studies: (SpecialtyStudy | Omit<SpecialtyStudy, 'id'>)[]): Promise<{ success: number; failed: number; errors: string[] }> {
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const study of studies) {
+      try {
+        await this.saveSpecialtyStudy(study);
+        success++;
+      } catch (err: any) {
+        failed++;
+        errors.push(`${study.name}: ${err?.message || 'Erro desconhecido'}`);
+      }
+    }
+
+    return { success, failed, errors };
+  },
+
+  async addSpecialtyStudy(study: Omit<SpecialtyStudy, 'id'>) {
+    return this.saveSpecialtyStudy(study);
   },
 
   async updateSpecialtyStudy(study: SpecialtyStudy) {
-    console.log("[DB] Atualizando estudo de especialidade:", study.name);
-    try {
-      const cachedStr = localStorage.getItem('sentinelas_specialty_studies_backup');
-      if (cachedStr) {
-        let list: SpecialtyStudy[] = JSON.parse(cachedStr);
-        list = list.map(s => s.id === study.id ? { ...s, ...study } : s);
-        localStorage.setItem('sentinelas_specialty_studies_backup', JSON.stringify(list));
-      }
-    } catch (e) {
-      console.warn("[updateSpecialtyStudy] Erro no backup local:", e);
-    }
-
-    const { id, created_at, ...updates } = study;
-    try {
-      const { error } = await supabase.from('specialty_studies').update(updates).eq('id', id);
-      if (error) {
-        console.warn("[DB] Aviso ao atualizar estudo:", error.message || error);
-        if (error.message?.includes('scheduled_for') || error.code === 'PGRST100' || (error as any).status === 404) {
-          const { scheduled_for, ...updatesWithoutSchedule } = updates;
-          const { error: retryError } = await supabase.from('specialty_studies').update(updatesWithoutSchedule).eq('id', id);
-          if (retryError) console.warn("[DB] Erro no retry de atualização de estudo:", retryError);
-        }
-      }
-    } catch (e) {
-      console.warn("[updateSpecialtyStudy] Erro ao atualizar no Supabase:", e);
-    }
+    return this.saveSpecialtyStudy(study);
   },
 
   async deleteSpecialtyStudy(id: string) {
@@ -3672,6 +3731,7 @@ export const DatabaseService = {
     } catch (e) {
       console.warn("[deleteSpecialtyStudy] Erro no backup local:", e);
     }
+
     try {
       const { error } = await supabase.from('specialty_studies').delete().eq('id', id);
       if (error) {
@@ -3679,6 +3739,14 @@ export const DatabaseService = {
       }
     } catch (e) {
       console.warn("[deleteSpecialtyStudy] Erro ao deletar no Supabase:", e);
+    }
+
+    try {
+      await runD1Query("DELETE FROM specialty_studies WHERE id = ?", [id]);
+    } catch {}
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('specialty_studies_updated', { detail: { id, deleted: true } }));
     }
   },
 
@@ -3691,7 +3759,28 @@ export const DatabaseService = {
       callback(localStudies);
     }).catch(err => console.warn("[Realtime] Erro estudos iniciais:", err));
 
-    return supabase
+    const handleLocalUpdate = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+      if (detail.deleted) {
+        localStudies = localStudies.filter(s => s.id !== detail.id);
+      } else {
+        const item = normalizeStudy(detail);
+        const exists = localStudies.some(s => s.id === item.id);
+        if (exists) {
+          localStudies = localStudies.map(s => s.id === item.id ? item : s);
+        } else {
+          localStudies = [item, ...localStudies];
+        }
+      }
+      callback([...localStudies]);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('specialty_studies_updated', handleLocalUpdate);
+    }
+
+    const channel = supabase
       .channel('specialty_studies_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'specialty_studies' }, payload => {
         console.log("[Realtime] Mudança em specialty_studies:", payload.eventType);
@@ -3707,6 +3796,15 @@ export const DatabaseService = {
       .subscribe((status) => {
         console.log("[Realtime] Status do canal de estudos:", status);
       });
+
+    return {
+      unsubscribe: () => {
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('specialty_studies_updated', handleLocalUpdate);
+        }
+        channel.unsubscribe();
+      }
+    };
   },
 
   subscribeThreeCluesQuestions(callback: (questions: ThreeCluesQuestion[]) => void) {
