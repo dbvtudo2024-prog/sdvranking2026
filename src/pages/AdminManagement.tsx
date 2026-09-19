@@ -1472,12 +1472,12 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar select-none"
             title="Dica: Use a roda do mouse para rolar horizontalmente"
           >
-            {navTabs.map((tab) => {
+            {navTabs.map((tab, tIdx) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
                 <button
-                  key={tab.id}
+                  key={`admin-nav-${tab.id}-${tIdx}`}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
                     isActive
@@ -1804,8 +1804,8 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
                       <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Nenhum devocional agendado</p>
                     </div>
                   ) : (
-                    allDevotionals.map(dev => (
-                      <div key={`modal-devotional-${dev.id}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-2xl p-4 flex items-center justify-between`}>
+                    allDevotionals.map((dev, dIdx) => (
+                      <div key={`modal-devotional-${dev.id || dIdx}-${dIdx}`} className={`${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border rounded-2xl p-4 flex items-center justify-between`}>
                         <div className="min-w-0 flex-1">
                           <p className={`text-xs font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-700'} uppercase leading-tight`}>{dev.title}</p>
                           <p className={`text-[8px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-0.5`}>

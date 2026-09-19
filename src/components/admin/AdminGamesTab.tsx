@@ -353,11 +353,11 @@ export const AdminGamesTab: React.FC<AdminGamesTabProps> = ({
       {/* SEÇÃO 1: EDITORES DOS JOGOS */}
       {activeSubSection === 'editors' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {editors.map((editor) => {
+          {editors.map((editor, edIdx) => {
             const Icon = editor.icon;
             return (
               <div
-                key={editor.title}
+                key={`editor-card-${editor.title}-${edIdx}`}
                 onClick={editor.action}
                 className={`group cursor-pointer p-5 rounded-3xl border transition-all duration-200 hover:scale-[1.01] flex flex-col justify-between ${
                   isDarkMode
@@ -407,12 +407,12 @@ export const AdminGamesTab: React.FC<AdminGamesTabProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {accessControls.map((item) => {
+            {accessControls.map((item, acIdx) => {
               const Icon = item.icon;
               const isOverridden = !!item.active;
               return (
                 <div
-                  key={item.label}
+                  key={`access-card-${item.label}-${acIdx}`}
                   className={`p-4 rounded-2xl border transition-all ${
                     isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
                   }`}
@@ -466,8 +466,8 @@ export const AdminGamesTab: React.FC<AdminGamesTabProps> = ({
                           : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-500'
                       }`}
                     >
-                      {daysList.map((d) => (
-                        <option key={d.v} value={d.v}>{d.l}</option>
+                      {daysList.map((d, dIdx) => (
+                        <option key={`day-${item.label}-${d.v}-${dIdx}`} value={d.v}>{d.l}</option>
                       ))}
                     </select>
                   </div>

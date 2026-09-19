@@ -112,11 +112,11 @@ export const AdminImportTab: React.FC<AdminImportTabProps> = ({
             <Table size={14} /> Tabela de Destino ({ALL_D1_TABLES.length} disponíveis)
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-            {ALL_D1_TABLES.map((t) => {
+            {ALL_D1_TABLES.map((t, tIdx) => {
               const isSelected = importTarget === t;
               return (
                 <button
-                  key={`tbl-btn-${t}`}
+                  key={`tbl-btn-${t}-${tIdx}`}
                   type="button"
                   onClick={() => setImportTarget(t)}
                   className={`py-2 px-2.5 rounded-xl text-[11px] font-mono font-black uppercase tracking-tight transition-all truncate border ${

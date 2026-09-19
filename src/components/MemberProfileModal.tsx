@@ -103,17 +103,17 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ member, onClose
                  <p className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
                    {calculateExtraGamesTotal(member)}
                  </p>
-                 <div className="flex gap-2">
-                   {['mahjongGame', 'brickBreakerGame', 'challenge1x1'].map(key => {
-                     const actualPts = member.scores.reduce((acc, s:any) => acc + (s.gameId === key ? (Number(s.points) || 0) : 0), 0);
-                     if (actualPts === 0) return null;
-                     return (
-                       <span key={`extra-${key}`} className={`px-2 py-0.5 rounded-lg text-[7px] font-bold uppercase ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                         {key === 'mahjongGame' ? 'MJ' : key === 'brickBreakerGame' ? 'BL' : '1x1'}: {actualPts}
-                       </span>
-                     );
-                   })}
-                 </div>
+                  <div className="flex gap-2">
+                    {['mahjongGame', 'brickBreakerGame', 'challenge1x1'].map((key, eIdx) => {
+                      const actualPts = member.scores.reduce((acc, s:any) => acc + (s.gameId === key ? (Number(s.points) || 0) : 0), 0);
+                      if (actualPts === 0) return null;
+                      return (
+                        <span key={`extra-${key}-${eIdx}`} className={`px-2 py-0.5 rounded-lg text-[7px] font-bold uppercase ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {key === 'mahjongGame' ? 'MJ' : key === 'brickBreakerGame' ? 'BL' : '1x1'}: {actualPts}
+                        </span>
+                      );
+                    })}
+                  </div>
                </div>
             </div>
           )}

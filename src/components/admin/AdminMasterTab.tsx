@@ -123,12 +123,12 @@ export const AdminMasterTab: React.FC<AdminMasterTabProps> = ({
 
           {/* 2. Botões Individuais em grade com proteção contra overflow */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {individualGames.map((item) => {
+            {individualGames.map((item, idx) => {
               const Icon = item.icon;
               const isThisResetting = isResetting === item.key;
               return (
                 <button
-                  key={`reset-btn-${item.key}`}
+                  key={`reset-btn-${item.key}-${idx}`}
                   type="button"
                   disabled={!!isResetting}
                   onClick={() => onResetClick(item.key, item.name)}

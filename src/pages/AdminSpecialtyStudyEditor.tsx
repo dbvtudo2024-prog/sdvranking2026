@@ -598,7 +598,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                 
                 <div className="space-y-8">
                   {((editForm ? editForm.questions : newStudy.questions) || []).map((q, qIdx) => (
-                    <div key={qIdx} className={`p-6 rounded-[2rem] border space-y-4 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                    <div key={`study-form-q-${qIdx}`} className={`p-6 rounded-[2rem] border space-y-4 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="w-8 h-8 rounded-lg bg-[#0061f2] text-white flex items-center justify-center font-black text-xs">{qIdx + 1}</span>
                         <input 
@@ -617,7 +617,7 @@ const AdminSpecialtyStudyEditor: React.FC<AdminSpecialtyStudyEditorProps> = ({ o
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-11">
                         {(q.options || []).map((opt, oIdx) => (
-                          <div key={oIdx} className="flex items-center gap-2">
+                          <div key={`study-form-q-${qIdx}-opt-${oIdx}`} className="flex items-center gap-2">
                             <input 
                               type="radio" 
                               name={`correct-${qIdx}`} 

@@ -254,8 +254,8 @@ export const AdminClubTab: React.FC<AdminClubTabProps> = ({
                 }`}
               >
                 <option value="all">Todas as Unidades ({members.length})</option>
-                {unitsList.map(u => (
-                  <option key={u} value={u}>{u}</option>
+                {unitsList.map((u, uIdx) => (
+                  <option key={`unit-opt-${u}-${uIdx}`} value={u}>{u}</option>
                 ))}
               </select>
             </div>
@@ -276,7 +276,7 @@ export const AdminClubTab: React.FC<AdminClubTabProps> = ({
               const studyScore = (member as any).specialtyStudyScore || 0;
               return (
                 <div
-                  key={`member-card-${member.id || idx}`}
+                  key={`member-card-${member.id || 'mem'}-${idx}`}
                   className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isDarkMode
                       ? 'bg-slate-900/40 border-slate-800 hover:bg-slate-800/50'

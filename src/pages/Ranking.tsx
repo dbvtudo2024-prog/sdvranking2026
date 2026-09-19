@@ -378,7 +378,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                 <p className="text-xs text-slate-400 mt-1">O Hall da Fama exibirá o pódio dos 3 campeões de cada mês encerrado.</p>
               </div>
             ) : (
-              allMonthsWithScores.map(mStr => {
+              allMonthsWithScores.map((mStr, mIdx) => {
                 const [y, m] = mStr.split('-');
                 const monthDate = new Date(parseInt(y), parseInt(m) - 1);
                 const monthName = monthDate.toLocaleString('pt-BR', { month: 'long' });
@@ -397,7 +397,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                 if (monthChampions.length === 0) return null;
 
                 return (
-                  <div key={mStr} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                  <div key={`hall-month-${mStr}-${mIdx}`} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center gap-4">
                       <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
                       <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -887,7 +887,7 @@ const Ranking: React.FC<RankingProps> = ({ members, isDarkMode, unitsList = DEFA
                           {(m.badges || []).length > 0 ? (
                             (m.badges || []).slice(0, 3).map((b, bIdx) => (
                               <span
-                                key={`pc-badge-${m.id}-${bIdx}`}
+                                key={`pc-badge-${m.id || idx}-${b.badgeId || bIdx}-${bIdx}`}
                                 title={b.monthLabel || 'Medalha'}
                                 className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500"
                               >
