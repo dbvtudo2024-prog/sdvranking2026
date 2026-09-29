@@ -80,8 +80,7 @@ const FORBIDDEN_COUNSELOR_TERMS = new Set<string>([
   // Unidades padrão e conhecidas
   'aguia dourada',
   'guerreiros',
-  'lideranca',
-  'esperanca'
+  'lideranca'
 ]);
 
 /**

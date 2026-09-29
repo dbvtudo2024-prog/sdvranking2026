@@ -390,13 +390,35 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleAddMember = useCallback(async (newMember: Member) => {
-    setMembers(prev => [...prev, newMember]);
+    setMembers(prev => {
+      const exists = prev.some(m => String(m.id) === String(newMember.id));
+      if (exists) return prev.map(m => String(m.id) === String(newMember.id) ? newMember : m);
+      return [...prev, newMember];
+    });
     try { await DatabaseService.addMember(newMember); } catch (e) { console.error(e); }
   }, []);
 
   const handleUpdateMember = useCallback(async (updatedMember: Member) => {
     setMembers(prev => prev.map(m => String(m.id) === String(updatedMember.id) ? updatedMember : m));
     try { await DatabaseService.updateMember(updatedMember); } catch (e) { console.error(e); }
+  }, []);
+
+  const handleAddCounselor = useCallback(async (name: string, unit?: string) => {
+    await DatabaseService.addCounselor(name, unit);
+    const updated = await DatabaseService.getCounselors();
+    setCounselorsData(updated);
+  }, []);
+
+  const handleUpdateCounselor = useCallback(async (id: string | number, name: string, unit?: string) => {
+    await DatabaseService.updateCounselor(id, name, unit);
+    const updated = await DatabaseService.getCounselors();
+    setCounselorsData(updated);
+  }, []);
+
+  const handleDeleteCounselor = useCallback(async (id: string | number) => {
+    await DatabaseService.deleteCounselor(id);
+    const updated = await DatabaseService.getCounselors();
+    setCounselorsData(updated);
   }, []);
 
   const handleAwardBadge = useCallback(async (badgeId: string, level: BadgeLevel = BadgeLevel.BRONZE) => {
@@ -1073,7 +1095,7 @@ const App: React.FC = () => {
       onGoToAdminNatureId={() => { setAdminQuizCategory('Natureza'); setCurrentPage('admin_quiz'); }}
       onGoToAdminFirstAid={() => { setAdminQuizCategory('Primeiros Socorros'); setCurrentPage('admin_quiz'); }}
       onGoToAdminSpecialtyTrail={() => { setAdminQuizCategory('Especialidades'); setCurrentPage('admin_quiz'); }}
-      counselors={counselorsData} onAddCounselor={DatabaseService.addCounselor.bind(DatabaseService)} onUpdateCounselor={DatabaseService.updateCounselor.bind(DatabaseService)} onDeleteCounselor={DatabaseService.deleteCounselor.bind(DatabaseService)} onResetRanking={handleResetRanking} 
+      counselors={counselorsData} onAddCounselor={handleAddCounselor} onUpdateCounselor={handleUpdateCounselor} onDeleteCounselor={handleDeleteCounselor} onResetRanking={handleResetRanking} 
       quizOverride={quizOverride} quizAllowedDay={quizAllowedDay} onSetQuizAllowedDay={async (d) => { setQuizAllowedDay(d); await DatabaseService.updateGameConfig({ quiz_allowed_day: d }); }} onToggleQuizOverride={async () => { const nv = !quizOverride; setQuizOverride(nv); await DatabaseService.updateGameConfig({ quiz_override: nv }); }} 
       memoryOverride={memoryOverride} memoryAllowedDay={memoryAllowedDay} onSetMemoryAllowedDay={async (d) => { setMemoryAllowedDay(d); await DatabaseService.updateGameConfig({ memory_allowed_day: d }); }} onToggleMemoryOverride={async () => { const nv = !memoryOverride; setMemoryOverride(nv); await DatabaseService.updateGameConfig({ memory_override: nv }); }} 
       specialtyOverride={specialtyOverride} specialtyAllowedDay={specialtyAllowedDay} onSetSpecialtyAllowedDay={async (d) => { setSpecialtyAllowedDay(d); await DatabaseService.updateGameConfig({ specialty_allowed_day: d }); }} onToggleSpecialtyOverride={async () => { const nv = !specialtyOverride; setSpecialtyOverride(nv); await DatabaseService.updateGameConfig({ specialty_override: nv }); }} 

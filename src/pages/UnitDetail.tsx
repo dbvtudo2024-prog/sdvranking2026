@@ -74,7 +74,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
   });
 
   const filteredMembers = useMemo(() => {
-    return (members || []).filter(m => m.unit === unitName);
+    const targetNorm = (unitName || '').trim().toLowerCase();
+    return (members || []).filter(m => (m.unit || '').trim().toLowerCase() === targetNorm);
   }, [members, unitName]);
 
   const historyMember = useMemo(() => {

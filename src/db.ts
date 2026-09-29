@@ -86,14 +86,14 @@ const getValidSupabaseConfig = () => {
 
 const { url: SUPABASE_URL, key: SUPABASE_ANON_KEY } = getValidSupabaseConfig();
 
-const withTimeout = <T>(promise: Promise<T>, timeoutMs = 3000): Promise<T> => {
+const withTimeout = <T = any>(promise: PromiseLike<T> | Promise<T>, timeoutMs = 3000): Promise<T> => {
   let timer: any;
   const timeoutPromise = new Promise<T>((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error(`[DB Timeout] Operação excedeu o limite de ${timeoutMs}ms`));
     }, timeoutMs);
   });
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+  return Promise.race([Promise.resolve(promise) as Promise<T>, timeoutPromise]).finally(() => clearTimeout(timer));
 };
 
 const withRetry = async <T>(fn: () => Promise<T>, retries = 1, delay = 300): Promise<T> => {
@@ -1440,15 +1440,15 @@ export const DatabaseService = {
         photoUrl: member.photoUrl
       };
 
-      const { error } = await supabase.from('members').insert([payload]);
-      if (error) {
+      const res: any = await withTimeout(supabase.from('members').insert([payload]), 2000);
+      if (res && res.error) {
         const fallbackPayload = {
           id: memberId,
           name: member.name,
           role: member.role,
           unit: member.unit
         };
-        await supabase.from('members').insert([fallbackPayload]);
+        await withTimeout(supabase.from('members').insert([fallbackPayload]), 2000);
       }
     } catch (sbErr) {
       console.warn("[Supabase] Aviso ao replicar membro no Supabase:", sbErr);
@@ -1517,7 +1517,7 @@ export const DatabaseService = {
         scores: updates.scores,
         photoUrl: updates.photoUrl
       };
-      await supabase.from('members').update(payload).eq('id', memberId);
+      await withTimeout(supabase.from('members').update(payload).eq('id', memberId), 2000);
     } catch (sbErr) {
       console.warn("[Supabase] Aviso ao atualizar membro no Supabase:", sbErr);
     }
@@ -1626,43 +1626,12 @@ export const DatabaseService = {
 
   // --- CONSELHEIROS ---
   async getCounselors(): Promise<CounselorDB[]> {
-    // Purga em segundo plano qualquer registro espúrio que seja cargo, unidade ou mock de teste
+    // Purga em segundo plano apenas registros espúrios conhecidos e títulos de sistema vazios
     runD1Query(
-      "DELETE FROM conselheiros WHERE id LIKE 'cons_%' OR LOWER(COALESCE(nome, name)) IN ('carlos', 'ana', 'apoio', 'esperança', 'esperanca', 'diretor (a)', 'diretora (a)', 'diretor(a)', 'diretor', 'diretora', 'conselheiro (a) associado (a)', 'conselheiro(a) associado(a)', 'conselheiro associado', 'diretor (a) associado (a)', 'secretário (a)', 'secretaria (a)', 'secretario (a)', 'tesoureiro (a)', 'sem conselheiro', 'n/a', 'diretoria', 'nenhum')"
+      "DELETE FROM conselheiros WHERE LOWER(COALESCE(nome, name)) IN ('carlos', 'ana', 'sem conselheiro', 'n/a', 'diretoria', 'nenhum')"
     ).catch(() => {});
 
-    try {
-      // 1. Tentar Supabase
-      const { data, error } = await supabase
-        .from('conselheiros')
-        .select('*') 
-        .order('nome', { ascending: true });
-      
-      if (!error && Array.isArray(data) && data.length > 0) {
-        const mapped: CounselorDB[] = data.map((item: any) => ({
-          id: item.id || `cons_${Math.random()}`,
-          name: (item.nome || item.name || '').trim(),
-          created_at: item.created_at,
-          unit: item.unidade || item.unit || ''
-        })).filter(c => {
-          if (!c.name) return false;
-          const norm = c.name.toLowerCase();
-          if (norm === 'carlos' || norm === 'ana') return false;
-          return isValidCounselorPersonName(c.name);
-        });
-
-        if (mapped.length > 0) {
-          try {
-            localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(mapped));
-          } catch {}
-          return mapped;
-        }
-      }
-    } catch (e) {
-      console.warn("[getCounselors] Falha ao buscar conselheiros no Supabase:", e);
-    }
-
-    // 2. Tentar Cloudflare D1
+    // 1. Tentar Cloudflare D1 prioritariamente (onde os conselheiros oficiais persistem)
     try {
       const d1Rows = await runD1Query<any>("SELECT * FROM conselheiros ORDER BY COALESCE(nome, name) ASC");
       if (d1Rows && Array.isArray(d1Rows) && d1Rows.length > 0) {
@@ -1689,6 +1658,40 @@ export const DatabaseService = {
       console.warn("[getCounselors] Falha ao buscar conselheiros no D1:", d1Err);
     }
 
+    // 2. Tentar Supabase secundariamente
+    try {
+      const { data, error }: any = await withTimeout(
+        supabase
+          .from('conselheiros')
+          .select('*') 
+          .order('nome', { ascending: true }),
+        2000
+      );
+      
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const mapped: CounselorDB[] = data.map((item: any) => ({
+          id: item.id || `cons_${Math.random()}`,
+          name: (item.nome || item.name || '').trim(),
+          created_at: item.created_at,
+          unit: item.unidade || item.unit || ''
+        })).filter(c => {
+          if (!c.name) return false;
+          const norm = c.name.toLowerCase();
+          if (norm === 'carlos' || norm === 'ana') return false;
+          return isValidCounselorPersonName(c.name);
+        });
+
+        if (mapped.length > 0) {
+          try {
+            localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(mapped));
+          } catch {}
+          return mapped;
+        }
+      }
+    } catch (e) {
+      console.warn("[getCounselors] Falha ao buscar conselheiros no Supabase:", e);
+    }
+
     // 3. Tentar Cache Local
     try {
       const cached = localStorage.getItem("sentinelas_counselors_cache");
@@ -1698,7 +1701,7 @@ export const DatabaseService = {
           const validCached = parsed.filter((c: any) => {
             if (!c || !c.name) return false;
             const norm = (c.name || '').trim().toLowerCase();
-            if (norm === 'carlos' || norm === 'ana' || (c.id && String(c.id).startsWith('cons_'))) return false;
+            if (norm === 'carlos' || norm === 'ana') return false;
             return isValidCounselorPersonName(c.name);
           });
           if (validCached.length > 0) {
@@ -1717,7 +1720,7 @@ export const DatabaseService = {
     if (!cleanName || !isValidCounselorPersonName(cleanName)) return;
     const id = 'cons_' + Date.now();
     try {
-      await supabase.from('conselheiros').insert([{ id, nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }]);
+      await withTimeout(supabase.from('conselheiros').insert([{ id, nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }]), 2000);
     } catch {}
     try {
       await runD1Query(
@@ -1737,7 +1740,7 @@ export const DatabaseService = {
     const cleanName = (name || '').trim();
     if (!cleanName || !isValidCounselorPersonName(cleanName)) return;
     try {
-      await supabase.from('conselheiros').update({ nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }).eq('id', id);
+      await withTimeout(supabase.from('conselheiros').update({ nome: cleanName, name: cleanName, unidade: unit || '', unit: unit || '' }).eq('id', id), 2000);
     } catch {}
     try {
       await runD1Query(
@@ -1757,7 +1760,7 @@ export const DatabaseService = {
 
   async deleteCounselor(id: string | number) {
     try {
-      await supabase.from('conselheiros').delete().eq('id', id);
+      await withTimeout(supabase.from('conselheiros').delete().eq('id', id), 2000);
     } catch {}
     try {
       await runD1Query("DELETE FROM conselheiros WHERE id = ?", [id]);
