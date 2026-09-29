@@ -734,10 +734,9 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
       console.log("Versículos semeados.");
       await DatabaseService.seedGameAssets(NEW_KNOTS_ASSETS);
       
-      // Novos seeds para Avisos, Estudos e Membros
+      // Novos seeds para Avisos, Estudos e Devocionais (sem semear membros fictícios)
       await DatabaseService.seedAnnouncements(DEFAULT_ANNOUNCEMENTS);
       await DatabaseService.seedSpecialtyStudies(DEFAULT_SPECIALTY_STUDIES);
-      await DatabaseService.seedMembers(DEFAULT_MEMBERS);
       await DatabaseService.seedDevotionals(DEFAULT_DEVOTIONALS);
       console.log("Assets e devocionais semeados.");
       alert("✅ SUCESSO: Novas questões e ativos adicionados com sucesso!");

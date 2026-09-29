@@ -116,41 +116,45 @@ export function isValidCounselorPersonName(
 }
 
 /**
- * Verifica se um membro pertence à Liderança e possui cargo/função de
- * Conselheiro (a) ou Conselheiro (a) Associado (a).
+ * Verifica se um membro possui a função de Conselheiro (a) ou Conselheiro (a) Associado (a).
+ * Avalia os campos: counselor (utilizado pela liderança para armazenar o cargo/função),
+ * funcao, cargo, position e role.
  */
-export function isLeadershipCounselor(member: Member | any): boolean {
+export function isCounselorOrAssociate(member: Member | any): boolean {
   if (!member) return false;
 
-  // Verifica se é membro da liderança
-  const isLead = 
-    member.role === UserRole.LEADERSHIP || 
-    (typeof member.role === 'string' && member.role.toLowerCase() === 'leadership') || 
-    isLeadershipUnit(member.unit) || 
-    member.unit === UnitName.LIDERANCA || 
-    (typeof member.unit === 'string' && normalizeText(member.unit).includes('lideran'));
+  const roleText = normalizeText(typeof member.role === 'string' ? member.role : '');
+  const counselorField = normalizeText(member.counselor || '');
+  const funcaoField = normalizeText(member.funcao || '');
+  const cargoField = normalizeText(member.cargo || '');
+  const positionField = normalizeText(member.position || '');
 
-  if (!isLead) return false;
+  const combined = `${roleText} | ${counselorField} | ${funcaoField} | ${cargoField} | ${positionField}`;
 
-  // Obtém o cargo/função do membro de liderança (geralmente em member.counselor)
-  const roleOrCargo = normalizeText(
-    member.counselor || 
-    member.funcao || 
-    member.position || 
-    member.cargo || 
-    ''
-  );
+  // Se o cargo contiver "diretor" e NÃO contiver "conselheir", é da diretoria executiva, não conselheiro
+  if (combined.includes('diretor') && !combined.includes('conselheir')) {
+    return false;
+  }
 
-  return roleOrCargo.includes('conselheir');
+  // Verifica termos de conselheiro e associado
+  const hasConselheiro = combined.includes('conselheir'); // conselheiro, conselheira, conselheiro(a)
+  const hasAssociado = combined.includes('associad');     // conselheiro associado, associado(a), etc.
+
+  return hasConselheiro || hasAssociado;
 }
 
 /**
- * Constrói a lista oficial e limpa de nomes de conselheiros:
- * 1. Do banco de dados (tabela conselheiros / counselorsData).
- * 2. Da liderança que esteja como Conselheiro (a) ou Conselheiro (a) Associado (a).
- * 3. Conselheiros reconhecidos do clube (fallback padrão).
- * 
- * Rejeita qualquer cargo ('Apoio', 'Diretor (a)', etc.) ou unidade ('Esperança', etc.).
+ * Compatibilidade legada para isLeadershipCounselor
+ */
+export function isLeadershipCounselor(member: Member | any): boolean {
+  return isCounselorOrAssociate(member);
+}
+
+/**
+ * Constrói a lista oficial de nomes de conselheiros vinda do banco de dados:
+ * 1. Dos membros cadastrados que possuem a função de Conselheiro ou Associado.
+ * 2. Da tabela conselheiros do banco de dados (cadastrados pelo admin).
+ * 3. Sem nomes mock fictícios ou hardcoded.
  */
 export function extractCounselorNameList(params: {
   counselorsData?: Array<{ name?: string; nome?: string }>;
@@ -160,17 +164,9 @@ export function extractCounselorNameList(params: {
   const { counselorsData = [], members = [], unitsList = [] } = params;
   const names = new Set<string>();
 
-  // 1. Do banco de dados (tabela conselheiros)
-  (counselorsData || []).forEach(c => {
-    const rawName = (c.name || (c as any).nome || '').trim();
-    if (isValidCounselorPersonName(rawName, unitsList)) {
-      names.add(rawName);
-    }
-  });
-
-  // 2. Da liderança que esteja como Conselheiro (a) ou Conselheiro (a) Associado (a)
+  // 1. Membros do banco com função de Conselheiro ou Associado
   (members || []).forEach(m => {
-    if (isLeadershipCounselor(m)) {
+    if (isCounselorOrAssociate(m)) {
       const rawName = (m.name || '').trim();
       if (isValidCounselorPersonName(rawName, unitsList)) {
         names.add(rawName);
@@ -178,13 +174,27 @@ export function extractCounselorNameList(params: {
     }
   });
 
-  // 3. Conselheiros oficiais das unidades Águia Dourada e Guerreiros
-  const officialDefaults = ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'];
-  officialDefaults.forEach(name => {
-    if (isValidCounselorPersonName(name, unitsList)) {
-      names.add(name);
+  // 2. Registros da tabela conselheiros do banco de dados
+  const mockNamesToIgnore = new Set(['carlos', 'ana']);
+  (counselorsData || []).forEach(c => {
+    const rawName = (c.name || (c as any).nome || '').trim();
+    const normalized = normalizeText(rawName);
+    if (!mockNamesToIgnore.has(normalized) && isValidCounselorPersonName(rawName, unitsList)) {
+      names.add(rawName);
     }
   });
 
-  return Array.from(names).sort((a, b) => a.localeCompare(b));
+  // Deduplicação inteligente de nomes parciais (ex: prefere o nome completo "João Gabriel Guerreiro de souza" a "João Gabriel")
+  const list = Array.from(names);
+  const deduplicated = list.filter(shortName => {
+    const normShort = normalizeText(shortName);
+    const hasLonger = list.some(longerName => {
+      if (longerName === shortName) return false;
+      const normLong = normalizeText(longerName);
+      return normLong.startsWith(normShort + ' ') || normLong.endsWith(' ' + normShort);
+    });
+    return !hasLonger;
+  });
+
+  return deduplicated.sort((a, b) => a.localeCompare(b));
 }

@@ -398,30 +398,6 @@ export async function seedInitialDataToCloudflareD1(): Promise<{
           { badgeId: "monthly_games_gold", monthLabel: "1º Lugar - Campeão dos Jogos", awardedAt: "2026-03-31", level: BadgeLevel.GOLD }
         ],
         photoUrl: ""
-      },
-      {
-        id: "mem_joao",
-        name: "João Silva",
-        email: "joao",
-        role: UserRole.PATHFINDER,
-        funcao: "Desbravador",
-        unit: UnitName.AGUIA_DOURADA,
-        password: "123",
-        active: 1,
-        badges: [],
-        photoUrl: ""
-      },
-      {
-        id: "mem_maria",
-        name: "Maria Oliveira",
-        email: "maria",
-        role: UserRole.PATHFINDER,
-        funcao: "Desbravador",
-        unit: UnitName.GUERREIROS,
-        password: "123",
-        active: 1,
-        badges: [],
-        photoUrl: ""
       }
     ];
 
@@ -454,24 +430,9 @@ export async function seedInitialDataToCloudflareD1(): Promise<{
       counts.users++;
     }
 
-    // 3. Popular Membros base
-    for (const m of DEFAULT_MEMBERS) {
-      await runD1Query(
-        "INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          m.id,
-          m.name,
-          m.unit,
-          m.role,
-          m.className || "",
-          1,
-          m.birthday || "",
-          "",
-          JSON.stringify({ scores: m.scores || [], badges: m.badges || [], stats: m.stats || {}, counselor: m.counselor || "" })
-        ]
-      );
-      counts.members++;
-    }
+    // 3. Purga de usuários e membros fictícios caso existam no banco
+    await runD1Query("DELETE FROM members WHERE id IN ('mem_joao', 'mem_maria') OR LOWER(name) IN ('joão silva', 'joao silva', 'maria oliveira')");
+    await runD1Query("DELETE FROM users WHERE id IN ('mem_joao', 'mem_maria') OR LOWER(name) IN ('joão silva', 'joao silva', 'maria oliveira')");
 
     // 4. Popular Avisos base
     for (let i = 0; i < DEFAULT_ANNOUNCEMENTS.length; i++) {
@@ -616,13 +577,11 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
       } catch {}
     }
 
-    // Se ainda vazio ou com menos de 2 usuários, insere os usuários base
-    if (usersList.length <= 1) {
+    // Se ainda vazio ou com menos de 2 usuários, insere os usuários base reconhecidos (Ronaldo e Davi)
+    if (usersList.length === 0) {
       const baseDefaults: AuthUser[] = [
         { id: "mem_ronaldo", name: "Ronaldo Sonic", email: "ronaldo", role: UserRole.LEADERSHIP, funcao: "Diretoria / Administrador", unit: UnitName.LIDERANCA, password: "123", active: 1, badges: [], photoUrl: "" },
-        { id: "mem_davi", name: "Davi de Pin", email: "davi", role: UserRole.PATHFINDER, funcao: "Desbravador Campeão", unit: UnitName.AGUIA_DOURADA, password: "123", active: 1, badges: [{ badgeId: "monthly_games_gold", monthLabel: "1º Lugar - Campeão dos Jogos", awardedAt: "2026-03-31", level: BadgeLevel.GOLD }], photoUrl: "" },
-        { id: "mem_joao", name: "João Silva", email: "joao", role: UserRole.PATHFINDER, funcao: "Desbravador", unit: UnitName.AGUIA_DOURADA, password: "123", active: 1, badges: [], photoUrl: "" },
-        { id: "mem_maria", name: "Maria Oliveira", email: "maria", role: UserRole.PATHFINDER, funcao: "Desbravador", unit: UnitName.GUERREIROS, password: "123", active: 1, badges: [], photoUrl: "" }
+        { id: "mem_davi", name: "Davi de Pin", email: "davi", role: UserRole.PATHFINDER, funcao: "Desbravador Campeão", unit: UnitName.AGUIA_DOURADA, password: "123", active: 1, badges: [{ badgeId: "monthly_games_gold", monthLabel: "1º Lugar - Campeão dos Jogos", awardedAt: "2026-03-31", level: BadgeLevel.GOLD }], photoUrl: "" }
       ];
       for (const bu of baseDefaults) {
         if (!usersList.some(x => x.id === bu.id || x.email === bu.email)) {
@@ -650,7 +609,7 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
       counts.users++;
     }
 
-    // 2. Migrar Membros (se Supabase travou, mescla com backup local e DEFAULT_MEMBERS)
+    // 2. Migrar Membros (se Supabase travou, mescla com backup local; sem injetar membros fictícios)
     let membersList: Member[] = [];
     try {
       const { data } = await supabase.from("members").select("*");
@@ -671,13 +630,9 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
       } catch {}
     }
 
-    if (membersList.length <= 1) {
-      for (const dm of DEFAULT_MEMBERS) {
-        if (!membersList.some(x => x.id === dm.id)) {
-          membersList.push(dm);
-        }
-      }
-    }
+    // Purga de membros e usuários fictícios
+    await runD1Query("DELETE FROM members WHERE id IN ('mem_joao', 'mem_maria') OR LOWER(name) IN ('joão silva', 'joao silva', 'maria oliveira')");
+    await runD1Query("DELETE FROM users WHERE id IN ('mem_joao', 'mem_maria') OR LOWER(name) IN ('joão silva', 'joao silva', 'maria oliveira')");
 
     for (const m of membersList) {
       await runD1Query(
@@ -1639,9 +1594,9 @@ export const DatabaseService = {
 
   // --- CONSELHEIROS ---
   async getCounselors(): Promise<CounselorDB[]> {
-    // Purga em segundo plano qualquer registro espúrio que seja cargo ou unidade
+    // Purga em segundo plano qualquer registro espúrio que seja cargo, unidade ou mock de teste
     runD1Query(
-      "DELETE FROM conselheiros WHERE LOWER(COALESCE(nome, name)) IN ('apoio', 'esperança', 'esperanca', 'diretor (a)', 'diretora (a)', 'diretor(a)', 'diretor', 'diretora', 'conselheiro (a) associado (a)', 'conselheiro(a) associado(a)', 'conselheiro associado', 'diretor (a) associado (a)', 'secretário (a)', 'secretaria (a)', 'secretario (a)', 'tesoureiro (a)', 'sem conselheiro', 'n/a', 'diretoria', 'nenhum')"
+      "DELETE FROM conselheiros WHERE id LIKE 'cons_%' OR LOWER(COALESCE(nome, name)) IN ('carlos', 'ana', 'apoio', 'esperança', 'esperanca', 'diretor (a)', 'diretora (a)', 'diretor(a)', 'diretor', 'diretora', 'conselheiro (a) associado (a)', 'conselheiro(a) associado(a)', 'conselheiro associado', 'diretor (a) associado (a)', 'secretário (a)', 'secretaria (a)', 'secretario (a)', 'tesoureiro (a)', 'sem conselheiro', 'n/a', 'diretoria', 'nenhum')"
     ).catch(() => {});
 
     try {
@@ -1657,7 +1612,12 @@ export const DatabaseService = {
           name: (item.nome || item.name || '').trim(),
           created_at: item.created_at,
           unit: item.unidade || item.unit || ''
-        })).filter(c => !!c.name && isValidCounselorPersonName(c.name));
+        })).filter(c => {
+          if (!c.name) return false;
+          const norm = c.name.toLowerCase();
+          if (norm === 'carlos' || norm === 'ana') return false;
+          return isValidCounselorPersonName(c.name);
+        });
 
         if (mapped.length > 0) {
           try {
@@ -1679,7 +1639,12 @@ export const DatabaseService = {
           name: (item.nome || item.name || '').trim(),
           created_at: item.created_at,
           unit: item.unidade || item.unit || ''
-        })).filter(c => !!c.name && isValidCounselorPersonName(c.name));
+        })).filter(c => {
+          if (!c.name) return false;
+          const norm = c.name.toLowerCase();
+          if (norm === 'carlos' || norm === 'ana') return false;
+          return isValidCounselorPersonName(c.name);
+        });
 
         if (mapped.length > 0) {
           try {
@@ -1698,7 +1663,12 @@ export const DatabaseService = {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const validCached = parsed.filter((c: any) => c && !!c.name && isValidCounselorPersonName(c.name));
+          const validCached = parsed.filter((c: any) => {
+            if (!c || !c.name) return false;
+            const norm = (c.name || '').trim().toLowerCase();
+            if (norm === 'carlos' || norm === 'ana' || (c.id && String(c.id).startsWith('cons_'))) return false;
+            return isValidCounselorPersonName(c.name);
+          });
           if (validCached.length > 0) {
             return validCached;
           }
@@ -1706,29 +1676,8 @@ export const DatabaseService = {
       }
     } catch {}
 
-    // 4. Fallback Padrão com conselheiros oficiais das unidades Águia Dourada e Guerreiros
-    const defaultCounselors: CounselorDB[] = [
-      { id: 'cons_carlos_souza', name: 'Carlos Souza', unit: 'Águia Dourada' },
-      { id: 'cons_carlos', name: 'Carlos', unit: 'Águia Dourada' },
-      { id: 'cons_ana_paula', name: 'Ana Paula', unit: 'Guerreiros' },
-      { id: 'cons_ana', name: 'Ana', unit: 'Guerreiros' },
-      { id: 'cons_ronaldo', name: 'Ronaldo Sonic', unit: 'Liderança' },
-      { id: 'cons_priscila', name: 'Priscila', unit: 'Guerreiros' }
-    ];
-
-    try {
-      localStorage.setItem("sentinelas_counselors_cache", JSON.stringify(defaultCounselors));
-    } catch {}
-
-    // Persistir no D1 em segundo plano para que fique sempre gravado
-    for (const dc of defaultCounselors) {
-      runD1Query(
-        "INSERT OR IGNORE INTO conselheiros (id, nome, name, unidade, unit, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        [dc.id, dc.name, dc.name, dc.unit || '', dc.unit || '', new Date().toISOString()]
-      ).catch(() => {});
-    }
-
-    return defaultCounselors;
+    // Sem registros falsos ou fallbacks arbitrários
+    return [];
   },
 
   async addCounselor(name: string, unit?: string) {
@@ -3530,16 +3479,9 @@ export const DatabaseService = {
     }
   },
 
-  async seedMembers(members: (Omit<Member, 'id'> | Member)[]) {
-    for (const m of members) {
-      const { data } = await supabase.from('members').select('id').eq('name', m.name);
-      if (!data || data.length === 0) {
-        await this.addMember({
-          ...m,
-          id: (m as any).id || Math.random().toString(36).substr(2, 9)
-        } as Member);
-      }
-    }
+  async seedMembers(_members?: (Omit<Member, 'id'> | Member)[]) {
+    // Desativado: proibido popular membros fictícios no banco de dados
+    return;
   },
 
   // --- ESTUDO DE ESPECIALIDADES (PDF + QUIZ) ---

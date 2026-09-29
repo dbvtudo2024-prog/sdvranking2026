@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { UnitName, Member, UserRole, Score, BadgeLevel } from '@/types';
 import { getClassByAge, SCORE_CATEGORIES, UNIT_LOGOS, LEADERSHIP_CLASSES, LEADERSHIP_ROLES, PATHFINDER_CLASSES, BADGE_DEFINITIONS } from '@/constants';
-import { isValidCounselorPersonName } from '@/utils/counselors';
+import { isValidCounselorPersonName, isCounselorOrAssociate } from '@/utils/counselors';
 import { Trash2, Edit2, X, History, Plus, Minus, Camera, ChevronDown, Check, Calendar, Gamepad2, Medal, Star, Brain, Shield, MessageSquare, Type, Map, HelpCircle, Book, ArrowLeft, Trophy, UserPlus } from 'lucide-react';
 import MemberProfileModal from '@/components/MemberProfileModal';
 import { calculateWeeklyTotal, calculateGamesTotal } from '@/helpers/scoreHelpers';
@@ -109,7 +109,17 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     }
     const set = new Set<string>();
 
-    // 1. Lista vinda de props (counselorList) - consolidada do Banco de Dados e da Liderança
+    // 1. Membros cadastrados no banco de dados que possuem a função de Conselheiro ou Associado
+    (members || []).forEach(m => {
+      if (isCounselorOrAssociate(m)) {
+        const rawName = (m.name || '').trim();
+        if (isValidCounselorPersonName(rawName, unitsList)) {
+          set.add(rawName);
+        }
+      }
+    });
+
+    // 2. Lista consolidada vinda das props (counselorList) originada do Banco de Dados
     (counselorList || []).forEach(c => {
       const trimmed = (c || '').trim();
       if (isValidCounselorPersonName(trimmed, unitsList)) {
@@ -117,32 +127,33 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       }
     });
 
-    // 2. Conselheiros específicos das unidades Águia Dourada e Guerreiros
-    const lowerUnit = (unitName || '').toLowerCase();
-    if (lowerUnit.includes('águia') || lowerUnit.includes('aguia')) {
-      if (isValidCounselorPersonName('Carlos Souza', unitsList)) set.add('Carlos Souza');
-      if (isValidCounselorPersonName('Carlos', unitsList)) set.add('Carlos');
-    } else if (lowerUnit.includes('guerreiro')) {
-      if (isValidCounselorPersonName('Ana Paula', unitsList)) set.add('Ana Paula');
-      if (isValidCounselorPersonName('Ana', unitsList)) set.add('Ana');
-      if (isValidCounselorPersonName('Priscila', unitsList)) set.add('Priscila');
-    }
-
-    // 3. Se estiver editando ou formulário tiver conselheiro, garantir que esteja na lista APENAS se for nome de pessoa válido
+    // 3. Se estiver editando ou formulário já tiver um conselheiro válido, mantém na lista para não perder seleção
     const current = (isEditing ? editingMember?.counselor : formData.counselor) || '';
     if (current && isValidCounselorPersonName(current, unitsList)) {
-      set.add(current.trim());
+      const norm = current.trim().toLowerCase();
+      if (norm !== 'carlos' && norm !== 'ana') {
+        set.add(current.trim());
+      }
     }
 
-    // 4. Fallback padrão seguro
-    if (set.size === 0) {
-      ['Carlos Souza', 'Carlos', 'Ana Paula', 'Ana', 'Ronaldo Sonic', 'Priscila'].forEach(c => {
-        if (isValidCounselorPersonName(c, unitsList)) set.add(c);
+    // Filtra mocks espúrios e aplica deduplicação inteligente de nomes parciais (ex: prefere "João Gabriel Guerreiro de souza" a "João Gabriel")
+    const list = Array.from(set).filter(n => {
+      const norm = n.trim().toLowerCase();
+      return norm !== 'carlos' && norm !== 'ana';
+    });
+
+    const deduplicated = list.filter(shortName => {
+      const normShort = shortName.trim().toLowerCase();
+      const hasLonger = list.some(longerName => {
+        if (longerName === shortName) return false;
+        const normLong = longerName.trim().toLowerCase();
+        return normLong.startsWith(normShort + ' ') || normLong.endsWith(' ' + normShort);
       });
-    }
+      return !hasLonger;
+    });
 
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [isLiderancaUnit, unitName, counselorList, isEditing, editingMember?.counselor, formData.counselor, unitsList]);
+    return deduplicated.sort((a, b) => a.localeCompare(b));
+  }, [isLiderancaUnit, members, counselorList, isEditing, editingMember?.counselor, formData.counselor, unitsList]);
 
   // Sync profile when members list updates (ensures badges show up in real-time)
   const currentProfile = useMemo(() => {
