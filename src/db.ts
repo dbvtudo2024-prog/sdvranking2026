@@ -1265,18 +1265,57 @@ export const DatabaseService = {
       return memoryMembersCache.data;
     }
 
+    // 1. Consulta prioritária no Cloudflare D1 (rápido, relacional e onde os membros reais residem)
+    try {
+      const d1Rows = await runD1Query<any>('SELECT * FROM members WHERE active = 1 ORDER BY name ASC');
+      if (d1Rows && d1Rows.length > 0) {
+        const list: Member[] = d1Rows.map(r => {
+          let statsData: any = {};
+          try {
+            statsData = typeof r.stats === 'string' ? JSON.parse(r.stats) : (r.stats || {});
+          } catch (e) {
+            statsData = {};
+          }
+          return {
+            id: r.id,
+            name: r.name,
+            role: r.role || 'Desbravador',
+            className: r.rank || statsData.className || '',
+            joinedAt: statsData.joinedAt || r.created_at || '',
+            birthday: r.birthDate || statsData.birthday || '',
+            counselor: statsData.counselor || '',
+            age: statsData.age || 0,
+            unit: r.unit || '',
+            scores: statsData.scores || [],
+            photoUrl: statsData.photoUrl || r.avatar || '',
+            badges: statsData.badges || [],
+            stats: statsData.stats || {}
+          } as Member;
+        });
+
+        memoryMembersCache = { data: list, timestamp: Date.now() };
+        try {
+          localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
+        } catch (e) {}
+        return list;
+      }
+    } catch (e) {
+      console.warn("[getMembers] Falha ao consultar Cloudflare D1, tentando Supabase:", e);
+    }
+
+    // 2. Fallback secundário no Supabase caso D1 esteja indisponível
     try {
       return await withRetry(async () => {
-        console.log("[DB] Buscando membros...");
+        console.log("[DB] Buscando membros no Supabase...");
         const { data, error } = await supabase
           .from('members')
           .select('*');
         
         if (error) {
-          console.warn("[DB] Aviso ao buscar membros:", error.message || error);
+          console.warn("[DB] Aviso ao buscar membros no Supabase:", error.message || error);
           throw error;
         }
-        console.log(`[DB] ${data?.length || 0} membros encontrados.`);
+        console.log(`[DB] ${data?.length || 0} membros encontrados no Supabase.`);
         const list = (data || []).map(m => ({
           ...m,
           badges: m.badges || [],
@@ -1294,43 +1333,7 @@ export const DatabaseService = {
         return list;
       });
     } catch (error) {
-      console.warn("[DB] Falha de conexão ao buscar membros no Supabase. Tentando Cloudflare D1 e backup local.");
-      
-      // Tentativa de recuperação via Cloudflare D1
-      try {
-        const d1Rows = await runD1Query<any>('SELECT * FROM members WHERE active = 1');
-        if (d1Rows && d1Rows.length > 0) {
-          const list: Member[] = d1Rows.map(r => {
-            let statsData: any = {};
-            try {
-              statsData = typeof r.stats === 'string' ? JSON.parse(r.stats) : (r.stats || {});
-            } catch (e) {
-              statsData = {};
-            }
-            return {
-              id: r.id,
-              name: r.name,
-              role: r.role,
-              className: r.rank || '',
-              joinedAt: r.created_at || '',
-              birthday: r.birthDate || '',
-              counselor: statsData.counselor || '',
-              unit: r.unit,
-              scores: statsData.scores || [],
-              photoUrl: r.avatar || '',
-              badges: statsData.badges || [],
-              stats: statsData.stats || {}
-            } as Member;
-          });
-          memoryMembersCache = { data: list, timestamp: Date.now() };
-          try {
-            localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
-          } catch (e) {}
-          return list;
-        }
-      } catch (e) {
-        console.warn("[getMembers] Falha ao consultar Cloudflare D1:", e);
-      }
+      console.warn("[DB] Falha no Supabase. Utilizando cache/backup local.");
 
       if (memoryMembersCache && memoryMembersCache.data.length > 0) {
         return memoryMembersCache.data;
@@ -1374,174 +1377,162 @@ export const DatabaseService = {
   },
 
   async addMember(member: Member) {
-    const payload: any = {
-      id: member.id,
-      name: member.name,
-      role: member.role,
-      age: member.age,
-      className: member.className,
-      joinedAt: member.joinedAt,
-      birthday: member.birthday,
-      counselor: member.counselor,
-      unit: member.unit,
-      scores: member.scores,
-      photoUrl: member.photoUrl,
-      badges: member.badges,
-      stats: member.stats
-    };
+    const memberId = String(member.id);
 
-    // Backup local preventivo
+    // 1. Atualização imediata no cache de memória e localStorage para resposta instantânea
     try {
       const cachedStr = localStorage.getItem('sentinelas_members_backup');
       let list: Member[] = cachedStr ? JSON.parse(cachedStr) : [];
-      list = list.filter(m => String(m.id) !== String(member.id));
-      list.push(member);
+      list = list.filter(m => String(m.id) !== memberId);
+      list.push({ ...member, id: memberId });
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
       memoryMembersCache = { data: list, timestamp: Date.now() };
     } catch (e) {
       console.warn("[addMember] Erro no backup local:", e);
     }
-    
-    try {
-      const { error } = await supabase.from('members').insert([payload]);
-      if (error) {
-        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
-          console.warn("Removendo colunas extras (badges/stats) por não existirem na tabela 'members':", error.message);
-          const fallbackPayload = { ...payload };
-          delete fallbackPayload.badges;
-          delete fallbackPayload.stats;
-          
-          const { error: retryError } = await supabase.from('members').insert([fallbackPayload]);
-          if (retryError) {
-            throw retryError;
-          }
-          return;
-        }
-        throw error;
-      }
-    } catch (e) {
-      console.error("Erro ao adicionar membro no Supabase:", e);
-    }
 
-    // Gravação assíncrona paralela no Cloudflare D1
+    // 2. Persistência primária e garantida no Cloudflare D1
     try {
-      runD1Query(
+      const statsPayload = JSON.stringify({
+        scores: member.scores || [],
+        badges: member.badges || [],
+        stats: member.stats || {},
+        counselor: member.counselor || '',
+        photoUrl: member.photoUrl || '',
+        age: member.age || 0,
+        joinedAt: member.joinedAt || '',
+        className: member.className || ''
+      });
+
+      await runD1Query(
         `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          member.id,
+          memberId,
           member.name,
-          member.unit,
-          member.role,
+          member.unit || '',
+          member.role || 'Desbravador',
           member.className || '',
           1,
           member.birthday || '',
           '',
-          JSON.stringify({ scores: member.scores || [], badges: member.badges || [], stats: member.stats || {}, counselor: member.counselor || '' })
+          statsPayload
         ]
-      ).catch(err => console.warn("[D1 Sync] Erro assíncrono ao sincronizar membro:", err));
-    } catch (e) {}
+      );
+      console.log(`[D1 Sync] Membro "${member.name}" salvo com sucesso no Cloudflare D1!`);
+    } catch (d1Err) {
+      console.error("[D1 Sync] Erro ao salvar membro no Cloudflare D1:", d1Err);
+    }
+
+    // 3. Sincronização secundária com Supabase (sem travar se estiver indisponível)
+    try {
+      const payload: any = {
+        id: memberId,
+        name: member.name,
+        role: member.role,
+        age: member.age,
+        className: member.className,
+        joinedAt: member.joinedAt,
+        birthday: member.birthday,
+        counselor: member.counselor,
+        unit: member.unit,
+        scores: member.scores,
+        photoUrl: member.photoUrl
+      };
+
+      const { error } = await supabase.from('members').insert([payload]);
+      if (error) {
+        const fallbackPayload = {
+          id: memberId,
+          name: member.name,
+          role: member.role,
+          unit: member.unit
+        };
+        await supabase.from('members').insert([fallbackPayload]);
+      }
+    } catch (sbErr) {
+      console.warn("[Supabase] Aviso ao replicar membro no Supabase:", sbErr);
+    }
   },
 
   async updateMember(member: Member) {
-    const { id, ...updates } = member;
-    const payload: any = {
-      name: updates.name,
-      role: updates.role,
-      age: updates.age,
-      className: updates.className,
-      joinedAt: updates.joinedAt,
-      birthday: updates.birthday,
-      counselor: updates.counselor,
-      unit: updates.unit,
-      scores: updates.scores,
-      photoUrl: updates.photoUrl
-    };
+    const memberId = String(member.id);
 
-    // Só inclui badges e stats se existirem no objeto (ajuda na migração)
-    if (updates.badges) payload.badges = updates.badges;
-    if (updates.stats) payload.stats = updates.stats;
-
-    // Backup local preventivo
+    // 1. Atualização imediata no cache de memória e localStorage
     try {
       const cachedStr = localStorage.getItem('sentinelas_members_backup');
       let list: Member[] = cachedStr ? JSON.parse(cachedStr) : [];
-      list = list.map(m => String(m.id) === String(id) ? { ...m, ...payload, id } : m);
+      list = list.map(m => String(m.id) === memberId ? { ...m, ...member, id: memberId } : m);
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
       memoryMembersCache = { data: list, timestamp: Date.now() };
     } catch (e) {
       console.warn("[updateMember] Erro no backup local:", e);
     }
 
+    // 2. Persistência primária no Cloudflare D1
     try {
-      const { error } = await supabase.from('members').update(payload).eq('id', id);
-      if (error) {
-        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
-          console.warn("Removendo colunas extras (badges/stats) por não existirem na tabela 'members' no update:", error.message);
-          const fallbackPayload = { ...payload };
-          delete fallbackPayload.badges;
-          delete fallbackPayload.stats;
-          
-          const { error: retryError } = await supabase.from('members').update(fallbackPayload).eq('id', id);
-          if (retryError) {
-            throw retryError;
-          }
-          return;
-        }
-        throw error;
-      }
-    } catch (e) {
-      console.error("Erro ao atualizar membro no Supabase:", e);
-    }
+      const statsPayload = JSON.stringify({
+        scores: member.scores || [],
+        badges: member.badges || [],
+        stats: member.stats || {},
+        counselor: member.counselor || '',
+        photoUrl: member.photoUrl || '',
+        age: member.age || 0,
+        joinedAt: member.joinedAt || '',
+        className: member.className || ''
+      });
 
-    // Gravação assíncrona paralela no Cloudflare D1
-    try {
-      runD1Query(
+      await runD1Query(
         `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          member.id,
+          memberId,
           member.name,
-          member.unit,
-          member.role,
+          member.unit || '',
+          member.role || 'Desbravador',
           member.className || '',
           1,
           member.birthday || '',
           '',
-          JSON.stringify({ scores: member.scores || [], badges: member.badges || [], stats: member.stats || {}, counselor: member.counselor || '' })
+          statsPayload
         ]
-      ).catch(err => console.warn("[D1 Sync] Erro assíncrono ao sincronizar membro:", err));
-    } catch (e) {}
+      );
+      console.log(`[D1 Sync] Membro "${member.name}" atualizado no Cloudflare D1!`);
+    } catch (d1Err) {
+      console.error("[D1 Sync] Erro ao atualizar membro no Cloudflare D1:", d1Err);
+    }
+
+    // 3. Sincronização secundária com Supabase
+    try {
+      const { id, ...updates } = member;
+      const payload: any = {
+        name: updates.name,
+        role: updates.role,
+        age: updates.age,
+        className: updates.className,
+        joinedAt: updates.joinedAt,
+        birthday: updates.birthday,
+        counselor: updates.counselor,
+        unit: updates.unit,
+        scores: updates.scores,
+        photoUrl: updates.photoUrl
+      };
+      await supabase.from('members').update(payload).eq('id', memberId);
+    } catch (sbErr) {
+      console.warn("[Supabase] Aviso ao atualizar membro no Supabase:", sbErr);
+    }
   },
 
   async updateMembers(members: Member[]) {
-    const payloads = members.map(m => {
-      const p: any = {
-        id: m.id,
-        name: m.name,
-        role: m.role,
-        age: m.age,
-        className: m.className,
-        joinedAt: m.joinedAt,
-        birthday: m.birthday,
-        counselor: m.counselor,
-        unit: m.unit,
-        scores: m.scores,
-        photoUrl: m.photoUrl
-      };
-      if (m.badges) p.badges = m.badges;
-      if (m.stats) p.stats = m.stats;
-      return p;
-    });
-
-    // Backup local preventivo
+    // 1. Atualiza cache local
     try {
       const cachedStr = localStorage.getItem('sentinelas_members_backup');
       let list: Member[] = cachedStr ? JSON.parse(cachedStr) : [];
-      payloads.forEach(payload => {
-        list = list.map(m => String(m.id) === String(payload.id) ? { ...m, ...payload } : m);
-        if (!list.some(m => String(m.id) === String(payload.id))) {
-          list.push(payload);
+      members.forEach(member => {
+        const memberId = String(member.id);
+        list = list.map(m => String(m.id) === memberId ? { ...m, ...member, id: memberId } : m);
+        if (!list.some(m => String(m.id) === memberId)) {
+          list.push({ ...member, id: memberId });
         }
       });
       localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
@@ -1550,45 +1541,86 @@ export const DatabaseService = {
       console.warn("[updateMembers] Erro no backup local:", e);
     }
 
+    // 2. Persiste em lote no Cloudflare D1
     try {
-      const { error } = await supabase.from('members').upsert(payloads);
-      if (error) {
-        if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
-          console.warn("Removendo colunas extras (badges/stats) no upsert de múltiplos de 'members':", error.message);
-          const fallbackPayloads = payloads.map(p => {
-            const fp = { ...p };
-            delete fp.badges;
-            delete fp.stats;
-            return fp;
-          });
-          const { error: retryError } = await supabase.from('members').upsert(fallbackPayloads);
-          if (retryError) {
-            throw retryError;
-          }
-          return;
-        }
-        throw error;
+      for (const member of members) {
+        const memberId = String(member.id);
+        const statsPayload = JSON.stringify({
+          scores: member.scores || [],
+          badges: member.badges || [],
+          stats: member.stats || {},
+          counselor: member.counselor || '',
+          photoUrl: member.photoUrl || '',
+          age: member.age || 0,
+          joinedAt: member.joinedAt || '',
+          className: member.className || ''
+        });
+
+        await runD1Query(
+          `INSERT OR REPLACE INTO members (id, name, unit, role, rank, active, birthDate, phone, stats)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            memberId,
+            member.name,
+            member.unit || '',
+            member.role || 'Desbravador',
+            member.className || '',
+            1,
+            member.birthday || '',
+            '',
+            statsPayload
+          ]
+        );
       }
-    } catch (e) {
-      console.error("Erro ao atualizar múltiplos membros:", e);
+    } catch (d1Err) {
+      console.error("[D1 Sync] Erro no lote D1:", d1Err);
     }
+
+    // 3. Supabase em segundo plano
+    try {
+      const payloads = members.map(m => ({
+        id: String(m.id),
+        name: m.name,
+        role: m.role,
+        unit: m.unit,
+        age: m.age,
+        className: m.className,
+        birthday: m.birthday,
+        counselor: m.counselor,
+        scores: m.scores,
+        photoUrl: m.photoUrl
+      }));
+      await supabase.from('members').upsert(payloads);
+    } catch (e) {}
   },
 
   async deleteMember(id: string) {
+    const memberId = String(id);
+
+    // 1. Atualiza cache local
     try {
       const cachedStr = localStorage.getItem('sentinelas_members_backup');
       if (cachedStr) {
         let list: Member[] = JSON.parse(cachedStr);
-        list = list.filter(m => String(m.id) !== String(id));
+        list = list.filter(m => String(m.id) !== memberId);
         localStorage.setItem('sentinelas_members_backup', JSON.stringify(list));
         memoryMembersCache = { data: list, timestamp: Date.now() };
       }
     } catch (e) {
       console.warn("[deleteMember] Erro ao atualizar cache local:", e);
     }
-    await supabase.from('members').delete().eq('id', id);
+
+    // 2. Remove no Cloudflare D1
     try {
-      runD1Query('DELETE FROM members WHERE id = ?', [id]).catch(err => console.warn("[D1 Sync] Erro ao deletar membro no D1:", err));
+      await runD1Query('DELETE FROM members WHERE id = ?', [memberId]);
+      console.log(`[D1 Sync] Membro ${memberId} deletado com sucesso no D1.`);
+    } catch (e) {
+      console.error("[D1 Sync] Erro ao deletar membro no D1:", e);
+    }
+
+    // 3. Remove no Supabase
+    try {
+      await supabase.from('members').delete().eq('id', memberId);
     } catch (e) {}
   },
 

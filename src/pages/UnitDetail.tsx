@@ -182,7 +182,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
 
     const newMember: Member = {
       id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
+      name: formData.name.trim(),
       role: isLiderancaUnit ? UserRole.LEADERSHIP : UserRole.PATHFINDER,
       age: formData.age,
       className: formData.className, 
@@ -203,6 +203,7 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
       counselor: '', 
       photoUrl: '' 
     });
+    alert(`Membro "${newMember.name}" adicionado com sucesso!`);
   };
 
   const handleUpdateMemberSubmit = (e: React.FormEvent) => {
@@ -210,8 +211,10 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
     if (!editingMember) return;
     onUpdateMember(editingMember);
     setIsEditing(false);
+    const updatedName = editingMember.name;
     setEditingMember(null);
     setShowAddModal(false);
+    alert(`Membro "${updatedName}" atualizado com sucesso!`);
   };
 
   const adjustPoints = (id: string, delta: number) => {
