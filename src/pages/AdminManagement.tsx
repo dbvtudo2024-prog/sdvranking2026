@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BellRing, UserPlus, ListFilter, Zap, Gamepad2, X, ShieldAlert, Medal, Trash2, AlertTriangle, Loader2, Sword, Edit2, Check, Copy, HelpCircle, MessageSquare, BookOpen, Calendar, Plus, Shuffle, Trophy, Anchor, User, Map, Type, Leaf, HeartPulse, Music, Grid3X3, Square, Upload, Cloud, Database, FileText, Table, Download, Eye, RefreshCw, CheckCircle2, FileSpreadsheet, Layers, ArrowLeft, Search, SlidersHorizontal, Filter, ChevronRight, Users, Settings } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Member, ChatMessage, Devotional, CounselorDB, Score } from '@/types';
-import { DatabaseService, migrateAllDataToCloudflareD1, seedInitialDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL, createAllD1Tables, ALL_D1_TABLES } from '@/db';
+import { DatabaseService, migrateAllDataToCloudflareD1, runD1Query, getCloudflareApiUrl, setCloudflareApiUrl, testCloudflareConnection, DEFAULT_CLOUDFLARE_API_URL, createAllD1Tables, ALL_D1_TABLES } from '@/db';
 import { GAME_KEYS } from '@/helpers/scoreHelpers';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCycleStart } from '@/utils/gameUtils';
@@ -192,12 +192,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     counts: { members: number; users: number; announcements: number; specialties: number; gameConfigs: number };
     message: string;
   } | null>(null);
-  const [isSeedingD1, setIsSeedingD1] = useState(false);
-  const [d1SeedResult, setD1SeedResult] = useState<{
-    success: boolean;
-    counts: { members: number; users: number; announcements: number; specialties: number; studies: number; devotionals: number; questions: number };
-    message: string;
-  } | null>(null);
 
   const handleTestCf = async () => {
     setIsTestingCf(true);
@@ -216,26 +210,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
     setCfWorkerUrl(newUrl);
     setCloudflareApiUrl(newUrl);
     setCfTestStatus(null);
-  };
-
-  const handleSeedInitialDataToD1 = async () => {
-    if (!window.confirm("Deseja popular o Cloudflare D1 com os dados padrão do clube (Membros com Davi campeão, Especialidades, Estudos, Devocionais e Quiz)?\n\nEsta opção restaura a estrutura inicial e registros base no Cloudflare D1.")) return;
-    setCloudflareApiUrl(cfWorkerUrl);
-    setIsSeedingD1(true);
-    setD1SeedResult(null);
-    try {
-      const res = await seedInitialDataToCloudflareD1();
-      setD1SeedResult(res);
-      if (res.success) {
-        alert(`✅ SUCESSO!\n\nCloudflare D1 populado com os dados base:\n• Membros: ${res.counts.members}\n• Usuários: ${res.counts.users}\n• Avisos: ${res.counts.announcements}\n• Especialidades: ${res.counts.specialties}\n• Estudos: ${res.counts.studies}\n• Devocionais: ${res.counts.devotionals}\n• Quiz: ${res.counts.questions}`);
-      } else {
-        alert(`❌ Falha ao popular D1: ${res.message}`);
-      }
-    } catch (e: any) {
-      alert(`❌ Erro inesperado: ${e?.message || "Falha ao popular D1"}`);
-    } finally {
-      setIsSeedingD1(false);
-    }
   };
 
   const handleMigrateToCloudflareD1 = async () => {
@@ -1597,9 +1571,6 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
             diagnosticResults={diagnosticResults}
             onCreateAllTables={handleCreateAllTables}
             isCreatingAllTables={isCreatingAllTables}
-            onSeedInitialDataToD1={handleSeedInitialDataToD1}
-            isSeedingD1={isSeedingD1}
-            d1SeedResult={d1SeedResult}
             isDarkMode={isDarkMode}
           />
         )}

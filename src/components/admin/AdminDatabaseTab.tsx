@@ -9,8 +9,7 @@ import {
   Layers,
   CheckCircle2,
   Table,
-  RefreshCw,
-  HardDrive
+  RefreshCw
 } from 'lucide-react';
 import { DEFAULT_CLOUDFLARE_API_URL } from '@/db';
 
@@ -25,13 +24,6 @@ interface AdminDatabaseTabProps {
   diagnosticResults: { table: string; count: number; status: string; columns: string[] }[];
   onCreateAllTables: () => void;
   isCreatingAllTables: boolean;
-  onSeedInitialDataToD1: () => void;
-  isSeedingD1: boolean;
-  d1SeedResult: {
-    success: boolean;
-    counts: { members: number; users: number; announcements: number; specialties: number; studies: number; devotionals: number; questions: number };
-    message: string;
-  } | null;
   isDarkMode?: boolean;
 }
 
@@ -46,9 +38,6 @@ export const AdminDatabaseTab: React.FC<AdminDatabaseTabProps> = ({
   diagnosticResults,
   onCreateAllTables,
   isCreatingAllTables,
-  onSeedInitialDataToD1,
-  isSeedingD1,
-  d1SeedResult,
   isDarkMode
 }) => {
   return (
@@ -215,55 +204,6 @@ export const AdminDatabaseTab: React.FC<AdminDatabaseTabProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* 3. RESTAURAÇÃO / SEED DOS DADOS INICIAIS */}
-      <div className={`p-6 sm:p-8 rounded-3xl border space-y-4 ${
-        isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-      }`}>
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-amber-600/10 text-amber-500 border border-amber-500/20">
-            <HardDrive size={24} />
-          </div>
-          <div>
-            <h3 className={`text-base font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Dados Base & Padrão do Clube
-            </h3>
-            <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Restaure o banco de dados Cloudflare D1 com os registros padrões do clube.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={onSeedInitialDataToD1}
-          disabled={isSeedingD1}
-          className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-sm transition-all active:scale-95 disabled:opacity-50"
-        >
-          {isSeedingD1 ? <Loader2 size={18} className="animate-spin" /> : <Database size={18} />}
-          {isSeedingD1 ? 'Populando Cloudflare D1...' : 'Popular Cloudflare D1 com Dados Base do Clube'}
-        </button>
-
-        {d1SeedResult && (
-          <div className={`p-4 rounded-2xl border ${
-            d1SeedResult.success
-              ? isDarkMode ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : isDarkMode ? 'bg-red-950/30 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
-          } space-y-2`}>
-            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
-              {d1SeedResult.success ? <Check size={16} /> : <AlertTriangle size={16} />}
-              <span>{d1SeedResult.message}</span>
-            </div>
-            {d1SeedResult.success && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[10px] font-mono">
-                <div className="p-2 rounded-lg bg-black/10">Membros: <strong className="text-emerald-500">{d1SeedResult.counts.members}</strong></div>
-                <div className="p-2 rounded-lg bg-black/10">Usuários: <strong className="text-emerald-500">{d1SeedResult.counts.users}</strong></div>
-                <div className="p-2 rounded-lg bg-black/10">Especialidades: <strong className="text-emerald-500">{d1SeedResult.counts.specialties}</strong></div>
-                <div className="p-2 rounded-lg bg-black/10">Estudos: <strong className="text-emerald-500">{d1SeedResult.counts.studies}</strong></div>
-              </div>
-            )}
           </div>
         )}
       </div>
