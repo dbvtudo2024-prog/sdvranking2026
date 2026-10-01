@@ -196,7 +196,7 @@ const Chat: React.FC<ChatProps> = ({ user, isDarkMode, onAwardBadge, onUpdateSta
             const isMe = msg.sender_id === user.id;
             return (
               <div 
-                key={msg.id || idx} 
+                key={msg.id ? `chat-msg-${msg.id}-${idx}` : `chat-msg-idx-${idx}`} 
                 className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}
               >
                 {!isMe && (

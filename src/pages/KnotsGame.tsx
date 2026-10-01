@@ -190,7 +190,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
         <AnimatePresence mode="wait">
           {gameState === 'playing' ? (
             <motion.div 
-              key={currentStep}
+              key={`knots-step-${currentStep}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -231,6 +231,7 @@ const KnotsGame: React.FC<KnotsGameProps> = ({ user, members, onUpdateMember, on
             </motion.div>
           ) : (
             <motion.div 
+              key="knots-finished"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="w-full max-w-md bg-white dark:bg-slate-800 p-10 rounded-[3rem] shadow-2xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center text-center gap-6"

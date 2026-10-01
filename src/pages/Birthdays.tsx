@@ -152,7 +152,7 @@ const Birthdays = forwardRef<BirthdaysRef, BirthdaysProps>(({ members, onBack, i
 
                 return (
                   <button
-                    key={month}
+                    key={`bday-month-${month}-${index}`}
                     onClick={() => handleMonthClick(index)}
                     className={`flex flex-col items-center justify-center p-4 rounded-[2rem] border-2 transition-all active:scale-95 ${
                       isCurrentMonth 

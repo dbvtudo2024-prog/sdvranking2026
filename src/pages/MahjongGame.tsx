@@ -599,6 +599,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
         <AnimatePresence>
           {showMilestone && (
             <motion.div
+              key="mahjong-milestone-popup"
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: -20 }}
@@ -757,6 +758,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
             <AnimatePresence>
               {noMovesLeft && (
                 <motion.div
+                  key="mahjong-no-moves-warning"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -779,6 +781,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
       <AnimatePresence>
         {showRanking && (
           <motion.div 
+            key="mahjong-ranking-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

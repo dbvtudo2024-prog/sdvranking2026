@@ -197,13 +197,13 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
 
         <AnimatePresence mode="wait">
           {gameState === 'loading' ? (
-            <div className="flex flex-col items-center py-20 gap-4">
+            <div key="trail-loading" className="flex flex-col items-center py-20 gap-4">
               <RefreshCcw className="animate-spin text-emerald-500" size={40} />
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carregando Trilha...</p>
             </div>
           ) : gameState === 'playing' ? (
             <motion.div 
-              key={currentPos}
+              key={`trail-step-${currentPos}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -244,6 +244,7 @@ const SpecialtyTrailGame: React.FC<SpecialtyTrailGameProps> = ({ user, members, 
             </motion.div>
           ) : (
             <motion.div 
+              key="trail-finished"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="w-full max-w-md bg-white dark:bg-slate-800 p-10 rounded-[3rem] shadow-2xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center text-center gap-6"

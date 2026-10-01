@@ -507,8 +507,8 @@ const UnitDetail: React.FC<UnitDetailProps> = ({
                 <input type="date" className={inputClasses} value={newScore.date} onChange={e => setNewScore({...newScore, date: e.target.value})} />
               </div>
               <div className="grid grid-cols-1 gap-3">
-                {SCORE_CATEGORIES.map(cat => (
-                  <div key={cat.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                {SCORE_CATEGORIES.map((cat, cIdx) => (
+                  <div key={`score-cat-${cat.id}-${cIdx}`} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl flex items-center justify-between shadow-sm">
                     <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">{cat.label}</span>
                     <div className="flex items-center gap-4">
                       <button onClick={() => adjustPoints(cat.id, -1)} className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 active:scale-90"><Minus size={18} /></button>

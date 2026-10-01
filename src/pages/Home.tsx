@@ -433,6 +433,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         <AnimatePresence>
           {streak > 0 && (
             <motion.div 
+               key="floating-streak-badge"
                initial={{ opacity: 0, scale: 0.8, x: -20 }}
                animate={{ opacity: 1, scale: 1, x: 0 }}
                exit={{ opacity: 0, scale: 0.8, x: -20 }}
@@ -446,6 +447,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
 
           {canCheckIn && (
             <motion.button 
+               key="floating-checkin-btn"
                initial={{ opacity: 0, scale: 0.8, y: -20 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
                whileHover={{ scale: 1.05 }}
@@ -464,8 +466,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
       {/* CHECK-IN MODAL */}
       <AnimatePresence>
         {showCheckInModal && (
-           <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+           <div key="home-checkin-modal-container" className="fixed inset-0 z-[300] flex items-center justify-center p-6">
               <motion.div 
+                 key="home-checkin-backdrop"
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  exit={{ opacity: 0 }}
@@ -473,6 +476,7 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
                  className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
               />
               <motion.div 
+                 key="home-checkin-card"
                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
                  animate={{ opacity: 1, scale: 1, y: 0 }}
                  exit={{ opacity: 0, scale: 0.9, y: 20 }}

@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage, isDarkMode
           return (
             <button
               id={`nav-item-${item.id}`}
-              key={item.id}
+              key={`dock-nav-${item.id}`}
               onClick={() => setCurrentPage(item.id as any)}
               className={`flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1.5 rounded-xl sm:rounded-2xl transition-all duration-200 active:scale-90 select-none group relative ${
                 isActive

@@ -578,6 +578,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         <AnimatePresence>
           {gameState === 'start' && (
             <motion.div 
+              key="brick-game-start"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -618,8 +619,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
           {(gameState === 'won' || gameState === 'lost' || gameState === 'won_level') && (
             <motion.div 
+              key={`brick-game-result-${gameState}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-8 text-center"
             >
               <div className={`w-20 h-20 ${gameState === 'lost' ? 'bg-red-500' : 'bg-yellow-400'} rounded-full flex items-center justify-center mb-6 shadow-lg text-white font-black`}>
@@ -656,6 +659,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
       <AnimatePresence>
         {showRanking && (
           <motion.div 
+            key="brick-ranking-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

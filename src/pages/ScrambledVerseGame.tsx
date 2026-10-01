@@ -228,13 +228,13 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
         
         <AnimatePresence mode="wait">
           {gameState === 'loading' ? (
-            <div className="flex flex-col items-center py-20 gap-4">
+            <div key="scrambled-loading" className="flex flex-col items-center py-20 gap-4">
               <RefreshCcw className="animate-spin text-blue-500" size={40} />
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carregando Versículos...</p>
             </div>
           ) : gameState === 'playing' ? (
             <motion.div 
-              key={currentStep}
+              key={`scrambled-step-${currentStep}`}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
@@ -286,6 +286,7 @@ const ScrambledVerseGame: React.FC<ScrambledVerseGameProps> = ({ user, members, 
             </motion.div>
           ) : (
             <motion.div 
+              key="scrambled-finished"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="w-full max-w-md bg-white dark:bg-slate-800 p-10 rounded-[3rem] shadow-2xl border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center text-center gap-6"

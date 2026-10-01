@@ -271,8 +271,9 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
       {/* MODAL PARA INSÍGNIAS NORMAIS */}
       <AnimatePresence>
         {selectedBadge && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div key="badge-normal-modal-wrapper" className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div 
+              key="badge-normal-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -280,6 +281,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
             <motion.div 
+              key="badge-normal-card"
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -352,8 +354,9 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
       {/* MODAL PARA INSÍGNIAS MENSAIS */}
       <AnimatePresence>
         {selectedMonthly && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div key="badge-monthly-modal-wrapper" className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div 
+              key="badge-monthly-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -361,6 +364,7 @@ const Badges: React.FC<BadgesProps> = ({ user, members, isDarkMode }) => {
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
             <motion.div 
+              key="badge-monthly-card"
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}

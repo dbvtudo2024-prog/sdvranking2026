@@ -284,6 +284,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
         <AnimatePresence>
           {showRanking && (
             <motion.div 
+              key="challenge-board-ranking-modal"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -566,6 +567,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
       <AnimatePresence>
         {showRanking && (
           <motion.div 
+            key="challenge-lobby-ranking-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

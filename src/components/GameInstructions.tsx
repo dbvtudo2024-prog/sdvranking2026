@@ -17,6 +17,7 @@ const GameInstructions: React.FC<GameInstructionsProps> = ({ isOpen, onStart, on
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="game-instructions-modal"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
