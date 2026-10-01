@@ -676,8 +676,8 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
             </button>
           </div>
         ) : (
-          <div className="relative w-full max-w-4xl h-[80vh] flex items-center justify-center">
-            <div className="relative w-full h-full max-w-2xl max-h-[600px]">
+          <div className="relative w-full max-w-5xl h-full flex items-center justify-center p-2">
+            <div className="relative w-full h-full max-w-4xl max-h-[720px]">
               {tiles.map(tile => (
                 <motion.div
                   key={tile.id}
@@ -782,7 +782,7 @@ const MahjongGame: React.FC<MahjongGameProps> = ({ user, members, onUpdateMember
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto"
+            className="absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto"
           >
             <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
               <div className="bg-blue-600 p-6 flex items-center justify-between">

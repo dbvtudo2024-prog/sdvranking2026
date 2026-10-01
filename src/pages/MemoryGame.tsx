@@ -409,8 +409,8 @@ const MemoryGame: React.FC<MemoryGameProps> = ({ user, members, onUpdateMember, 
         { label: 'Tempo', value: formatTime(seconds) },
         { label: 'Movimentos', value: moves }
       ]} />
-      <div className="flex-1 overflow-y-auto px-2 pb-10 pt-4">
-        <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 max-w-[280px] mx-auto' : 'grid-cols-4'} gap-2 sm:gap-3`}>
+      <div className="flex-1 overflow-y-auto px-4 pb-10 pt-4 max-w-4xl mx-auto w-full">
+        <div className={`grid ${difficulty === 'easy' ? 'grid-cols-2 sm:grid-cols-4 max-w-[340px] sm:max-w-xl mx-auto' : difficulty === 'normal' ? 'grid-cols-4 md:grid-cols-4 max-w-2xl mx-auto' : 'grid-cols-4 md:grid-cols-6 max-w-3xl mx-auto'} gap-2 sm:gap-3`}>
           {cards.map((card, cIdx) => (
             <div key={`memory-card-${card.id}-${cIdx}`} onClick={() => handleCardClick(card.id)} className="aspect-square relative cursor-pointer group">
               <div className={`w-full h-full transition-all duration-500 preserve-3d ${card.isFlipped || card.isMatched ? 'rotate-y-180' : ''}`}>

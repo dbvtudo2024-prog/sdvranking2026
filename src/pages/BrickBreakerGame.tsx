@@ -38,6 +38,8 @@ interface Brick {
 
 const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode, user, members, onUpdateMember, onAwardBadge, onUpdateStats, override }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 350, height: 500 });
   const [gameState, setGameState] = useState<'start' | 'playing' | 'paused' | 'won' | 'lost' | 'finished' | 'won_level'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -56,14 +58,59 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     user?.role === UserRole.LEADERSHIP || user?.email === 'ronaldosonic@gmail.com',
   [user]);
 
-  // Game constants
-  const PADDLE_HEIGHT = 10;
-  const INITIAL_PADDLE_WIDTH = 75;
-  const BALL_RADIUS = 6;
+  // Base constants
   const BRICK_COLUMN_COUNT = 8;
-  const BRICK_PADDING = 8;
-  const BRICK_OFFSET_TOP = 30;
-  const BRICK_OFFSET_LEFT = 15;
+
+  const getGameParams = useCallback((width: number, height: number) => {
+    const brickOffsetLeft = Math.max(12, Math.min(40, Math.round(width * 0.03)));
+    const brickOffsetTop = Math.max(25, Math.min(50, Math.round(height * 0.06)));
+    const brickPadding = Math.max(6, Math.min(12, Math.round(width * 0.012)));
+    const brickWidth = (width - brickOffsetLeft * 2 - (BRICK_COLUMN_COUNT - 1) * brickPadding) / BRICK_COLUMN_COUNT;
+    const brickHeight = Math.max(16, Math.min(30, Math.round(height * 0.038)));
+    const paddleHeight = Math.max(10, Math.min(16, Math.round(height * 0.022)));
+    const initialPaddleWidth = Math.max(75, Math.min(220, Math.round(width * 0.16)));
+    const ballRadius = Math.max(6, Math.min(10, Math.round(width * 0.009)));
+    const speedScale = Math.max(1, Math.min(1.8, height / 500));
+    return {
+      brickOffsetLeft,
+      brickOffsetTop,
+      brickPadding,
+      brickWidth,
+      brickHeight,
+      paddleHeight,
+      initialPaddleWidth,
+      ballRadius,
+      speedScale
+    };
+  }, []);
+
+  // Update dimensions on container resize
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const w = Math.floor(rect.width);
+        const h = Math.floor(rect.height);
+        if (w > 50 && h > 50) {
+          setCanvasDimensions(prev => {
+            if (prev.width === w && prev.height === h) return prev;
+            return { width: w, height: h };
+          });
+        }
+      }
+    };
+
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    if (containerRef.current) {
+      ro.observe(containerRef.current);
+    }
+    window.addEventListener('resize', updateSize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, []);
 
   const LEVEL_MAPS = [
     // Nível 1: Coração (Vermelho/Azul)
@@ -144,7 +191,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
   ];
 
   // Mutable game state for the loop
-  const paddleRef = useRef({ x: 0, width: INITIAL_PADDLE_WIDTH });
+  const paddleRef = useRef({ x: 0, width: 80 });
   const ballsRef = useRef<Ball[]>([]);
   const bricksRef = useRef<Brick[][]>([]);
   const animationFrameRef = useRef<number>(0);
@@ -152,11 +199,11 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
 
   const initBricks = useCallback(() => {
     if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const { brickOffsetLeft, brickOffsetTop, brickPadding, brickWidth, brickHeight } = getGameParams(canvas.width, canvas.height);
     const mapIndex = (level - 1) % LEVEL_MAPS.length;
     const currentMap = LEVEL_MAPS[mapIndex];
     const bricks: Brick[][] = [];
-    const brickWidth = (canvasRef.current.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-    const brickHeight = 18;
 
     for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
       bricks[c] = [];
@@ -175,28 +222,38 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         }
 
         bricks[c][r] = { 
-          x: c * (brickWidth + BRICK_PADDING) + BRICK_OFFSET_LEFT, 
-          y: r * (brickHeight + BRICK_PADDING) + BRICK_OFFSET_TOP, 
+          x: c * (brickWidth + brickPadding) + brickOffsetLeft, 
+          y: r * (brickHeight + brickPadding) + brickOffsetTop, 
           status: brickType,
           bonus
         };
       }
     }
     bricksRef.current = bricks;
-  }, [level]);
+  }, [level, getGameParams]);
 
   const resetBall = useCallback(() => {
     if (!canvasRef.current) return;
-    const speed = 3.5 + (level - 1) * 0.5; // Increasing speed more aggressively
+    const canvas = canvasRef.current;
+    const { paddleHeight, ballRadius, speedScale } = getGameParams(canvas.width, canvas.height);
+    const speed = (3.6 + (level - 1) * 0.5) * speedScale;
     ballsRef.current = [{
-      x: canvasRef.current.width / 2,
-      y: canvasRef.current.height - 35,
+      x: canvas.width / 2,
+      y: canvas.height - paddleHeight - 30,
       dx: (speed * 0.7) * (Math.random() > 0.5 ? 1 : -1),
       dy: -speed,
-      radius: BALL_RADIUS
+      radius: ballRadius
     }];
-    paddleRef.current.x = (canvasRef.current.width - paddleRef.current.width) / 2;
-  }, [level]);
+    paddleRef.current.x = (canvas.width - paddleRef.current.width) / 2;
+  }, [level, getGameParams]);
+
+  useEffect(() => {
+    if (canvasRef.current && gameState !== 'playing') {
+      const params = getGameParams(canvasDimensions.width, canvasDimensions.height);
+      paddleRef.current.width = params.initialPaddleWidth;
+      paddleRef.current.x = (canvasDimensions.width - params.initialPaddleWidth) / 2;
+    }
+  }, [canvasDimensions, gameState, getGameParams]);
 
   const startGame = () => {
     setGameState('playing');
@@ -210,7 +267,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     setScore(0);
     setLives(3);
     setLevel(1);
-    paddleRef.current.width = INITIAL_PADDLE_WIDTH;
+    if (canvasRef.current) {
+      const params = getGameParams(canvasRef.current.width, canvasRef.current.height);
+      paddleRef.current.width = params.initialPaddleWidth;
+    }
     if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current);
     initBricks();
     resetBall();
@@ -245,39 +305,40 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d')!;
+    const { brickOffsetLeft, brickOffsetTop, brickPadding, brickWidth, brickHeight, paddleHeight, initialPaddleWidth, speedScale } = getGameParams(canvas.width, canvas.height);
 
     const drawBall = (ball: Ball) => {
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = "#0061f2";
+      ctx.fillStyle = "#38bdf8";
       ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       ctx.closePath();
     };
 
     const drawPaddle = () => {
       ctx.beginPath();
-      ctx.rect(paddleRef.current.x, canvas.height - PADDLE_HEIGHT - 5, paddleRef.current.width, PADDLE_HEIGHT);
+      ctx.rect(paddleRef.current.x, canvas.height - paddleHeight - 6, paddleRef.current.width, paddleHeight);
       ctx.fillStyle = "#0061f2";
       ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.5)";
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.closePath();
     };
 
     const drawBricks = () => {
-      const brickWidth = (canvas.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-      const brickHeight = 18;
       const mapIndex = (level - 1) % LEVEL_MAPS.length;
       const currentMapRows = LEVEL_MAPS[mapIndex].length;
 
       for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
         for (let r = 0; r < currentMapRows; r++) {
-          const b = bricksRef.current[c][r];
+          const b = bricksRef.current[c] ? bricksRef.current[c][r] : null;
           if (!b || b.status === 0) continue;
           
           ctx.beginPath();
-          // ctx.roundRect is supported in modern browsers
           if (ctx.roundRect) {
             ctx.roundRect(b.x, b.y, brickWidth, brickHeight, 4);
           } else {
@@ -313,14 +374,12 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     };
 
     const collisionDetection = () => {
-      const brickWidth = (canvas.width - BRICK_OFFSET_LEFT * 2 - (BRICK_COLUMN_COUNT - 1) * BRICK_PADDING) / BRICK_COLUMN_COUNT;
-      const brickHeight = 18;
       const mapIndex = (level - 1) % LEVEL_MAPS.length;
       const currentMapRows = LEVEL_MAPS[mapIndex].length;
 
       for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
         for (let r = 0; r < currentMapRows; r++) {
-          const b = bricksRef.current[c][r];
+          const b = bricksRef.current[c] ? bricksRef.current[c][r] : null;
           if (!b || b.status === 0) continue;
 
           ballsRef.current.forEach(ball => {
@@ -346,10 +405,10 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
                       { ...ball, dx: ball.dx - 1.5, dy: -ball.dy }
                     );
                   } else if (b.bonus === 'expand') {
-                    paddleRef.current.width = INITIAL_PADDLE_WIDTH * 1.5;
+                    paddleRef.current.width = initialPaddleWidth * 1.5;
                     if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current);
                     bonusTimerRef.current = setTimeout(() => {
-                      paddleRef.current.width = INITIAL_PADDLE_WIDTH;
+                      paddleRef.current.width = initialPaddleWidth;
                     }, 10000);
                   }
                 } else {
@@ -378,11 +437,11 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         }
         if (ball.y + ball.dy < ball.radius) {
           ball.dy = -ball.dy;
-        } else if (ball.y + ball.dy > canvas.height - ball.radius - PADDLE_HEIGHT - 5) {
+        } else if (ball.y + ball.dy > canvas.height - ball.radius - paddleHeight - 6) {
           if (ball.x > paddleRef.current.x && ball.x < paddleRef.current.x + paddleRef.current.width) {
             const hitPos = (ball.x - (paddleRef.current.x + paddleRef.current.width / 2)) / (paddleRef.current.width / 2);
-            ball.dx = hitPos * 5;
-            ball.dy = -ball.dy;
+            ball.dx = hitPos * (5 * speedScale);
+            ball.dy = -Math.abs(ball.dy);
           } else if (ball.y + ball.dy > canvas.height - ball.radius) {
             return;
           }
@@ -419,7 +478,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     }
 
     return () => cancelAnimationFrame(animationFrameRef.current);
-  }, [gameState, resetBall, initBricks, handleFinish]);
+  }, [gameState, resetBall, initBricks, handleFinish, getGameParams, level]);
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current) return;
@@ -431,11 +490,25 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
     } else {
       clientX = e.clientX;
     }
-    const relativeX = clientX - rect.left;
-    if (relativeX > 0 && relativeX < canvas.width) {
-      paddleRef.current.x = relativeX - paddleRef.current.width / 2;
+    const relativeX = (clientX - rect.left) * (canvas.width / rect.width);
+    if (relativeX >= 0 && relativeX <= canvas.width) {
+      paddleRef.current.x = Math.max(0, Math.min(canvas.width - paddleRef.current.width, relativeX - paddleRef.current.width / 2));
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== 'playing' || !canvasRef.current) return;
+      const step = Math.max(15, canvasRef.current.width * 0.04);
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        paddleRef.current.x = Math.max(0, paddleRef.current.x - step);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        paddleRef.current.x = Math.min(canvasRef.current.width - paddleRef.current.width, paddleRef.current.x + step);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState]);
 
   const nextLevel = () => {
     // AWARD BADGE - Skill (Demolidor de Blocos)
@@ -489,14 +562,17 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
         { label: 'Vidas', value: lives }
       ]} />
 
-      <div className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-b-3xl border-x-4 border-b-4 border-slate-800 overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="flex-1 relative flex items-center justify-center bg-slate-950 rounded-b-2xl border-x-2 border-b-2 border-slate-800 overflow-hidden w-full h-full"
+      >
         <canvas 
           ref={canvasRef}
-          width={350}
-          height={500}
+          width={canvasDimensions.width}
+          height={canvasDimensions.height}
           onMouseMove={handleMouseMove}
           onTouchMove={handleMouseMove}
-          className="max-w-full max-h-full touch-none"
+          className="w-full h-full block touch-none cursor-ew-resize"
         />
 
         <AnimatePresence>
@@ -583,7 +659,7 @@ const BrickBreakerGame: React.FC<BrickBreakerGameProps> = ({ onBack, isDarkMode,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+            className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
           >
             <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
               <div className="bg-blue-600 p-6 flex items-center justify-between">

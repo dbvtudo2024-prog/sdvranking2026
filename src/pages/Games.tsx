@@ -204,9 +204,9 @@ const Games: React.FC<GamesProps> = ({
     };
 
     return (
-      <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex-1 overflow-y-auto custom-scrollbar flex justify-center bg-slate-100 dark:bg-slate-950">
-          <div className="w-full max-w-4xl h-full bg-white dark:bg-[#0f172a] shadow-2xl relative">
+      <div className="relative w-full h-full flex flex-col flex-1 overflow-hidden bg-white dark:bg-[#0f172a] animate-in fade-in duration-300">
+        <div className="flex-1 overflow-hidden flex flex-col w-full h-full bg-white dark:bg-[#0f172a]">
+          <div className="w-full h-full bg-white dark:bg-[#0f172a] relative flex flex-col overflow-hidden">
             {gameComponent}
           </div>
         </div>

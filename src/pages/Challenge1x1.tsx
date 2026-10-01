@@ -287,7 +287,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+              className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
             >
               <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
                 <div className="bg-red-600 p-6 flex items-center justify-between">
@@ -569,7 +569,7 @@ const Challenge1x1Page: React.FC<Challenge1x1PageProps> = ({ user, members, onBa
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
+            className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto"
           >
             <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden mt-10">
               <div className="bg-red-600 p-6 flex items-center justify-between">

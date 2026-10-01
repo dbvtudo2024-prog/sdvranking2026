@@ -114,7 +114,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             setIsExpanded(true);
           }
         }}
-        className={`hidden md:flex flex-col shrink-0 h-full border-r z-40 select-none overflow-hidden transition-all duration-300 ease-in-out relative ${
+        className={`hidden md:flex flex-col shrink-0 h-full border-r z-50 select-none overflow-hidden transition-all duration-300 ease-in-out relative ${
           isExpanded 
             ? 'w-64 lg:w-72 shadow-xl' 
             : 'w-20 cursor-pointer hover:border-blue-400/50 dark:hover:border-blue-500/50'

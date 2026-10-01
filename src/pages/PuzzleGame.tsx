@@ -298,7 +298,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
             <p className="text-slate-400 text-sm font-medium">Resolva o desafio para ganhar pontos!</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto w-full">
             {images.map((img, imgIdx) => (
               <button 
                 key={`puzzle-img-${img.id || imgIdx}-${imgIdx}`}
@@ -352,8 +352,8 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ user, members, onUpdateMember, 
         <div 
           className="relative bg-slate-200 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
           style={{ 
-            width: 'min(80vw, 260px)', 
-            height: 'min(80vw, 260px)',
+            width: 'min(90vw, 65vh, 480px)', 
+            height: 'min(90vw, 65vh, 480px)',
             display: 'grid',
             gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
             gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,

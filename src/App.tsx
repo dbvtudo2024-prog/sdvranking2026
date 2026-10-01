@@ -1241,7 +1241,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {currentPage !== 'home' && currentPage !== 'admin_management' && (
+        {currentPage !== 'home' && currentPage !== 'admin_management' && !isGameActive && (
           <header className="bg-[#0061f2] text-white px-5 h-20 flex items-center justify-between shadow-xl z-50 shrink-0">
             <div className="flex items-center gap-3">
               {isDetailPage ? (
@@ -1417,7 +1417,7 @@ const App: React.FC = () => {
           </header>
         )}
         
-        {currentPage !== 'home' && !['devotional', 'admin_management'].includes(currentPage) && <TickerBanner announcements={announcements} />}
+        {currentPage !== 'home' && !['devotional', 'admin_management'].includes(currentPage) && !isGameActive && <TickerBanner announcements={announcements} />}
         
         <main className="flex-1 overflow-hidden">{renderPage()}</main>
 
