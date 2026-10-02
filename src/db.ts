@@ -730,7 +730,7 @@ export async function migrateAllDataToCloudflareD1(): Promise<{
         [
           st.id,
           st.name,
-          st.pdfurl || "",
+          st.pdfurl || (st as any).pdf_url || (st as any).pdfUrl || "",
           st.video_url || "",
           st.specialty_image_url || "",
           st.category || "Geral",
@@ -993,7 +993,7 @@ function normalizeStudy(s: any): SpecialtyStudy {
   return {
     id: String(s.id || `study_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`),
     name: String(s.name || 'Estudo de Especialidade'),
-    pdfurl: String(s.pdfurl || ''),
+    pdfurl: String(s.pdfurl || s.pdf_url || s.pdfUrl || ''),
     video_url: s.video_url || undefined,
     specialty_image_url: s.specialty_image_url || undefined,
     category: s.category || 'Geral',
@@ -1001,6 +1001,112 @@ function normalizeStudy(s: any): SpecialtyStudy {
     scheduled_for: s.scheduled_for || undefined,
     created_at: s.created_at || new Date().toISOString()
   };
+}
+
+function generateUuidFallback(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+async function syncSpecialtyStudyToSupabase(
+  study: Partial<SpecialtyStudy> & { name: string },
+  isInsertOnly = false
+): Promise<{ error: any }> {
+  const payload: Record<string, any> = {};
+  for (const [k, v] of Object.entries(study)) {
+    if (v !== undefined) {
+      payload[k] = v;
+    }
+  }
+
+  let triedPdfSnake = false;
+  let triedPdfCamel = false;
+  let triedStringifiedQuestions = false;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const { error } = isInsertOnly || !payload.id
+      ? await supabase.from('specialty_studies').insert([payload])
+      : await supabase.from('specialty_studies').upsert([payload], { onConflict: 'id' });
+
+    if (!error) {
+      return { error: null };
+    }
+
+    lastError = error;
+    const msg = String(error.message || '');
+    const code = String(error.code || '');
+
+    // Tratar colunas ausentes no cache de schema (PostgREST PGRST204, PGRST100, Postgres 42703)
+    if (
+      code === 'PGRST204' ||
+      code === 'PGRST100' ||
+      code === '42703' ||
+      msg.includes('Could not find') ||
+      msg.toLowerCase().includes('column')
+    ) {
+      const colMatch =
+        msg.match(/Could not find the '([^']+)' column/i) ||
+        msg.match(/column ["']?([a-zA-Z0-9_]+)["']?/i);
+      const missingCol = colMatch?.[1];
+
+      if (missingCol === 'pdfurl' && !triedPdfSnake && 'pdfurl' in payload) {
+        triedPdfSnake = true;
+        payload.pdf_url = payload.pdfurl;
+        delete payload.pdfurl;
+        continue;
+      }
+      if (missingCol === 'pdf_url' && !triedPdfCamel && 'pdf_url' in payload) {
+        triedPdfCamel = true;
+        payload.pdfUrl = payload.pdf_url;
+        delete payload.pdf_url;
+        continue;
+      }
+      if (missingCol && missingCol in payload) {
+        delete payload[missingCol];
+        continue;
+      }
+
+      // Fallback genérico se não conseguiu extrair o nome exato da coluna
+      if ('scheduled_for' in payload) { delete payload.scheduled_for; continue; }
+      if ('video_url' in payload) { delete payload.video_url; continue; }
+      if ('specialty_image_url' in payload) { delete payload.specialty_image_url; continue; }
+      if ('pdfurl' in payload) {
+        if (!triedPdfSnake) { triedPdfSnake = true; payload.pdf_url = payload.pdfurl; delete payload.pdfurl; continue; }
+        delete payload.pdfurl;
+        continue;
+      }
+      if ('pdf_url' in payload) { delete payload.pdf_url; continue; }
+      if ('pdfUrl' in payload) { delete payload.pdfUrl; continue; }
+      if ('created_at' in payload) { delete payload.created_at; continue; }
+    }
+
+    // Tratar erro de sintaxe UUID no id ou JSON string em questions
+    if ((code === '22P02' || msg.toLowerCase().includes('uuid')) && 'id' in payload) {
+      if (isInsertOnly) {
+        delete payload.id;
+      } else {
+        payload.id = generateUuidFallback();
+      }
+      continue;
+    }
+
+    if (!triedStringifiedQuestions && Array.isArray(payload.questions)) {
+      triedStringifiedQuestions = true;
+      payload.questions = JSON.stringify(payload.questions);
+      continue;
+    }
+
+    break;
+  }
+
+  return { error: lastError };
 }
 
 export const DatabaseService = {
@@ -3433,7 +3539,7 @@ export const DatabaseService = {
       return;
     }
 
-    const { error } = await supabase.from('specialty_studies').insert([study]);
+    const { error } = await syncSpecialtyStudyToSupabase(study, true);
     if (error) throw error;
   },
 
@@ -3500,16 +3606,26 @@ export const DatabaseService = {
     const { data } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
     if (data && data.length > 0) return;
 
-    const { error } = await supabase.from('specialty_studies').insert([study]);
+    const { error } = await syncSpecialtyStudyToSupabase(study, true);
     if (error) throw error;
   },
 
   async seedSpecialtyStudies(studies: Omit<SpecialtyStudy, 'id'>[]) {
     for (const study of studies) {
-      const { data } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
-      if (!data || data.length === 0) {
-        const { error } = await supabase.from('specialty_studies').insert([study]);
-        if (error) console.error("Erro ao inserir estudo de especialidade:", error);
+      try {
+        const { data, error: selectError } = await supabase.from('specialty_studies').select('id').eq('name', study.name);
+        if (selectError) {
+          console.warn("[seedSpecialtyStudies] Aviso ao consultar estudo:", selectError.message || selectError);
+          continue;
+        }
+        if (!data || data.length === 0) {
+          const { error } = await syncSpecialtyStudyToSupabase(study, true);
+          if (error) {
+            console.warn("[seedSpecialtyStudies] Aviso ao inserir estudo de especialidade:", error.message || error);
+          }
+        }
+      } catch (err: any) {
+        console.warn("[seedSpecialtyStudies] Falha ao semear estudo:", err?.message || err);
       }
     }
   },
@@ -3586,7 +3702,7 @@ export const DatabaseService = {
   },
 
   async saveSpecialtyStudy(study: SpecialtyStudy | Omit<SpecialtyStudy, 'id'>): Promise<SpecialtyStudy> {
-    const recordId = String((study as any).id || ('study_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)));
+    const recordId = String((study as any).id || generateUuidFallback());
     const studyItem: SpecialtyStudy = normalizeStudy({
       ...study,
       id: recordId,
@@ -3606,37 +3722,11 @@ export const DatabaseService = {
       console.warn("[saveSpecialtyStudy] Erro no backup local:", e);
     }
 
-    // 2. Salvar no Supabase (com contingências para schema e colunas opcionais)
+    // 2. Salvar no Supabase (com contingências automáticas para schema e colunas opcionais)
     try {
-      // Tentativa 1: upsert padrão com objeto normalizado
-      const { error: upsertErr } = await supabase.from('specialty_studies').upsert([studyItem], { onConflict: 'id' });
-      if (upsertErr) {
-        console.warn("[saveSpecialtyStudy] Aviso no upsert do Supabase:", upsertErr.message || upsertErr);
-
-        // Tentativa 2: sem coluna scheduled_for
-        if (upsertErr.message?.includes('scheduled_for') || upsertErr.code === 'PGRST100' || (upsertErr as any).status === 404) {
-          console.log("[saveSpecialtyStudy] Tentando salvar sem coluna 'scheduled_for'...");
-          const { scheduled_for, ...withoutSchedule } = studyItem;
-          const { error: retryErr } = await supabase.from('specialty_studies').upsert([withoutSchedule], { onConflict: 'id' });
-          if (retryErr) {
-            console.warn("[saveSpecialtyStudy] Falha ao salvar sem scheduled_for:", retryErr.message || retryErr);
-          }
-        } else {
-          // Tentativa 3: caso questions precise de JSON string em colunas do tipo TEXT
-          const stringifiedQuestionsStudy = {
-            ...studyItem,
-            questions: JSON.stringify(studyItem.questions || [])
-          };
-          const { error: textErr } = await supabase.from('specialty_studies').upsert([stringifiedQuestionsStudy], { onConflict: 'id' });
-          if (textErr) {
-            console.warn("[saveSpecialtyStudy] Tentando insert simples no Supabase...", textErr.message);
-            try {
-              await supabase.from('specialty_studies').insert([studyItem]);
-            } catch {
-              // ignore insert fallback error
-            }
-          }
-        }
+      const { error: sbSyncErr } = await syncSpecialtyStudyToSupabase(studyItem, false);
+      if (sbSyncErr) {
+        console.warn("[saveSpecialtyStudy] Aviso ao sincronizar com Supabase:", sbSyncErr.message || sbSyncErr);
       }
     } catch (sbErr) {
       console.warn("[saveSpecialtyStudy] Erro ao sincronizar com Supabase:", sbErr);
