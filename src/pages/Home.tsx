@@ -4,6 +4,7 @@ import { Announcement, AuthUser, Member, BadgeLevel, UserStats, UserRole } from 
 import { Megaphone, Users, Trophy, Gamepad2, MessageCircle, ShieldCheck, User, LayoutGrid, BookOpen, Share2, Cake, Star, BellRing, Pin, CheckCircle2, Calendar, Flame, X, GraduationCap, Moon, Sun } from 'lucide-react';
 import { formatImageUrl } from '@/helpers/imageHelpers';
 import { motion, AnimatePresence } from 'motion/react';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 interface HomeProps {
   announcements: Announcement[];
@@ -193,6 +194,8 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
         </div>
 
         <div className="flex items-center gap-3">
+          <PWAInstallButton compact />
+
           {streak > 0 && (
             <button 
               onClick={() => setShowCheckInModal(true)}
@@ -244,6 +247,9 @@ const Home: React.FC<HomeProps> = ({ announcements, onNavigate, isDarkMode = fal
           className="w-32 h-32 landscape:w-20 landscape:h-20 object-contain drop-shadow-2xl" 
           referrerPolicy="no-referrer"
         />
+        <div className="mt-3">
+          <PWAInstallButton compact />
+        </div>
       </div>
 
       {/* MURAL DE AVISOS */}

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { calculateWeeklyTotal, calculateGamesTotal, calculateSpecific } from '@/helpers/scoreHelpers';
 import { formatDate } from '@/helpers/dateHelpers';
 import { getBadgeLevelColorClass, getStarLevelColorClass } from './Badges';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 // ICON MAPPING FOR BADGES
 const BADGE_ICONS: { [key: string]: any } = {
@@ -286,6 +287,8 @@ const Profile: React.FC<ProfileProps> = ({
             >
               <Settings size={16} /> EDITAR PERFIL
             </button>
+
+            <PWAInstallButton />
 
             <button 
               onClick={onLogout}

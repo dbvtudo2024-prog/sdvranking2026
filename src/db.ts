@@ -14,8 +14,10 @@ import {
 import { SPECIALTIES, QUIZ_QUESTIONS, THREE_CLUES_DATA } from './constants';
 
 declare global {
-  interface ImportMeta {
-    readonly env: Record<string, string | undefined>;
+  interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL?: string;
+    readonly VITE_SUPABASE_ANON_KEY?: string;
+    readonly VITE_CLOUDFLARE_API_URL?: string;
   }
 }
 
@@ -23,65 +25,29 @@ const DEFAULT_URL = 'https://heuotluvniqozsuwcnpi.supabase.co';
 const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhldW90bHV2bmlxb3pzdXdjbnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTg5NDcsImV4cCI6MjA4ODgzNDk0N30.IPeNpraSXp_Zup8Lc57LaOcchqt7SVkPk0Crozvr1Jk';
 
 const getValidSupabaseConfig = () => {
-  let url = import.meta.env.VITE_SUPABASE_URL;
-  let key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  let url = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+  let key = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
-  // Se ambos existem e parecem válidos nas posições corretas, usamos diretamente
-  if (url && typeof url === 'string' && url.trim().startsWith('http') &&
-      key && typeof key === 'string' && key.trim().length > 20 && key.includes('.')) {
-    console.log("[getValidSupabaseConfig] Usando credenciais do ambiente diretamente:", url.trim());
-    return { url: url.trim(), key: key.trim() };
+  // Normalização caso URL e Key tenham sido colocadas em campos trocados no ambiente
+  const isHttpUrl = (v: string) => /^https?:\/\/[a-z0-9.-]+\.[a-z]{2,}/i.test(v);
+  const isApiKey = (v: string) => (v.length > 20 && v.includes('.')) || v.startsWith('sb_');
+
+  if (!isHttpUrl(url) && isHttpUrl(key) && isApiKey(url)) {
+    console.log("[getValidSupabaseConfig] Detectado credenciais trocadas no ambiente. Corrigindo posições...");
+    const temp = url;
+    url = key;
+    key = temp;
   }
 
-  // Normalização caso estejam invertidos/trocados no ambiente
-  if (url && typeof url === 'string' && key && typeof key === 'string') {
-    const urlIsJwt = !url.startsWith('http') && url.includes('.') && url.length > 50;
-    const keyIsUrl = key.startsWith('http');
-    if (urlIsJwt && keyIsUrl) {
-      console.log("[getValidSupabaseConfig] Detectado credenciais trocadas no ambiente. Corrigindo posições...");
-      const temp = url;
-      url = key;
-      key = temp;
-    }
+  // Só usa as variáveis de ambiente se AMBAS forem válidas (URL HTTP real + chave válida)
+  if (isHttpUrl(url) && isApiKey(key)) {
+    console.log("[getValidSupabaseConfig] Usando credenciais do ambiente diretamente:", url);
+    return { url, key };
   }
 
-  // Caso ainda não esteja completo, tenta extrair a referência do projeto do JWT para reconstruir a URL se possível
-  const extractRefFromJwt = (jwt: string): string | null => {
-    try {
-      if (jwt && jwt.includes('.')) {
-        const parts = jwt.split('.');
-        if (parts[1]) {
-          const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-          const decoded = atob(payloadBase64);
-          const parsed = JSON.parse(decoded);
-          if (parsed && parsed.ref) {
-            return parsed.ref;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("[getValidSupabaseConfig] Falha ao extrair projeto do JWT:", e);
-    }
-    return null;
-  };
-
-  let detectedRef = null;
-  if (key && typeof key === 'string' && key.includes('.')) {
-    detectedRef = extractRefFromJwt(key);
-  }
-
-  if (detectedRef) {
-    url = `https://${detectedRef}.supabase.co`;
-    console.log("[getValidSupabaseConfig] URL de banco autodetectada a partir do JWT:", url);
-  }
-
-  if (!url || typeof url !== 'string' || !url.trim().startsWith('http')) {
-    url = DEFAULT_URL;
-  }
-  if (!key || typeof key !== 'string' || key.trim() === '') {
-    key = DEFAULT_KEY;
-  }
-  return { url: url.trim(), key: key.trim() };
+  // Caso a URL de ambiente esteja ausente ou inválida (ex: chave colada no campo de URL),
+  // usa o projeto oficial padrão do clube para manter sincronia com a versão publicada.
+  return { url: DEFAULT_URL, key: DEFAULT_KEY };
 };
 
 const { url: SUPABASE_URL, key: SUPABASE_ANON_KEY } = getValidSupabaseConfig();

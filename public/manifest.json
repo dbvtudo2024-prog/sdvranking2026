@@ -1,21 +1,29 @@
 {
+  "id": "/",
   "name": "Sentinelas da Verdade",
   "short_name": "Sentinelas",
-  "description": "App oficial para gestão do Clube de Desbravadores Sentinelas da Verdade",
+  "description": "App oficial para gestão do Clube de Desbravadores Sentinelas da Verdade, com controle de unidades, membros, pontuação e ranking.",
   "theme_color": "#0061f2",
   "background_color": "#0061f2",
-  "display": "minimal-ui",
+  "display": "standalone",
   "orientation": "any",
   "start_url": "/",
+  "scope": "/",
   "icons": [
     {
-      "src": "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx",
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://lh3.googleusercontent.com/d/1KKE5U0rS6qVvXGXDIvElSGOvAtirf2Lx",
+      "src": "/pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

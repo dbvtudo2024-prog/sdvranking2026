@@ -18,25 +18,35 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
+          includeAssets: ['shield-icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
           manifest: {
+            id: '/',
             name: 'Sentinelas da Verdade',
             short_name: 'Sentinelas',
-            description: 'Sistema de Ranking e Gestão de Desbravadores',
-            theme_color: '#1e293b',
-            background_color: '#0f172a',
+            description: 'App oficial para gestão do Clube de Desbravadores Sentinelas da Verdade, com controle de unidades, membros, pontuação e ranking.',
+            theme_color: '#0061f2',
+            background_color: '#0061f2',
             display: 'standalone',
+            start_url: '/',
+            scope: '/',
             icons: [
               {
-                src: '/shield-icon.svg',
+                src: '/pwa-192x192.png',
                 sizes: '192x192',
-                type: 'image/svg+xml',
-                purpose: 'any maskable'
+                type: 'image/png',
+                purpose: 'any'
               },
               {
-                src: '/shield-icon.svg',
+                src: '/pwa-512x512.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
-                purpose: 'any maskable'
+                type: 'image/png',
+                purpose: 'any'
+              },
+              {
+                src: '/pwa-maskable-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
               }
             ]
           },
@@ -44,7 +54,7 @@ export default defineConfig(({ mode }) => {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
             runtimeCaching: [
               {
-                urlPattern: /^https:\/\/lhcobtexredrovjbxaew\.supabase\.co\/.*/i,
+                urlPattern: /^https:\/\/(heuotluvniqozsuwcnpi|lhcobtexredrovjbxaew)\.supabase\.co\/.*/i,
                 handler: 'NetworkFirst',
                 options: {
                   cacheName: 'supabase-cache',
@@ -69,6 +79,10 @@ export default defineConfig(({ mode }) => {
                 }
               }
             ]
+          },
+          devOptions: {
+            enabled: true,
+            type: 'module'
           }
         })
       ],
